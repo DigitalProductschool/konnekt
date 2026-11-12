@@ -37,10 +37,14 @@ def create_approval_request(
     """Ask the team member to approve an action; nothing is done yet.
 
     Agents only: a browser session answers 403 `browser_only`, an agent below the
-    action's level 403 `insufficient_access`. An unknown or deleted connection
-    answers 404, an action that doesn't apply 409 `not_allowed`, and a draft that
-    publishing would refuse 400 with publishing's message. A waiting request for
-    the same connection and action becomes `replaced`.
+    action's level 403 `insufficient_access`. `publish` and `reactivate` may name
+    a `start_date`, and `set_start_date` names the new one or none for now (spec
+    010, research R9); another action with one fails the body's validation (400),
+    and a date that isn't after today in Germany answers 400 `invalid_start_date`.
+    An unknown or deleted connection answers 404, an action that doesn't apply
+    409 `not_allowed`, and a draft that publishing would refuse 400 with
+    publishing's message; a refusal makes no request. A waiting request for the
+    same connection and action becomes `replaced`.
     """
     request = approvals.create_request(db, principal, data)
     return ApiResponse(data=request, message='Approval requested')
@@ -69,8 +73,10 @@ def approve_request(
     """Approve a waiting request: its action runs as in Konnekt.
 
     The request's account only (403 `not_yours`). A request that isn't waiting,
-    has expired or no longer applies answers 409 `approval_<status>` and nothing
-    is done. A failure of EUDIPLO answers 502 or 503 with an `error_id`, as
+    has expired or no longer applies, also because the connection's status or
+    start date moved or the start date it asks for is no longer after today
+    (spec 010, FR-065, FR-066), answers 409 `approval_<status>` and nothing is
+    done. A failure of EUDIPLO answers 502 or 503 with an `error_id`, as
     publishing does, and the request stays waiting for another attempt.
     """
     preview = approvals.approve(db, user, request_id, CONFIG_FAILED)

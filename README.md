@@ -16,8 +16,11 @@ citizen.
 The middleware is built in phases. Each phase's specification, plan and task list are in
 [specs/](specs/): [001-servicebw-eudi-middleware/](specs/001-servicebw-eudi-middleware/) for the
 form connections, [002-connection-rules/](specs/002-connection-rules/) for their rules and
-variants, and [008-kern-revamp-redesign/](specs/008-kern-revamp-redesign/) for Konnekt's current
-design on the KERN Revamp. The code base started from the Digital Product School React + FastAPI +
+variants, [008-kern-revamp-redesign/](specs/008-kern-revamp-redesign/) for Konnekt's current
+design on the KERN Revamp, and [010-revamp-backend-gaps/](specs/010-revamp-backend-gaps/) for
+what that design draws on stored data: scheduling a connection, its status dates and activity,
+deleting with "Undo" and several at once, the documents' order, the example connection and the
+catalog's data groups. The code base started from the Digital Product School React + FastAPI +
 PostgreSQL template.
 
 Team members can also work with an LLM agent on their own machine, such as Claude Code, Cursor or
@@ -276,7 +279,8 @@ uv run alembic upgrade head
 # Issue a test PID and driving licence to a test wallet (see Test credentials below)
 uv run python -m scripts.issue_test_credentials
 
-# Regenerate the rule checks' fixtures and the server messages' parity fixture (see below)
+# Regenerate the rule checks' fixtures, the server messages' parity fixture and the example's
+# fixture (see below)
 uv run python -m scripts.export_check_fixtures           # write them
 uv run python -m scripts.export_check_fixtures --check   # only check they are current
 ```
@@ -302,9 +306,14 @@ server's rules messages (`app/services/rules_texts.py`) rendered in English and 
 sample parameters. The Rules step repeats these messages word for word in both languages, and
 `rules/src/validation.test.ts` checks its tables against the file.
 
+And a fourth (spec 010): `rules/src/fixtures/example-connection.json`, the example connection
+that "Start from an example" creates (`app/example.py`), in English and German, with the
+catalog's two document types and the licence classes it uses. `rules/src/example.test.ts` runs
+the rules package's validation and the rule checks on it and expects no problem and no finding.
+
 Run it from `backend/`, and commit what it writes, **after a Python upgrade** (a new Python can
 bring a new Unicode version, and with it other case folding), **a change to the evaluator's
-comparisons or a change to the rules' messages**:
+comparisons, a change to the rules' messages or a change to the example**:
 
 ```bash
 cd backend
@@ -603,6 +612,7 @@ The middleware's own settings:
 | `AGENT_TOKEN_MAX_DAYS` | Longest expiry of a personal access token | `90` |
 | `APPROVAL_REQUEST_MINUTES` | How long an approval link is valid | `10` |
 | `AGENT_DRAFTS_PER_HOUR` | Drafts one agent connection or token may create per hour | `20` |
+| `DELETION_UNDO_SECONDS` | How long the team member who deleted a connection or draft can take it back with the toast's "Undo"; afterwards the deletion is final and the worker deletes its EUDIPLO configurations, its activity and a draft's row. `0` switches restoring off | `300` (5 minutes) |
 
 See `backend/.env.example` for the authoritative list. Settings are loaded by
 `app/config.py` via pydantic-settings; add a field there before adding a new
@@ -764,17 +774,26 @@ chooses one of three access levels:
 
 | Access level | Allows |
 |---|---|
-| Read only | Finding and reading connections, the catalog, checking rules, testing fictitious citizens |
-| Read and edit drafts | Also creating and changing drafts, and asking for approval to publish or delete a draft |
-| Read, edit drafts and manage live connections | Also asking for approval to deactivate, reactivate or delete a published connection |
+| Read only | Finding and reading connections and their activity, the catalog, checking rules, testing fictitious citizens |
+| Read and edit drafts | Also creating and changing drafts, and asking for approval to publish (at once or on a start date) or delete a draft |
+| Read, edit drafts and manage live connections | Also asking for approval to deactivate, reactivate, change the start date of or delete a published connection |
 
 No level lets an agent change a published connection's content, and an agent never publishes,
-deletes, deactivates or reactivates by itself: it hands the team member a link to an approval
+deletes, deactivates, reactivates or changes a start date by itself: it hands the team member a link to an approval
 page, valid for `APPROVAL_REQUEST_MINUTES`, where they approve or decline. The user page
 ("Your account" in the user menu) lists the connected agents and personal access tokens, and
 changes an access level or revokes access, from the agent's next call. Every answer carries
 links into Konnekt, and the rules step's menus copy a variant's, a rule's or a
 group's link ("Copy link"), which agents accept wherever they take an identifier.
+
+The server has 26 tools: `search_connections`, `get_connection`, `get_activity`,
+`get_variant`, `get_item`, `get_catalog`, `search_values`, `check_rules`, `test_applicants` and
+`get_guide` read; `create_draft`, `update_connection`, `set_document`, `move_document`,
+`add_variant`, `update_variant`, `delete_variant`, `add_rule`, `update_item`, `delete_item`,
+`reset_item`, `copy_rule` and `group_items` change drafts; `request_approval` and
+`check_approval` ask for and read an approval, and `request_access` asks for a higher access
+level. Restoring a deleted connection, deleting several connections at once and creating the
+example are done by a team member in Konnekt: no tool offers them.
 
 The guidance agents get, the server's instructions and eight skills, lives in `mcp/plugin/`
 and is embedded in the server when it is built. Every change to the MCP tools updates the

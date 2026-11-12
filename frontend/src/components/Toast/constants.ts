@@ -1,8 +1,10 @@
+import checkFilledIcon from '../../assets/icons/check-filled-white.svg';
+import deleteIcon from '../../assets/icons/delete-white.svg';
 import type { ToastKind } from './types';
 
 /**
- * How long a toast without an action stays: Figma "Rules/Toast" (6369:25433), "6 s". A toast
- * with an action stays until it is used or dismissed (research R8)
+ * How long a toast stays, with or without an action: Figma "Rules/Toast" (6369:25433), "6 s"
+ * (FR-082, research R12). The time runs only while neither the pointer nor the focus is on it
  */
 export const TOAST_DURATION_MS = 6000;
 
@@ -19,18 +21,31 @@ export const TOAST_POSITION = {
   /*
    * Under 320 CSS px (T096) it sticks to the window's bottom edge while the part of the page it
    * belongs to is in view, and keeps a place of its own there: at the end of the page it covers
-   * nothing (a fixed toast with an action, which stays until it is used, would hide the page's
+   * nothing (a fixed toast, which stays while the focus is on its action, would hide the page's
    * last controls, such as the footer's, which doesn't stick in such a window)
    */
   narrow: 'narrow:sticky narrow:bottom-8',
 };
 
 /**
- * The fill of each kind (Figma "Rules/Toast" type=neutral 6113:3743, type=success 6369:25428):
- * `color/layout/text/default` ink and `color/feedback/success` green, white text on both
- * (18.7:1 and 5.42:1, design-notes §1.5)
+ * The fill of each kind (Figma "Rules/Toast" type=neutral 6113:3743, type=success 6369:25428,
+ * type=danger 6718:40958): `color/layout/text/default` ink, `color/feedback/success` green and
+ * `color/feedback/danger` red, white text on each (18.7:1, 5.42:1 and 5.75:1, design-notes §1.5;
+ * spec 010 design-notes §4.2 T038)
  */
 export const TOAST_KIND_FILL: Record<ToastKind, string> = {
   neutral: 'bg-kern-layout-text-default',
   success: 'bg-kern-feedback-success',
+  danger: 'bg-kern-feedback-danger',
+};
+
+/**
+ * The 20px white icon 8px before the message (U17 6699:48002, U90 6699:48098): the filled check
+ * of the success kind, the "delete" bin of the danger kind (Figma "Icon · delete" 6718:40964);
+ * the neutral kind has none
+ */
+export const TOAST_KIND_ICON: Record<ToastKind, string | null> = {
+  neutral: null,
+  success: checkFilledIcon,
+  danger: deleteIcon,
 };

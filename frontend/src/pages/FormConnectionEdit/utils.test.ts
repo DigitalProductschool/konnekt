@@ -16,12 +16,14 @@ import {
   linkTargetOf,
   reloadedOf,
   restoreChoiceOf,
+  scheduledStartOf,
   storedContentOf,
   withoutLinkParams,
 } from './utils';
 
 const DRAFT: FormConnectionDraft = {
   status: 'draft',
+  state: 'draft',
   id: 'draft-1',
   name: 'Passenger transport licence',
   description: '',
@@ -33,6 +35,8 @@ const DRAFT: FormConnectionDraft = {
   version: 2,
   created_at: '2026-11-04T10:00:00Z',
   updated_at: '2026-11-04T10:30:00Z',
+  last_activity: null,
+  example: null,
 };
 
 describe('initialStepOf', () => {
@@ -378,5 +382,17 @@ describe('the restore question (S5)', () => {
   it('keeps an open flow as it is', () => {
     const open = { kind: 'open', restored: RECORD } as const;
     expect(draftFlowReducer(open, { type: 'discard' })).toBe(open);
+  });
+});
+
+describe('scheduledStartOf', () => {
+  it('answers the start date of a scheduled connection', () => {
+    expect(scheduledStartOf({ state: 'scheduled', start_date: '2026-12-01' })).toBe('2026-12-01');
+  });
+
+  it('answers null for an active or deactivated connection, and without one', () => {
+    expect(scheduledStartOf({ state: 'live', start_date: null })).toBeNull();
+    expect(scheduledStartOf({ state: 'deactivated', start_date: null })).toBeNull();
+    expect(scheduledStartOf(undefined)).toBeNull();
   });
 });

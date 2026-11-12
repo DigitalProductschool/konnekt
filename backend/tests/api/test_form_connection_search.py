@@ -4,10 +4,14 @@
 changes between calls don't shift, `q` on the name and the description, the
 status filter, deleted rows left out, and the refusals of bad parameters. Every
 access level may call it (test_agent_principal.py's table).
+
+Spec 010 (FR-062, data-model 1.2): the filter takes the four states, `scheduled`
+too, with the conditions of `state_of()` (`form_connections.STATE_CONDITIONS`), so
+that `deactivated` no longer matches a scheduled connection.
 """
 
 import base64
-from datetime import datetime, timedelta
+from datetime import date, datetime, timedelta
 from typing import Any
 
 import pytest
@@ -20,6 +24,8 @@ from tests.helpers import now
 
 SEARCH = '/api/form-connections/search'
 VALIDATION_ERROR = 'Validation error'
+# A scheduled row's start date; the search doesn't compare it with today
+START = date(2026, 12, 1)
 
 
 def _insert(
@@ -29,7 +35,7 @@ def _insert(
     updated_at: datetime | None = None,
     deleted: bool = False,
 ) -> str:
-    """Store a draft, a live or a deactivated connection directly.
+    """Store a draft, a scheduled, a live or a deactivated connection directly.
 
     A published row needs no revision for the search: it reads the row only.
     """
@@ -37,7 +43,8 @@ def _insert(
     values: dict[str, Any] = {
         'name': name,
         'description': description,
-        'is_active': status != 'deactivated',
+        'is_active': status not in ('scheduled', 'deactivated'),
+        'start_date': START if status == 'scheduled' else None,
         'published_at': now() if published else None,
         'current_revision': 1 if published else None,
         'current_rule_set': 1 if published else None,
@@ -126,6 +133,12 @@ def test_a_page_of_the_summaries(signed_in_client: TestClient) -> None:
         'is_active',
         'status',
         'updated_at',
+        'state',
+        'published_at',
+        'deactivated_at',
+        'start_date',
+        'step',
+        'example',
     }
     assert item['id'] == row_id
     assert item['status'] == 'published'
@@ -207,15 +220,26 @@ def test_like_wildcards_in_q_are_literal(
     assert _ids(_search(signed_in_client, q=q)) == [rows[found]]
 
 
-def test_status_filters_the_rows(signed_in_client: TestClient) -> None:
-    draft = _insert('Entwurf', status='draft')
-    live = _insert('Live', status='live')
-    deactivated = _insert('Deaktiviert', status='deactivated')
+@pytest.mark.parametrize('status', ['draft', 'scheduled', 'live', 'deactivated'])
+def test_status_filters_the_rows(signed_in_client: TestClient, status: str) -> None:
+    """One row of each state: each value finds its row alone, the one whose
+    `state` it is, so the filter and `state_of()` agree; a scheduled connection
+    is neither deactivated nor live (FR-062)."""
+    rows = {
+        state: _insert(name, status=state)
+        for state, name in (
+            ('draft', 'Entwurf'),
+            ('scheduled', 'Geplant'),
+            ('live', 'Live'),
+            ('deactivated', 'Deaktiviert'),
+        )
+    }
 
-    assert _ids(_search(signed_in_client, status='draft')) == [draft]
-    assert _ids(_search(signed_in_client, status='live')) == [live]
-    assert _ids(_search(signed_in_client, status='deactivated')) == [deactivated]
-    assert set(_ids(_search(signed_in_client))) == {draft, live, deactivated}
+    page = _search(signed_in_client, status=status)
+
+    assert _ids(page) == [rows[status]]
+    assert [item['state'] for item in page['items']] == [status]
+    assert set(_ids(_search(signed_in_client))) == set(rows.values())
     assert _ids(_search(signed_in_client, status='live', q='entwurf')) == []
 
 
@@ -223,9 +247,11 @@ def test_deleted_rows_are_left_out(signed_in_client: TestClient) -> None:
     kept = _insert('Antrag', status='live')
     _insert('Antrag gelöscht', status='live', deleted=True)
     _insert('Antrag gelöscht', status='deactivated', deleted=True)
+    _insert('Antrag gelöscht', status='scheduled', deleted=True)
 
     assert _ids(_search(signed_in_client, q='antrag')) == [kept]
     assert _ids(_search(signed_in_client, status='deactivated')) == []
+    assert _ids(_search(signed_in_client, status='scheduled')) == []
 
 
 def _cursor(text: str) -> str:

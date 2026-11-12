@@ -15,7 +15,12 @@ import { ApiError, handleResponse } from '../../api/client';
 import { emptyContent, sameContent } from '../../utils/localDrafts/content';
 import { flowKeyOfDraft, newFlowKey } from '../../utils/localDrafts/keys';
 import type { LocalDraftContent, LocalDraftRecord } from '../../utils/localDrafts/types';
-import { DRAFT_COPY, INITIAL_EDITOR_STATE, PUBLISH_DIALOG_COPY } from './constants';
+import {
+  DRAFT_COPY,
+  INITIAL_EDITOR_STATE,
+  INITIAL_PUBLISH_DIALOG_STATE,
+  PUBLISH_DIALOG_COPY,
+} from './constants';
 import { RULES_STEP_COPY } from './RulesStep/constants';
 import type { RulesBranch } from './RulesStep/types';
 import { initialRulesState, rulesReducer } from './RulesStep/utils';
@@ -25,11 +30,15 @@ import type {
   DroppedData,
   EditorOrigin,
   PendingRemoval,
+  PublishDialogAction,
+  PublishDialogState,
 } from './types';
 import {
   conflictOf,
   connectionErrorsOf,
   createPayload,
+  dataRemovalOf,
+  documentIndexOfListIndex,
   documentLines,
   documentsToastOf,
   draftNameErrors,
@@ -41,10 +50,12 @@ import {
   findingLinesOf,
   firstBranchWithFindings,
   firstInvalidElementId,
+  groupRemovalOf,
   headerTitleOf,
   initialEditorState,
   initialStatesFromDraft,
   initialStatesFromLocal,
+  isInvalidStartDate,
   isRulesChanged,
   localContentOf,
   offeredFieldsOf,
@@ -52,14 +63,21 @@ import {
   originOfRecord,
   pageTitleOf,
   problemPlaceOf,
+  publishDialogReducer,
   publishErrorNotice,
+  publishFailureOf,
+  publishStartDateOf,
   removalAction,
   removalInLanguage,
   removedDataRulesOf,
+  ruleDocumentsInListOrder,
   ruleLines,
   rulesChanged,
+  rulesExampleBannerOf,
   rulesNextActionOf,
   saveFailureToastOf,
+  selectedIndexAfterMove,
+  showsExampleLine,
   startOfEntry,
   startOfOrigin,
   stepForDroppedData,
@@ -94,6 +112,12 @@ const LOADED: FormConnection = {
   next_group_number: 1,
   created_at: '2026-10-25T10:00:00Z',
   updated_at: '2026-10-25T10:00:00Z',
+  state: 'live',
+  published_at: '2026-10-25T10:00:00Z',
+  activated_at: '2026-10-25T10:00:00Z',
+  deactivated_at: null,
+  start_date: null,
+  last_activity: null,
 };
 
 /** Ids of variants, as `crypto.randomUUID()` makes them */
@@ -271,6 +295,157 @@ describe('editorReducer and rules_changed', () => {
       });
     }
   );
+});
+
+describe('editorReducer and the documents’ order (FR-045, FR-049; S8 "The list’s order")', () => {
+  const doc = (document_type: string, fields: string[] = []) => ({ document_type, fields });
+  // The team's order, not the catalog's (Personal ID, Driving licence, EHIC)
+  const documents = [doc('ehic'), doc('pid', ['birthdate']), doc('mdl')];
+  const state = { ...INITIAL_EDITOR_STATE, step: 'documents' as const, documents };
+  const typesOf = (each: { documents: { document_type: string }[] }) =>
+    each.documents.map((document) => document.document_type);
+
+  // Changed expectation (FR-045): an added document went to its catalog place before
+  it('adds a document at the end, without fields, not at its catalog place', () => {
+    const added = editorReducer(
+      { ...state, documents: [doc('mdl'), doc('ehic')] },
+      {
+        type: 'addDocument',
+        documentType: 'pid',
+      }
+    );
+    expect(added.documents).toEqual([doc('mdl'), doc('ehic'), doc('pid')]);
+  });
+
+  it('keeps an added document as it is when it is added again', () => {
+    expect(editorReducer(state, { type: 'addDocument', documentType: 'pid' })).toBe(state);
+  });
+
+  it('removes a document with its index, and a red toast with "Undo" (design-notes §4.2 T038)', () => {
+    const removed = editorReducer(state, {
+      type: 'removeDocument',
+      documentType: 'pid',
+      label: 'Personal ID',
+    });
+    expect(typesOf(removed)).toEqual(['ehic', 'mdl']);
+    expect(removed.removed).toEqual({ document: doc('pid', ['birthdate']), index: 1 });
+    expect(removed.toast).toEqual({
+      id: 1,
+      kind: 'danger',
+      message: 'Personal ID removed.',
+      actionLabel: 'Undo',
+    });
+  });
+
+  // Changed expectation (FR-045): "Undo" put the document back at its catalog place before
+  it('puts a removed document back at the index it had, with its fields', () => {
+    const removed = editorReducer(state, {
+      type: 'removeDocument',
+      documentType: 'pid',
+      label: 'Personal ID',
+    });
+    const undone = editorReducer(removed, { type: 'undoRemove' });
+    expect(undone.documents).toEqual(documents);
+    expect(undone).toMatchObject({ removed: null, toast: null });
+  });
+
+  it('puts it back at the end when the list has become shorter', () => {
+    const removed = editorReducer(state, {
+      type: 'removeDocument',
+      documentType: 'mdl',
+      label: 'Driving licence',
+    });
+    const shorter = { ...removed, documents: [doc('ehic')] };
+    expect(typesOf(editorReducer(shorter, { type: 'undoRemove' }))).toEqual(['ehic', 'mdl']);
+  });
+
+  it('moves a document, the others keeping their order, and leaves a removal’s Undo', () => {
+    const removed = editorReducer(
+      { ...state, documents: [...documents, doc('residence_permit')] },
+      { type: 'removeDocument', documentType: 'residence_permit', label: 'Residence permit' }
+    );
+    const moved = editorReducer(removed, { type: 'moveDocument', documentType: 'mdl', toIndex: 0 });
+    expect(typesOf(moved)).toEqual(['mdl', 'ehic', 'pid']);
+    expect(moved.documents[2]).toBe(removed.documents[1]);
+    expect(moved.toast).toBe(removed.toast);
+    expect(moved.removed).toBe(removed.removed);
+    const down = editorReducer(moved, { type: 'moveDocument', documentType: 'mdl', toIndex: 2 });
+    expect(typesOf(down)).toEqual(['ehic', 'pid', 'mdl']);
+  });
+
+  it.each([
+    ['a document the list doesn’t hold', 'residence_permit', 0],
+    ['an index outside the list', 'pid', 3],
+    ['the place it has', 'pid', 1],
+  ])('changes nothing for %s', (_, documentType, toIndex) => {
+    expect(editorReducer(state, { type: 'moveDocument', documentType, toIndex })).toBe(state);
+  });
+
+  it('stores the documents in the array’s order in a local draft, and counts a move as a change', () => {
+    const moved = editorReducer(state, { type: 'moveDocument', documentType: 'mdl', toIndex: 0 });
+    const rules = initialRulesState();
+    expect(localContentOf(state, rules).documents).toEqual(documents);
+    expect(typesOf(localContentOf(moved, rules))).toEqual(['mdl', 'ehic', 'pid']);
+    expect(sameContent(localContentOf(moved, rules), localContentOf(state, rules))).toBe(false);
+  });
+});
+
+describe('selectedIndexAfterMove (the open document through a move; S8)', () => {
+  const LIST = ['ehic', 'pid', 'mdl'];
+
+  it('keeps the open document open when it moves', () => {
+    expect(selectedIndexAfterMove(LIST, 2, 'mdl', 0)).toBe(0);
+    expect(selectedIndexAfterMove(LIST, 0, 'ehic', 2)).toBe(2);
+  });
+
+  it('follows the open document when another one moves past it', () => {
+    expect(selectedIndexAfterMove(LIST, 1, 'mdl', 0)).toBe(2);
+    expect(selectedIndexAfterMove(LIST, 1, 'ehic', 2)).toBe(0);
+    expect(selectedIndexAfterMove(LIST, 0, 'pid', 2)).toBe(0);
+  });
+
+  it('keeps the index of a refused move', () => {
+    expect(selectedIndexAfterMove(LIST, 1, 'pid', 1)).toBe(1);
+    expect(selectedIndexAfterMove(LIST, 1, 'pid', 3)).toBe(1);
+    expect(selectedIndexAfterMove(LIST, 1, 'residence_permit', 0)).toBe(1);
+    expect(selectedIndexAfterMove([], 0, 'pid', 0)).toBe(0);
+  });
+
+  it('counts the pager in the list’s new order', () => {
+    // "Document 3 of 3" while Driving licence shows; moved first, it is "Document 1 of 3"
+    const index = selectedIndexAfterMove(LIST, 2, 'mdl', 0);
+    expect(index + 1).toBe(1);
+  });
+});
+
+describe('documentIndexOfListIndex (a list row’s place among the editor’s documents)', () => {
+  const doc = (document_type: string) => ({ document_type, fields: [] });
+
+  it('is the list index when every document is listed', () => {
+    const documents = [doc('ehic'), doc('pid'), doc('mdl')];
+    expect(documentIndexOfListIndex(documents, ['ehic', 'pid', 'mdl'], 2)).toBe(2);
+  });
+
+  it('skips a document the catalog dropped, which keeps its place', () => {
+    // The residence permit has no row: the list is EHIC, Driving licence
+    const documents = [doc('ehic'), doc('residence_permit'), doc('mdl')];
+    const listIds = ['ehic', 'mdl'];
+    const toIndex = documentIndexOfListIndex(documents, listIds, 1);
+    expect(toIndex).toBe(2);
+    const moved = editorReducer(
+      { ...INITIAL_EDITOR_STATE, documents },
+      { type: 'moveDocument', documentType: 'ehic', toIndex }
+    );
+    expect(moved.documents.map((document) => document.document_type)).toEqual([
+      'residence_permit',
+      'mdl',
+      'ehic',
+    ]);
+  });
+
+  it('answers an index outside the list as it is, for the move to refuse', () => {
+    expect(documentIndexOfListIndex([doc('pid')], ['pid'], 3)).toBe(3);
+  });
 });
 
 describe('editorReducer and the toast on leaving a step (B4)', () => {
@@ -493,6 +668,99 @@ describe('removing data that rules check (FR-029, F18)', () => {
       type: 'confirmRemoval',
     });
     expect(cleared.documents[0].fields).toEqual([]);
+  });
+
+  describe('a data group’s checkbox cleared (FR-079, US9-AS4)', () => {
+    const field = (key: string, label: string): DocumentField => ({
+      key,
+      label,
+      kind: 'text',
+      option_set: null,
+      date_of_birth: false,
+      parts: null,
+      multiple_values: false,
+    });
+    const PID_TYPE: DocumentType = {
+      key: 'pid',
+      label: 'Personal ID',
+      field_groups: [
+        { key: 'birth', label: 'Birth' },
+        { key: 'other', label: 'Other details' },
+      ],
+      fields: [
+        { ...field('birthdate', 'Date of birth'), group: 'birth' },
+        { ...field('nationalities', 'Nationality'), group: 'birth' },
+        { ...field('sex', 'Sex'), group: 'birth' },
+        { ...field('email', 'Email address'), group: 'other' },
+      ],
+    };
+    const birth = {
+      key: 'birth',
+      label: 'Birth',
+      fields: PID_TYPE.fields.filter((item) => item.group === 'birth'),
+    };
+    // A dropped data item (eye_colour) and another group's stay chosen
+    const pid = { document_type: 'pid', fields: ['email', 'birthdate', 'eye_colour', 'sex'] };
+    const GROUP = groupRemovalOf(pid, PID_TYPE, birth);
+
+    it('takes the group’s chosen data items and keeps the rest, named by the catalog', () => {
+      expect(GROUP).toEqual({
+        type: 'group',
+        documentType: 'pid',
+        group: 'birth',
+        fields: ['birthdate', 'sex'],
+        kept: ['email', 'eye_colour'],
+        label: 'Birth',
+        documentLabel: 'Personal ID',
+      });
+    });
+
+    it('is judged as its data items, so that the rules checking them are named', () => {
+      expect(dataRemovalOf(GROUP)).toEqual({
+        type: 'dropped',
+        items: [
+          { documentType: 'pid', field: 'birthdate' },
+          { documentType: 'pid', field: 'sex' },
+        ],
+      });
+      expect(dataRemovalOf(ALL)).toBe(ALL);
+      const named = removedDataRulesOf(GROUP, rules.branches, [pid]).map(
+        ({ ruleName, branchName }) => `${ruleName} in ${branchName}`
+      );
+      expect(named).toEqual(['Rule 01 in Standard']);
+      const other = groupRemovalOf(pid, PID_TYPE, { ...birth, key: 'other', fields: [] });
+      expect(removedDataRulesOf(other, rules.branches, [pid])).toEqual([]);
+    });
+
+    it('clears the group once confirmed and keeps the document’s other fields', () => {
+      const state = { ...INITIAL_EDITOR_STATE, documents: [pid] };
+      const asked = editorReducer(state, { type: 'askRemoval', removal: GROUP });
+      expect(asked.documents).toEqual([pid]);
+      const confirmed = editorReducer(asked, { type: 'confirmRemoval' });
+      expect(confirmed.pendingRemoval).toBeNull();
+      expect(confirmed.documents[0].fields).toEqual(['email', 'eye_colour']);
+      expect(confirmed).toEqual(editorReducer(state, removalAction(GROUP)));
+    });
+
+    it('names the group and the document from the catalog of the moment', () => {
+      const german: DocumentType[] = [
+        {
+          ...PID_TYPE,
+          label: 'Personalausweis',
+          field_groups: [
+            { key: 'birth', label: 'Geburt' },
+            { key: 'other', label: 'Weitere Angaben' },
+          ],
+        },
+      ];
+      expect(removalInLanguage(GROUP, german, 'de')).toEqual({
+        ...GROUP,
+        label: 'Geburt',
+        documentLabel: 'Personalausweis',
+      });
+      // A catalog without the group keeps the stored name
+      expect(removalInLanguage(GROUP, [{ ...PID_TYPE, field_groups: [] }], 'en')).toEqual(GROUP);
+    });
   });
 });
 
@@ -955,6 +1223,7 @@ describe('initialStatesFromDraft (FR-008; R12)', () => {
 
   const DRAFT: FormConnectionDraft = {
     status: 'draft',
+    state: 'draft',
     id: 'draft-1',
     name: 'Passenger transport licence',
     description: 'PT-1',
@@ -972,6 +1241,8 @@ describe('initialStatesFromDraft (FR-008; R12)', () => {
     version: 3,
     created_at: '2026-11-04T10:00:00Z',
     updated_at: '2026-11-04T10:30:00Z',
+    last_activity: null,
+    example: null,
   };
 
   it('takes the name, the description and the documents by key, at the saved step', () => {
@@ -1775,6 +2046,7 @@ describe('the wizard in the language of the moment (spec 009, FR-003, FR-006)', 
     );
     expect(documentsToastOf(removed.toast, removed.removed, GERMAN_CATALOG, 'de')).toEqual({
       id: removed.toast?.id,
+      kind: 'danger',
       message: 'Führerschein entfernt.',
       actionLabel: 'Rückgängig',
     });
@@ -1803,6 +2075,28 @@ describe('the wizard in the language of the moment (spec 009, FR-003, FR-006)', 
     ]);
     expect(ruleLines(rules, true, 'de')).toEqual(['Keine Regeln']);
     expect(ruleLines(initialRulesState(), false, 'de')).toEqual(['Standard · Keine Regeln']);
+  });
+
+  it('hands the rules logic the documents in the list’s order, not the catalog’s (FR-050)', () => {
+    const catalog: DocumentType[] = [
+      {
+        key: 'pid',
+        label: 'Personal ID',
+        fields: [field('birthdate', 'Date of birth'), field('family_name', 'Family name')],
+      },
+      { key: 'mdl', label: 'Driving licence', fields: [field('driving_privileges', 'Classes')] },
+    ];
+    const listed = ruleDocumentsInListOrder(catalog, [
+      { document_type: 'mdl', fields: ['driving_privileges'] },
+      // The data items stay in the catalog's order, whatever the request's
+      { document_type: 'pid', fields: ['family_name', 'birthdate'] },
+      // A document the catalog doesn't know is left out, as requestedRuleDocuments() does
+      { document_type: 'residence_permit', fields: ['a'] },
+    ]);
+    expect(listed.map((document) => document.key)).toEqual(['mdl', 'pid']);
+    expect(listed[1].fields.map((each) => each.key)).toEqual(['birthdate', 'family_name']);
+    expect(listed[0].label).toBe('Driving licence');
+    expect(ruleDocumentsInListOrder(catalog, [])).toEqual([]);
   });
 
   it('gives the findings’ lines in German, the variants’ names as they are', () => {
@@ -1863,6 +2157,310 @@ describe('the wizard in the language of the moment (spec 009, FR-003, FR-006)', 
     );
     expect(publishErrorNotice(rulesChangedError(), true, 'de').message).toBe(
       `${RULES_CHANGED_MESSAGE} ${PUBLISH_DIALOG_COPY.de.rulesChangedHint}`
+    );
+  });
+});
+
+describe('publishDialogReducer: "Active from" (spec 010, S14, C2; FR-001–FR-003, FR-014)', () => {
+  const TODAY = '2026-11-11';
+  const run = (actions: PublishDialogAction[], start = INITIAL_PUBLISH_DIALOG_STATE) =>
+    actions.reduce<PublishDialogState>(publishDialogReducer, start);
+  const opened = run([{ type: 'open', from: 'test', withoutRules: false }]);
+  const onDate = (text: string) =>
+    run(
+      [
+        { type: 'chooseActiveFrom', choice: 'date' },
+        { type: 'typeStartDate', text },
+      ],
+      opened
+    );
+
+  it('opens with "Now", an empty field and no error, also after a scheduled attempt', () => {
+    expect(opened).toMatchObject({
+      phase: 'summary',
+      activeFrom: 'now',
+      startDateText: '',
+      dateError: false,
+      dateRefusals: 0,
+    });
+    const reopened = run(
+      [
+        { type: 'dateRefused' },
+        { type: 'close' },
+        { type: 'open', from: 'test', withoutRules: false },
+      ],
+      onDate('31.02.2027')
+    );
+    expect(reopened).toMatchObject({ activeFrom: 'now', startDateText: '', dateError: false });
+  });
+
+  it('sends no date with "Now" and in the edit flow, the day with "On a date"', () => {
+    expect(publishStartDateOf(opened, false, TODAY)).toEqual({ ok: true, date: null });
+    expect(publishStartDateOf(onDate('1.12.2026'), false, TODAY)).toEqual({
+      ok: true,
+      date: '2026-12-01',
+    });
+    // "Save changes?" has no "Active from" (F9), whatever the state holds
+    expect(publishStartDateOf(onDate('11.11.2026'), true, TODAY)).toEqual({
+      ok: true,
+      date: null,
+    });
+  });
+
+  it('refuses an empty field, today, the past and no date (startDateOf)', () => {
+    for (const text of ['', '11.11.2026', '10.11.2026', '31.02.2027', 'abc']) {
+      expect(publishStartDateOf(onDate(text), false, TODAY)).toEqual({ ok: false });
+    }
+  });
+
+  it("shows the field's error on a refusal and drops it when the text or the choice changes", () => {
+    const refused = run([{ type: 'dateRefused' }], onDate('10.11.2026'));
+    expect(refused).toMatchObject({
+      phase: 'summary',
+      dateError: true,
+      dateRefusals: 1,
+      activeFrom: 'date',
+      startDateText: '10.11.2026',
+    });
+    expect(run([{ type: 'dateRefused' }], refused).dateRefusals).toBe(2);
+    // A date that passed the check is sent: the error goes while it publishes and after a failure
+    expect(
+      run([{ type: 'publish' }, { type: 'failed', failure: { kind: 'general' } }], refused)
+    ).toMatchObject({ phase: 'failed', dateError: false, startDateText: '10.11.2026' });
+    expect(run([{ type: 'typeStartDate', text: '12.11.2026' }], refused).dateError).toBe(false);
+    expect(run([{ type: 'chooseActiveFrom', choice: 'now' }], refused)).toMatchObject({
+      dateError: false,
+      startDateText: '10.11.2026',
+    });
+  });
+
+  it("shows the server's 400 invalid_start_date as the same field error, not as a failure", () => {
+    const error = new ApiError(400, {
+      error: 'invalid_start_date',
+      message: 'Enter a date after today.',
+    });
+    expect(isInvalidStartDate(error)).toBe(true);
+    expect(isInvalidStartDate(new ApiError(400, { error: 'invalid', message: 'No.' }))).toBe(false);
+    expect(isInvalidStartDate(new TypeError('Failed to fetch'))).toBe(false);
+    // Midnight passed during the publish: the summary again, without a failure, with the error
+    const refused = run([{ type: 'publish' }, { type: 'dateRefused' }], onDate('12.11.2026'));
+    expect(refused).toMatchObject({
+      phase: 'summary',
+      failure: null,
+      dateError: true,
+      startDateText: '12.11.2026',
+    });
+    // "Publish without rules?" stays itself
+    const withoutRules = run(
+      [
+        { type: 'open', from: 'rules', withoutRules: true },
+        { type: 'chooseActiveFrom', choice: 'date' },
+        { type: 'publish' },
+        { type: 'dateRefused' },
+      ],
+      INITIAL_PUBLISH_DIALOG_STATE
+    );
+    expect(withoutRules).toMatchObject({ phase: 'noRules', withoutRules: true, dateError: true });
+  });
+
+  it('keeps the choice and the text through a failure, so "Try again" sends the same', () => {
+    const failed = run(
+      [{ type: 'publish' }, { type: 'failed', failure: { kind: 'general' } }],
+      onDate('01.12.2026')
+    );
+    expect(failed).toMatchObject({
+      phase: 'failed',
+      activeFrom: 'date',
+      startDateText: '01.12.2026',
+      dateError: false,
+    });
+    expect(publishStartDateOf(failed, false, TODAY)).toEqual({ ok: true, date: '2026-12-01' });
+    const retried = run([{ type: 'publish' }], failed);
+    expect(retried).toMatchObject({ phase: 'publishing', activeFrom: 'date' });
+    expect(publishStartDateOf(retried, false, TODAY)).toEqual({ ok: true, date: '2026-12-01' });
+    // A conflict keeps them too, for "Replace their changes"
+    const conflict = run(
+      [{ type: 'conflict', conflict: { kind: 'rules_changed', message: 'Changed.' } }],
+      retried
+    );
+    expect(publishStartDateOf(conflict, false, TODAY)).toEqual({ ok: true, date: '2026-12-01' });
+    // After "Schedule" the status stays "Publishing…", then "Published" (FR-014)
+    expect(run([{ type: 'published', connectionId: 'fc-1' }], retried)).toMatchObject({
+      phase: 'published',
+      connectionId: 'fc-1',
+    });
+  });
+});
+
+describe('publishFailureOf: the no-answer sentence only when no answer came (FR-014, F2, W8)', () => {
+  it("gives the sentence for a network failure and a 5xx without the API's envelope", () => {
+    expect(publishFailureOf(new TypeError('Failed to fetch'), false, 'en')).toEqual({
+      kind: 'general',
+    });
+    expect(
+      publishFailureOf(
+        new ApiError(502, { error: 'Unknown error', message: 'An unexpected error occurred' }),
+        false,
+        'en'
+      )
+    ).toEqual({ kind: 'general' });
+  });
+
+  it('shows a server failure with its message and error ID', () => {
+    const error = new ApiError(500, {
+      error: 'internal_error',
+      message: 'Something went wrong.',
+      error_id: 'abc123',
+    });
+    expect(publishFailureOf(error, false, 'en')).toEqual({
+      kind: 'refused',
+      notice: { message: 'Something went wrong.', error_id: 'abc123' },
+    });
+  });
+
+  it("keeps spec 008's look in the edit flow: the sentence with the error ID", () => {
+    const error = new ApiError(500, {
+      error: 'internal_error',
+      message: 'Something went wrong.',
+      error_id: 'abc123',
+    });
+    expect(publishFailureOf(error, true, 'en')).toEqual({ kind: 'general', errorId: 'abc123' });
+  });
+
+  it("shows any other refusal with the server's message", () => {
+    const error = new ApiError(409, { error: 'unavailable', message: 'Not possible.' });
+    expect(publishFailureOf(error, false, 'en')).toEqual({
+      kind: 'refused',
+      notice: { message: 'Not possible.', error_id: undefined },
+    });
+  });
+});
+
+describe('the example (spec 010, FR-058 to FR-060; S9/S11, S14)', () => {
+  const VARIANT_RULES = US1_RULES.slice(0, 2).map((item) => ({
+    ...item,
+    mark: 'changed' as const,
+  }));
+
+  /** The example as the edit page loads it: Standard and Ambulance, 2 rules each */
+  const EXAMPLE: FormConnectionDraft = {
+    status: 'draft',
+    state: 'draft',
+    id: 'draft-example',
+    name: 'Passenger transport licence (example)',
+    description: 'Licence to drive taxis, rental cars and ambulances.',
+    documents: [{ document_type: 'pid', label: 'Personal ID', fields: [] }],
+    branches: [
+      { ...mainBranch(US1_RULES.slice(0, 2)), id: MAIN_ID },
+      {
+        ...mainBranch(VARIANT_RULES),
+        id: VARIANT_ID,
+        name: 'Ambulance',
+        description: 'For ambulance services. Some rules differ from Standard.',
+        origin: 'based',
+      },
+    ],
+    next_rule_number: 3,
+    next_group_number: 1,
+    step: 'connection',
+    version: 1,
+    created_at: '2026-11-11T10:00:00Z',
+    updated_at: '2026-11-11T10:00:00Z',
+    last_activity: null,
+    example: 'unchanged',
+  };
+
+  function loaded() {
+    const { editor, rules } = initialStatesFromDraft(EXAMPLE);
+    return { editor, rules, content: localContentOf(editor, rules) };
+  }
+
+  describe('rulesExampleBannerOf', () => {
+    const { rules } = loaded();
+    const [standard, ambulance] = rules.branches;
+
+    it("words Standard's banner for the main branch, whatever its name", () => {
+      const standardText =
+        'Try changing the age to 18 or adding a rule. Then use Test rules to check the result.';
+      expect(rulesExampleBannerOf(standard, 'en')).toBe(standardText);
+      expect(rulesExampleBannerOf({ ...standard, name: 'Taxi' }, 'en')).toBe(standardText);
+      expect(rulesExampleBannerOf(standard, 'de')).toBe(
+        'Versuchen Sie, das Alter auf 18 zu ändern oder eine Regel hinzuzufügen. Prüfen Sie das Ergebnis dann mit „Regeln testen“.'
+      );
+    });
+
+    it("words the variant's banner by its stored name, in either language (§4.1 call 6)", () => {
+      expect(rulesExampleBannerOf(ambulance, 'en')).toBe(
+        'Ambulance is more lenient than Standard. Rules 01 and 02 are changed here.'
+      );
+      const german = { ...ambulance, name: 'Krankentransport' };
+      expect(rulesExampleBannerOf(german, 'de')).toBe(
+        'Krankentransport ist weniger streng als Standard. Rule 01 und Rule 02 sind hier geändert.'
+      );
+      expect(rulesExampleBannerOf(german, 'en')).toBe(
+        'Krankentransport is more lenient than Standard. Rules 01 and 02 are changed here.'
+      );
+      expect(rulesExampleBannerOf(ambulance, 'de')).toBe(
+        'Ambulance ist weniger streng als Standard. Rule 01 und Rule 02 sind hier geändert.'
+      );
+    });
+
+    it('shows none on a renamed or another variant', () => {
+      expect(rulesExampleBannerOf({ ...ambulance, name: 'Ambulance service' }, 'en')).toBeNull();
+      expect(rulesExampleBannerOf({ ...ambulance, name: 'ambulance' }, 'en')).toBeNull();
+      expect(rulesExampleBannerOf({ ...ambulance, name: 'School transport' }, 'de')).toBeNull();
+    });
+  });
+
+  describe('showsExampleLine', () => {
+    it('shows while the unchanged example holds no change against what the page loaded', () => {
+      const { content } = loaded();
+      expect(showsExampleLine('unchanged', content, content)).toBe(true);
+    });
+
+    it('shows after moving between steps, which changes no content', () => {
+      const { editor, rules, content } = loaded();
+      const moved = editorReducer(editor, { type: 'goToStep', step: 'test' });
+      expect(showsExampleLine('unchanged', localContentOf(moved, rules), content)).toBe(true);
+    });
+
+    it('hides once the page holds a change, also one not saved yet, and after undoing it shows', () => {
+      const { editor, rules, content } = loaded();
+      const renamed = editorReducer(editor, { type: 'changeName', value: 'Taxi licence' });
+      expect(showsExampleLine('unchanged', localContentOf(renamed, rules), content)).toBe(false);
+      const [standard, ambulance] = rules.branches;
+      const described = {
+        ...rules,
+        branches: [standard, { ...ambulance, description: 'For patient transport.' }],
+      };
+      expect(showsExampleLine('unchanged', localContentOf(editor, described), content)).toBe(false);
+      const back = editorReducer(renamed, {
+        type: 'changeName',
+        value: 'Passenger transport licence (example)',
+      });
+      expect(showsExampleLine('unchanged', localContentOf(back, rules), content)).toBe(true);
+    });
+
+    it('hides for a changed example, any other draft, and without the loaded content', () => {
+      const { content } = loaded();
+      expect(showsExampleLine('changed', content, content)).toBe(false);
+      expect(showsExampleLine(null, content, content)).toBe(false);
+      expect(showsExampleLine(undefined, content, content)).toBe(false);
+      expect(showsExampleLine('unchanged', content, null)).toBe(false);
+    });
+  });
+
+  it('lists both branches in the publish summary: "Standard · 2 rules", "Ambulance · 2 rules"', () => {
+    const { rules } = loaded();
+    expect(ruleLines(rules, false, 'en')).toEqual(['Standard · 2 rules', 'Ambulance · 2 rules']);
+  });
+
+  it('words the line as U73 7137:50210 draws it, and in German', () => {
+    expect(PUBLISH_DIALOG_COPY.en.exampleLine).toBe(
+      'This is still the example. Check that the name, documents and rules fit your service.'
+    );
+    expect(PUBLISH_DIALOG_COPY.de.exampleLine).toBe(
+      'Dies ist noch das Beispiel. Prüfen Sie, ob Name, Dokumente und Regeln zu Ihrem Dienst passen.'
     );
   });
 });

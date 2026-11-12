@@ -43,6 +43,15 @@ export interface DraftEditFlowProps extends EditorLinkProps {
   reloaded: boolean;
 }
 
+/**
+ * The edit flow of a scheduled connection (spec 010, S18; FR-013, W6, W7): the parts that word it
+ * differently take its start date, from `scheduledStartOf()`
+ */
+export interface ScheduledEditProps {
+  /** YYYY-MM-DD, the day in Germany it becomes active; null (or left out) unless scheduled */
+  scheduledStart?: string | null;
+}
+
 export interface RestoreDialogProps {
   /** The header's title, as the editor's frame shows it */
   title: string;

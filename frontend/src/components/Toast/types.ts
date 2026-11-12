@@ -1,9 +1,13 @@
 /**
- * The toast's two kinds (data-model §2 "Toasts", design-notes §3 "Toast"): `neutral`, the dark
- * ink toast for undoable or failed actions and plain notes ("You're logged out."); `success`,
- * the green toast with the filled check for a finished action ("Draft saved. …")
+ * The toast's three kinds (data-model §2 "Toasts", design-notes §3 "Toast"; spec 010, design-notes
+ * §4.2 T038): `neutral`, the dark ink toast for failed actions, actions that can't be undone any
+ * more, plain notes ("You're logged out.", "Couldn’t restore. Try again.") and the rules step's
+ * undoable edits, its deletions included (spec 008, outside spec 010's items); `success`, the
+ * green toast with the filled check for a finished action ("Draft saved. …", "“<name>”
+ * restored."); `danger`, the red toast with the white delete icon for something deleted
+ * ("“<name>” deleted.", Figma "Rules/Toast" type=danger 6718:40958)
  */
-export type ToastKind = 'neutral' | 'success';
+export type ToastKind = 'neutral' | 'success' | 'danger';
 
 export interface ToastContent {
   /** Changes with every new toast, so that each one is shown, timed and announced anew */
@@ -13,7 +17,7 @@ export interface ToastContent {
   message: string;
   /**
    * The label of the toast's one action ("Try again", "Undo", "Show"); the page passes the
-   * handler as `onAction`. A toast with an action stays until it is used or dismissed
+   * handler as `onAction`. A toast with an action goes after its 6 seconds too (FR-082)
    */
   actionLabel?: string;
   /** The error ID of a 5xx, on a line of its own under the message (FR-033) */
@@ -24,9 +28,10 @@ export interface ToastProps {
   toast: ToastContent | null;
   onAction?: () => void;
   /**
-   * Called when a toast without an action has been shown for 6 seconds, and when a toast with
-   * one is dismissed with Escape; keep it stable (useCallback). The page also dismisses an
-   * action toast itself, after its action, a newer change or a change of step
+   * Called when a toast, with or without an action, has been shown for 6 seconds without the
+   * pointer or the focus on it (FR-082), and when it is dismissed with Escape; keep it stable
+   * (useCallback). The page also dismisses an action toast itself, after its action, a newer
+   * change or a change of step
    */
   onDismiss: () => void;
   /**

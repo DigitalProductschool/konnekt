@@ -40,6 +40,9 @@ class Settings(BaseSettings):
     allow_plain_http: bool = False
     worker_enabled: bool = True
     login_session_hours: int = 8
+    # How long a deletion can be restored (spec 010, data-model §8); 0 switches
+    # restoring off
+    deletion_undo_seconds: int = 300
 
     # Agent access and the MCP server (spec 007, data-model §10); the three URLs
     # are resolved by resolve_agent_urls

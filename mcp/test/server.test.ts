@@ -3,6 +3,7 @@
 // tests of later phases add to this file
 import type { ApprovalRequest } from '@connection-portal/api-types/approvals';
 import type {
+  ActivityEntry,
   Condition,
   FormConnection,
   FormConnectionDraft,
@@ -36,7 +37,14 @@ import {
 } from 'vitest';
 
 import type { RunningServer } from '../src/server';
-import { BEARERS, type FakeBackend, IDS, publishedOf, startFakeBackend } from './fakeBackend';
+import {
+  BEARERS,
+  type FakeBackend,
+  IDS,
+  publishedOf,
+  SCHEDULED_START,
+  startFakeBackend,
+} from './fakeBackend';
 
 const SKILL_NAMES = [
   'access-levels',
@@ -278,6 +286,12 @@ describe('the protocol eras', () => {
     );
   });
 
+  it('offers no tool that creates the example, restores or deletes several (FR-068)', async () => {
+    const { tools } = await import('../src/tools');
+    const names = tools().map((tool) => tool.name);
+    expect(names.filter((name) => /example|restore|bulk/.test(name))).toEqual([]);
+  });
+
   it.each<Era>(['modern', 'legacy'])('%s: skills/list answers the eight skills', async (era) => {
     const { client } = await connect(era);
     const listing = await new SkillsClient(client).list();
@@ -493,6 +507,7 @@ describe('the reading tools', () => {
           link: links.connectionLink(IDS.draft),
           description: 'The parking permit for residents of the city centre.',
           updated_at: '2026-11-03T09:00:00Z',
+          step: 'rules',
         },
         {
           id: IDS.live,
@@ -500,6 +515,7 @@ describe('the reading tools', () => {
           status: 'live',
           link: links.connectionLink(IDS.live),
           updated_at: '2026-11-02T09:00:00Z',
+          published_at: '2026-10-01T09:00:00Z',
         },
         {
           id: IDS.deactivated,
@@ -507,9 +523,78 @@ describe('the reading tools', () => {
           status: 'deactivated',
           link: links.connectionLink(IDS.deactivated),
           updated_at: '2026-11-01T09:00:00Z',
+          published_at: '2026-10-01T09:00:00Z',
+          deactivated_at: '2026-11-01T09:00:00Z',
+        },
+        {
+          id: IDS.scheduled,
+          name: 'Boat licence',
+          status: 'scheduled',
+          link: links.connectionLink(IDS.scheduled),
+          updated_at: '2026-10-31T09:00:00Z',
+          start_date: SCHEDULED_START,
+          published_at: '2026-10-01T09:00:00Z',
         },
       ]);
       expect(text).toContain(links.connectionLink(IDS.live));
+    });
+
+    it('finds the scheduled connections, each with the day it becomes active', async () => {
+      const { structured, text } = await callTool('search_connections', { status: 'scheduled' });
+      expect(structured.items.map((item: { id: string }) => item.id)).toEqual([IDS.scheduled]);
+      expect(structured.items[0]).toMatchObject({ status: 'scheduled', start_date: '2026-12-01' });
+      expect(structured.items[0]).not.toHaveProperty('deactivated_at');
+      expect(text).toContain(
+        `- Connection 'Boat licence' (scheduled from 2026-12-01): ` +
+          `${links.connectionLink(IDS.scheduled)}\n  Published 2026-10-01T09:00:00Z.`
+      );
+      expect(fake.calls.map((call) => call.path)).toContain(
+        '/api/form-connections/search?status=scheduled'
+      );
+      // A deactivated connection has no start: neither status takes the other's rows
+      const deactivated = await callTool('search_connections', { status: 'deactivated' });
+      expect(deactivated.structured.items.map((item: { id: string }) => item.id)).toEqual([
+        IDS.deactivated,
+      ]);
+    });
+
+    it('leaves start_date out for a draft, a live and a deactivated connection', async () => {
+      const { structured } = await callTool('search_connections', {});
+      for (const item of structured.items as { id: string }[]) {
+        if (item.id !== IDS.scheduled) expect(item).not.toHaveProperty('start_date');
+      }
+    });
+
+    it("says a draft's step, and when a connection was published and deactivated", async () => {
+      storedDraft().step = 'documents';
+      const { structured, text } = await callTool('search_connections', {});
+      const draft = structured.items.find((item: { id: string }) => item.id === IDS.draft);
+      expect(draft.step).toBe('documents');
+      expect(draft).not.toHaveProperty('published_at');
+      expect(draft).not.toHaveProperty('deactivated_at');
+      const live = structured.items.find((item: { id: string }) => item.id === IDS.live);
+      expect(live).not.toHaveProperty('step');
+      expect(live).not.toHaveProperty('deactivated_at');
+      expect(text).toContain('Draft at the documents step.');
+      expect(text).toContain('Published 2026-10-01T09:00:00Z.');
+      expect(text).toContain('Published 2026-10-01T09:00:00Z; deactivated 2026-11-01T09:00:00Z.');
+    });
+
+    it('marks the example example: true while its mark is set, changed or not', async () => {
+      for (const example of ['unchanged', 'changed'] as const) {
+        storedDraft().example = example;
+        storedDraft().step = 'connection';
+        const { structured, text } = await callTool('search_connections', {});
+        const draft = structured.items.find((item: { id: string }) => item.id === IDS.draft);
+        expect(draft).toMatchObject({ step: 'connection', example: true });
+        expect(text).toContain('Draft at the connection step. This draft is the example.');
+      }
+    });
+
+    it('leaves example out of every item that is not the example', async () => {
+      const { structured, text } = await callTool('search_connections', {});
+      for (const item of structured.items) expect(item).not.toHaveProperty('example');
+      expect(text).not.toContain('This draft is the example.');
     });
 
     it('leaves an empty description out', async () => {
@@ -548,7 +633,7 @@ describe('the reading tools', () => {
       const second = await callTool('search_connections', {
         cursor: first.structured.next_cursor,
       });
-      expect(second.structured.items).toHaveLength(3);
+      expect(second.structured.items).toHaveLength(4);
       expect(second.structured.next_cursor).toBeNull();
     });
   });
@@ -590,8 +675,15 @@ describe('the reading tools', () => {
         urls: null,
         urls_note: 'The connection URLs exist once the draft is published.',
         dropped: [],
+        step: 'rules',
         draft: { version: 1, step: 'rules', updated_at: '2026-11-03T09:00:00Z' },
       });
+      expect(structured).not.toHaveProperty('published_at');
+      expect(structured).not.toHaveProperty('active_since');
+      expect(structured).not.toHaveProperty('deactivated_since');
+      expect(text).toContain(
+        'Draft at the rules step. Version 1, last saved 2026-11-03T09:00:00Z.'
+      );
       // Counts only, never the rules
       expect(JSON.stringify(structured)).not.toContain('rule-1');
       expect(structured.documents[0].fields[0]).toEqual({
@@ -624,8 +716,81 @@ describe('the reading tools', () => {
       expect(structured.urls_note).toContain('unavailable');
       expect(structured).not.toHaveProperty('description');
       expect(structured).not.toHaveProperty('draft');
+      expect(structured).not.toHaveProperty('step');
+      expect(structured).toMatchObject({
+        published_at: '2026-10-01T09:00:00Z',
+        active_since: '2026-10-01T09:00:00Z',
+        deactivated_since: '2026-11-01T09:00:00Z',
+      });
+      expect(text).toContain(
+        'Published 2026-10-01T09:00:00Z; active since 2026-10-01T09:00:00Z; ' +
+          'deactivated since 2026-11-01T09:00:00Z.'
+      );
       expect(text).toContain('unavailable');
       expect(text).toContain('{reference}');
+    });
+
+    it("answers a live connection's published_at and active_since, which reactivating moved", async () => {
+      const stored = fake.store.connections.get(IDS.live) as FormConnection;
+      fake.store.connections.set(IDS.live, { ...stored, activated_at: '2026-11-05T09:00:00Z' });
+      const { structured, text } = await callTool('get_connection', { connection: IDS.live });
+      expect(structured).toMatchObject({
+        status: 'live',
+        published_at: '2026-10-01T09:00:00Z',
+        active_since: '2026-11-05T09:00:00Z',
+      });
+      expect(structured).not.toHaveProperty('deactivated_since');
+      expect(structured).not.toHaveProperty('step');
+      expect(text).toContain('Published 2026-10-01T09:00:00Z; active since 2026-11-05T09:00:00Z.');
+    });
+
+    it("answers a scheduled connection's start_date and URLs, which answer unavailable until then", async () => {
+      const { structured, text } = await callTool('get_connection', {
+        connection: IDS.scheduled,
+      });
+      expect(structured).toMatchObject({
+        id: IDS.scheduled,
+        status: 'scheduled',
+        start_date: '2026-12-01',
+        published_at: '2026-10-01T09:00:00Z',
+        urls: { trigger_url: `https://portal.example/api/connect/${IDS.scheduled}` },
+        urls_note:
+          'This connection is scheduled: its URLs answer "unavailable" until it becomes active ' +
+          'on 2026-12-01, 00:00 in Germany.',
+      });
+      expect(structured).not.toHaveProperty('active_since');
+      expect(structured).not.toHaveProperty('deactivated_since');
+      expect(structured).not.toHaveProperty('step');
+      expect(text.split('\n')[0]).toBe(
+        `Connection 'Boat licence' (scheduled from 2026-12-01): ${links.connectionLink(IDS.scheduled)}`
+      );
+      expect(text).toContain('Published 2026-10-01T09:00:00Z.');
+      expect(text).toContain('until it becomes active on 2026-12-01, 00:00 in Germany.');
+      expect(text).not.toContain('{date}');
+    });
+
+    it("answers the example's mark as stored, with the text line", async () => {
+      for (const example of ['unchanged', 'changed'] as const) {
+        storedDraft().example = example;
+        const { structured, text } = await callTool('get_connection', { connection: IDS.draft });
+        expect(structured).toMatchObject({ status: 'draft', step: 'rules', example });
+        expect(text).toContain('This draft is the example.');
+      }
+    });
+
+    it('leaves example out of a draft that is not the example and of published connections', async () => {
+      for (const id of [IDS.draft, IDS.live, IDS.deactivated, IDS.scheduled]) {
+        const { structured, text } = await callTool('get_connection', { connection: id });
+        expect(structured).not.toHaveProperty('example');
+        expect(text).not.toContain('This draft is the example.');
+      }
+    });
+
+    it('leaves start_date out for a live and a deactivated connection and a draft', async () => {
+      for (const id of [IDS.live, IDS.deactivated, IDS.draft]) {
+        const { structured } = await callTool('get_connection', { connection: id });
+        expect(structured).not.toHaveProperty('start_date');
+      }
     });
 
     it('lists a requested document type the catalog lacks in dropped, by its key', async () => {
@@ -659,6 +824,144 @@ describe('the reading tools', () => {
       const { structured } = await callTool('get_connection', {
         connection: '99999999-9999-4999-8999-999999999999',
       });
+      expect(structured.code).toBe('not_found');
+    });
+  });
+
+  describe('get_activity', () => {
+    it("answers a connection's activity, newest first, at the level read", async () => {
+      const { isError, structured, text } = await callTool(
+        'get_activity',
+        { connection: links.connectionLink(IDS.deactivated) },
+        BEARERS.read
+      );
+      expect(isError).toBe(false);
+      expect(structured).toEqual({
+        connection: {
+          id: IDS.deactivated,
+          name: expect.any(String),
+          status: 'deactivated',
+          link: links.connectionLink(IDS.deactivated),
+        },
+        entries: [
+          { at: '2026-11-01T09:00:00Z', event: 'Deactivated', kind: 'deactivated', by: 'anna' },
+          { at: '2026-10-01T09:00:00Z', event: 'Published', kind: 'published' },
+          { at: '2026-10-01T09:00:00Z', event: 'Created', kind: 'created' },
+        ],
+      });
+      expect(structured).not.toHaveProperty('next_cursor');
+      expect(text).toContain('- 2026-11-01T09:00:00Z · Deactivated · anna');
+      expect(text).toContain('- 2026-10-01T09:00:00Z · Published\n');
+    });
+
+    it('answers an entry without a person without by, and an agent’s with by and agent', async () => {
+      const { structured, text } = await callTool('get_activity', { connection: IDS.draft });
+      expect(structured.entries).toEqual([
+        {
+          at: '2026-11-01T09:00:00Z',
+          event: 'Created',
+          kind: 'created',
+          by: 'anna',
+          agent: 'Claude Code',
+        },
+      ]);
+      expect(text).toContain('Created · anna with Claude Code');
+      const live = await callTool('get_activity', { connection: IDS.live });
+      for (const entry of live.structured.entries) {
+        expect(entry).not.toHaveProperty('by');
+        expect(entry).not.toHaveProperty('agent');
+        expect(entry).not.toHaveProperty('approved');
+      }
+    });
+
+    it('words the variant, the date and an approved request', async () => {
+      const entry = (
+        kind: ActivityEntry['kind'],
+        detail: Partial<ActivityEntry>
+      ): ActivityEntry => ({
+        id: `${kind}-entry`,
+        kind,
+        at: '2026-11-06T09:00:00Z',
+        variant: null,
+        start_date: null,
+        actor: null,
+        ...detail,
+      });
+      fake.store.activity.set(IDS.scheduled, [
+        entry('scheduled', {
+          start_date: '2026-12-01',
+          actor: { name: 'ben', agent: 'Claude Code', approved: true },
+        }),
+        entry('published', { actor: { name: 'ben', agent: 'Claude Code', approved: true } }),
+        entry('rules_changed', {
+          variant: 'Ambulance',
+          actor: { name: 'anna', agent: 'Claude Code', approved: false },
+        }),
+      ]);
+      const { structured, text } = await callTool('get_activity', { connection: IDS.scheduled });
+      expect(structured.entries).toEqual([
+        {
+          at: '2026-11-06T09:00:00Z',
+          event: 'Scheduled for 2026-12-01',
+          kind: 'scheduled',
+          start_date: '2026-12-01',
+          by: 'ben',
+          agent: 'Claude Code',
+          approved: true,
+        },
+        {
+          at: '2026-11-06T09:00:00Z',
+          event: 'Published',
+          kind: 'published',
+          by: 'ben',
+          agent: 'Claude Code',
+          approved: true,
+        },
+        {
+          at: '2026-11-06T09:00:00Z',
+          event: 'Rules changed in Ambulance',
+          kind: 'rules_changed',
+          variant: 'Ambulance',
+          by: 'anna',
+          agent: 'Claude Code',
+        },
+      ]);
+      expect(text).toContain('Published · ben, asked by Claude Code');
+      expect(text).toContain('Rules changed in Ambulance · anna with Claude Code');
+    });
+
+    it('answers 50 entries per page and passes next_cursor on for the earlier ones', async () => {
+      const entries: ActivityEntry[] = Array.from({ length: 60 }, (_, index) => ({
+        id: `entry-${index}`,
+        kind: 'rules_changed',
+        at: new Date(Date.UTC(2026, 10, 10, 12, 60 - index)).toISOString(),
+        variant: `Variant ${index}`,
+        start_date: null,
+        actor: { name: 'anna', agent: null, approved: false },
+      }));
+      fake.store.activity.set(IDS.live, entries);
+      const first = await callTool('get_activity', { connection: IDS.live });
+      expect(first.structured.entries).toHaveLength(50);
+      expect(first.structured.entries[0].event).toBe('Rules changed in Variant 0');
+      expect(first.structured.next_cursor).toEqual(expect.any(String));
+      expect(first.text).toContain(
+        `Earlier entries exist: pass the cursor ${first.structured.next_cursor}.`
+      );
+      const second = await callTool('get_activity', {
+        connection: IDS.live,
+        cursor: first.structured.next_cursor,
+      });
+      expect(second.structured.entries).toHaveLength(10);
+      expect(second.structured.entries[0].event).toBe('Rules changed in Variant 50');
+      expect(second.structured.entries[9].event).toBe('Rules changed in Variant 59');
+      expect(second.structured).not.toHaveProperty('next_cursor');
+    });
+
+    it('answers not_found for an unknown connection', async () => {
+      const { isError, structured } = await callTool('get_activity', {
+        connection: '99999999-9999-4999-8999-999999999999',
+      });
+      expect(isError).toBe(true);
       expect(structured.code).toBe('not_found');
     });
   });
@@ -828,6 +1131,7 @@ describe('the catalog tools', () => {
       key: 'family_name',
       label: 'Family name',
       kind: 'text',
+      group: 'Name',
       multiple_values: false,
       conditions: [
         { operator: 'equal_to', words: 'is equal to', input: 'text' },
@@ -869,6 +1173,59 @@ describe('the catalog tools', () => {
       ],
     });
     expect(text).toContain('place_of_birth.country');
+  });
+
+  it("get_catalog gives each of pid's fields its data group and the groups in Konnekt's order", async () => {
+    const { structured, text } = await callTool('get_catalog', { document_type: 'pid' });
+    expect(structured.groups).toEqual(['Name', 'Birth', 'Address', 'Document', 'Other details']);
+    const fields = structured.fields as { key: string; group?: string }[];
+    // The fields stay in catalog order; each carries its group's English name
+    expect(fields.map((field) => field.key)).toEqual(
+      fake.store.documentTypes[0].fields.map((field) => field.key)
+    );
+    const groupOf = (key: string) => fields.find((each) => each.key === key)?.group;
+    expect(groupOf('family_name')).toBe('Name');
+    expect(groupOf('nationalities')).toBe('Birth');
+    expect(groupOf('address_country')).toBe('Address');
+    expect(groupOf('date_of_expiry')).toBe('Document');
+    expect(groupOf('picture')).toBe('Other details');
+    expect(fields.every((field) => typeof field.group === 'string')).toBe(true);
+    expect(text).toContain('- family_name: Family name (text, group Name)');
+    expect(text).toContain(
+      "Its data groups, in Konnekt's order: Name, Birth, Address, Document, Other details."
+    );
+  });
+
+  it('get_catalog gives a document without data groups no group and an empty groups', async () => {
+    const { structured, text } = await callTool('get_catalog', { document_type: 'mdl' });
+    expect(structured.groups).toEqual([]);
+    const fields = structured.fields as Record<string, unknown>[];
+    expect(fields.length).toBe(10);
+    expect(fields.every((field) => !('group' in field))).toBe(true);
+    expect(text).not.toContain('data groups');
+    expect(text).not.toContain('group ');
+  });
+
+  it('get_catalog lists the document types without their groups', async () => {
+    const { structured } = await callTool('get_catalog', {});
+    const types = structured.document_types as Record<string, unknown>[];
+    expect(types.every((type) => !('groups' in type))).toBe(true);
+  });
+
+  it('no document tool takes a data group: set_document still takes the fields one by one', async () => {
+    const { client } = await connect('modern');
+    const { tools } = await client.listTools();
+    const propertiesOf = (name: string) =>
+      tools.find((tool) => tool.name === name)?.inputSchema.properties ?? {};
+    for (const name of ['get_catalog', 'set_document', 'move_document']) {
+      expect(Object.keys(propertiesOf(name)).filter((key) => key.includes('group'))).toEqual([]);
+    }
+    expect(Object.keys(propertiesOf('set_document')).sort()).toEqual([
+      'also_remove_rules',
+      'connection',
+      'document_type',
+      'fields',
+    ]);
   });
 
   it('get_catalog refuses an unknown document type with the known keys', async () => {
@@ -1264,6 +1621,60 @@ describe('the draft tools', () => {
       expect(text).toContain('at the documents step');
     });
 
+    it('adds a document at the end, not in catalog order, and the fake stores that order', async () => {
+      // The catalog lists pid before mdl
+      const created = await callTool('create_draft', { name: 'Fishing permit' }, BEARERS.drafts);
+      const id = created.structured.connection.id as string;
+      await callTool(
+        'set_document',
+        { connection: id, document_type: 'mdl', fields: [] },
+        BEARERS.drafts
+      );
+      const { isError, structured, text } = await callTool(
+        'set_document',
+        { connection: id, document_type: 'pid', fields: ['birthdate'] },
+        BEARERS.drafts
+      );
+      expect(isError).toBe(false);
+      expect(
+        structured.documents.map((document: { document_type: string }) => document.document_type)
+      ).toEqual(['mdl', 'pid']);
+      const stored = fake.store.connections.get(id) as FormConnectionDraft;
+      expect(stored.documents.map((document) => document.document_type)).toEqual(['mdl', 'pid']);
+      expect(text).toContain(
+        '1. Driving licence (mdl): no fields yet\n2. Personal ID (pid): birthdate'
+      );
+    });
+
+    it('keeps the place of a document whose fields change, and the order of the others on a removal', async () => {
+      const created = await callTool('create_draft', { name: 'Fishing permit' }, BEARERS.drafts);
+      const id = created.structured.connection.id as string;
+      const set = (document_type: string, fields: string[] | null) =>
+        callTool('set_document', { connection: id, document_type, fields }, BEARERS.drafts);
+      await set('mdl', []);
+      await set('pid', ['birthdate']);
+      const changed = await set('mdl', ['issue_date']);
+      expect(changed.isError).toBe(false);
+      expect(
+        changed.structured.documents.map(
+          (document: { document_type: string; fields: unknown[] }) => [
+            document.document_type,
+            document.fields.length,
+          ]
+        )
+      ).toEqual([
+        ['mdl', 1],
+        ['pid', 1],
+      ]);
+      const removed = await set('mdl', null);
+      expect(removed.isError).toBe(false);
+      expect(
+        removed.structured.documents.map(
+          (document: { document_type: string }) => document.document_type
+        )
+      ).toEqual(['pid']);
+    });
+
     it('refuses an unknown field with the known ones', async () => {
       const { isError, structured } = await callTool(
         'set_document',
@@ -1343,6 +1754,134 @@ describe('the draft tools', () => {
       expect(
         structured.documents.map((document: { document_type: string }) => document.document_type)
       ).toEqual(['pid']);
+    });
+  });
+
+  describe('move_document', () => {
+    /** The fixture draft with two documents: pid, then mdl added at the end (version 2). */
+    async function withTwoDocuments(): Promise<void> {
+      const added = await callTool(
+        'set_document',
+        { connection: IDS.draft, document_type: 'mdl', fields: ['issue_date'] },
+        BEARERS.drafts
+      );
+      expect(added.isError).toBe(false);
+    }
+
+    function storedOrder(): string[] {
+      return storedDraft().documents.map((document) => document.document_type);
+    }
+
+    it('moves the second document to the first place and answers the new order (US8-AS2)', async () => {
+      await withTwoDocuments();
+      const { isError, structured, text } = await callTool(
+        'move_document',
+        { connection: links.connectionLink(IDS.draft), document_type: 'mdl', position: 1 },
+        BEARERS.drafts
+      );
+      expect(isError).toBe(false);
+      expect(structured).toEqual({
+        connection: {
+          id: IDS.draft,
+          name: 'Resident parking permit',
+          status: 'draft',
+          link: links.connectionLink(IDS.draft),
+        },
+        documents: [
+          {
+            document_type: 'mdl',
+            label: 'Driving licence',
+            fields: [{ key: 'issue_date', label: 'Issue date', kind: 'date' }],
+          },
+          {
+            document_type: 'pid',
+            label: 'Personal ID',
+            fields: [
+              { key: 'birthdate', label: 'Date of birth', kind: 'date' },
+              { key: 'address_locality', label: 'City or town', kind: 'text' },
+            ],
+          },
+        ],
+      });
+      // The same stored result as the editor's move: the order sent, the rest unchanged
+      expect(storedOrder()).toEqual(['mdl', 'pid']);
+      expect(storedDraft()).toMatchObject({ version: 3, step: 'rules' });
+      expect(storedDraft().branches.map((branch) => branch.items.length)).toEqual([2, 2, 0]);
+      expect(text).toContain('Moved Driving licence (mdl) to position 1 of 2.');
+      expect(text).toContain('1. Driving licence (mdl): issue_date\n2. Personal ID (pid):');
+      expect(text).toContain('Saved as draft version 3, at the rules step.');
+
+      const back = await callTool(
+        'move_document',
+        { connection: IDS.draft, document_type: 'mdl', position: 2 },
+        BEARERS.drafts
+      );
+      expect(back.isError).toBe(false);
+      expect(storedOrder()).toEqual(['pid', 'mdl']);
+    });
+
+    it.each([
+      [
+        'a document the draft does not request',
+        { document_type: 'eye_test', position: 1 },
+        { code: 'not_found', message: 'The connection doesn’t request “eye_test”.' },
+      ],
+      [
+        'a position after the last',
+        { document_type: 'mdl', position: 3 },
+        { code: 'validation', message: 'Choose a position from 1 to 2.' },
+      ],
+      [
+        'a position before the first',
+        { document_type: 'mdl', position: 0 },
+        { code: 'validation', message: 'Choose a position from 1 to 2.' },
+      ],
+      [
+        'a position that is no whole number',
+        { document_type: 'mdl', position: 1.5 },
+        { code: 'validation', message: 'Choose a position from 1 to 2.' },
+      ],
+      [
+        'the place the document already has',
+        { document_type: 'mdl', position: 2 },
+        { code: 'validation', message: '“mdl” is already in position 2.' },
+      ],
+    ])("refuses %s with the editor's message and saves nothing", async (_case, args, error) => {
+      await withTwoDocuments();
+      const { isError, structured } = await callTool(
+        'move_document',
+        { connection: IDS.draft, ...args },
+        BEARERS.drafts
+      );
+      expect(isError).toBe(true);
+      expect(structured).toEqual(error);
+      expect(storedDraft().version).toBe(2);
+      expect(storedOrder()).toEqual(['pid', 'mdl']);
+    });
+
+    it('refuses a published connection, also at manage level', async () => {
+      const { isError, structured } = await callTool(
+        'move_document',
+        { connection: IDS.live, document_type: 'pid', position: 1 },
+        BEARERS.manage
+      );
+      expect(isError).toBe(true);
+      expect(structured).toEqual(PUBLISHED_READ_ONLY);
+      expect(fake.calls.filter((call) => call.method === 'PUT')).toEqual([]);
+    });
+
+    it("refuses the read caller, naming 'Read and edit drafts'", async () => {
+      const { isError, structured } = await callTool(
+        'move_document',
+        { connection: IDS.draft, document_type: 'pid', position: 1 },
+        BEARERS.read
+      );
+      expect(isError).toBe(true);
+      expect(structured).toMatchObject({
+        code: 'insufficient_access',
+        needs_access_level: 'drafts',
+      });
+      expect(fake.calls.filter((call) => call.method !== 'GET')).toEqual([]);
     });
   });
 
@@ -2816,6 +3355,37 @@ describe('the approval tools', () => {
       expect(text).toContain(`Trigger URL: ${dog.trigger_url}`);
     });
 
+    it("fills a scheduled connection's start into the URLs' note", async () => {
+      const id = await storedRequest(
+        (request) => ({ ...request, status: 'done', outcome: 'done' }),
+        IDS.deactivated,
+        'reactivate',
+        BEARERS.manage
+      );
+      // The connection was scheduled since: inactive, with a start day
+      const dog = fake.store.connections.get(IDS.deactivated) as FormConnection;
+      fake.store.connections.set(IDS.deactivated, { ...dog, start_date: '2026-12-01' });
+      const { structured, text } = await callTool(
+        'check_approval',
+        { request_id: id },
+        BEARERS.manage
+      );
+      expect(structured.request.connection).toMatchObject({
+        id: IDS.deactivated,
+        status: 'scheduled',
+      });
+      expect(structured.urls?.trigger_url).toBe(dog.trigger_url);
+      expect(text).toContain(
+        `Connection 'Dog licence' (scheduled from 2026-12-01): ` +
+          links.connectionLink(IDS.deactivated)
+      );
+      expect(text).toContain(
+        'This connection is scheduled: its URLs answer "unavailable" until it becomes active ' +
+          'on 2026-12-01, 00:00 in Germany.'
+      );
+      expect(text).not.toContain('{date}');
+    });
+
     it.each<[string, string, string, Partial<ApprovalRequest>, boolean]>([
       ['a done deactivate', IDS.live, 'deactivate', { status: 'done', outcome: 'done' }, false],
       ['a waiting reactivate', IDS.deactivated, 'reactivate', {}, false],
@@ -2851,7 +3421,10 @@ describe('the approval tools', () => {
     );
 
     it.each([
-      ['connection_changed', 'The connection was deactivated or reactivated since you asked'],
+      [
+        'connection_changed',
+        "The connection's status or start date changed since you asked, so nothing happened.",
+      ],
       ['connection_deleted', 'The connection has been deleted since you asked.'],
     ])('answers a status action cancelled with %s', async (reason, sentence) => {
       const id = await storedRequest(
@@ -2900,6 +3473,465 @@ describe('the approval tools', () => {
         BEARERS.drafts
       );
       expect(structured.code).toBe('validation');
+    });
+  });
+  describe('start dates (spec 010, research R9)', () => {
+    /** A day `days` after today in Germany, YYYY-MM-DD. */
+    function dayAfterToday(days: number): string {
+      const date = new Date(`${todayInGermany()}T12:00:00Z`);
+      date.setUTCDate(date.getUTCDate() + days);
+      return date.toISOString().slice(0, 10);
+    }
+
+    const WAIT = (time: string) =>
+      'Nothing changes yet. The team member opens the link, sees what approving does, and ' +
+      `approves or declines before ${time}.`;
+    const PUBLISH_WAIT = (time: string) =>
+      "Nothing is published yet. The team member opens the link, sees the draft's content " +
+      `and the rule checks' findings, and approves or declines before ${time}.`;
+
+    /** The body of the one approval request the fake received, as it stored it. */
+    function onlyRequest(): ApprovalRequest {
+      expect(approvalPosts()).toHaveLength(1);
+      const [{ request }] = [...fake.store.approvals.values()];
+      return request;
+    }
+
+    describe('request_approval', () => {
+      it.each([
+        [
+          'publish with a date',
+          'publish',
+          IDS.draft,
+          BEARERS.drafts,
+          'draft',
+          (date: string, time: string) =>
+            `${PUBLISH_WAIT(time)} The draft is published and scheduled: its links exist at ` +
+            `once and answer "unavailable" until it becomes active on ${date}, 00:00 in Germany.`,
+        ],
+        [
+          'reactivate with a date',
+          'reactivate',
+          IDS.deactivated,
+          BEARERS.manage,
+          'deactivated',
+          (date: string, time: string) =>
+            `${WAIT(time)} The connection is scheduled: its links answer "unavailable" until ` +
+            `it becomes active on ${date}, 00:00 in Germany.`,
+        ],
+        [
+          'set_start_date, scheduled, a date',
+          'set_start_date',
+          IDS.scheduled,
+          BEARERS.manage,
+          'scheduled',
+          (date: string, time: string) =>
+            `${WAIT(time)} The connection's start moves to ${date}, 00:00 in Germany.`,
+        ],
+        [
+          'set_start_date, live, a date',
+          'set_start_date',
+          IDS.live,
+          BEARERS.manage,
+          'live',
+          (date: string, time: string) =>
+            `${WAIT(time)} The connection is scheduled for ${date}: its links answer ` +
+            '"unavailable" until then, and requests in progress are cancelled.',
+        ],
+      ] as const)(
+        '%s: asks with the date and says what approving does; nothing changes',
+        async (_case, action, connection, token, status, whatHappens) => {
+          const date = dayAfterToday(20);
+          const before = fake.store.connections.get(connection);
+          const { isError, structured, text } = await callTool(
+            'request_approval',
+            { connection, action, start_date: date },
+            token
+          );
+          expect(isError).toBe(false);
+          const request = onlyRequest();
+          expect(request).toMatchObject({ action, start_date: date });
+          expect(structured.request).toMatchObject({
+            id: request.id,
+            action,
+            connection: { id: connection, status },
+            status: 'waiting',
+            start_date: date,
+          });
+          expect(structured.what_happens).toBe(whatHappens(date, timeOf(request.expires_at)));
+          expect(text).toContain(structured.what_happens);
+          expect(fake.store.connections.get(connection)).toBe(before);
+        }
+      );
+
+      it('set_start_date, scheduled, now: asks with no date; the connection becomes active', async () => {
+        const { isError, structured } = await callTool(
+          'request_approval',
+          { connection: IDS.scheduled, action: 'set_start_date', start_date: 'now' },
+          BEARERS.manage
+        );
+        expect(isError).toBe(false);
+        const request = onlyRequest();
+        expect(request).toMatchObject({ action: 'set_start_date', start_date: null });
+        expect(structured.request).not.toHaveProperty('start_date');
+        expect(structured.what_happens).toBe(
+          `${WAIT(timeOf(request.expires_at))} The connection becomes active at once.`
+        );
+      });
+
+      it.each([
+        [
+          'deactivate',
+          (time: string) =>
+            `${WAIT(time)} The schedule is cancelled and the connection is deactivated: it ` +
+            `doesn't become active on ${SCHEDULED_START}.`,
+        ],
+        [
+          'delete',
+          (time: string) =>
+            `${WAIT(time)} The connection is deleted: it doesn't become active on ` +
+            `${SCHEDULED_START}, and its links stop working for good. This can't be undone.`,
+        ],
+      ] as const)("%s, scheduled: names the date that won't come", async (action, whatHappens) => {
+        const { isError, structured } = await callTool(
+          'request_approval',
+          { connection: IDS.scheduled, action },
+          BEARERS.manage
+        );
+        expect(isError).toBe(false);
+        const request = onlyRequest();
+        expect(request).toMatchObject({ action, start_date: null });
+        expect(structured.request.connection).toMatchObject({ status: 'scheduled' });
+        expect(structured.what_happens).toBe(whatHappens(timeOf(request.expires_at)));
+      });
+
+      it.each([
+        ['publish', IDS.draft, BEARERS.drafts, /^Nothing is published yet\. /],
+        [
+          'reactivate',
+          IDS.deactivated,
+          BEARERS.manage,
+          /^Nothing changes yet\. The team member sees which connection URLs will work again/,
+        ],
+      ] as const)(
+        "%s with 'now' acts at once, as without a date",
+        async (action, connection, token, whatHappens) => {
+          const { isError, structured } = await callTool(
+            'request_approval',
+            { connection, action, start_date: 'now' },
+            token
+          );
+          expect(isError).toBe(false);
+          expect(onlyRequest()).toMatchObject({ action, start_date: null });
+          expect(structured.request).not.toHaveProperty('start_date');
+          expect(structured.what_happens).toMatch(whatHappens);
+          expect(structured.what_happens).not.toContain('scheduled');
+        }
+      );
+
+      it.each([
+        [
+          'set_start_date without a start_date',
+          { connection: IDS.scheduled, action: 'set_start_date' },
+          "set_start_date needs a start_date: a date as YYYY-MM-DD, or 'now'.",
+        ],
+        [
+          'delete_draft with a start_date',
+          { connection: IDS.draft, action: 'delete_draft', start_date: '2027-01-04' },
+          'delete_draft takes no start_date: only publish, reactivate and set_start_date do.',
+        ],
+        [
+          'deactivate with a start_date',
+          { connection: IDS.live, action: 'deactivate', start_date: 'now' },
+          'deactivate takes no start_date: only publish, reactivate and set_start_date do.',
+        ],
+        [
+          'delete with a start_date',
+          { connection: IDS.live, action: 'delete', start_date: '2027-01-04' },
+          'delete takes no start_date: only publish, reactivate and set_start_date do.',
+        ],
+        [
+          'a start_date in German writing',
+          { connection: IDS.draft, action: 'publish', start_date: '01.12.2026' },
+          "Give the start_date as a date the calendar has, YYYY-MM-DD, or 'now'.",
+        ],
+        [
+          'a day the calendar lacks',
+          { connection: IDS.scheduled, action: 'set_start_date', start_date: '2027-02-29' },
+          "Give the start_date as a date the calendar has, YYYY-MM-DD, or 'now'.",
+        ],
+      ])('refuses %s with validation, and makes no request', async (_case, input, message) => {
+        const { isError, structured } = await callTool('request_approval', input, BEARERS.manage);
+        expect(isError).toBe(true);
+        expect(structured).toEqual({ code: 'validation', message });
+        expect(approvalPosts()).toEqual([]);
+        expect(fake.store.approvals.size).toBe(0);
+      });
+
+      it.each([
+        ['today', 0, 'publish', IDS.draft],
+        ['yesterday', -1, 'reactivate', IDS.deactivated],
+        ['today', 0, 'set_start_date', IDS.live],
+      ] as const)(
+        'refuses a date of %s (%s) with validation, and makes no request',
+        async (_case, days, action, connection) => {
+          const { isError, structured } = await callTool(
+            'request_approval',
+            { connection, action, start_date: dayAfterToday(days) },
+            BEARERS.manage
+          );
+          expect(isError).toBe(true);
+          expect(structured).toEqual({
+            code: 'validation',
+            message: `Enter a date after today: today in Germany is ${todayInGermany()}.`,
+          });
+          // Only the bearer's check: neither the connection nor the request is asked for
+          expect(fake.calls.map((call) => call.path)).toEqual(['/api/agent/me']);
+          expect(fake.store.approvals.size).toBe(0);
+        }
+      );
+
+      it('accepts tomorrow, the first day after today in Germany', async () => {
+        const date = dayAfterToday(1);
+        const { isError } = await callTool(
+          'request_approval',
+          { connection: IDS.draft, action: 'publish', start_date: date },
+          BEARERS.drafts
+        );
+        expect(isError).toBe(false);
+        expect(onlyRequest().start_date).toBe(date);
+      });
+
+      it.each([
+        ['read', 'read only'],
+        ['drafts', 'read and edit drafts'],
+      ] as const)(
+        'refuses set_start_date for the %s caller with the manage level, no request made',
+        async (level, current) => {
+          const { structured } = await callTool(
+            'request_approval',
+            { connection: IDS.scheduled, action: 'set_start_date', start_date: dayAfterToday(5) },
+            BEARERS[level]
+          );
+          expect(structured).toEqual({
+            code: 'insufficient_access',
+            message:
+              `Your access is ${current}. Deactivating, reactivating and deleting published ` +
+              "connections needs the access level 'Read, edit drafts and manage live " +
+              "connections'. Ask for it with request_access, or the team member raises it on " +
+              'their user page.',
+            needs_access_level: 'manage',
+          });
+          expect(approvalPosts()).toEqual([]);
+        }
+      );
+
+      it.each([
+        [
+          'reactivate a scheduled connection',
+          { connection: IDS.scheduled, action: 'reactivate' },
+          'This connection is scheduled. Change its start date instead.',
+        ],
+        [
+          'set_start_date on a deactivated connection',
+          { connection: IDS.deactivated, action: 'set_start_date', start_date: 'now' },
+          'This connection is deactivated. Reactivate it instead.',
+        ],
+        [
+          'set_start_date on a draft',
+          { connection: IDS.draft, action: 'set_start_date', start_date: '2027-01-04' },
+          'This connection is a draft: it has nothing live yet.',
+        ],
+        [
+          'set_start_date to now on a live connection',
+          { connection: IDS.live, action: 'set_start_date', start_date: 'now' },
+          'This connection is already live.',
+        ],
+        [
+          'set_start_date to the date a scheduled connection has',
+          { connection: IDS.scheduled, action: 'set_start_date', start_date: SCHEDULED_START },
+          'This connection is already scheduled for that date.',
+        ],
+      ])("refuses to %s with the backend's not_allowed", async (_case, input, message) => {
+        const { isError, structured } = await callTool('request_approval', input, BEARERS.manage);
+        expect(isError).toBe(true);
+        expect(structured).toEqual({ code: 'not_allowed', message });
+        expect(fake.store.approvals.size).toBe(0);
+      });
+
+      it('a client that declares elicitation.url reads the dated text back', async () => {
+        const date = dayAfterToday(20);
+        const seen: ElicitParams[] = [];
+        const client = await elicitingClient('modern', seen, BEARERS.manage);
+        const answer = await client.callTool({
+          name: 'request_approval',
+          arguments: { connection: IDS.live, action: 'set_start_date', start_date: date },
+        });
+        expect(answer.isError).not.toBe(true);
+        const request = onlyRequest();
+        expect(seen).toEqual([
+          expect.objectContaining({
+            mode: 'url',
+            url: request.link,
+            message: "Approve changing the start date of 'Fishing licence' in Konnekt.",
+          }),
+        ]);
+        const structured = answer.structuredContent as Record<string, any>; // eslint-disable-line @typescript-eslint/no-explicit-any
+        expect(structured.request.start_date).toBe(date);
+        expect(structured.what_happens).toContain(`The connection is scheduled for ${date}:`);
+      });
+    });
+
+    describe('check_approval', () => {
+      /** A request asked with `input`, then changed in the fake by `change`. */
+      async function askedRequest(
+        input: Record<string, unknown>,
+        change: (request: ApprovalRequest) => ApprovalRequest,
+        token: string = BEARERS.manage
+      ): Promise<string> {
+        const { structured } = await callTool('request_approval', input, token);
+        const id = structured.request.id as string;
+        const stored = fake.store.approvals.get(id);
+        if (!stored) throw new Error('The fake stored no request');
+        stored.request = change(stored.request);
+        return id;
+      }
+
+      const done = (request: ApprovalRequest): ApprovalRequest => ({
+        ...request,
+        status: 'done',
+        outcome: 'done',
+      });
+
+      it('answers the start_date asked for while the request waits', async () => {
+        const date = dayAfterToday(20);
+        const id = await askedRequest(
+          { connection: IDS.draft, action: 'publish', start_date: date },
+          (request) => request,
+          BEARERS.drafts
+        );
+        const { structured } = await callTool('check_approval', { request_id: id }, BEARERS.drafts);
+        expect(structured.request).toMatchObject({
+          outcome: 'waiting',
+          start_date: date,
+          connection: { id: IDS.draft, status: 'draft' },
+        });
+        expect(structured.urls).toBeNull();
+      });
+
+      it('answers a done publish on a date: scheduled with its start_date, and the URLs', async () => {
+        const date = dayAfterToday(20);
+        const id = await askedRequest(
+          { connection: IDS.draft, action: 'publish', start_date: date },
+          done,
+          BEARERS.drafts
+        );
+        const live = fake.store.connections.get(IDS.live) as FormConnection;
+        fake.store.connections.set(IDS.draft, {
+          ...live,
+          id: IDS.draft,
+          name: NAME,
+          is_active: false,
+          activated_at: null,
+          start_date: date,
+        });
+        const { structured, text } = await callTool(
+          'check_approval',
+          { request_id: id },
+          BEARERS.drafts
+        );
+        expect(structured.request).toMatchObject({
+          action: 'publish',
+          outcome: 'done',
+          start_date: date,
+          connection: {
+            id: IDS.draft,
+            name: NAME,
+            status: 'scheduled',
+            start_date: date,
+            link: links.connectionLink(IDS.draft),
+          },
+        });
+        expect(structured.urls?.trigger_url).toBe(live.trigger_url);
+        expect(text).toContain(
+          `The team member approved: the draft is published and scheduled for ${date}.`
+        );
+        expect(text).toContain(`'${NAME}' (scheduled from ${date})`);
+        expect(text).toContain(
+          `its URLs answer "unavailable" until it becomes active on ${date}, 00:00 in Germany.`
+        );
+      });
+
+      it('answers a done set_start_date to now: live, without a start_date', async () => {
+        const id = await askedRequest(
+          { connection: IDS.scheduled, action: 'set_start_date', start_date: 'now' },
+          done
+        );
+        const boat = fake.store.connections.get(IDS.scheduled) as FormConnection;
+        fake.store.connections.set(IDS.scheduled, { ...boat, is_active: true, start_date: null });
+        const { structured, text } = await callTool(
+          'check_approval',
+          { request_id: id },
+          BEARERS.manage
+        );
+        expect(structured.request).toMatchObject({
+          action: 'set_start_date',
+          outcome: 'done',
+          connection: { id: IDS.scheduled, status: 'live' },
+        });
+        expect(structured.request).not.toHaveProperty('start_date');
+        expect(structured.request.connection).not.toHaveProperty('start_date');
+        expect(text).toContain('The team member approved: the connection is live.');
+      });
+
+      it('answers a done set_start_date on a live connection: scheduled with its date', async () => {
+        const date = dayAfterToday(30);
+        const id = await askedRequest(
+          { connection: IDS.live, action: 'set_start_date', start_date: date },
+          done
+        );
+        const fishing = fake.store.connections.get(IDS.live) as FormConnection;
+        fake.store.connections.set(IDS.live, { ...fishing, is_active: false, start_date: date });
+        const { structured, text } = await callTool(
+          'check_approval',
+          { request_id: id },
+          BEARERS.manage
+        );
+        expect(structured.request.connection).toMatchObject({
+          status: 'scheduled',
+          start_date: date,
+        });
+        expect(structured.urls).toBeNull();
+        expect(text).toContain(
+          `The team member approved: the connection is scheduled for ${date}.`
+        );
+      });
+
+      it('answers a request cancelled with start_date_passed', async () => {
+        const id = await askedRequest(
+          { connection: IDS.scheduled, action: 'set_start_date', start_date: dayAfterToday(3) },
+          (request) => ({
+            ...request,
+            status: 'cancelled',
+            outcome: 'cancelled',
+            cancel_reason: 'start_date_passed',
+          })
+        );
+        const { structured, text } = await callTool(
+          'check_approval',
+          { request_id: id },
+          BEARERS.manage
+        );
+        expect(structured.request).toMatchObject({
+          outcome: 'cancelled',
+          reason: 'start_date_passed',
+        });
+        expect(structured.urls).toBeNull();
+        expect(text).toContain(
+          'The start date is no longer after today in Germany, so nothing happened. Ask again ' +
+            'with request_approval and a new date.'
+        );
+      });
     });
   });
 });

@@ -1,7 +1,7 @@
 import type { ApprovalAction } from '@connection-portal/api-types/approvals';
 import { defineTexts } from '@connection-portal/rules/language';
 
-import type { ApprovalPageState, FinalStatus, StatusAction, StatusBody } from './types';
+import type { ApprovalPageState, FinalStatus, StatusAction } from './types';
 
 // The approval page's copy (specs/007-agent-mcp-server/contracts/ui-screens.md S3; spec 008
 // S21); spec 009: the German from the glossary (G§2 "approval request", "approve/decline",
@@ -23,6 +23,12 @@ export const APPROVAL_COPY = defineTexts(
     goneForGood: 'Its content will be gone for good.',
     requestsCancelled: 'Requests in progress are cancelled.',
     cantBeUndone: 'Deleting can’t be undone.',
+    // The start as part of what will happen (spec 010, copy.md §7; FR-065): `publish`,
+    // `reactivate` and `set_start_date` with a date, or at once; an active connection that gets
+    // a later date also says that its links stop until then
+    activeFrom: (date: string) => `Active from ${date}`,
+    goesLiveAtOnce: 'The connection goes live at once.',
+    untilThen: 'Until then its links stop working, and requests in progress are cancelled.',
     checksTitle: 'Rule checks',
     checking: 'Checking the rules…',
     noFindings: 'No findings.',
@@ -54,9 +60,16 @@ export const APPROVAL_COPY = defineTexts(
       `This request expired at ${time}. Nothing has changed. The agent can ask again.`,
     replaced: 'The agent made a newer request for this action.',
     cancelled: 'This request was cancelled.',
-    /** `connection_changed`: the word from whether the connection is live now */
-    connectionChanged: (active: boolean) =>
-      `The connection was ${active ? 'reactivated' : 'deactivated'} in the meantime.`,
+    // A done `publish` and `reactivate` with a date (spec 010, copy.md §7), as the server's
+    // `409 approval_done` words them; the other actions' are `DONE_TEXTS`
+    publishedScheduled: (date: string) => `Published and scheduled for ${date}.`,
+    reactivatedScheduled: (date: string) => `Connection scheduled for ${date}.`,
+    // `connection_changed`, by the connection's state now and the action (spec 010, FR-066;
+    // design-notes §4.2 T078/T079 (4)), as the server's `approvals._connection_change()`
+    connectionDeactivated: 'The connection was deactivated in the meantime.',
+    connectionReactivated: 'The connection was reactivated in the meantime.',
+    connectionBecameActive: 'The connection became active in the meantime.',
+    connectionStartDateChanged: 'The connection’s start date changed in the meantime.',
   },
   {
     fallbackTitle: 'Freigabeanfrage',
@@ -71,6 +84,9 @@ export const APPROVAL_COPY = defineTexts(
     goneForGood: 'Sein Inhalt wird endgültig gelöscht.',
     requestsCancelled: 'Laufende Anfragen werden abgebrochen.',
     cantBeUndone: 'Das Löschen kann nicht rückgängig gemacht werden.',
+    activeFrom: (date: string) => `Aktiv ab ${date}`,
+    goesLiveAtOnce: 'Die Anbindung wird sofort aktiv.',
+    untilThen: 'Bis dahin funktionieren die Links nicht, und laufende Anfragen werden abgebrochen.',
     checksTitle: 'Regelprüfung',
     checking: 'Die Regeln werden geprüft …',
     noFindings: 'Keine Befunde.',
@@ -99,50 +115,35 @@ export const APPROVAL_COPY = defineTexts(
       `Diese Anfrage ist um ${time} Uhr abgelaufen. Es wurde nichts geändert. Der Agent kann erneut fragen.`,
     replaced: 'Der Agent hat für diese Aktion eine neuere Anfrage gestellt.',
     cancelled: 'Diese Anfrage wurde abgebrochen.',
-    connectionChanged: (active: boolean) =>
-      `Die Anbindung wurde in der Zwischenzeit ${active ? 'reaktiviert' : 'deaktiviert'}.`,
+    publishedScheduled: (date: string) => `Veröffentlicht und für den ${date} geplant.`,
+    reactivatedScheduled: (date: string) => `Anbindung für den ${date} geplant.`,
+    connectionDeactivated: 'Die Anbindung wurde in der Zwischenzeit deaktiviert.',
+    connectionReactivated: 'Die Anbindung wurde in der Zwischenzeit reaktiviert.',
+    connectionBecameActive: 'Die Anbindung ist in der Zwischenzeit aktiv geworden.',
+    connectionStartDateChanged: 'Das Startdatum der Anbindung wurde in der Zwischenzeit geändert.',
   }
 );
 
 /**
- * The body of the actions on a published connection (S3 "Body"); its sentences under the URLs are
- * `APPROVAL_COPY`'s `requestsCancelled` and `cantBeUndone`
+ * The lead of the actions on a published connection (S3 "Body"): what becomes of the URLs. The
+ * sentences under them are `statusLinesOf()`'s. `set_start_date` (spec 010) has none: its
+ * sentences say what happens to the links
  */
-export const STATUS_BODIES = defineTexts<Record<StatusAction, StatusBody>>(
+export const STATUS_LEADS = defineTexts<Record<StatusAction, string | null>>(
   {
-    deactivate: {
-      lead: 'These connection URLs will answer ‘unavailable’ until the connection is reactivated:',
-      cancelsRequests: 'Requests in progress are cancelled.',
-      final: null,
-    },
-    reactivate: {
-      lead: 'These connection URLs will work again:',
-      cancelsRequests: null,
-      final: null,
-    },
-    delete: {
-      lead: 'These connection URLs will stop working for good:',
-      cancelsRequests: 'Requests in progress are cancelled.',
-      final: 'Deleting can’t be undone.',
-    },
+    deactivate:
+      'These connection URLs will answer ‘unavailable’ until the connection is reactivated:',
+    reactivate: 'These connection URLs will work again:',
+    delete: 'These connection URLs will stop working for good:',
+    set_start_date: null,
   },
   {
     // „unavailable“ is the answer's code serviceBW receives (`409 unavailable`), an identifier
-    deactivate: {
-      lead: 'Diese URLs der Anbindung antworten mit „unavailable“, bis die Anbindung reaktiviert wird:',
-      cancelsRequests: 'Laufende Anfragen werden abgebrochen.',
-      final: null,
-    },
-    reactivate: {
-      lead: 'Diese URLs der Anbindung funktionieren wieder:',
-      cancelsRequests: null,
-      final: null,
-    },
-    delete: {
-      lead: 'Diese URLs der Anbindung funktionieren endgültig nicht mehr:',
-      cancelsRequests: 'Laufende Anfragen werden abgebrochen.',
-      final: 'Das Löschen kann nicht rückgängig gemacht werden.',
-    },
+    deactivate:
+      'Diese URLs der Anbindung antworten mit „unavailable“, bis die Anbindung reaktiviert wird:',
+    reactivate: 'Diese URLs der Anbindung funktionieren wieder:',
+    delete: 'Diese URLs der Anbindung funktionieren endgültig nicht mehr:',
+    set_start_date: null,
   }
 );
 
@@ -159,6 +160,10 @@ export const TITLES = defineTexts<
     deactivate: { named: (name) => `Deactivate ‘${name}’?`, unnamed: 'Deactivate the connection?' },
     reactivate: { named: (name) => `Reactivate ‘${name}’?`, unnamed: 'Reactivate the connection?' },
     delete: { named: (name) => `Delete ‘${name}’?`, unnamed: 'Delete the connection?' },
+    set_start_date: {
+      named: (name) => `Change the start date of ‘${name}’?`,
+      unnamed: 'Change the start date?',
+    },
   },
   {
     publish: { named: (name) => `„${name}“ veröffentlichen?`, unnamed: 'Entwurf veröffentlichen?' },
@@ -166,6 +171,10 @@ export const TITLES = defineTexts<
     deactivate: { named: (name) => `„${name}“ deaktivieren?`, unnamed: 'Anbindung deaktivieren?' },
     reactivate: { named: (name) => `„${name}“ reaktivieren?`, unnamed: 'Anbindung reaktivieren?' },
     delete: { named: (name) => `„${name}“ löschen?`, unnamed: 'Anbindung löschen?' },
+    set_start_date: {
+      named: (name) => `Startdatum von „${name}“ ändern?`,
+      unnamed: 'Startdatum ändern?',
+    },
   }
 );
 
@@ -177,6 +186,7 @@ export const DONE_TEXTS = defineTexts<Record<ApprovalAction, string>>(
     deactivate: 'Connection deactivated.',
     reactivate: 'Connection reactivated.',
     delete: 'Connection deleted.',
+    set_start_date: 'Start date saved.',
   },
   {
     publish: 'Veröffentlicht.',
@@ -184,12 +194,13 @@ export const DONE_TEXTS = defineTexts<Record<ApprovalAction, string>>(
     deactivate: 'Anbindung deaktiviert.',
     reactivate: 'Anbindung reaktiviert.',
     delete: 'Anbindung gelöscht.',
+    set_start_date: 'Startdatum gespeichert.',
   }
 );
 
 /**
- * `cancelled`, by `cancel_reason`; `connection_changed` takes its word from the connection
- * (`APPROVAL_COPY.connectionChanged`)
+ * `cancelled`, by `cancel_reason`; `connection_changed` takes its sentence from the connection's
+ * state and the action (`connectionChangedTextOf()`)
  */
 export const CANCELLED_TEXTS = defineTexts<Record<string, string>>(
   {
@@ -201,6 +212,8 @@ export const CANCELLED_TEXTS = defineTexts<Record<string, string>>(
     access_changed: 'The agent’s access has changed, so this request was cancelled.',
     revoked: 'The agent’s access was revoked, so this request was cancelled.',
     access_ended: 'The agent’s access has ended, so this request was cancelled.',
+    start_date_passed:
+      'The start date is no longer after today. The agent can ask again with a new date.',
   },
   {
     draft_changed:
@@ -212,6 +225,8 @@ export const CANCELLED_TEXTS = defineTexts<Record<string, string>>(
       'Der Zugriff des Agenten wurde geändert, daher wurde diese Anfrage abgebrochen.',
     revoked: 'Der Zugriff des Agenten wurde widerrufen, daher wurde diese Anfrage abgebrochen.',
     access_ended: 'Der Zugriff des Agenten ist abgelaufen, daher wurde diese Anfrage abgebrochen.',
+    start_date_passed:
+      'Das Startdatum liegt nicht mehr nach dem heutigen Tag. Der Agent kann mit einem neuen Datum erneut fragen.',
   }
 );
 

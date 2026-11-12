@@ -1,4 +1,4 @@
-from datetime import datetime, timezone
+from datetime import date, datetime, timezone
 from typing import Annotated, Any, Generic, Literal, TypeVar
 
 from pydantic import (
@@ -11,6 +11,8 @@ from pydantic import (
     StrictInt,
     StrictStr,
     TypeAdapter,
+    field_validator,
+    model_validator,
 )
 
 from .catalog import FieldKind, PartKind
@@ -97,8 +99,18 @@ class DocumentField(BaseModel):
     parts: list[FieldPart] | None
     # Whether a document can give several values for it, such as the nationalities
     multiple_values: bool
+    # The key of its data group (FR-078): GET /api/document-types fills it for a
+    # document with groups; None there for one without, and in every other answer
+    group: str | None = None
 
     model_config = ConfigDict(from_attributes=True)
+
+
+class FieldGroup(BaseModel):
+    """A data group of the documents step's panel, such as "Address" (FR-077)."""
+
+    key: str
+    label: str
 
 
 class DocumentType(BaseModel):
@@ -107,6 +119,9 @@ class DocumentType(BaseModel):
     key: str
     label: str
     fields: list[DocumentField]
+    # Its data groups in the panel's order; empty for a document with 10 fields or
+    # fewer (FR-077, FR-078)
+    field_groups: list[FieldGroup] = Field(default_factory=list)
 
 
 class RequestedDocument(BaseModel):
@@ -290,6 +305,74 @@ RULE_SET_SNAPSHOT = TypeAdapter(list[SnapshotBranch])
 ConnectionStatus = Literal['draft', 'published']
 # The editor's steps; a draft remembers the one it was saved in (spec 005, FR-002)
 EditorStep = Literal['connection', 'documents', 'rules', 'test']
+# What every consumer shows, derived by `form_connections.state_of()` (spec 010,
+# research R1, data-model section 1.2); `status` stays the discriminator
+ConnectionState = Literal['draft', 'scheduled', 'live', 'deactivated']
+# The example's mark (spec 010, research R7, data-model section 5): 'unchanged'
+# while the draft is the example as created, 'changed' after a save that changed it
+ExampleState = Literal['unchanged', 'changed']
+
+
+# A connection's activity (spec 010, research R4, data-model section 2). The kinds
+# in the order of data-model section 2.2, which `services/activity.py` keeps
+ActivityKind = Literal[
+    'created',
+    'renamed',
+    'description_changed',
+    'documents_changed',
+    'variant_added',
+    'variant_removed',
+    'variant_renamed',
+    'rules_changed',
+    'published',
+    'scheduled',
+    'start_date_changed',
+    'became_active',
+    'deactivated',
+    'reactivated',
+    'deleted',
+    'restored',
+]
+
+
+class ActivityActor(BaseModel):
+    """Who made an entry: a team member, alone or with an agent.
+
+    `agent` without `approved`: the agent made the change for the team member
+    `name`. `agent` with `approved`: `name` approved what the agent asked for.
+    """
+
+    # The team member's username when the entry was made (FR-028)
+    name: str
+    agent: str | None
+    approved: bool
+
+
+class ActivityEntry(BaseModel):
+    """One entry of a connection's activity: what happened, when and by whom.
+
+    The server sends the kind and its data, never a sentence: the website words it
+    in its language, the MCP server in English.
+    """
+
+    id: str
+    kind: ActivityKind
+    # When it happened; the latest time of the entries merged into it (FR-026)
+    at: str
+    # The variant's name for the kinds about a variant (the new name for a rename)
+    variant: str | None
+    # YYYY-MM-DD: scheduled, and start_date_changed to a date
+    start_date: str | None
+    # Null: the middleware did it by itself, or the entry was backfilled
+    actor: ActivityActor | None
+
+
+class ActivityPage(BaseModel):
+    """A page of a connection's activity, newest first (FR-023)."""
+
+    items: list[ActivityEntry]
+    # Null on the last page
+    next_cursor: str | None
 
 
 class DraftContent(BaseModel):
@@ -324,6 +407,18 @@ class FormConnectionSummary(BaseModel):
     status: ConnectionStatus
     # For a draft: its last save (FR-007)
     updated_at: str
+    # Spec 010 (research R1, R3): the state, the status dates and a draft's step
+    state: ConnectionState
+    # Null for a draft
+    published_at: str | None
+    # Set only while deactivated
+    deactivated_at: str | None
+    # YYYY-MM-DD, a day in Germany; set only while scheduled
+    start_date: str | None
+    # A draft's stored step; null once published
+    step: EditorStep | None
+    # Null unless the draft is the example (spec 010, research R7)
+    example: ExampleState | None
 
 
 class FormConnectionPage(BaseModel):
@@ -359,16 +454,110 @@ class FormConnection(BaseModel):
     next_group_number: int
     created_at: str
     updated_at: str
+    # Spec 010 (research R1, R3)
+    state: Literal['scheduled', 'live', 'deactivated']
+    published_at: str
+    # When it last became active; null if it never was
+    activated_at: str | None
+    # Set only while deactivated
+    deactivated_at: str | None
+    # YYYY-MM-DD, a day in Germany; set only while scheduled
+    start_date: str | None
+    # The entry the activity card's closed line shows (data-model section 2.5)
+    last_activity: ActivityEntry | None
+
+
+class Deletion(BaseModel):
+    """What every delete answers: the deletion, which "Undo" can restore.
+
+    Spec 010, research R5, contracts/management-api.md "Deleting". `id` is the
+    deletion's, shared by the rows deleted together; null when nothing can
+    restore it, as for a deletion an approved approval request ran (FR-067).
+    """
+
+    id: str | None
+    # When the restore time (DELETION_UNDO_SECONDS) ends; null with `id`
+    restorable_until: str | None
+
+
+# The most connections one bulk deletion takes (spec 010, research R10)
+DELETION_ITEMS_MAX = 500
+
+
+class DeletionItem(BaseModel):
+    """A connection of a bulk deletion, with the state the dialog showed for it.
+
+    Spec 010, research R10, contracts/management-api.md "Deleting" (FR-043).
+    """
+
+    id: str
+    state: ConnectionState
+
+
+class DeletionCreate(BaseModel):
+    """The body of a bulk deletion: the selected connections, deleted together.
+
+    Spec 010, research R10, contracts/management-api.md "Deleting". 1 to
+    DELETION_ITEMS_MAX items with distinct ids; an empty list, more items or an
+    id listed twice fails the body's validation (400 `Validation error`).
+    """
+
+    items: list[DeletionItem] = Field(min_length=1, max_length=DELETION_ITEMS_MAX)
+
+    @field_validator('items')
+    @classmethod
+    def check_distinct_ids(cls, items: list[DeletionItem]) -> list[DeletionItem]:
+        """Refuse an id listed twice: each connection has one state to check."""
+        if len({item.id for item in items}) != len(items):
+            raise ValueError('An id is listed twice')
+        return items
+
+
+class RestoredConnections(BaseModel):
+    """What a restore answers: every connection of the deletion, back as it was.
+
+    Spec 010, research R5, contracts/management-api.md "Deleting". In the
+    overview's order, most recently updated first, so that the overview puts them
+    back without a reload (FR-034).
+    """
+
+    items: list[FormConnectionSummary]
 
 
 class FormConnectionCreate(BaseModel):
-    """A new form connection. Without rules, it gets a main branch "Standard"."""
+    """A new form connection. Without rules, it gets a main branch "Standard".
+
+    Without `start_date` it is published active ("Now"); with one, scheduled: it
+    becomes active on that day in Germany (spec 010, research R1, R2).
+    """
 
     name: str
     # Optional, '' when there is none (spec 006, research R3)
     description: str = ''
     documents: list[RequestedDocument]
     rules: RulesInput | None = None
+    # YYYY-MM-DD, a day in Germany after today; null or absent: active at once
+    start_date: date | None = None
+
+
+class ActivateRequest(BaseModel):
+    """The body of activating a deactivated connection again (spec 010, R2).
+
+    An empty object, or no body, activates it at once ("Now"); a `start_date`
+    schedules it for that day in Germany instead.
+    """
+
+    # YYYY-MM-DD, a day in Germany after today; null or absent: active at once
+    start_date: date | None = None
+
+
+class StartDateUpdate(BaseModel):
+    """A scheduled or live connection's new start (spec 010, FR-008, FR-009).
+
+    The key is required: a day in Germany after today, or null for now.
+    """
+
+    start_date: date | None
 
 
 class FormConnectionUpdate(BaseModel):
@@ -392,6 +581,8 @@ class FormConnectionDraft(BaseModel):
 
     # Always 'draft': tells it apart from a FormConnection
     status: Literal['draft'] = 'draft'
+    # Always 'draft' (spec 010, research R1)
+    state: Literal['draft'] = 'draft'
     id: str
     name: str
     # '' possible
@@ -412,6 +603,10 @@ class FormConnectionDraft(BaseModel):
     created_at: str
     # The last save (FR-007)
     updated_at: str
+    # The entry the activity card's closed line shows (spec 010, data-model 2.5)
+    last_activity: ActivityEntry | None
+    # Null unless the draft is the example (spec 010, research R7)
+    example: ExampleState | None
 
 
 # What GET /api/form-connections/{id} answers (spec 005, research R2)
@@ -644,20 +839,39 @@ class AgentMe(BaseModel):
 # Approval requests (research R12, data-model.md section 5)
 
 ApprovalAction = Literal[
-    'publish', 'delete_draft', 'deactivate', 'reactivate', 'delete'
+    'publish', 'delete_draft', 'deactivate', 'reactivate', 'delete', 'set_start_date'
 ]
 ApprovalStatus = Literal[
     'waiting', 'done', 'declined', 'expired', 'replaced', 'cancelled'
 ]
 # The status, or failed while waiting after an approve attempt failed (FR-027)
 ApprovalOutcome = ApprovalStatus | Literal['failed']
+# The actions that take a start date (spec 010, research R9, data-model 7)
+START_DATE_ACTIONS: frozenset[str] = frozenset(
+    {'publish', 'reactivate', 'set_start_date'}
+)
 
 
 class ApprovalCreate(BaseModel):
-    """An agent's request that a team member approve an action."""
+    """An agent's request that a team member approve an action.
+
+    `start_date` (spec 010, research R9) only for `publish` and `reactivate`
+    (the start date; absent or null: at once) and `set_start_date` (the new
+    date; absent or null: now). Another action with one fails the body's
+    validation (400 `Validation error`).
+    """
 
     form_connection_id: str
     action: ApprovalAction
+    # YYYY-MM-DD, a day in Germany after today
+    start_date: date | None = None
+
+    @model_validator(mode='after')
+    def check_start_date_action(self) -> 'ApprovalCreate':
+        """Refuse a start date for an action that takes none."""
+        if self.start_date is not None and self.action not in START_DATE_ACTIONS:
+            raise ValueError('This action takes no start date')
+        return self
 
 
 class ApprovalRequest(BaseModel):
@@ -672,8 +886,12 @@ class ApprovalRequest(BaseModel):
     status: ApprovalStatus
     outcome: ApprovalOutcome
     # revoked, access_changed, access_ended, draft_changed, draft_published,
-    # draft_deleted, connection_changed or connection_deleted
+    # draft_deleted, connection_changed, connection_deleted or start_date_passed
     cancel_reason: str | None
+    # YYYY-MM-DD, the start date as asked (spec 010, research R9); null: at once
+    # (publish, reactivate), now (set_start_date), or an action without one. The
+    # connection's own start date is on ApprovalPreview.connection
+    start_date: str | None
     # The approval page's link
     link: str
     expires_at: str
@@ -706,7 +924,9 @@ class ApprovalPreview(BaseModel):
     request: ApprovalRequest
     # publish and delete_draft, while the draft exists
     draft: FormConnectionDraft | None
-    # The other actions, while the connection exists
+    # The other actions while the connection exists, and the connection a done
+    # publish made while it isn't deleted: its own `state` and `start_date`
+    # (spec 010, research R9)
     connection: FormConnection | None
     # After a done publish or reactivate, and for the status actions
     urls: ConnectionUrls | None

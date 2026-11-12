@@ -1,5 +1,7 @@
 import type { DocumentField, DocumentType } from '@connection-portal/api-types/document-types';
 import type {
+  ActivityEntry,
+  ActivityKind,
   BranchInput,
   FormConnection,
   FormConnectionDraft,
@@ -13,12 +15,21 @@ import { describe, expect, it } from 'vitest';
 
 import { connectionLink, itemLink, variantLink } from './links';
 import {
+  ACTIVITY_EVENTS,
+  activityEntryViewOf,
+  activityEventOf,
+  activityLineOf,
+  activityPersonOf,
   applicantFieldsOf,
+  connectionDatesLineOf,
+  connectionFactsOf,
   connectionLineOf,
   connectionRefOf,
+  connectionStateOf,
   connectionUrlsOf,
   droppedDataOf,
   droppedTextOf,
+  EXAMPLE_LINE,
   fieldKeyOf,
   itemCountsOf,
   itemLineOf,
@@ -26,7 +37,10 @@ import {
   itemViewLinesOf,
   itemViewOf,
   ruleContextOf,
+  stepLineOf,
   stepOf,
+  summaryFactsLineOf,
+  summaryFactsOf,
   summaryTextOf,
   unrequestedRulesOf,
   urlsNoteOf,
@@ -141,6 +155,7 @@ const NIGHT_SHIFT_BRANCH = branch(NIGHT_SHIFT, 'Night shift', 'empty', []);
 
 const DRAFT: FormConnectionDraft = {
   status: 'draft',
+  state: 'draft',
   id: CONNECTION,
   name: 'Parking permit',
   description: '',
@@ -152,6 +167,8 @@ const DRAFT: FormConnectionDraft = {
   version: 3,
   created_at: '2026-11-01T10:00:00Z',
   updated_at: '2026-11-02T10:00:00Z',
+  last_activity: null,
+  example: null,
 };
 
 const TRIGGER_URL = `https://connect.example.org/api/connect/${CONNECTION}/requests`;
@@ -178,13 +195,36 @@ const PUBLISHED: FormConnection = {
   next_group_number: 2,
   created_at: '2026-11-01T10:00:00Z',
   updated_at: '2026-11-02T10:00:00Z',
+  state: 'live',
+  published_at: '2026-11-01T10:00:00Z',
+  activated_at: '2026-11-01T10:00:00Z',
+  deactivated_at: null,
+  start_date: null,
+  last_activity: null,
+};
+
+/** The published connection, deactivated as the API answers it */
+const DEACTIVATED: FormConnection = {
+  ...PUBLISHED,
+  is_active: false,
+  state: 'deactivated',
+  deactivated_at: '2026-11-03T10:00:00Z',
+};
+
+/** The published connection, scheduled as the API answers it (spec 010, research R1) */
+const SCHEDULED: FormConnection = {
+  ...PUBLISHED,
+  is_active: false,
+  state: 'scheduled',
+  activated_at: null,
+  start_date: '2026-12-01',
 };
 
 const CONTEXT = ruleContextOf(DOCUMENTS, CATALOG, OPTION_SETS);
 const VIEW_CONTEXT = { connectionId: CONNECTION, rules: CONTEXT };
 
 describe('refs', () => {
-  it('gives a draft, a live and a deactivated connection their status and link', () => {
+  it('gives a draft, a scheduled, a live and a deactivated connection their status and link', () => {
     const link = connectionLink(CONNECTION);
     expect(connectionRefOf(DRAFT)).toEqual({
       id: CONNECTION,
@@ -193,7 +233,8 @@ describe('refs', () => {
       link,
     });
     expect(connectionRefOf(PUBLISHED).status).toBe('live');
-    expect(connectionRefOf({ ...PUBLISHED, is_active: false }).status).toBe('deactivated');
+    expect(connectionRefOf(DEACTIVATED).status).toBe('deactivated');
+    expect(connectionRefOf(SCHEDULED).status).toBe('scheduled');
     const summary: FormConnectionSummary = {
       id: CONNECTION,
       name: 'Parking permit',
@@ -201,9 +242,36 @@ describe('refs', () => {
       is_active: true,
       status: 'draft',
       updated_at: '2026-11-02T10:00:00Z',
+      state: 'draft',
+      published_at: null,
+      deactivated_at: null,
+      start_date: null,
+      step: 'rules',
+      example: null,
     };
     // A draft's is_active means nothing
     expect(connectionRefOf(summary).status).toBe('draft');
+  });
+
+  it('reads the state the API derived, never is_active', () => {
+    // A scheduled connection is inactive, as a deactivated one is: only `state` tells them apart
+    const summary: FormConnectionSummary = {
+      id: CONNECTION,
+      name: 'Parking permit',
+      description: '',
+      is_active: false,
+      status: 'published',
+      updated_at: '2026-11-02T10:00:00Z',
+      state: 'scheduled',
+      published_at: '2026-11-01T10:00:00Z',
+      deactivated_at: null,
+      start_date: '2026-12-01',
+      step: null,
+      example: null,
+    };
+    expect(connectionStateOf(summary)).toBe('scheduled');
+    expect(connectionStateOf({ ...summary, state: 'deactivated' })).toBe('deactivated');
+    expect(connectionStateOf({ ...summary, state: 'live' })).toBe('live');
   });
 
   it('gives a variant and an item their links', () => {
@@ -442,6 +510,147 @@ describe('stepOf', () => {
   });
 });
 
+describe('the dates and the step (spec 010, FR-062)', () => {
+  const SUMMARY: Pick<
+    FormConnectionSummary,
+    'start_date' | 'published_at' | 'deactivated_at' | 'step' | 'example'
+  > = {
+    start_date: null,
+    published_at: null,
+    deactivated_at: null,
+    step: null,
+    example: null,
+  };
+
+  it("gives a search item a draft's step and nothing else", () => {
+    const facts = summaryFactsOf({ ...SUMMARY, step: 'documents' });
+    expect(facts).toEqual({ step: 'documents' });
+    expect(summaryFactsLineOf(facts)).toBe('Draft at the documents step.');
+  });
+
+  it('gives a search item its published_at, and its deactivated_at while deactivated', () => {
+    const live = summaryFactsOf({ ...SUMMARY, published_at: '2026-11-01T10:00:00Z' });
+    expect(live).toEqual({ published_at: '2026-11-01T10:00:00Z' });
+    expect(summaryFactsLineOf(live)).toBe('Published 2026-11-01T10:00:00Z.');
+    const deactivated = summaryFactsOf({
+      ...SUMMARY,
+      published_at: '2026-11-01T10:00:00Z',
+      deactivated_at: '2026-11-03T10:00:00Z',
+    });
+    expect(deactivated).toEqual({
+      published_at: '2026-11-01T10:00:00Z',
+      deactivated_at: '2026-11-03T10:00:00Z',
+    });
+    expect(summaryFactsLineOf(deactivated)).toBe(
+      'Published 2026-11-01T10:00:00Z; deactivated 2026-11-03T10:00:00Z.'
+    );
+  });
+
+  it('gives a scheduled search item its start_date, which the ref line names', () => {
+    const facts = summaryFactsOf({
+      ...SUMMARY,
+      start_date: '2026-12-01',
+      published_at: '2026-11-01T10:00:00Z',
+    });
+    expect(facts).toEqual({ start_date: '2026-12-01', published_at: '2026-11-01T10:00:00Z' });
+    expect(summaryFactsLineOf(facts)).toBe('Published 2026-11-01T10:00:00Z.');
+  });
+
+  it('leaves a search item without a date or step without facts or a line', () => {
+    expect(summaryFactsOf(SUMMARY)).toEqual({});
+    expect(summaryFactsLineOf({})).toBeNull();
+  });
+
+  it("gives get_connection a draft's step and no dates", () => {
+    const facts = connectionFactsOf(DRAFT);
+    expect(facts).toEqual({ step: 'rules' });
+    expect(stepLineOf('rules')).toBe('Draft at the rules step.');
+    expect(connectionDatesLineOf(facts)).toBeNull();
+  });
+
+  it('gives a live connection published_at and active_since, which reactivating moves', () => {
+    const reactivated = { ...PUBLISHED, activated_at: '2026-11-05T10:00:00Z' };
+    const facts = connectionFactsOf(reactivated);
+    expect(facts).toEqual({
+      published_at: '2026-11-01T10:00:00Z',
+      active_since: '2026-11-05T10:00:00Z',
+    });
+    expect(connectionDatesLineOf(facts)).toBe(
+      'Published 2026-11-01T10:00:00Z; active since 2026-11-05T10:00:00Z.'
+    );
+  });
+
+  it('gives a deactivated connection deactivated_since', () => {
+    const facts = connectionFactsOf(DEACTIVATED);
+    expect(facts).toEqual({
+      published_at: '2026-11-01T10:00:00Z',
+      active_since: '2026-11-01T10:00:00Z',
+      deactivated_since: '2026-11-03T10:00:00Z',
+    });
+    expect(connectionDatesLineOf(facts)).toContain('deactivated since 2026-11-03T10:00:00Z');
+  });
+
+  it('gives a scheduled connection its start_date, and no active_since while never active', () => {
+    const facts = connectionFactsOf(SCHEDULED);
+    expect(facts).toEqual({ start_date: '2026-12-01', published_at: '2026-11-01T10:00:00Z' });
+    expect(connectionDatesLineOf(facts)).toBe('Published 2026-11-01T10:00:00Z.');
+  });
+
+  it('leaves start_date out for a live, a deactivated connection and a draft', () => {
+    expect(connectionFactsOf(PUBLISHED)).not.toHaveProperty('start_date');
+    expect(connectionFactsOf(DEACTIVATED)).not.toHaveProperty('start_date');
+    expect(connectionFactsOf(DRAFT)).not.toHaveProperty('start_date');
+  });
+});
+
+describe("the example's mark (spec 010, FR-062; research R7)", () => {
+  it('marks a search item example: true while the mark is set, changed or not', () => {
+    for (const example of ['unchanged', 'changed'] as const) {
+      const facts = summaryFactsOf({
+        start_date: null,
+        published_at: null,
+        deactivated_at: null,
+        step: 'connection',
+        example,
+      });
+      expect(facts).toEqual({ step: 'connection', example: true });
+      expect(summaryFactsLineOf(facts)).toBe(
+        'Draft at the connection step. This draft is the example.'
+      );
+    }
+  });
+
+  it('leaves example out of a search item that is not the example', () => {
+    const facts = summaryFactsOf({
+      start_date: null,
+      published_at: null,
+      deactivated_at: null,
+      step: 'rules',
+      example: null,
+    });
+    expect(facts).not.toHaveProperty('example');
+    expect(summaryFactsLineOf(facts)).toBe('Draft at the rules step.');
+  });
+
+  it('gives get_connection the mark as stored, unchanged or changed', () => {
+    expect(connectionFactsOf({ ...DRAFT, example: 'unchanged' })).toEqual({
+      step: 'rules',
+      example: 'unchanged',
+    });
+    expect(connectionFactsOf({ ...DRAFT, example: 'changed' })).toEqual({
+      step: 'rules',
+      example: 'changed',
+    });
+    expect(EXAMPLE_LINE).toBe('This draft is the example.');
+  });
+
+  it('leaves example out of a draft that is not the example and of a published connection', () => {
+    expect(connectionFactsOf(DRAFT)).not.toHaveProperty('example');
+    expect(connectionFactsOf(PUBLISHED)).not.toHaveProperty('example');
+    expect(connectionFactsOf(SCHEDULED)).not.toHaveProperty('example');
+  });
+});
+
 describe('connection URLs', () => {
   it('has none for a draft, and says when they exist', () => {
     expect(connectionUrlsOf(DRAFT)).toBeNull();
@@ -478,10 +687,17 @@ describe('connection URLs', () => {
   });
 
   it('keeps a deactivated connection’s URLs, which answer "unavailable"', () => {
-    const deactivated = { ...PUBLISHED, is_active: false };
-    expect(connectionUrlsOf(deactivated)?.trigger_url).toBe(TRIGGER_URL);
-    expect(urlsNoteOf(deactivated)).toBe(
+    expect(connectionUrlsOf(DEACTIVATED)?.trigger_url).toBe(TRIGGER_URL);
+    expect(urlsNoteOf(DEACTIVATED)).toBe(
       'This connection is deactivated: its URLs answer "unavailable" until it is reactivated.'
+    );
+  });
+
+  it('keeps a scheduled connection’s URLs, which answer "unavailable" until its start', () => {
+    expect(connectionUrlsOf(SCHEDULED)?.trigger_url).toBe(TRIGGER_URL);
+    expect(urlsNoteOf(SCHEDULED)).toBe(
+      'This connection is scheduled: its URLs answer "unavailable" until it becomes active on ' +
+        '2026-12-01, 00:00 in Germany.'
     );
   });
 });
@@ -495,11 +711,24 @@ describe('text blocks', () => {
     expect(connectionLineOf(connectionRefOf(DRAFT))).toBe(
       `Connection 'Parking permit' (draft): ${connectionLink(CONNECTION)}`
     );
+    expect(connectionLineOf(connectionRefOf(PUBLISHED), null)).toBe(
+      `Connection 'Parking permit' (live): ${connectionLink(CONNECTION)}`
+    );
     expect(variantLineOf(variantRefOf(AMBULANCE_BRANCH, CONNECTION))).toBe(
       `Variant 'Ambulance': ${variantLink(CONNECTION, AMBULANCE)}`
     );
     expect(itemLineOf(itemRefOf(LICENCE, STANDARD_BRANCH, CONNECTION))).toBe(
       `Group 'Licence' (group-1): ${itemLink(CONNECTION, STANDARD, 'group-1')}`
+    );
+  });
+
+  it('names a scheduled connection with the day it becomes active', () => {
+    expect(connectionLineOf(connectionRefOf(SCHEDULED), SCHEDULED.start_date)).toBe(
+      `Connection 'Parking permit' (scheduled from 2026-12-01): ${connectionLink(CONNECTION)}`
+    );
+    // Without the day, the status alone
+    expect(connectionLineOf(connectionRefOf(SCHEDULED))).toBe(
+      `Connection 'Parking permit' (scheduled): ${connectionLink(CONNECTION)}`
     );
   });
 
@@ -543,5 +772,116 @@ describe('itemCountsOf', () => {
   it('counts the rules and groups at every level', () => {
     expect(itemCountsOf(STANDARD_BRANCH.items)).toEqual({ rules: 4, groups: 1 });
     expect(itemCountsOf([])).toEqual({ rules: 0, groups: 0 });
+  });
+});
+
+describe('the activity (spec 010, contracts/copy.md §3)', () => {
+  const entry = (
+    kind: ActivityKind,
+    detail: Partial<Pick<ActivityEntry, 'variant' | 'start_date' | 'actor'>> = {}
+  ): ActivityEntry => ({
+    id: '44444444-4444-4444-8444-444444444444',
+    kind,
+    at: '2026-11-05T09:30:00Z',
+    variant: null,
+    start_date: null,
+    actor: null,
+    ...detail,
+  });
+
+  // copy.md §3's English column, word for word
+  it.each<[string, ActivityEntry, string]>([
+    ['created', entry('created'), 'Created'],
+    ['renamed', entry('renamed'), 'Name changed'],
+    ['description_changed', entry('description_changed'), 'Description changed'],
+    ['documents_changed', entry('documents_changed'), 'Documents changed'],
+    ['variant_added', entry('variant_added', { variant: 'Ambulance' }), 'Variant added: Ambulance'],
+    [
+      'variant_removed',
+      entry('variant_removed', { variant: 'Ambulance' }),
+      'Variant removed: Ambulance',
+    ],
+    [
+      'variant_renamed',
+      entry('variant_renamed', { variant: 'Night shift' }),
+      'Variant renamed: Night shift',
+    ],
+    [
+      'rules_changed',
+      entry('rules_changed', { variant: 'Ambulance' }),
+      'Rules changed in Ambulance',
+    ],
+    ['published', entry('published'), 'Published'],
+    ['scheduled', entry('scheduled', { start_date: '2026-12-01' }), 'Scheduled for 2026-12-01'],
+    [
+      'start_date_changed to a date',
+      entry('start_date_changed', { start_date: '2026-12-15' }),
+      'Start date changed to 2026-12-15',
+    ],
+    ['start_date_changed to now', entry('start_date_changed'), 'Start date changed to now'],
+    ['became_active', entry('became_active'), 'Became active'],
+    ['deactivated', entry('deactivated'), 'Deactivated'],
+    ['reactivated', entry('reactivated'), 'Activated again'],
+    ['deleted', entry('deleted'), 'Deleted'],
+    ['restored', entry('restored'), 'Restored'],
+  ])('words %s as the card does', (_name, given, event) => {
+    expect(activityEventOf(given)).toBe(event);
+  });
+
+  it('has an event for every kind, without a placeholder left', () => {
+    for (const kind of Object.keys(ACTIVITY_EVENTS) as ActivityKind[]) {
+      const event = activityEventOf(entry(kind, { variant: 'Standard', start_date: '2026-12-01' }));
+      expect(event).not.toMatch(/[{}]/);
+    }
+  });
+
+  it('answers a team member’s entry with by, and no agent', () => {
+    const view = activityEntryViewOf(
+      entry('rules_changed', {
+        variant: 'Ambulance',
+        actor: { name: 'anna', agent: null, approved: false },
+      })
+    );
+    expect(view).toEqual({
+      at: '2026-11-05T09:30:00Z',
+      event: 'Rules changed in Ambulance',
+      kind: 'rules_changed',
+      variant: 'Ambulance',
+      by: 'anna',
+    });
+    expect(activityPersonOf(view)).toBe('anna');
+    expect(activityLineOf(view)).toBe('- 2026-11-05T09:30:00Z · Rules changed in Ambulance · anna');
+  });
+
+  it('answers an agent’s change with by and agent', () => {
+    const view = activityEntryViewOf(
+      entry('created', { actor: { name: 'anna', agent: 'Claude Code', approved: false } })
+    );
+    expect(view).toMatchObject({ by: 'anna', agent: 'Claude Code' });
+    expect(view).not.toHaveProperty('approved');
+    expect(activityPersonOf(view)).toBe('anna with Claude Code');
+  });
+
+  it('answers an approved request with by, agent and approved', () => {
+    const view = activityEntryViewOf(
+      entry('published', { actor: { name: 'ben', agent: 'Claude Code', approved: true } })
+    );
+    expect(view).toMatchObject({ by: 'ben', agent: 'Claude Code', approved: true });
+    expect(activityPersonOf(view)).toBe('ben, asked by Claude Code');
+    expect(activityLineOf(view)).toBe(
+      '- 2026-11-05T09:30:00Z · Published · ben, asked by Claude Code'
+    );
+  });
+
+  it('answers an entry without a person without by, agent or approved', () => {
+    const view = activityEntryViewOf(entry('scheduled', { start_date: '2026-12-01' }));
+    expect(view).toEqual({
+      at: '2026-11-05T09:30:00Z',
+      event: 'Scheduled for 2026-12-01',
+      kind: 'scheduled',
+      start_date: '2026-12-01',
+    });
+    expect(activityPersonOf(view)).toBeNull();
+    expect(activityLineOf(view)).toBe('- 2026-11-05T09:30:00Z · Scheduled for 2026-12-01');
   });
 });

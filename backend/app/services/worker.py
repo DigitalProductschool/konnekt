@@ -30,7 +30,7 @@ from ..models import (
     OauthClient,
     OauthCode,
 )
-from . import document_requests, form_connections
+from . import deletions, document_requests, form_connections, start_dates
 from .document_requests import (
     OPEN_REQUEST,
     PENDING,
@@ -105,6 +105,23 @@ def _run_call(key: str, call: Callable[[], None]) -> None:
     finally:
         with _in_flight_lock:
             _in_flight.discard(key)
+
+
+def activate_scheduled_connections() -> None:
+    """Make active the scheduled connections whose day has come (spec 010, R2).
+
+    The first step: `form_connections.activate_due_connections()` with today in
+    Germany, in a short session of its own. A connection that a status change
+    holds locked is skipped and taken by the next cycle, 2 seconds later; after
+    a downtime, the first cycle catches up, with "Active since" at the scheduled
+    start. Nothing is called outside the database. Logs the count only.
+    """
+    with SessionLocal() as db:
+        activated = form_connections.activate_due_connections(
+            db, start_dates.today_in_germany()
+        )
+    if activated:
+        logger.info('Activated %d scheduled form connections', len(activated))
 
 
 def sync_sessions() -> None:
@@ -331,14 +348,24 @@ def _resync(form_connection_id: str) -> None:
         _resynced.add(form_connection_id)
 
 
+def _now() -> datetime:
+    """The clock of the steps that wait for the restore time; the tests move it."""
+    return datetime.now(tz=timezone.utc)
+
+
 def delete_unused_configs() -> None:
     """Delete the EUDIPLO configurations no request needs any more (R7, step 7).
 
-    A revision's configuration goes once a later revision is current, or its form
-    connection was deleted, and no request on it still has an EUDIPLO session. A
+    A revision's configuration goes once a later revision is current, or once its
+    form connection's deletion can no longer be restored (deleted at or before
+    `deletions.restore_cutoff()`; spec 010, research R5), and no request on it
+    still has an EUDIPLO session. A restored connection therefore still has its
+    configurations, and `form_connections.delete_unused_config()` checks the
+    restore time again under the row lock that a restore takes (R15 V10). A
     revision that is being created has a number above the current one, so it stays.
     The deletions run in the pool; a failed one is tried again in the next cycle.
     """
+    deleted_before = deletions.restore_cutoff(_now())
     in_use = (
         select(DocumentRequest.id)
         .where(
@@ -360,18 +387,23 @@ def delete_unused_configs() -> None:
                     # A draft's current_revision is null, so this never holds for
                     # a revision that a publish in flight has reserved (spec 005)
                     FormConnectionRevision.revision < FormConnection.current_revision,
-                    FormConnection.deleted_at.is_not(None),
+                    FormConnection.deleted_at <= deleted_before,
                 ),
                 ~in_use,
             )
         ).all()
     for revision_id in revision_ids:
-        dispatch(f'delete-config:{revision_id}', partial(_delete_config, revision_id))
+        dispatch(
+            f'delete-config:{revision_id}',
+            partial(_delete_config, revision_id, deleted_before),
+        )
 
 
-def _delete_config(revision_id: str) -> None:
+def _delete_config(revision_id: str, deleted_before: datetime) -> None:
     with SessionLocal() as db:
-        form_connections.delete_unused_config(db, revision_id)
+        form_connections.delete_unused_config(
+            db, revision_id, deleted_before=deleted_before
+        )
 
 
 def delete_expired_login_sessions() -> None:
@@ -576,9 +608,27 @@ def delete_old_approval_requests() -> None:
         logger.info('Deleted %d old approval requests', len(deleted))
 
 
-# The steps of one cycle, in the order of research R7 (step 4 was removed with
-# webhook mode), then those of agents' access (spec 007)
+def finish_deletions() -> None:
+    """Make final the deletions whose restore time has passed (spec 010, R5).
+
+    The last step: `deletions.finish_deletions()` in a short session of its own,
+    with the clock that `delete_unused_configs` waits by. It deletes the activity
+    of the connections deleted at or before `deletions.restore_cutoff()` and the
+    rows of such drafts (FR-030), skipping the rows that another transaction
+    holds, which a later cycle takes. Nothing is called outside the database. Logs
+    the counts only.
+    """
+    with SessionLocal() as db:
+        deletions.finish_deletions(db, _now())
+
+
+# The steps of one cycle: 1. the scheduled starts (spec 010, research R2), ahead
+# of the sync's wait for EUDIPLO; 2 to 9. those of research R7, in its order (its
+# step 4 was removed with webhook mode); 10 to 15. those of agents' access and the
+# approval requests (spec 007); 16. the deletions made final once their restore
+# time has passed (spec 010, research R5)
 STEPS: tuple[Step, ...] = (
+    activate_scheduled_connections,
     sync_sessions,
     expire_requests,
     cancel_requests,
@@ -593,6 +643,7 @@ STEPS: tuple[Step, ...] = (
     delete_expired_personal_tokens,
     delete_unused_oauth_clients,
     delete_old_approval_requests,
+    finish_deletions,
 )
 
 

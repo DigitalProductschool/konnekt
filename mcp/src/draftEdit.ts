@@ -56,12 +56,13 @@ export interface ApplyChange<R> {
 
 /**
  * A change refused: the editor's refusal (an `EditResult`'s, or one in its words), answered as
- * `validation`, or as `not_allowed` for an action that doesn't apply (the main variant deleted).
+ * `validation`, as `not_allowed` for an action that doesn't apply (the main variant deleted), or
+ * as `not_found` for something the draft doesn't hold (a document `move_document` names).
  */
 export interface ApplyRefusal {
   ok: false;
   refusal: EditRefusal;
-  code?: 'validation' | 'not_allowed';
+  code?: 'validation' | 'not_allowed' | 'not_found';
 }
 
 export type ApplyOutcome<R> = ApplyChange<R> | ApplyRefusal;

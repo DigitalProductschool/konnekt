@@ -735,7 +735,9 @@ later `/speckit-specify`.
     #17, U17 #35, U18 #43, U90 #31): deferred; the API carries created and updated times only, so
     the overview rows read "Edited <date>" and the details show no date pill (Clarification
     2026-11-06 #1). The ⋯ menu and "Activate again" drawn inside the pill move to the band's
-    right end (#52, second round, Remap Q7).
+    right end (#52, second round, Remap Q7). Superseded by spec 010 (FR-015 to FR-017,
+    `specs/010-revamp-backend-gaps/spec.md`), which builds the status dates, the date pill with
+    its ⋯ menu and the rows' dates by status.
   - (d) Undo after deactivating (U05 #24; U89 #26): not built; a deactivation is reversed only
     through Reactivate (001-S6.9), as requests already cancelled stay cancelled.
   - Supersedes: 002-S6.9's "Copied" item. Clarification 2026-11-06 #1 applied to (b) and (c).
@@ -991,6 +993,9 @@ Q<n>". The record is the same: the decision, the surfaces, the exact wording, wh
     allows ("Deactivate" while active, "Delete"; "Change start date" is F1, not built); while
     deactivated, "Activate again" stands before the ⋯. Dropped: the pill as their anchor.
   - Supersedes: no Clarification; follows #37 (c).
+  - Superseded by spec 010's FR-015 and FR-016 (`specs/010-revamp-backend-gaps/spec.md`), which
+    builds the date pill: the ⋯ menu sits on the pill as drawn, with "Change start date" for an
+    active or scheduled connection, and while deactivated "Activate again" stands next to it.
 
 - Q: In a variant, does a rule or group linked to Standard lose Rename, Duplicate, Ungroup and
   "Remove from group", and does "Copy to variant" show only while some variant could still
@@ -1713,7 +1718,10 @@ Decided drift items (Clarifications, session 2026-11-07):
   the details offer no PDF, show no "Active since" or "Deactivated since" pill (rows read
   "Edited <date>"), and deactivating offers no Undo (Q37); the connection's ⋯ menu and, while
   deactivated, "Activate again" before it sit at the status band's right end, where the pill was
-  drawn (#52).
+  drawn (#52). The dates, the pill and the menu's place are superseded by spec 010's FR-015 to
+  FR-017 (`specs/010-revamp-backend-gaps/spec.md`): the date pill shows "Active since …",
+  "Active from …" or "Deactivated since …" with the ⋯ menu on it and "Activate again" next to
+  it, and the rows read by status.
 - **FR-049**: A draft's details have "This connection is a draft" as the page's one main heading,
   in the status band with "Edited <date>", the name with the Draft badge in the breadcrumb and
   the tab title, "Edit connection" and "Go to connections →" in the footer and a visible "Delete

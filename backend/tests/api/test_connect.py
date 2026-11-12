@@ -22,10 +22,10 @@ from sqlalchemy.orm import Session
 from app.config import settings
 from app.db import SessionLocal
 from app.main import RedactReferencesFilter, app
-from app.models import DocumentRequest, FormConnectionRevision
+from app.models import DocumentRequest, FormConnection, FormConnectionRevision
 from app.routers.connect import PULL_FAILED, TRIGGER_FAILED
 from app.schemas import PullResponse
-from app.services import document_requests, worker
+from app.services import document_requests, start_dates, worker
 from app.services.eudiplo import NOT_CONFIGURED_MESSAGE as NOT_CONFIGURED_MESSAGE_TEXT
 from app.services.evaluation import day_of_sharing
 from app.services.qr import png_data_uri
@@ -41,6 +41,7 @@ from tests.helpers import (
     SHARED_CREDENTIALS,
     US1_RULES,
     US2_RULES,
+    branch_pull_url,
     create_form_connection,
     fail_in_wallet,
     main_branch,
@@ -55,6 +56,7 @@ from tests.helpers import (
     trigger,
     update_form_connection,
     update_request,
+    variant,
 )
 
 # The messages as answered without a German header (spec 009)
@@ -472,6 +474,48 @@ def test_the_first_pull_after_sharing_delivers_exactly_the_configured_fields(
     assert 'delete_session' not in fake_eudiplo.call_names()
 
 
+def test_the_teams_document_order_doesnt_change_the_delivery(
+    signed_in_client: TestClient, fake_eudiplo: FakeEudiplo
+) -> None:
+    """Spec 010, FR-051: created in another order and reordered, still catalog order.
+
+    A save that only reorders creates no revision, so a request started before it
+    and one started after it get the same documents, in catalog order.
+    """
+    reversed_documents = list(reversed(FORM_CONNECTION['documents']))
+    form_connection_id = create_form_connection(
+        signed_in_client, documents=reversed_documents
+    )
+    started = _completed(signed_in_client, fake_eudiplo, form_connection_id)
+    assert (
+        _pull(signed_in_client, form_connection_id, started['reference'])['documents']
+        == DELIVERED_DOCUMENTS
+    )
+
+    reordered = signed_in_client.put(
+        f'/api/form-connections/{form_connection_id}',
+        json={'documents': FORM_CONNECTION['documents']},
+    )
+    assert reordered.status_code == 200, reordered.json()
+    reordered = signed_in_client.put(
+        f'/api/form-connections/{form_connection_id}',
+        json={'documents': reversed_documents},
+    )
+    assert reordered.status_code == 200, reordered.json()
+    assert [
+        document['document_type'] for document in reordered.json()['data']['documents']
+    ] == ['mdl', 'pid']
+
+    later = _completed(signed_in_client, fake_eudiplo, form_connection_id)
+    assert stored_request(later['reference']).revision_id == (
+        stored_request(started['reference']).revision_id
+    )
+    assert (
+        _pull(signed_in_client, form_connection_id, later['reference'])['documents']
+        == DELIVERED_DOCUMENTS
+    )
+
+
 def test_pulls_within_the_repeat_window_get_the_same_documents(
     signed_in_client: TestClient, fake_eudiplo: FakeEudiplo
 ) -> None:
@@ -885,6 +929,58 @@ def test_a_reactivated_form_connection_answers_again(
     trigger(signed_in_client, form_connection_id)
 
 
+# A scheduled connection's URLs (spec 010, FR-004, FR-075; contracts/management-api.md
+# "What serviceBW sees")
+
+
+def test_a_scheduled_connections_urls_answer_as_a_deactivated_ones(
+    signed_in_client: TestClient, fake_eudiplo: FakeEudiplo
+) -> None:
+    """Byte for byte, so that serviceBW can't tell the two apart: the trigger and
+    the pull URLs of Standard and of a variant answer `409 unavailable`."""
+    rules = rules_input([main_branch([]), variant([], name='Taxi', origin='empty')])
+    start = start_dates.today_in_germany() + timedelta(days=30)
+    scheduled_id = create_form_connection(
+        signed_in_client, rules=rules, start_date=start.isoformat()
+    )
+    deactivated_id = create_form_connection(signed_in_client, rules=rules)
+    # serviceBW holds a reference of the deactivated connection's
+    held_reference = trigger(signed_in_client, deactivated_id)['reference']
+    deactivated = signed_in_client.post(
+        f'/api/form-connections/{deactivated_id}/deactivate', json={}
+    )
+    assert deactivated.status_code == 200, deactivated.json()
+    assert _count_requests() == 1
+    offers = fake_eudiplo.call_names().count('create_offer')
+
+    def answers(form_connection_id: str, reference: str) -> list[httpx2.Response]:
+        variant_id = signed_in_client.get(
+            f'/api/form-connections/{form_connection_id}'
+        ).json()['data']['branches'][1]['id']
+        return [
+            signed_in_client.post(requests_url(form_connection_id)),
+            signed_in_client.get(pull_url(form_connection_id, reference)),
+            signed_in_client.get(
+                branch_pull_url(form_connection_id, variant_id, reference)
+            ),
+        ]
+
+    for scheduled, deactivated in zip(
+        answers(scheduled_id, 'made-up-reference'),
+        answers(deactivated_id, held_reference),
+        strict=True,
+    ):
+        assert scheduled.status_code == deactivated.status_code == 409
+        assert scheduled.content == deactivated.content
+        assert (
+            scheduled.headers['content-type'] == (deactivated.headers['content-type'])
+        )
+        assert scheduled.json() == UNAVAILABLE
+    # The scheduled connection started nothing
+    assert _count_requests() == 1
+    assert fake_eudiplo.call_names().count('create_offer') == offers
+
+
 # A draft's URLs (spec 005, contracts/integration-api.md "A draft's URLs")
 
 
@@ -927,21 +1023,79 @@ def test_a_drafts_urls_answer_unavailable_and_start_nothing(
 def test_a_deleted_drafts_urls_are_not_found(
     signed_in_client: TestClient, fake_eudiplo: FakeEudiplo
 ) -> None:
+    """Spec 010, FR-075, research R5: as when deleting a draft removed its row,
+    also while its row stays, marked deleted, to be restored."""
     draft_id = _create_draft(signed_in_client)
+    # A draft's branch has no row yet; its URL is checked after the connection's
+    branch_id = signed_in_client.get(f'/api/form-connections/{draft_id}').json()[
+        'data'
+    ]['branches'][0]['id']
     deleted = signed_in_client.request(
         'DELETE', f'/api/form-connections/{draft_id}/draft', json={}
     )
     assert deleted.status_code == 200, deleted.json()
+    with SessionLocal() as db:
+        row = db.get(FormConnection, draft_id)
+        assert row is not None and row.deleted_at is not None
 
     trigger_response = signed_in_client.post(requests_url(draft_id))
     pull_response = signed_in_client.get(pull_url(draft_id, 'made-up-reference'))
+    branch_response = signed_in_client.get(
+        branch_pull_url(draft_id, branch_id, 'made-up-reference')
+    )
 
     assert trigger_response.status_code == 404
     assert trigger_response.json() == FORM_CONNECTION_NOT_FOUND
-    assert pull_response.status_code == 404
-    assert pull_response.json() == REQUEST_NOT_FOUND
+    for response in (pull_response, branch_response):
+        assert response.status_code == 404
+        assert response.json() == REQUEST_NOT_FOUND
     assert _count_requests() == 0
     assert fake_eudiplo.calls == []
+
+
+@pytest.mark.parametrize('state', ['live', 'scheduled', 'deactivated'])
+def test_a_deleted_published_connections_urls_answer_unavailable(
+    signed_in_client: TestClient, fake_eudiplo: FakeEudiplo, state: str
+) -> None:
+    """Spec 010, FR-075: in every published status, a deleted connection's
+    trigger and pull URLs answer `409 unavailable`, as before."""
+    rules = rules_input([main_branch([]), variant([], name='Taxi', origin='empty')])
+    start_date = None
+    if state == 'scheduled':
+        start_date = (start_dates.today_in_germany() + timedelta(days=30)).isoformat()
+    form_connection_id = create_form_connection(
+        signed_in_client, rules=rules, start_date=start_date
+    )
+    held_reference = None
+    if state != 'scheduled':
+        held_reference = trigger(signed_in_client, form_connection_id)['reference']
+    if state == 'deactivated':
+        response = signed_in_client.post(
+            f'/api/form-connections/{form_connection_id}/deactivate', json={}
+        )
+        assert response.status_code == 200, response.json()
+    variant_id = signed_in_client.get(
+        f'/api/form-connections/{form_connection_id}'
+    ).json()['data']['branches'][1]['id']
+    requests = _count_requests()
+    deleted = signed_in_client.request(
+        'DELETE', f'/api/form-connections/{form_connection_id}', json={}
+    )
+    assert deleted.status_code == 200, deleted.json()
+
+    reference = held_reference or 'made-up-reference'
+    for response in (
+        signed_in_client.post(requests_url(form_connection_id)),
+        signed_in_client.get(pull_url(form_connection_id, reference)),
+        signed_in_client.get(
+            branch_pull_url(form_connection_id, variant_id, reference)
+        ),
+    ):
+        assert response.status_code == 409
+        assert response.json() == UNAVAILABLE
+    assert _count_requests() == requests
+    if held_reference is not None:
+        assert stored_request(held_reference).status == 'unavailable'
 
 
 # The evaluation of the rules (spec 002, contracts/integration-api.md "evaluation")

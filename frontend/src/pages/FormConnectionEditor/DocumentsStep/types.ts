@@ -1,12 +1,12 @@
-import type { DocumentType } from '@connection-portal/api-types/document-types';
+import type { DocumentField, DocumentType } from '@connection-portal/api-types/document-types';
 import type { RequestedDocument } from '@connection-portal/api-types/form-connections';
-import type { Dispatch, KeyboardEvent, Ref } from 'react';
+import type { Dispatch, KeyboardEvent, PointerEvent, Ref } from 'react';
 
-import type { DroppedData, RemovedDataRule } from '../types';
+import type { DroppedData, PendingRemoval, RemovedDataRule } from '../types';
 
 /**
  * The documents step's view (FR-031, research R8, data-model "The documents step"). The editor's
- * reducer keeps owning the documents (catalog order, F23) and their fields; this state only says
+ * reducer keeps owning the documents (the team's order, FR-045) and their fields; this state only says
  * what the step shows of them. Nothing in it is stored, sent or logged.
  *
  * A document's id is its document type's key (`RequestedDocument.document_type`). Indexes count
@@ -32,11 +32,13 @@ export interface DocumentsViewState {
 /**
  * A removed document that the undo toast ("<Document> removed." / "Undo") can bring back. The
  * editor's state holds the document and its fields (`removed`) and the toast; this records which
- * one it is, so that "Undo" shows it again. It ends with the toast: "Undo", Escape, a newer change
- * or a change of step. No timer: an action toast stays until it is used or dismissed (T036)
+ * one it is, so that "Undo" shows it again. It ends with the toast: "Undo", Escape, its 6 seconds
+ * (FR-082), a newer change or a change of step
  */
 export interface PendingDocumentRemoval {
   documentId: string;
+  /** Its index in the list when it was removed: "Undo" shows it there again (FR-045) */
+  index: number;
 }
 
 /**
@@ -74,7 +76,7 @@ export type DocumentsViewAction =
   /** The search field's ×, or the card closing after a document was picked */
   | { type: 'clearSearch' }
   /** The toast's "Undo": the editor has put the document back, and it shows again */
-  | { type: 'undoRemoval'; listIds: readonly string[]; catalogOrder: readonly string[] }
+  | { type: 'undoRemoval'; listIds: readonly string[] }
   /**
    * The undo toast has gone without "Undo" (Escape, a newer change, a change of step); with
    * `documentId`, only when the pending removal is that document's
@@ -140,6 +142,23 @@ export interface DataCount {
 }
 
 /**
+ * A data group of a document with more than 10 data items (S8 "Data groups"; FR-077, R8): the
+ * catalog's group (its key and its label in the language of the moment) with its data items, in
+ * the catalog's order (`groupedFieldsOf()`)
+ */
+export interface GroupedFields {
+  key: string;
+  label: string;
+  fields: DocumentField[];
+}
+
+/**
+ * A group heading's checkbox (FR-079): `all` ticked, `some` mixed, `none` clear
+ * (`groupCheckStateOf()`)
+ */
+export type GroupCheckState = 'none' | 'some' | 'all';
+
+/**
  * The removal question's dialog (F72): `confirm` is "Remove <Document>?" with "Keep document" /
  * "Remove document"; `rules` is 002-S1.1's dialog naming the rules that check the document
  */
@@ -171,7 +190,7 @@ export interface DocumentGlyphs {
 export interface DocumentsStepProps {
   catalogStatus: 'loading' | 'loaded' | 'failed';
   documentTypes: DocumentType[];
-  /** The editor's documents, in catalog order (F23) */
+  /** The editor's documents, in the team's order (FR-045) */
   documents: RequestedDocument[];
   /**
    * The data the catalog dropped (S8, W6): the note above the panels shows while there is any.
@@ -190,8 +209,19 @@ export interface DocumentsStepProps {
   onAdd: (documentType: DocumentType) => void;
   /** A list item's trash */
   onRemove: (documentType: DocumentType) => void;
+  /**
+   * Moves a listed document to `toIndex` of the list (0 is the first row; FR-046, FR-047): the
+   * editor's `moveDocument`, the open document staying open. A refused move changes nothing.
+   * For the ⋯ menu (T058) and the drag (T059)
+   */
+  onMove: (documentType: string, toIndex: number) => void;
   onSetField: (documentType: string, field: string, selected: boolean) => void;
   onSetAllFields: (documentType: string, fields: string[]) => void;
+  /**
+   * A data group's checkbox cleared (FR-079): the editor clears the group's data items, or first
+   * asks the question naming the rules that check them, as for "All data items"
+   */
+  onClearGroup: (removal: PendingRemoval) => void;
 }
 
 export interface DocumentsListProps {
@@ -212,6 +242,11 @@ export interface DocumentsListProps {
   onAdd: (documentType: DocumentType) => void;
   onSelect: (index: number) => void;
   onRemove: (documentType: DocumentType) => void;
+  /**
+   * Moves a document to `toIndex` of the list, then puts the focus on its row's ⋯ and announces
+   * the move (FR-047): the row's "Move up" / "Move down", and a drag's drop (T059)
+   */
+  onMove: (documentType: string, toIndex: number) => void;
 }
 
 export interface DocumentListItemProps {
@@ -225,8 +260,25 @@ export interface DocumentListItemProps {
   needsData: boolean;
   /** The id of "1 document needs data", which describes a flagged item */
   describedBy?: string;
+  /** Its index in the list, and how many documents the list shows: its ⋯ menu's entries (W13) */
+  index: number;
+  count: number;
   onSelect: () => void;
   onRemove: () => void;
+  /** The ⋯ menu's "Move up" / "Move down": the document goes to `toIndex` of the list */
+  onMove: (toIndex: number) => void;
+  /**
+   * It is being dragged (S8 "Dragging"; U27 #9): the row leaves the list while the drop line and
+   * the faded copy show
+   */
+  dragged: boolean;
+  /** A press on the row, which may start a drag (`useRowDrag`) */
+  onPointerDown: (event: PointerEvent<HTMLLIElement>) => void;
+}
+
+/** The faded copy of the dragged row (U27 7301:63418, 7301:63559) */
+export interface DragCopyProps {
+  documentType: DocumentType;
 }
 
 export interface SearchCardProps {
@@ -261,6 +313,19 @@ export interface DocumentDetailProps {
   onSelect: (index: number) => void;
   onSetField: (field: string, selected: boolean) => void;
   onSetAllFields: (fields: string[]) => void;
+  /** A data group's checkbox cleared (FR-079; `groupRemovalOf()`) */
+  onClearGroup: (removal: PendingRemoval) => void;
+}
+
+export interface FieldGroupProps {
+  /** The shown document type's key, for the checkboxes' ids */
+  documentType: string;
+  group: GroupedFields;
+  /** The document's chosen data items that the catalog offers */
+  chosen: readonly string[];
+  onSetField: (field: string, selected: boolean) => void;
+  /** The group's checkbox: ticked chooses all of its data items, cleared clears them */
+  onToggle: () => void;
 }
 
 export interface FieldRowProps {
@@ -278,4 +343,141 @@ export interface PagerButtonProps {
   /** The index it shows; null at the end of the list, where it can't be used */
   target: number | null;
   onSelect: (index: number) => void;
+}
+
+/**
+ * The pointer that drags a row (S8 "Dragging", R6): a mouse or pen drags after 4 px; a touch
+ * after a 400 ms hold without moving, and a touch that moves earlier scrolls the list.
+ * `dragPointerTypeOf()` reads it from `PointerEvent.pointerType`
+ */
+export type DragPointerType = 'mouse' | 'pen' | 'touch';
+
+/** A pointer's position in the viewport (`clientX`, `clientY`), in CSS px */
+export interface DragPoint {
+  x: number;
+  y: number;
+}
+
+/**
+ * A list row's measured box, vertically, in the viewport (`getBoundingClientRect()`'s `top` and
+ * `bottom`), in CSS px. The rows are given in list order, one per listed document
+ */
+export interface DragRowBox {
+  top: number;
+  bottom: number;
+}
+
+/**
+ * The area in which a release moves the document (the list's measured box in the viewport): a
+ * release outside it ends the drag with the order unchanged (FR-046)
+ */
+export interface DragListBox {
+  left: number;
+  top: number;
+  right: number;
+  bottom: number;
+}
+
+/** The pressed row's pointer, as its events name it */
+export interface DragPointer {
+  /** `PointerEvent.pointerId`: the events of any other pointer are ignored */
+  id: number;
+  type: DragPointerType;
+}
+
+/** A move the drag answers: the document at index `from` goes to index `to` (list indexes) */
+export interface RowMove {
+  from: number;
+  to: number;
+}
+
+/** What `pressed` and `dragging` share: the pressed row and where the press began */
+interface RowDragPress {
+  pointer: DragPointer;
+  /** The pressed row's index in the list: the move's `from` */
+  index: number;
+  /** Where the pointer went down */
+  origin: DragPoint;
+  /** When the pointer went down (`PointerEvent.timeStamp`), for the touch's 400 ms hold */
+  pressedAt: number;
+  /** The rows' measured boxes, in list order */
+  rows: readonly DragRowBox[];
+  list: DragListBox;
+}
+
+/**
+ * The drag's state machine (`rowDragReducer()`; S8 "Dragging", R6, data-model §10): never stored,
+ * sent or logged.
+ *
+ * - `idle`: no row pressed. `move` is the move the last release answered (null otherwise), for
+ *   the hook to dispatch once; the next press clears it
+ * - `pressed`: a row is pressed and the pointer hasn't moved more than 4 px; a touch waits here
+ *   for its 400 ms hold (`waitsForHold()`)
+ * - `dragging`: the row is dragged: the drop line marks `target` (`dropLineOf()`) and the faded
+ *   copy follows the pointer (`dragOffsetOf()`)
+ */
+export type RowDragState =
+  | { phase: 'idle'; move: RowMove | null }
+  | ({ phase: 'pressed' } & RowDragPress)
+  | ({
+      phase: 'dragging';
+      /** The pointer's latest position */
+      position: DragPoint;
+      /** The index the document takes when released now (`dropTargetOf()`) */
+      target: number;
+    } & RowDragPress);
+
+/**
+ * What the hook (`useRowDrag`) feeds the drag's state machine. Times are the events'
+ * `timeStamp`s, or `performance.now()` for the hold timer's tick: the same clock. Positions are
+ * `clientX` / `clientY`
+ */
+export type RowDragEvent =
+  /**
+   * `pointerdown` on a row (the primary button for a mouse). While another pointer is down, it is
+   * a second pointer, which ends the drag with the order unchanged
+   */
+  | {
+      type: 'down';
+      pointerId: number;
+      pointerType: DragPointerType;
+      position: DragPoint;
+      time: number;
+      /** The pressed row's index in the list */
+      index: number;
+      rows: readonly DragRowBox[];
+      list: DragListBox;
+    }
+  /**
+   * `pointermove`; `rows` and `list` only when the hook measured them again (the list scrolled)
+   */
+  | {
+      type: 'move';
+      pointerId: number;
+      position: DragPoint;
+      time: number;
+      rows?: readonly DragRowBox[];
+      list?: DragListBox;
+    }
+  /** `pointerup`: inside the list while dragging, it answers the move (`state.move`) */
+  | { type: 'up'; pointerId: number; position: DragPoint }
+  /**
+   * `pointercancel` (the browser scrolls, for a touch that moved) or `lostpointercapture`: the
+   * order stays. Without `pointerId`, whichever pointer is down
+   */
+  | { type: 'cancel'; pointerId?: number }
+  /** Escape: the order stays */
+  | { type: 'escape' }
+  /** The hold timer, `ROW_DRAG_HOLD_MS` after a touch's press: from then on the touch drags */
+  | { type: 'tick'; time: number };
+
+/** The drop line while dragging: where the document will land (`dropLineOf()`) */
+export interface DropLine {
+  /**
+   * The gap it marks: 0 above the first row, `n` below the last of `n` rows, `i` between the rows
+   * `i - 1` and `i`
+   */
+  gap: number;
+  /** The gap's middle in the viewport (the first row's top, the last row's bottom), in CSS px */
+  y: number;
 }

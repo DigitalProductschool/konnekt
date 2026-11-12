@@ -5,12 +5,17 @@
 // `@connection-portal/rules`, as the editor derives what it shows
 import type { DocumentType } from '@connection-portal/api-types/document-types';
 import type {
+  ActivityEntry,
+  ActivityKind,
   BranchInput,
   Combinator,
   Condition,
+  ConnectionState as ApiConnectionState,
   ConnectionStatus,
   EditorStep,
+  ExampleState,
   FormConnectionOrDraft,
+  FormConnectionSummary,
   Mark,
   RequestedDocument,
   RequestedDocumentView,
@@ -30,8 +35,11 @@ import { connectionLink, itemLink, variantLink } from './links';
 
 // Refs (contracts/mcp-tools.md "Results and errors")
 
-/** A connection's state as agents see it: a draft, or a published one that is live or not */
-export type ConnectionState = 'draft' | 'live' | 'deactivated';
+/**
+ * A connection's state as agents see it: a draft, or a published one that is scheduled, live or
+ * deactivated; the API's `state` (spec 010, research R1)
+ */
+export type ConnectionState = ApiConnectionState;
 
 export interface ConnectionRef {
   id: string;
@@ -60,16 +68,15 @@ export interface ConnectionLike {
   status: ConnectionStatus;
   /** Published connections and summaries; a draft has none */
   is_active?: boolean;
+  /** The state the server derived (spec 010, research R1) */
+  state: ConnectionState;
+  /** YYYY-MM-DD, a day in Germany; set only while scheduled */
+  start_date?: string | null;
 }
 
-/** `live` or `deactivated` for a published connection, from `is_active`; `draft` for a draft. */
-export function connectionStateOf(
-  fc: Pick<ConnectionLike, 'status' | 'is_active'>
-): ConnectionState {
-  if (fc.status === 'draft') {
-    return 'draft';
-  }
-  return fc.is_active ? 'live' : 'deactivated';
+/** The API's `state`: the server is the one place that derives it (spec 010, research R1). */
+export function connectionStateOf(fc: Pick<ConnectionLike, 'state'>): ConnectionState {
+  return fc.state;
 }
 
 export function connectionRefOf(fc: ConnectionLike): ConnectionRef {
@@ -269,11 +276,18 @@ export const URLS_NOTES = {
   deactivated:
     'This connection is deactivated: its URLs answer "unavailable" until it is reactivated.',
   live: 'This connection is live: serviceBW calls these URLs.',
+  scheduled:
+    'This connection is scheduled: its URLs answer "unavailable" until it becomes active on ' +
+    '{date}, 00:00 in Germany.',
 } as const;
 
 /** What `get_connection` says about the URLs: none yet, live, or answering "unavailable". */
-export function urlsNoteOf(fc: Pick<ConnectionLike, 'status' | 'is_active'>): string {
-  return URLS_NOTES[connectionStateOf(fc)];
+export function urlsNoteOf(fc: Pick<ConnectionLike, 'state' | 'start_date'>): string {
+  const state = connectionStateOf(fc);
+  if (state === 'scheduled') {
+    return URLS_NOTES.scheduled.replace('{date}', fc.start_date ?? '');
+  }
+  return URLS_NOTES[state];
 }
 
 // Citizen fields (data-model §9; R15)
@@ -356,6 +370,209 @@ export function stepOf(content: {
   return content.documents.length > 0 ? 'documents' : 'connection';
 }
 
+// Dates and a draft's step (spec 010, FR-018, FR-019, FR-062; data-model §1.4)
+
+/**
+ * What a search item adds to its ref (contracts/mcp-tools.md "Reading"): the overview row's date
+ * and a draft's step, an empty one left out
+ */
+export interface SummaryFacts {
+  /** YYYY-MM-DD, the day in Germany a scheduled connection becomes active */
+  start_date?: string;
+  /** When it was first published; a draft has none */
+  published_at?: string;
+  /** Present only while deactivated */
+  deactivated_at?: string;
+  /** A draft's stored step */
+  step?: EditorStep;
+  /** Present only while the draft is the example (spec 010, FR-062; research R7) */
+  example?: true;
+}
+
+/**
+ * A search item's dates, step and example mark, as the API's summary gives them; nulls are left
+ * out.
+ */
+export function summaryFactsOf(
+  summary: Pick<
+    FormConnectionSummary,
+    'start_date' | 'published_at' | 'deactivated_at' | 'step' | 'example'
+  >
+): SummaryFacts {
+  return {
+    ...(summary.start_date ? { start_date: summary.start_date } : {}),
+    ...(summary.published_at ? { published_at: summary.published_at } : {}),
+    ...(summary.deactivated_at ? { deactivated_at: summary.deactivated_at } : {}),
+    ...(summary.step ? { step: summary.step } : {}),
+    ...(summary.example ? { example: true as const } : {}),
+  };
+}
+
+/**
+ * What `get_connection` adds to its ref (contracts/mcp-tools.md "Reading"): the details' dates and
+ * a draft's step, an empty one left out. `active_since` is when it last became active, which
+ * reactivating moves and publishing doesn't (FR-018)
+ */
+export interface ConnectionFacts {
+  /** YYYY-MM-DD, the day in Germany a scheduled connection becomes active */
+  start_date?: string;
+  published_at?: string;
+  active_since?: string;
+  /** Present only while deactivated */
+  deactivated_since?: string;
+  /** A draft's stored step */
+  step?: EditorStep;
+  /**
+   * Present only while the draft is the example: `unchanged` as created, `changed` once a save
+   * changed it (spec 010, FR-062; research R7)
+   */
+  example?: ExampleState;
+}
+
+/**
+ * A connection's dates, or a draft's step and example mark, as `get_connection` answers them.
+ */
+export function connectionFactsOf(fc: FormConnectionOrDraft): ConnectionFacts {
+  if (fc.status === 'draft') {
+    return { step: fc.step, ...(fc.example ? { example: fc.example } : {}) };
+  }
+  return {
+    ...(fc.start_date ? { start_date: fc.start_date } : {}),
+    published_at: fc.published_at,
+    ...(fc.activated_at ? { active_since: fc.activated_at } : {}),
+    ...(fc.deactivated_at ? { deactivated_since: fc.deactivated_at } : {}),
+  };
+}
+
+/** The text block's line on a draft's step: "Draft at the rules step." */
+export function stepLineOf(step: EditorStep): string {
+  return `Draft at the ${step} step.`;
+}
+
+/** The text block's line on a draft that is the example, changed or not. */
+export const EXAMPLE_LINE = 'This draft is the example.';
+
+/**
+ * The text block's line on a search item's dates or step: "Draft at the rules step.", with
+ * "This draft is the example." after it for the example, "Published {at}.", "Published {at};
+ * deactivated {at}."; null when there is none
+ */
+export function summaryFactsLineOf(facts: SummaryFacts): string | null {
+  if (facts.step) {
+    return facts.example ? `${stepLineOf(facts.step)} ${EXAMPLE_LINE}` : stepLineOf(facts.step);
+  }
+  const parts = [
+    facts.published_at && `Published ${facts.published_at}`,
+    facts.deactivated_at && `deactivated ${facts.deactivated_at}`,
+  ].filter((part): part is string => typeof part === 'string' && part !== '');
+  return parts.length === 0 ? null : `${parts.join('; ')}.`;
+}
+
+/**
+ * The text block's line on a published connection's dates: "Published {at}; active since {at};
+ * deactivated since {at}."; null for a draft, whose step has its own line
+ */
+export function connectionDatesLineOf(facts: ConnectionFacts): string | null {
+  const parts = [
+    facts.published_at && `Published ${facts.published_at}`,
+    facts.active_since && `active since ${facts.active_since}`,
+    facts.deactivated_since && `deactivated since ${facts.deactivated_since}`,
+  ].filter((part): part is string => typeof part === 'string' && part !== '');
+  return parts.length === 0 ? null : `${parts.join('; ')}.`;
+}
+
+// The activity (spec 010, FR-063; contracts/mcp-tools.md "Reading", contracts/copy.md §3)
+
+/**
+ * One entry of `get_activity`: the Activity card's row with its event as the card's English
+ * sentence. `by` is the team member; `agent` the agent that made the change or, with `approved`,
+ * that asked for it. An entry of the middleware has no `by`
+ */
+export interface ActivityEntryView {
+  at: string;
+  event: string;
+  kind: ActivityKind;
+  variant?: string;
+  /** YYYY-MM-DD */
+  start_date?: string;
+  by?: string;
+  agent?: string;
+  approved?: true;
+}
+
+/** The events' English (contracts/copy.md §3), by kind; `{variant}` and `{date}` filled in. */
+export const ACTIVITY_EVENTS: Record<ActivityKind, string> = {
+  created: 'Created',
+  renamed: 'Name changed',
+  description_changed: 'Description changed',
+  documents_changed: 'Documents changed',
+  variant_added: 'Variant added: {variant}',
+  variant_removed: 'Variant removed: {variant}',
+  variant_renamed: 'Variant renamed: {variant}',
+  rules_changed: 'Rules changed in {variant}',
+  published: 'Published',
+  scheduled: 'Scheduled for {date}',
+  start_date_changed: 'Start date changed to {date}',
+  became_active: 'Became active',
+  deactivated: 'Deactivated',
+  reactivated: 'Activated again',
+  deleted: 'Deleted',
+  restored: 'Restored',
+};
+
+/**
+ * An entry's event as the card's English sentence: "Rules changed in Ambulance", "Scheduled for
+ * 2026-12-01", "Start date changed to now" for a start moved to now. Days read YYYY-MM-DD, as
+ * the other answers give them
+ */
+export function activityEventOf(
+  entry: Pick<ActivityEntry, 'kind' | 'variant' | 'start_date'>
+): string {
+  if (entry.kind === 'start_date_changed' && !entry.start_date) {
+    return 'Start date changed to now';
+  }
+  return ACTIVITY_EVENTS[entry.kind]
+    .replace('{variant}', entry.variant ?? '')
+    .replace('{date}', entry.start_date ?? '');
+}
+
+/** An entry as `get_activity` answers it; what it doesn't carry is left out. */
+export function activityEntryViewOf(entry: ActivityEntry): ActivityEntryView {
+  const actor = entry.actor;
+  return {
+    at: entry.at,
+    event: activityEventOf(entry),
+    kind: entry.kind,
+    ...(entry.variant ? { variant: entry.variant } : {}),
+    ...(entry.start_date ? { start_date: entry.start_date } : {}),
+    ...(actor ? { by: actor.name } : {}),
+    ...(actor?.agent ? { agent: actor.agent } : {}),
+    ...(actor?.agent && actor.approved ? { approved: true as const } : {}),
+  };
+}
+
+/**
+ * The card's person (contracts/copy.md §3): "{by}", "{by} with {agent}", "{by}, asked by
+ * {agent}"; null for an entry of the middleware
+ */
+export function activityPersonOf(
+  view: Pick<ActivityEntryView, 'by' | 'agent' | 'approved'>
+): string | null {
+  if (!view.by) {
+    return null;
+  }
+  if (!view.agent) {
+    return view.by;
+  }
+  return view.approved ? `${view.by}, asked by ${view.agent}` : `${view.by} with ${view.agent}`;
+}
+
+/** The text block's line of an entry: "- {at} · {event} · {person}", without a missing person. */
+export function activityLineOf(view: ActivityEntryView): string {
+  const person = activityPersonOf(view);
+  return `- ${view.at} · ${view.event}${person ? ` · ${person}` : ''}`;
+}
+
 // Text blocks (contracts/mcp-tools.md "Results and errors": a text block summarises each answer)
 
 /** A tool's text block: the lines given, without the empty ones. */
@@ -363,8 +580,14 @@ export function summaryTextOf(...lines: (string | null | undefined | false)[]): 
   return lines.filter((line): line is string => typeof line === 'string' && line !== '').join('\n');
 }
 
-export function connectionLineOf(ref: ConnectionRef): string {
-  return `Connection '${ref.name}' (${ref.status}): ${ref.link}`;
+/**
+ * A connection's line: "Connection '{name}' (live): {link}"; a scheduled one with the day it
+ * starts, "Connection '{name}' (scheduled from {date}): {link}", where the caller knows it
+ */
+export function connectionLineOf(ref: ConnectionRef, startDate?: string | null): string {
+  const status =
+    ref.status === 'scheduled' && startDate ? `scheduled from ${startDate}` : ref.status;
+  return `Connection '${ref.name}' (${status}): ${ref.link}`;
 }
 
 export function variantLineOf(ref: VariantRef): string {

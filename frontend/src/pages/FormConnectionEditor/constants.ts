@@ -35,6 +35,9 @@ export const EDITOR_COPY = defineTexts(
     // The same strip in the edit flow of a published connection (U98 6731:39846, its copy F49)
     editNote:
       'Your changes take effect when you save them. Requests already in progress keep their previous configuration.',
+    // The same strip for a scheduled connection (spec 010, S18; FR-013, W7)
+    scheduledEditNote: (date: string) =>
+      `Scheduled. Your changes become active on ${date} once you save them.`,
     // Step 1's footer action (U19 6699:45349, U98 6731:39850)
     continue: 'Choose documents',
     // Step 2, Figma "03 Documents"
@@ -92,6 +95,8 @@ export const EDITOR_COPY = defineTexts(
     draftNote: 'Beginnt als Entwurf. Die Anbindung wird erst aktiv, wenn Sie sie veröffentlichen.',
     editNote:
       'Ihre Änderungen werden wirksam, wenn Sie sie speichern. Bereits laufende Anfragen behalten ihre bisherige Konfiguration.',
+    scheduledEditNote: (date: string) =>
+      `Geplant. Ihre Änderungen werden am ${date} aktiv, sobald Sie sie speichern.`,
     continue: 'Dokumente auswählen',
     documentsTitle: 'Dokumente und Daten auswählen',
     documentsHint:
@@ -193,6 +198,9 @@ export const LEAVE_COPY = defineTexts(
     saveTitle: 'Save your changes?',
     saveText:
       'If you leave now, your changes are lost. Save them, or discard them and keep the active version.',
+    // The same question for a scheduled connection (spec 010, S18; FR-013, W7)
+    saveTextScheduled:
+      'If you leave now, your changes are lost. Save them, or discard them and keep the scheduled version.',
     discardChanges: 'Discard changes',
     save: 'Save',
     logoutTitle: 'Save before you log out?',
@@ -210,6 +218,8 @@ export const LEAVE_COPY = defineTexts(
     saveTitle: 'Ihre Änderungen speichern?',
     saveText:
       'Wenn Sie jetzt gehen, gehen Ihre Änderungen verloren. Speichern Sie sie oder verwerfen Sie sie und behalten Sie die aktive Version.',
+    saveTextScheduled:
+      'Wenn Sie jetzt gehen, gehen Ihre Änderungen verloren. Speichern Sie sie oder verwerfen Sie sie und behalten Sie die geplante Version.',
     discardChanges: 'Änderungen verwerfen',
     save: 'Speichern',
     logoutTitle: 'Vor dem Abmelden speichern?',
@@ -221,7 +231,8 @@ export const LEAVE_COPY = defineTexts(
 );
 
 // The publish and save dialog (S5): U33 6376:25536, U35 6376:27178, U36 6376:27630, and
-// design-notes.md §6
+// design-notes.md §6; "Active from" (spec 010, S14): the German from spec 009's glossary
+// ("Planen"; "Ihr Dienst", the team's service)
 export const PUBLISH_DIALOG_COPY = defineTexts(
   {
     publishTitle: 'Ready to publish?',
@@ -229,11 +240,17 @@ export const PUBLISH_DIALOG_COPY = defineTexts(
     saveTitle: 'Save changes?',
     publishWithoutRulesTitle: 'Publish without rules?',
     saveWithoutRulesTitle: 'Save without rules?',
-    // U73 7058:62120, U75 6376:25536, U77 6760:47979 (FR-002; F1: no "Active from")
+    // U73 7058:62120, U75 6376:25536, U77 6760:47979: with "Now" (spec 010, FR-001)
     publishIntro: 'When you publish, the connection is ready to be added to your services.',
+    // U75 6383:66119, U76 6635:36265: with "On a date" (spec 010, FR-002)
+    scheduleIntro:
+      'The connection becomes active on the date you choose. You get the links now, so your service can be ready in time.',
     // F27: the message of "Edit this live connection?" (U38) moves here
     saveIntro:
       'Citizens keep using the current version until you save. Requests already in progress keep the data and rules they started with.',
+    // "Save changes?" for a scheduled connection (spec 010, S14; FR-013, W6; copy.md §2)
+    saveScheduledIntro: (date: string) =>
+      `Your changes become active with the connection on ${date}. Citizens can’t use it before then.`,
     withoutRulesIntro: 'Without rules, anyone who shares these documents can apply.',
     documents: 'Documents',
     rules: 'Rules',
@@ -247,6 +264,8 @@ export const PUBLISH_DIALOG_COPY = defineTexts(
     backToTest: 'Back to test',
     addRules: 'Add rules',
     publish: 'Publish connection',
+    // With "On a date" (U75 6383:66119; spec 010, FR-002)
+    schedule: 'Schedule',
     save: 'Save',
     // The status dialog (U78 6387:65280 publishing, 6387:65289 published; "Dialog/Status"); the
     // edit flow's words are the save's, its frames undrawn
@@ -271,6 +290,10 @@ export const PUBLISH_DIALOG_COPY = defineTexts(
       'Reload to see their changes; your unsaved changes are lost. Or replace their changes with yours.',
     reload: 'Reload',
     replaceTheirChanges: 'Replace their changes',
+    // The example's line (spec 010, S14; FR-060, F30; U73 7137:50210), while the loaded draft is
+    // the unchanged example and the page holds no change against it (`showsExampleLine()`)
+    exampleLine:
+      'This is still the example. Check that the name, documents and rules fit your service.',
   },
   {
     // A soft hyphen (R9 step 3): at 320px the whole word pushed the dialog's × past its edge
@@ -281,8 +304,12 @@ export const PUBLISH_DIALOG_COPY = defineTexts(
     publishWithoutRulesTitle: 'Ohne Regeln veröffent\u00ADlichen?',
     saveWithoutRulesTitle: 'Ohne Regeln speichern?',
     publishIntro: 'Nach dem Veröffentlichen kann die Anbindung in Ihre Dienste eingebunden werden.',
+    scheduleIntro:
+      'Die Anbindung wird am gewählten Datum aktiv. Sie erhalten die Links schon jetzt, damit Ihr Dienst rechtzeitig bereit ist.',
     saveIntro:
       'Bis Sie speichern, gilt für Bürgerinnen und Bürger weiter die aktuelle Version. Bereits laufende Anfragen behalten die Daten und Regeln, mit denen sie begonnen haben.',
+    saveScheduledIntro: (date: string) =>
+      `Ihre Änderungen werden mit der Anbindung am ${date} aktiv. Vorher können Bürgerinnen und Bürger die Anbindung nicht nutzen.`,
     withoutRulesIntro: 'Ohne Regeln können alle, die diese Dokumente teilen, einen Antrag stellen.',
     documents: 'Dokumente',
     rules: 'Regeln',
@@ -295,6 +322,7 @@ export const PUBLISH_DIALOG_COPY = defineTexts(
     backToTest: 'Zurück zum Test',
     addRules: 'Regeln hinzufügen',
     publish: 'Anbindung veröffentlichen',
+    schedule: 'Planen',
     save: 'Speichern',
     publishing: 'Wird veröffentlicht …',
     saving: 'Wird gespeichert …',
@@ -318,8 +346,18 @@ export const PUBLISH_DIALOG_COPY = defineTexts(
       'Laden Sie neu, um die Änderungen der anderen zu sehen; Ihre nicht gespeicherten Änderungen gehen dabei verloren. Oder überschreiben Sie deren Änderungen mit Ihrer Version.',
     reload: 'Neu laden',
     replaceTheirChanges: 'Mit Ihrer Version überschreiben',
+    // Written from spec 009's glossary ("Beispiel", "Dokument", "Regel", "Ihr Dienst")
+    exampleLine:
+      'Dies ist noch das Beispiel. Prüfen Sie, ob Name, Dokumente und Regeln zu Ihrem Dienst passen.',
   }
 );
+
+/**
+ * The example variant's names (spec 010, FR-058; research R7, design-notes §4.1 call 6): the rules
+ * step shows the variant's banner on a variant of the example that carries one of them, in either
+ * language, as stored; a renamed or another variant shows none
+ */
+export const EXAMPLE_VARIANT_NAMES: readonly string[] = ['Ambulance', 'Krankentransport'];
 
 /** The API's answer to a save over rules another team member saved meanwhile (FR-028) */
 export const RULES_CHANGED_ERROR = 'rules_changed';
@@ -371,6 +409,8 @@ export const ELEMENT_IDS = {
   allData: (documentType: string) => `document-${documentType}-all`,
   fieldsError: (documentType: string) => `document-${documentType}-error`,
   field: (documentType: string, field: string) => `document-${documentType}-${field}`,
+  // A data group's checkbox (FR-079); field keys have no hyphen, so it meets no field's id
+  group: (documentType: string, group: string) => `document-${documentType}-group-${group}`,
   title: (documentType: string) => `document-${documentType}-title`,
   // The test step (S8): a variant's tab and its panel, a persona's chip, its panel with the
   // heading "Mia’s data", and a field of its data
@@ -410,7 +450,14 @@ export const INITIAL_PUBLISH_DIALOG_STATE: PublishDialogState = {
   failure: null,
   conflict: null,
   connectionId: null,
+  activeFrom: 'now',
+  startDateText: '',
+  dateError: false,
+  dateRefusals: 0,
 };
+
+/** The API's answer to a start date that isn't after today in Germany (spec 010, FR-003) */
+export const INVALID_START_DATE_ERROR = 'invalid_start_date';
 
 /**
  * How long "Published" ("Saved") shows before the details open (FR-044d; U78 6376:26662: "green

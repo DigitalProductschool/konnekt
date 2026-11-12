@@ -31,6 +31,12 @@ export interface ConfirmDialogProps {
   /** The confirm button's label after a failure */
   retryLabel?: string;
   /**
+   * Hides the confirm button, for a failure that trying again can't mend (the bulk dialog after
+   * `409 selection_changed`, design-notes §4.2 T084 (3)); while it is hidden in the open dialog,
+   * the cancel button takes the focus. Off by default: the confirm button shows
+   */
+  hideConfirm?: boolean;
+  /**
    * A further action between cancel and confirm, such as "Reload" or "Discard connection". With
    * a cancel button too, the cancel button turns tertiary (three buttons)
    */

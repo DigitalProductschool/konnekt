@@ -1,10 +1,12 @@
+import { formatDate } from '@connection-portal/rules/dates';
 import { useState } from 'react';
 import { createPortal } from 'react-dom';
 
 import ConfirmDialog from '../../components/ConfirmDialog';
 import { ExplainedButton } from '../../components/InfoTooltip';
-import { useCopy } from '../../hooks/useLanguage';
+import { useCopy, useLanguage } from '../../hooks/useLanguage';
 import { DISCARD_COPY } from '../FormConnectionEdit/constants';
+import type { ScheduledEditProps } from '../FormConnectionEdit/types';
 import { EDITOR_COPY, ELEMENT_IDS } from './constants';
 import SaveAndExitButton from './SaveAndExitButton';
 import type { EditorFooterProps } from './types';
@@ -16,7 +18,8 @@ import type { EditorFooterProps } from './types';
  * where the editor passes `onDiscard`), both tertiary (cosmetic 17); "Discard changes" asks
  * "Discard your changes?" first (U100 7173:52772: "Keep editing" / "Discard changes", the filled
  * danger button; the scrim closes it, FR-052a), and `onDiscard` runs on its confirmation. It is
- * not the leave question's "Discard changes" (#47).
+ * not the leave question's "Discard changes" (#47). For a scheduled connection its sentence names
+ * the version that becomes active on `scheduledStart` (spec 010, S18; FR-013, W7).
  *
  * On the right, a new connection's or a stored draft's flow has the step's one action: step 1
  * continues to the documents, the documents go on to the rules ("Set rules →", unusable with "Add
@@ -60,9 +63,11 @@ export default function EditorFooter({
   savingDraft,
   onSaveAndExit,
   onDiscard,
-}: EditorFooterProps) {
+  scheduledStart = null,
+}: EditorFooterProps & ScheduledEditProps) {
+  const { language } = useLanguage();
   const copy = useCopy(EDITOR_COPY);
-  const discardCopy = useCopy(DISCARD_COPY);
+  const discardCopy = DISCARD_COPY[language];
   // "Discard your changes?" is open, or closed and fading out
   const [discardAsked, setDiscardAsked] = useState(false);
   const back = step !== 'connection' && (
@@ -91,7 +96,11 @@ export default function EditorFooter({
         <ConfirmDialog
           open={discardAsked}
           title={discardCopy.title}
-          text={discardCopy.text}
+          text={
+            scheduledStart === null
+              ? discardCopy.text
+              : discardCopy.scheduledText(formatDate(scheduledStart, language))
+          }
           cancelLabel={discardCopy.keepEditing}
           confirmLabel={discardCopy.discard}
           danger

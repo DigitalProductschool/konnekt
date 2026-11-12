@@ -82,6 +82,12 @@ export default function TopBar({
   );
 }
 
+/**
+ * The "Where you are" pill: a header pill (PILL_CLASSES) that grows taller, 8px above and below
+ * its rows, where its parts wrap; on one row it stays 48px high
+ */
+const CONNECTION_PILL_CLASSES = 'rounded-kern-circle shadow-card flex min-h-48 items-center py-8';
+
 interface ConnectionPillProps {
   title: string;
   titleAsHeading: boolean;
@@ -101,10 +107,14 @@ function ConnectionPill({ title, titleAsHeading, badge, onLeave }: ConnectionPil
   return (
     <nav
       aria-label={copy.breadcrumb}
-      className={`${PILL_CLASSES} bg-kern-layout-background-hued motion animate-pill-grow narrow:h-auto narrow:min-h-48 narrow:rounded-kern-large narrow:py-8 order-4 max-w-full min-w-0 basis-full px-16 md:order-2 md:basis-auto`}
+      className={`${CONNECTION_PILL_CLASSES} bg-kern-layout-background-hued motion animate-pill-grow narrow:rounded-kern-large order-4 max-w-full min-w-0 basis-full px-16 md:order-2 md:basis-auto`}
     >
-      {/* Under 320 CSS px its parts wrap (T096) */}
-      <div className="motion animate-pill-text narrow:flex-wrap flex min-w-0 items-center gap-8">
+      {/* Its parts wrap where they don't fit on one line: the status pill under the name, the
+          name under "Your connections /" where even 96px of it don't fit beside it (spec 010,
+          T084 (4)), and under 320 CSS px every part (T096). Below md the status pill may also
+          shrink to its longest word, so that "Scheduled · <date>" wraps inside it instead of
+          running off the window (T014); a one-word status never shrinks */}
+      <div className="motion animate-pill-text flex min-w-0 flex-wrap items-center gap-8">
         <Link
           to={ROUTES.overview}
           onClick={onLeave}
@@ -115,12 +125,14 @@ function ConnectionPill({ title, titleAsHeading, badge, onLeave }: ConnectionPil
         <span aria-hidden="true" className={`${SMALL_TEXT_CLASSES} text-kern-layout-text-muted`}>
           /
         </span>
+        {/* The name keeps min(its own width, 96px) on its row: that is its basis, which the line
+            break counts, and it grows back to its full width (no further) where there is room */}
         <NameTag
-          className={`${SMALL_TEXT_CLASSES} text-kern-layout-text-default min-w-0 truncate font-semibold`}
+          className={`${SMALL_TEXT_CLASSES} text-kern-layout-text-default max-w-max min-w-0 grow basis-96 truncate font-semibold`}
         >
           {title}
         </NameTag>
-        {badge && <span className="flex shrink-0">{badge}</span>}
+        {badge && <span className="flex shrink-0 max-md:shrink">{badge}</span>}
       </div>
     </nav>
   );

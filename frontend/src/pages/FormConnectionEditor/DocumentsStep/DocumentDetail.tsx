@@ -1,22 +1,37 @@
 import Checkbox from '../../../components/Checkbox';
 import { useLanguage } from '../../../hooks/useLanguage';
 import { ELEMENT_IDS } from '../constants';
-import { offeredFieldsOf } from '../utils';
+import { groupRemovalOf, offeredFieldsOf } from '../utils';
 import { DOCUMENTS_COPY, DOCUMENTS_STEP_IDS, PANEL_HEIGHT_CLASSES } from './constants';
+import FieldGroup from './FieldGroup';
 import FieldRow from './FieldRow';
 import type { DocumentDetailProps, PagerButtonProps } from './types';
-import { dataCountOf, dataCountText, documentGlyphOf } from './utils';
+import {
+  dataCountOf,
+  dataCountText,
+  documentGlyphOf,
+  fieldsAfterGroupToggle,
+  groupCheckStateOf,
+  groupedFieldsOf,
+} from './utils';
 
 /**
  * Figma "Document · Personal ID" (U21 7290:61205): the shown document's card on the right. Its
  * header names it with its count ("6 of 25 data items chosen" / "No data items chosen yet",
  * FR-051 (37)) and "All data items" (002-S1.2, mixed while only some are chosen); then its data
- * items in the catalog's order, in up to three columns, without group rows (F24), which scroll
+ * items in the catalog's order, in up to three columns, which scroll
  * inside the card from 992 px (`lg:`; 560px high, or filling the window at 800px tall and more:
  * U01 #16); then the pager "Document n of m" with its arrows, unusable at either end. Only the
  * data the catalog offers shows and counts (005-S8). A document "Set rules →" flagged that still
  * has no data shows "Choose at least one data item, or remove this document." in red in place of
  * its count (U25 #24, 7298:62838), which describes "All data items" (001-S7.5).
+ *
+ * A document with more than 10 data items (the catalog's `field_groups`) shows them under its
+ * group headings (S8 "Data groups"; FR-077, FR-079; U21 7290:61214, U98 7296:52340), in the
+ * catalog's group order flowing down the columns, no group split across two (F41, R15 V8); a
+ * group's checkbox chooses all of its data items, or clears them through the editor, which first
+ * asks the question naming the rules that check them, as for "All data items" (W18). The count
+ * line and "All data items" follow. A document without groups keeps the flat list.
  */
 export default function DocumentDetail({
   shown,
@@ -25,6 +40,7 @@ export default function DocumentDetail({
   onSelect,
   onSetField,
   onSetAllFields,
+  onClearGroup,
 }: DocumentDetailProps) {
   const { language } = useLanguage();
   const copy = DOCUMENTS_COPY[language];
@@ -35,6 +51,7 @@ export default function DocumentDetail({
   const selected = offeredFieldsOf(document.fields, documentType);
   const allKeys = documentType.fields.map((field) => field.key);
   const allSelected = selected.length === allKeys.length;
+  const groups = groupedFieldsOf(documentType);
 
   return (
     <section
@@ -78,15 +95,30 @@ export default function DocumentDetail({
         className="min-h-0 flex-1 px-24 py-16 lg:overflow-y-auto"
       >
         <ul className="gap-24 sm:columns-2 lg:columns-3">
-          {documentType.fields.map((field) => (
-            <FieldRow
-              key={field.key}
-              id={ELEMENT_IDS.field(key, field.key)}
-              label={field.label}
-              checked={selected.includes(field.key)}
-              onChange={(checked) => onSetField(field.key, checked)}
-            />
-          ))}
+          {groups === null
+            ? documentType.fields.map((field) => (
+                <FieldRow
+                  key={field.key}
+                  id={ELEMENT_IDS.field(key, field.key)}
+                  label={field.label}
+                  checked={selected.includes(field.key)}
+                  onChange={(checked) => onSetField(field.key, checked)}
+                />
+              ))
+            : groups.map((group) => (
+                <FieldGroup
+                  key={group.key}
+                  documentType={key}
+                  group={group}
+                  chosen={selected}
+                  onSetField={onSetField}
+                  onToggle={() =>
+                    groupCheckStateOf(group, selected) === 'all'
+                      ? onClearGroup(groupRemovalOf(document, documentType, group))
+                      : onSetAllFields(fieldsAfterGroupToggle(group, selected))
+                  }
+                />
+              ))}
         </ul>
       </div>
       <div className="flex shrink-0 items-center justify-center gap-4 border-t border-(--kern-color-decorative-border-level-1) px-16">

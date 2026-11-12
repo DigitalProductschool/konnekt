@@ -3,25 +3,29 @@
 specs/001-servicebw-eudi-middleware/data-model.md, extended by the rule sets and
 branches of specs/002-connection-rules/data-model.md, the drafts of
 specs/005-connection-drafts/data-model.md and the agent access and approval
-requests of specs/007-agent-mcp-server/data-model.md.
+requests of specs/007-agent-mcp-server/data-model.md, and the status dates and the
+activity of specs/010-revamp-backend-gaps/data-model.md.
 
 No table holds a citizen, a finding, a test result, a token's secret or a
 citizen's data.
 """
 
 import uuid
-from datetime import datetime
+from datetime import date, datetime
 from typing import Annotated, Any
 
 from sqlalchemy import (
     Boolean,
     CheckConstraint,
+    Date,
     DateTime,
     ForeignKey,
     Index,
     Integer,
+    SmallInteger,
     String,
     UniqueConstraint,
+    false,
     func,
     text,
     true,
@@ -101,6 +105,24 @@ class FormConnection(Base):
             ' AND draft_version IS NULL)',
             name='ck_form_connections_draft_or_published',
         ),
+        # A start date only while scheduled: published and not active (spec 010,
+        # data-model.md section 1.1)
+        CheckConstraint(
+            'start_date IS NULL OR (published_at IS NOT NULL AND NOT is_active)',
+            name='ck_form_connections_start_date',
+        ),
+        # Only a draft can be the example: publishing clears the mark (spec 010,
+        # data-model.md section 5, FR-059)
+        CheckConstraint(
+            'example IS NULL OR published_at IS NULL',
+            name='ck_form_connections_example',
+        ),
+        # The worker's scan for the start dates that have come
+        Index(
+            'ix_form_connections_start_date',
+            'start_date',
+            postgresql_where=text('start_date IS NOT NULL'),
+        ),
     )
 
     id: Mapped[UuidPk]
@@ -135,10 +157,90 @@ class FormConnection(Base):
     next_group_number: Mapped[int] = mapped_column(
         Integer, default=1, server_default=text('1')
     )
-    # Set on deletion of a published connection; the row stays so its URLs keep
-    # answering "unavailable". A draft is deleted by removing its row (spec 005, R7)
+    # Set on deletion, of a draft too (spec 010, research R5): every read treats
+    # the row as gone. A published connection's row stays for good, so that its
+    # URLs keep answering "unavailable"; a draft's stays until the restore time has
+    # passed, and its URLs answer 404 as an unknown connection's
     deleted_at: Mapped[datetime | None] = mapped_column(
         DateTime(timezone=True), index=True
+    )
+    # Spec 010, data-model.md section 3 (research R5). The deletion's id, one UUID
+    # for the rows deleted together; null for a deletion an approval request ran,
+    # which nothing can restore
+    deletion_id: Mapped[str | None] = mapped_column(String(36), index=True)
+    # The team member who deleted; only that account can restore
+    deleted_by_id: Mapped[str | None] = mapped_column(
+        String(36), ForeignKey('user_accounts.id', ondelete='SET NULL')
+    )
+    # Spec 010, data-model.md section 1.1. The day in Germany from which a
+    # scheduled connection is active; set exactly while it is scheduled
+    start_date: Mapped[date | None] = mapped_column(Date)
+    # When the connection last became active. Null for a draft and for a
+    # connection that was never active
+    activated_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    # When the connection was last deactivated. Kept after a reactivation; read
+    # only while the connection is deactivated
+    deactivated_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    # Spec 010, data-model.md section 4 (research R6). The document type keys in
+    # the team's order, of a draft and a published connection alike; every answer
+    # lists the documents in it. Empty means catalog order (FR-052). Revisions,
+    # the DCQL query and serviceBW's delivery stay in catalog order (FR-051)
+    document_order: Mapped[list[str]] = mapped_column(
+        JSONB, default=list, server_default=text("'[]'::jsonb")
+    )
+    # Spec 010, data-model.md section 5 (research R7). 'unchanged' while the draft
+    # is the example as created, 'changed' after a save that changed it (never
+    # back), null for every other row and once published
+    example: Mapped[str | None] = mapped_column(String(16))
+    created_at: Mapped[CreatedAt]
+    updated_at: Mapped[UpdatedAt]
+
+
+class ConnectionActivity(Base):
+    """One entry of a connection's activity: who did what, and when.
+
+    Spec 010, data-model.md section 2, research R4. Written by the services under
+    the connection's row lock; entries of the same kind, person and variant merge
+    into the connection's newest instant (FR-026). The person is kept as text, with
+    no foreign key to the account, so that the entry survives it (FR-028). No entry
+    holds a rule's content, a message, a value or a citizen (FR-029).
+    """
+
+    __tablename__ = 'connection_activity'
+    __table_args__ = (
+        # The list and the last entry
+        Index(
+            'ix_connection_activity_connection_time',
+            'form_connection_id',
+            'occurred_at',
+        ),
+    )
+
+    id: Mapped[UuidPk]
+    form_connection_id: Mapped[str] = mapped_column(
+        String(36), ForeignKey('form_connections.id', ondelete='CASCADE'), index=True
+    )
+    # One of the kinds of data-model.md section 2.2
+    kind: Mapped[str] = mapped_column(String(32))
+    # When it happened; moved to the latest time when entries merge
+    occurred_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
+    # The entry's place among the entries of one action, so the order is total
+    position: Mapped[int] = mapped_column(
+        SmallInteger, default=0, server_default=text('0')
+    )
+    # The kinds about a variant: its id, and its name when written or last merged
+    variant_id: Mapped[str | None] = mapped_column(String(36))
+    variant_name: Mapped[str | None] = mapped_column(String(200))
+    # scheduled, and start_date_changed to a date
+    start_date: Mapped[date | None] = mapped_column(Date)
+    # The team member's username: who acted, whom an agent acts for, or who
+    # approved. Null for what the middleware did by itself and backfilled entries
+    actor_name: Mapped[str | None] = mapped_column(String(100))
+    # The agent's name when an agent made the change or asked for the action
+    agent_name: Mapped[str | None] = mapped_column(String(200))
+    # True when actor_name approved the request that agent_name made
+    approved: Mapped[bool] = mapped_column(
+        Boolean, default=False, server_default=false()
     )
     created_at: Mapped[CreatedAt]
     updated_at: Mapped[UpdatedAt]
@@ -429,23 +531,28 @@ class ApprovalRequest(Base):
     """An agent's request that a team member approve an action on a connection.
 
     Spec 007, data-model.md section 5, research R7 and R12. Expiry and staleness
-    are computed at every read; only the reasons revoked and access_changed are
-    stored. A request outlives the authorization that made it: revoking stores
-    `revoked` and deleting the authorization sets `authorization_id` to null, so the
-    approval page can still say why; a waiting request whose authorization went any
-    other way (the worker's sweep, a retired refresh token used again) reads as
-    cancelled with the computed reason `access_ended`. It outlives its draft too,
-    whose deletion removes the row: the request then reads as `draft_deleted`.
+    are computed at every read; only the reasons revoked and access_changed, and
+    those a deletion writes, are stored. A request outlives the authorization that
+    made it: revoking stores `revoked` and deleting the authorization sets
+    `authorization_id` to null, so the approval page can still say why; a waiting
+    request whose authorization went any other way (the worker's sweep, a retired
+    refresh token used again) reads as cancelled with the computed reason
+    `access_ended`. Deleting its connection stores `cancelled` with
+    `connection_deleted` or `draft_deleted`, so that a restore doesn't bring it
+    back (spec 010, research R5); it outlives its draft's row too, which is
+    removed once the restore time has passed. A request may carry the start date
+    the agent asks for, and remembers the connection's start date beside its
+    `is_active` (spec 010, research R9, data-model 7).
     """
 
     __tablename__ = 'approval_requests'
 
     id: Mapped[UuidPk]
-    # No foreign key: deleting a draft removes its row (spec 005), and the request
-    # stays to read as draft_deleted; a published connection's deletion is a soft
-    # delete
+    # No foreign key: a deleted draft's row is removed once the restore time has
+    # passed (spec 010, research R5), and the request stays to read as
+    # draft_deleted; a published connection's row stays
     form_connection_id: Mapped[str] = mapped_column(String(36), index=True)
-    # publish, delete_draft, deactivate, reactivate or delete
+    # publish, delete_draft, deactivate, reactivate, delete or set_start_date
     action: Mapped[str] = mapped_column(String(16))
     # The agent that asked; null once its access was revoked or has ended, which a
     # waiting request reads as cancelled, access_ended
@@ -463,13 +570,22 @@ class ApprovalRequest(Base):
     )
     # publish and delete_draft: the draft's version when the request was made
     draft_version: Mapped[int | None] = mapped_column(Integer)
-    # deactivate, reactivate, delete: the connection's is_active when made
+    # deactivate, reactivate, delete, set_start_date: the connection's is_active
+    # when made
     was_active: Mapped[bool | None] = mapped_column(Boolean)
+    # What the agent asks for (spec 010, data-model 7), a day in Germany: for
+    # publish and reactivate the start date, null for at once; for set_start_date
+    # the new date, null for now; null for the other actions
+    start_date: Mapped[date | None] = mapped_column(Date)
+    # The connection's start_date when made, beside was_active: together the
+    # status the request was made for (spec 010, FR-066)
+    was_start_date: Mapped[date | None] = mapped_column(Date)
     # waiting, done, declined, expired, replaced or cancelled
     status: Mapped[str] = mapped_column(String(16), index=True)
-    # revoked or access_changed; the computed reasons (access_ended, draft_changed,
-    # draft_published, draft_deleted, connection_changed, connection_deleted) are
-    # never stored
+    # revoked or access_changed, or connection_deleted or draft_deleted, which a
+    # deletion stores (spec 010); the other reasons (access_ended, draft_changed,
+    # draft_published, connection_changed, start_date_passed) are computed at every
+    # read, and so are the deletion's two for a request it didn't store them on
     cancel_reason: Mapped[str | None] = mapped_column(String(32))
     # APPROVAL_REQUEST_MINUTES after creation
     expires_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), index=True)

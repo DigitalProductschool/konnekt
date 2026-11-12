@@ -24,7 +24,14 @@ const ACCESS_LEVEL_NAMES = [
   'Read, edit drafts and manage live connections',
 ];
 
-const APPROVAL_ACTIONS = ['publish', 'delete_draft', 'deactivate', 'reactivate', 'delete'];
+const APPROVAL_ACTIONS = [
+  'publish',
+  'delete_draft',
+  'deactivate',
+  'reactivate',
+  'delete',
+  'set_start_date',
+];
 
 function readJson(path: string): unknown {
   return JSON.parse(readFileSync(new URL(path, import.meta.url), 'utf8'));

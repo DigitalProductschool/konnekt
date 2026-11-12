@@ -5,7 +5,6 @@ import type {
   EditLocationState,
   OverviewLocationState,
 } from '@connection-portal/api-types/routing';
-import { requestedRuleDocuments } from '@connection-portal/rules/conditions';
 import { droppedDataOf } from '@connection-portal/rules/dropped';
 import { rulesCheckingRemoval } from '@connection-portal/rules/edits';
 import type { Language } from '@connection-portal/rules/language';
@@ -14,7 +13,6 @@ import { useCallback, useEffect, useMemo, useReducer, useRef, useState } from 'r
 import { flushSync } from 'react-dom';
 import { generatePath, Navigate, useNavigate, useSearchParams } from 'react-router';
 
-import { ApiError } from '../../api/client';
 import {
   createDraft,
   createFormConnection,
@@ -39,8 +37,10 @@ import { useOptionSets } from '../../hooks/useOptionSets';
 import { usePersonas } from '../../hooks/usePersonas';
 import { useRuleChecks } from '../../hooks/useRuleChecks';
 import { useSignOutOnUnauthorized } from '../../hooks/useSignOutOnUnauthorized';
+import { useTodayInGermany } from '../../hooks/useTodayInGermany';
 import { useUndoShortcut } from '../../hooks/useUndoShortcut';
 import { LOCAL_DRAFT_PARAM } from '../../utils/localDrafts/constants';
+import { scheduledStartOf } from '../FormConnectionEdit/utils';
 import ConnectionStep from './ConnectionStep';
 import {
   DRAFT_COPY,
@@ -73,7 +73,7 @@ import {
 import DraftConflictDialog from './DraftConflictDialog';
 import EditorFooter from './EditorFooter';
 import FindingsAnnouncer from './FindingsAnnouncer';
-import { hasUnsavedWork, leaveFlowStep } from './leaveFlow';
+import { hasUnsavedWork, leaveFlowStep, saveQuestionTextOf } from './leaveFlow';
 import PublishDialog from './PublishDialog';
 import RemoveDataDialog from './RemoveDataDialog';
 import RulesStep from './RulesStep';
@@ -107,14 +107,13 @@ import type {
   LeaveFlowContext,
   LeaveFlowState,
   PendingRemoval,
-  PublishDialogAction,
-  PublishDialogState,
-  PublishFailure,
 } from './types';
 import {
   conflictOf,
   connectionErrorsOf,
   createPayload,
+  dataRemovalOf,
+  documentIndexOfListIndex,
   documentLines,
   documentsToastOf,
   draftNameErrors,
@@ -128,18 +127,25 @@ import {
   firstInvalidElementId,
   hasErrors,
   headerTitleOf,
+  isInvalidStartDate,
   isRulesChanged,
   labelOf,
   localContentOf,
   pageTitleOf,
   problemPlaceOf,
+  publishDialogReducer,
   publishErrorNotice,
+  publishFailureOf,
+  publishStartDateOf,
   removalAction,
   removalInLanguage,
   removedDataRulesOf,
+  ruleDocumentsInListOrder,
   ruleLines,
   rulesNextActionOf,
   saveFailureToastOf,
+  selectedIndexAfterMove,
+  showsExampleLine,
   startOfEntry,
   startOfOrigin,
   stepForDroppedData,
@@ -252,6 +258,7 @@ export default function FormConnectionEditorPage({
   initialItem = null,
   linkNotice = null,
   onLinkLeft,
+  example = null,
 }: FormConnectionEditorPageProps) {
   const [searchParams, setSearchParams] = useSearchParams();
   const { store, username } = useLocalDraftStore();
@@ -290,55 +297,9 @@ export default function FormConnectionEditorPage({
       initialItem={initialItem}
       linkNotice={linkNotice}
       onLinkLeft={onLinkLeft}
+      example={example}
     />
   );
-}
-
-/**
- * The publish and save dialog's own state (data-model.md "The publish dialog"; FR-044; S14):
- * "Publish" / "Save" opens its summary, or "Publish without rules?" from the documents step;
- * publishing shows its status, then "Published" or the failure or the conflict; every way out
- * closes it, keeping the step that opened it. What the last attempt met stays through the next
- * attempt and the closing, so that the words don't change while the dialog fades out; the next
- * failure or conflict replaces it, the next opening clears it.
- */
-function publishDialogReducer(
-  state: PublishDialogState,
-  action: PublishDialogAction
-): PublishDialogState {
-  switch (action.type) {
-    case 'open':
-      return {
-        ...INITIAL_PUBLISH_DIALOG_STATE,
-        phase: action.withoutRules ? 'noRules' : 'summary',
-        from: action.from,
-        withoutRules: action.withoutRules,
-      };
-    case 'publish':
-      return { ...state, phase: 'publishing' };
-    case 'published':
-      return { ...state, phase: 'published', connectionId: action.connectionId };
-    case 'failed':
-      return { ...state, phase: 'failed', failure: action.failure, conflict: null };
-    case 'conflict':
-      return { ...state, phase: 'conflict', conflict: action.conflict, failure: null };
-    case 'close':
-      return { ...state, phase: 'closed' };
-  }
-}
-
-/**
- * What a failed publish or save shows (F46; U79 6376:27178): a network failure or a `5xx`, nginx's
- * `502` or `503` without JSON included, gets the design's sentence and the error ID the server
- * sent; any other answer, such as a `400`, the server's message (002-S5.3). A `409 rules_changed`
- * is a conflict, not a failure.
- */
-function publishFailureOf(error: unknown, editing: boolean, language: Language): PublishFailure {
-  if (!(error instanceof ApiError) || error.status >= 500) {
-    const errorId = error instanceof ApiError ? error.data.error_id : undefined;
-    return errorId ? { kind: 'general', errorId } : { kind: 'general' };
-  }
-  return { kind: 'refused', notice: publishErrorNotice(error, editing, language) };
 }
 
 /**
@@ -360,10 +321,13 @@ function ConnectionWizard({
   initialItem = null,
   linkNotice: requestedNotice = null,
   onLinkLeft,
+  example = null,
 }: ConnectionWizardProps) {
   const { origin } = flow;
   // The connection being edited, only for the published origin (FR-026)
   const formConnection = origin.kind === 'published' ? origin.formConnection : undefined;
+  // A scheduled connection's start date, which words the edit flow's texts (spec 010, S18; W6, W7)
+  const scheduledStart = scheduledStartOf(formConnection);
   const [state, dispatch] = useReducer(editorReducer, flow.initialStates.editor);
   const [rules, dispatchRules] = useReducer(rulesReducer, flow.initialStates.rules);
   const [publishDialog, dispatchPublishDialog] = useReducer(
@@ -426,6 +390,11 @@ function ConnectionWizard({
       : flow.baseline
   );
   const unsaved = hasUnsavedWork(origin.kind, localContent, storedContent);
+  // The example's banners while the loaded draft is the example, whatever was changed, and its
+  // line in the publish dialog while nothing was (spec 010, FR-058 to FR-060); a published
+  // connection's flow is never the example (FR-059)
+  const isExample = example !== null && origin.kind === 'draft';
+  const exampleLine = isExample && showsExampleLine(example, localContent, storedContent);
   // The leave model (leaveFlow.ts): the state renders its question; the ref holds the latest
   // state for the steps that follow a save, after its rule question or its request
   const [leave, setLeave] = useState<LeaveFlowState>(INITIAL_LEAVE_FLOW_STATE);
@@ -446,6 +415,8 @@ function ConnectionWizard({
   // The website's language (spec 009): the catalog's labels come in it, the rules' texts compose
   // in it through the context below, and a switch rewords what shows without re-keying anything
   const { language } = useLanguage();
+  // Today in Germany, which a start date must come after (spec 010, FR-003)
+  const today = useTodayInGermany();
   const draftCopy = useCopy(DRAFT_COPY);
   const leaveCopy = useCopy(LEAVE_COPY);
   const documentsCopy = useCopy(DOCUMENTS_COPY);
@@ -460,8 +431,7 @@ function ConnectionWizard({
   const droppedChecked = useRef(false);
   // The flow moved to the documents step for dropped data: the note takes the focus there (S8)
   const focusDroppedNote = useRef(false);
-  const catalogOrder = useMemo(() => documentTypes.map((type) => type.key), [documentTypes]);
-  // The documents step's list: the documents the catalog offers, in catalog order (F23)
+  // The documents step's list: the documents the catalog offers, in the editor's order (FR-045)
   const listed = useMemo(
     () => listedDocumentsOf(state.documents, documentTypes),
     [state.documents, documentTypes]
@@ -504,7 +474,7 @@ function ConnectionWizard({
   // with the catalog's labels in the same language
   const ruleCatalog: RulesCatalog & { language: Language } = useMemo(
     () => ({
-      documents: requestedRuleDocuments(documentTypes, state.documents),
+      documents: ruleDocumentsInListOrder(documentTypes, state.documents),
       allDocuments: documentTypes,
       optionSets,
       language,
@@ -782,7 +752,7 @@ function ConnectionWizard({
     const catalog =
       documents === state.documents
         ? ruleCatalog
-        : { ...ruleCatalog, documents: requestedRuleDocuments(documentTypes, documents) };
+        : { ...ruleCatalog, documents: ruleDocumentsInListOrder(documentTypes, documents) };
     const problem = rulesStatus === 'loaded' ? firstProblem(current.branches, catalog) : null;
     if (!problem) {
       return true;
@@ -985,8 +955,8 @@ function ConnectionWizard({
    * A failed draft save, also an answer of the conflict dialog, whose dialog closes first and
    * returns the focus to "Save and exit": the failed save's toast, which replaces the toast
    * shown and leaves the focus where it is (FR-033, F67, W20). A network failure or a `5xx`
-   * offers "Try again" and stays until it is used or dismissed; a `400` shows the server's
-   * message for the toast's usual time.
+   * offers "Try again"; a `400` shows the server's message. Either goes after the toast's
+   * 6 seconds (FR-082), and "Save and exit" is still there.
    */
   function showDraftSaveFailure(error: unknown) {
     if (state.conflict) {
@@ -1211,6 +1181,15 @@ function ConnectionWizard({
    * publish or deletion of the stored draft shows as a conflict in the dialog.
    */
   async function handleConfirm(replace = false) {
+    // "Schedule" with a day that isn't after today publishes nothing and shows the field's error
+    // (spec 010, FR-003); "Schedule" stays enabled
+    const start = publishStartDateOf(publishDialog, editing, today);
+    if (!start.ok) {
+      dispatchPublishDialog({ type: 'dateRefused' });
+      return;
+    }
+    // "On a date" sends the day; "Now" sends the body as before (FR-001, FR-002)
+    const startDate = start.date === null ? {} : { start_date: start.date };
     dispatch({ type: 'publish' });
     dispatchPublishDialog({ type: 'publish' });
     try {
@@ -1222,12 +1201,13 @@ function ConnectionWizard({
         origin.kind === 'draft'
           ? await publishDraft(origin.draftId, {
               ...createPayload(state, rules),
+              ...startDate,
               version: origin.draftVersion,
               replace,
             })
           : formConnection
             ? await updateFormConnection(formConnection.id, payload)
-            : await createFormConnection(payload);
+            : await createFormConnection({ ...payload, ...startDate });
       // Published: the local draft has no unsaved work left (FR-018)
       if (!editing) {
         forget();
@@ -1250,6 +1230,17 @@ function ConnectionWizard({
       if (conflict) {
         dispatch({ type: 'draftConflict', conflict });
         dispatchPublishDialog({ type: 'conflict', conflict });
+        return;
+      }
+      if (isInvalidStartDate(error)) {
+        // The day changed while the dialog was open: nothing was published, and the field shows
+        // its error as for a day typed wrong (FR-003, W1)
+        dispatch({
+          type: 'publishFailed',
+          error: publishErrorNotice(error, editing, language),
+          rulesChanged: false,
+        });
+        dispatchPublishDialog({ type: 'dateRefused' });
         return;
       }
       showPublishFailure(error);
@@ -1370,7 +1361,7 @@ function ConnectionWizard({
    * a dialog that names them (FR-029; F18).
    */
   function removeOrAsk(removal: PendingRemoval): boolean {
-    if (rulesCheckingRemoval(rules.branches, removal, state.documents).length > 0) {
+    if (rulesCheckingRemoval(rules.branches, dataRemovalOf(removal), state.documents).length > 0) {
       dispatch({ type: 'askRemoval', removal });
       return false;
     }
@@ -1426,12 +1417,28 @@ function ConnectionWizard({
   /** A pick in the documents step's search card: the document is added and shown (U21 A5). */
   function handleAddDocument(documentType: DocumentType) {
     const listIds = listIdsOf(listed);
-    dispatch({ type: 'addDocument', documentType: documentType.key, catalogOrder });
+    // At the end of the list (FR-045)
+    dispatch({ type: 'addDocument', documentType: documentType.key });
+    dispatchView({ type: 'select', index: indexAfterAdding(listIds, documentType.key) });
+    dispatchView({ type: 'clearSearch' });
+  }
+
+  /**
+   * Moves a listed document to `toIndex` of the list (FR-046, FR-047; the ⋯ menu's "Move up" and
+   * "Move down", and the drag): the editor moves it among its documents, and the open document
+   * stays open, the pager counting in the new order. A refused move changes nothing.
+   */
+  function handleMoveDocument(documentType: string, toIndex: number) {
+    const listIds = listIdsOf(listed);
+    dispatch({
+      type: 'moveDocument',
+      documentType,
+      toIndex: documentIndexOfListIndex(state.documents, listIds, toIndex),
+    });
     dispatchView({
       type: 'select',
-      index: indexAfterAdding(listIds, documentType.key, catalogOrder),
+      index: selectedIndexAfterMove(listIds, documentsView.selectedIndex, documentType, toIndex),
     });
-    dispatchView({ type: 'clearSearch' });
   }
 
   function handleSetField(documentType: string, field: string, selected: boolean) {
@@ -1479,11 +1486,11 @@ function ConnectionWizard({
   }
 
   function handleUndo() {
-    const restored = state.removed?.document_type;
+    const restored = state.removed?.document.document_type;
     flushSync(() => {
-      dispatch({ type: 'undoRemove', catalogOrder });
-      // The document shows again, at its catalog place
-      dispatchView({ type: 'undoRemoval', listIds: listIdsOf(listed), catalogOrder });
+      dispatch({ type: 'undoRemove' });
+      // The document shows again, at the place it had (FR-045)
+      dispatchView({ type: 'undoRemoval', listIds: listIdsOf(listed) });
     });
     // The toast and its button are gone; the focus goes to the restored document's list item
     if (restored) {
@@ -1526,6 +1533,8 @@ function ConnectionWizard({
             onChangeName={(value) => dispatch({ type: 'changeName', value })}
             onChangeDescription={(value) => dispatch({ type: 'changeDescription', value })}
             onSubmit={handleContinue}
+            scheduledStart={scheduledStart}
+            isExample={isExample}
           />
         );
       case 'documents':
@@ -1542,8 +1551,11 @@ function ConnectionWizard({
             dispatchView={dispatchView}
             onAdd={handleAddDocument}
             onRemove={handleRemove}
+            onMove={handleMoveDocument}
             onSetField={handleSetField}
             onSetAllFields={handleSetAllFields}
+            onClearGroup={removeOrAsk}
+            isExample={isExample}
           />
         );
       case 'rules':
@@ -1567,6 +1579,7 @@ function ConnectionWizard({
             onAddData={() => leaveEditor({ type: 'documents' })}
             onSaveRule={() => dispatchRules({ type: 'saveRule', language })}
             onCancelEditor={() => leaveEditor({ type: 'cancel' })}
+            isExample={isExample}
           />
         );
       case 'test':
@@ -1584,6 +1597,7 @@ function ConnectionWizard({
               if (personas.state.failed) personas.retry();
             }}
             saveFailed={saveFailureToast !== null}
+            isExample={isExample}
           />
         );
     }
@@ -1594,10 +1608,14 @@ function ConnectionWizard({
       title={headerTitleOf(state, language, formConnection, origin.kind === 'draft')}
       badge={
         origin.kind === 'draft' ? (
-          <ConnectionStatusBadge isActive draft />
+          <ConnectionStatusBadge state="draft" />
         ) : formConnection ? (
-          // "Active" (U98 6731:39823), never "Draft changes" (F5); "Deactivated" when it is
-          <ConnectionStatusBadge isActive={formConnection.is_active} />
+          // "Active" (U98 6731:39823), never "Draft changes" (F5); "Scheduled · <date>" (E6
+          // 7114:49835, FR-013) or "Deactivated" when it is
+          <ConnectionStatusBadge
+            state={formConnection.state}
+            startDate={formConnection.start_date}
+          />
         ) : undefined
       }
       onLeave={handleLeave}
@@ -1635,6 +1653,7 @@ function ConnectionWizard({
               ? () => navigate(generatePath(ROUTES.formConnection, { id: formConnection.id }))
               : undefined
           }
+          scheduledStart={scheduledStart}
         />
       }
       overlay={
@@ -1650,10 +1669,16 @@ function ConnectionWizard({
             onCancel={handleDialogCancel}
             onClose={handleCloseDialog}
             onConfirm={() => void handleConfirm()}
+            onActiveFromChange={(choice) =>
+              dispatchPublishDialog({ type: 'chooseActiveFrom', choice })
+            }
+            onStartDateTextChange={(text) => dispatchPublishDialog({ type: 'typeStartDate', text })}
             onReload={handleReload}
             onReplace={() => void handleConfirm(true)}
             onOpenConnection={handleOpenConnection}
             onSaveAsNew={() => void handleSaveAsNew('publish')}
+            exampleLine={exampleLine}
+            scheduledStart={scheduledStart}
           />
           {/* Always rendered: closing it, not unmounting it, returns the focus to "Save and exit" */}
           <DraftConflictDialog
@@ -1681,7 +1706,7 @@ function ConnectionWizard({
           <ConfirmDialog
             open={leave.status === 'saveAsked'}
             title={leaveCopy.saveTitle}
-            text={leaveCopy.saveText}
+            text={saveQuestionTextOf(scheduledStart, leaveCopy)}
             secondaryLabel={leaveCopy.discardChanges}
             secondaryDanger
             onSecondary={() => answerLeave({ type: 'discard' })}

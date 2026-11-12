@@ -1,12 +1,17 @@
-import { Link } from 'react-router';
+import { useReducer } from 'react';
+import { generatePath, Link, useNavigate } from 'react-router';
 
+import { createExample } from '../../api/form-connections';
 import walletStar from '../../assets/illustrations/wallet-star@2x.png';
 import IconTile from '../../components/IconTile';
 import PageTitle from '../../components/PageTitle';
 import { ROUTES } from '../../constants';
-import { useCopy } from '../../hooks/useLanguage';
-import { WELCOME_COPY, WELCOME_STEPS } from './constants';
+import { useCopy, useLanguage } from '../../hooks/useLanguage';
+import { useSignOutOnUnauthorized } from '../../hooks/useSignOutOnUnauthorized';
+import { INITIAL_EXAMPLE_DIALOG_STATE, WELCOME_COPY, WELCOME_STEPS } from './constants';
+import ExampleDialog from './ExampleDialog';
 import type { WelcomePageProps, WelcomeStepItemProps } from './types';
+import { exampleDialogReducer, exampleFailureOf } from './utils';
 
 /**
  * One step of the illustration (U11 6699:44494): the white round tile with the ink glyph and
@@ -41,15 +46,46 @@ function WelcomeStepItem({ step, joined }: WelcomeStepItemProps) {
  * FR-027, design-notes §3 "Empty state"): "Welcome to Konnekt" as the page's h1 (heading/x-large,
  * 6699:44486), then the light blue card (radius 12, padding and gap 48; 6699:44488) with its
  * heading "Create your first connection" (title/large) and the one sentence 8px under it, the four
- * steps 32px under them, "Create connection" with its forward arrow as the only action (F15: no
- * example), and the wallet star at 200 × 193 at the right (decorative). The steps sit in a row
+ * steps 32px under them, "Create connection" with its forward arrow (primary) and, 16px beside
+ * it, "Start from an example" (secondary; spec 010, FR-053, 1g U18 6793:47705, 6793:47706; F24,
+ * F28), which wrap under each other where they don't fit, and the wallet star at 200 × 193 at the
+ * right (decorative). "Start from an example" opens the example dialog (`ExampleDialog`, its
+ * state `exampleDialogReducer`); "Create the example" creates the example draft and opens it at
+ * its stored step, step 1 (FR-055). The steps sit in a row
  * where the card's text column has room for them (640px), and stack below; narrower than 768px
  * the card keeps 24px padding and the picture goes (FR-010). "Create connection" opens the
- * first-connection flow at step 1 (`/get-started`).
+ * first-connection flow at step 1 (`/get-started`). After the last connection was deleted it
+ * shows with the deletion's toast, which the overview page owns; its "Undo" brings the overview
+ * back with the connection (spec 010, FR-037).
  */
 export default function WelcomePage({ titleRef }: WelcomePageProps) {
   const copy = useCopy(WELCOME_COPY);
   const steps = useCopy(WELCOME_STEPS);
+  const { language } = useLanguage();
+  const [exampleDialog, dispatchExample] = useReducer(
+    exampleDialogReducer,
+    INITIAL_EXAMPLE_DIALOG_STATE
+  );
+  const handleUnauthorized = useSignOutOnUnauthorized();
+  const navigate = useNavigate();
+
+  async function createTheExample() {
+    if (exampleDialog.creating) {
+      return;
+    }
+    dispatchExample({ type: 'start' });
+    try {
+      const draft = await createExample();
+      dispatchExample({ type: 'done' });
+      // The create flow at the draft's stored step, step 1 (FR-055)
+      navigate(generatePath(ROUTES.editFormConnection, { id: draft.id }));
+    } catch (error) {
+      if (!handleUnauthorized(error)) {
+        dispatchExample({ type: 'failed', error: exampleFailureOf(error, language) });
+      }
+    }
+  }
+
   return (
     <>
       <PageTitle ref={titleRef} title={copy.title} size="x-large" />
@@ -72,16 +108,30 @@ export default function WelcomePage({ titleRef }: WelcomePageProps) {
               <WelcomeStepItem key={step.glyph} step={step} joined={index > 0} />
             ))}
           </ol>
-          <Link to={ROUTES.firstConnection} className="kern-btn kern-btn--primary">
-            <span className="kern-label">{copy.createConnection}</span>
-            <span aria-hidden="true" className="kern-icon kern-icon--arrow-forward" />
-          </Link>
+          <div className="flex flex-wrap gap-16">
+            <Link to={ROUTES.firstConnection} className="kern-btn kern-btn--primary">
+              <span className="kern-label">{copy.createConnection}</span>
+              <span aria-hidden="true" className="kern-icon kern-icon--arrow-forward" />
+            </Link>
+            <button
+              type="button"
+              onClick={() => dispatchExample({ type: 'open' })}
+              className="kern-btn kern-btn--secondary"
+            >
+              <span className="kern-label">{copy.startFromExample}</span>
+            </button>
+          </div>
         </div>
         {/* Wrapped: kern.css's unlayered `img { display: block }` beats `hidden` on the image */}
         <div className="hidden flex-none md:block">
           <img src={walletStar} alt="" className="h-193 w-200" />
         </div>
       </div>
+      <ExampleDialog
+        state={exampleDialog}
+        onCancel={() => dispatchExample({ type: 'close' })}
+        onConfirm={() => void createTheExample()}
+      />
     </>
   );
 }

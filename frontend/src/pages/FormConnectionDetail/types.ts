@@ -1,15 +1,20 @@
 import type { ErrorNotice } from '@connection-portal/api-types/api';
 import type {
+  ActivityEntry,
+  ActivityPage,
   Branch,
   BranchInput,
+  ConnectionState,
   FormConnection,
   FormConnectionDraft,
+  FormConnectionOrDraft,
   RequestedDocumentView,
   RuleTreeItem,
 } from '@connection-portal/api-types/form-connections';
 import type { RuleContext, RuleDocument } from '@connection-portal/rules/types';
 import type { ReactNode, Ref } from 'react';
 
+import type { ActiveFrom } from '../../components/ActiveFromChoice/types';
 import type { ToastContent } from '../../components/Toast/types';
 
 /** How the screen was reached: right after publishing, after saving an edit, or otherwise */
@@ -19,24 +24,113 @@ export type Arrival = 'published' | 'saved' | null;
 export type StatusAction = 'deactivate' | 'activate' | 'delete';
 export type ConfirmedAction = StatusAction;
 
+/**
+ * The page's dialogs: a confirmation (S17), or "Change start date" (S15, FR-008, FR-009), which
+ * the ⋯ menu opens for a scheduled and an active connection (`StartDateDialog`)
+ */
+export type ActionDialog = ConfirmedAction | 'startDate';
+
+/** A call the page runs: a confirmed action, or "Save date" of "Change start date" (S15) */
+export type RunningAction = StatusAction | 'startDate';
+
+/** An entry of the ⋯ menu on the date pill (S15; U88 6417:31045) */
+export type ConnectionMenuEntry = 'startDate' | 'deactivate' | 'delete';
+
 export interface ActionsState {
-  /** The confirmation to show; it keeps its texts while the dialog closes */
-  dialog: ConfirmedAction;
+  /** The dialog to show; a confirmation keeps its texts while it closes */
+  dialog: ActionDialog;
   dialogOpen: boolean;
   /** The action whose call is running */
-  running: StatusAction | null;
+  running: RunningAction | null;
   /** Why the last action failed, shown in its dialog until it closes or retries */
   error: ErrorNotice | null;
+  /**
+   * The last failure got no answer (a network failure, or a `5xx` without the API's envelope):
+   * "Change start date" then shows its sentence instead of the message (FR-014, F2, W8)
+   */
+  noAnswer: boolean;
+  /**
+   * "Active from" of the dialog that has it (C2): the choice and the date field's text, set when
+   * the dialog opens and kept through a failure, so that "Try again" repeats them (FR-014)
+   */
+  activeFrom: ActiveFrom;
+  startDateText: string;
+  /** The date field's error state (FR-003, W1): a day that isn't after today, or the server's */
+  dateError: boolean;
+  /** How often a date was refused, so that each refusal moves the focus to the field */
+  dateRefusals: number;
   toast: ToastContent | null;
 }
 
 export type ActionsAction =
-  | { type: 'openDialog'; dialog: ConfirmedAction }
+  /** `activeFrom` and `startDateText` are the dialog's first choice ("Now" and empty if left out) */
+  | { type: 'openDialog'; dialog: ActionDialog; activeFrom?: ActiveFrom; startDateText?: string }
   | { type: 'closeDialog' }
-  | { type: 'start'; action: StatusAction }
+  | { type: 'start'; action: RunningAction }
   | { type: 'succeeded'; message: string }
-  | { type: 'failed'; error: ErrorNotice }
+  | { type: 'failed'; error: ErrorNotice; noAnswer?: boolean }
+  /** A radio of "Active from" */
+  | { type: 'chooseActiveFrom'; choice: ActiveFrom }
+  /** The date field's text changed */
+  | { type: 'typeStartDate'; text: string }
+  /** A day that isn't after today, by `startDateOf()` or the server's `400 invalid_start_date` */
+  | { type: 'dateRefused' }
   | { type: 'dismissToast' };
+
+/**
+ * What "Save date" does (S15; FR-008, FR-009): the field's error for a day that isn't after
+ * today; nothing for an active connection's "Now" or a scheduled one's own date; otherwise it
+ * sends the day, or null for "Now"
+ */
+export type StartDatePlan =
+  { kind: 'refused' } | { kind: 'unchanged' } | { kind: 'send'; startDate: string | null };
+
+/**
+ * What "Activate" or "Schedule" does when reactivating (S17; FR-011): the field's error for a day
+ * that isn't after today; otherwise it sends the day, or null for "Now"
+ */
+export type ReactivatePlan = { kind: 'refused' } | { kind: 'send'; startDate: string | null };
+
+/** "Activate this connection again?" (S17; U89 7173:52959), rendered from the page's state */
+export interface ReactivateDialogProps {
+  /** The deactivated connection, whose documents and rules the summary names */
+  formConnection: FormConnection;
+  /** The page's actions state, which holds the dialog's choice, text, error and failure */
+  state: ActionsState;
+  onChoiceChange: (choice: ActiveFrom) => void;
+  onTextChange: (text: string) => void;
+  /** "Cancel", the ×, Escape and the scrim */
+  onCancel: () => void;
+  /** "Activate", "Schedule" and "Try again" */
+  onConfirm: () => void;
+}
+
+/**
+ * The failure's alert of the dialogs with "Active from" (FR-014, F2, W8): `noAnswerText` when no
+ * answer came, the server's message with its error ID for a `5xx`, `title` with the server's
+ * message for any other refusal
+ */
+export interface DialogFailureAlertProps {
+  notice: ErrorNotice;
+  noAnswer: boolean;
+  /** "Couldn’t save the start date", "Couldn’t reactivate" */
+  title: string;
+  /** "Couldn’t …, so nothing has changed. Check your internet connection and try again." */
+  noAnswerText: string;
+}
+
+export interface StartDateDialogProps {
+  /** The connection the dialog changes: scheduled or active */
+  formConnection: FormConnection;
+  /** The page's actions state, which holds the dialog's choice, text, error and failure */
+  state: ActionsState;
+  onChoiceChange: (choice: ActiveFrom) => void;
+  onTextChange: (text: string) => void;
+  /** "Cancel", the ×, Escape and the scrim */
+  onCancel: () => void;
+  /** "Save date" and "Try again" */
+  onSave: () => void;
+}
 
 /** A confirmation's texts and look (S17), for `ConfirmDialog` */
 export interface ActionDialogCopy {
@@ -74,8 +168,11 @@ export interface DetailFooterProps {
   onEdit?: () => void;
 }
 
-/** The details' accordions (FR-046): one is open at a time, or none */
-export type DetailAccordionName = 'links' | 'summary';
+/**
+ * The details' accordions (spec 008 FR-046, spec 010 FR-022): Links, Summary and Activity; one is
+ * open at a time, or none. A draft's Links card has no toggle, so a draft's are Summary and Activity
+ */
+export type DetailAccordionName = 'links' | 'summary' | 'activity';
 
 export interface DetailAccordionProps {
   /** The heading, such as "Links for your service" */
@@ -97,16 +194,19 @@ export interface ConnectionLinksProps {
   onToggle: () => void;
 }
 
-/** The status band's state: a published connection's, or a draft's (S16) */
-export type StatusBandTone = 'active' | 'deactivated' | 'draft';
+/** The status band's state: a published connection's by its state, or a draft's (S16; C1) */
+export type StatusBandTone = 'active' | 'scheduled' | 'deactivated' | 'draft';
 
 export interface StatusBandToneLook {
   /** The band's background */
   band: string;
   /** The 32px circle behind the status icon; empty for a bare glyph */
   iconCircle: string;
-  /** The status icon's image */
-  icon: string;
+  /**
+   * The status icon: an exported image, or KERN's glyph drawn in white (the scheduled band's
+   * calendar, U94 7355:60683)
+   */
+  icon: { src: string } | { kern: string };
   /** The status icon's size in its circle: the active check 24px, the other glyphs 20px */
   iconSize: string;
   /** The picture at the bottom right, in colour or grey */
@@ -121,16 +221,29 @@ export interface StatusBandProps {
   text: string;
   /** The h1, which takes the focus right after publishing */
   headingRef?: Ref<HTMLHeadingElement>;
-  /** At the band's right end (F66, #52), in the white chip: the ⋯ menu */
-  actions?: ReactNode;
   /**
-   * Before the chip, on the band (16px apart): while deactivated, "Activate again" (U89); on a
-   * draft's, "Delete draft" (F56)
+   * The date pill's line, 20px under the sub-line (FR-015, data-model §1.4): "Active since
+   * <date>, <time>", "Active from <date>, 00:00", "Deactivated since <date>, <time>", a draft's
+   * "Edited <date>, <time>"
    */
+  dateLine: string;
+  /** Inside the pill, after the date (FR-016): a published connection's ⋯ menu; a draft has none */
+  actions?: ReactNode;
+  /** Next to the pill, 16px from it (FR-016, U89 7355:61542): while deactivated, "Activate again" */
+  pillAction?: ReactNode;
+  /** At the band's right end (F56): a draft's "Delete draft" */
   mainAction?: ReactNode;
-  /** 20px under the sub-line: a draft's "Edited <date>" pill (U93 7362:54709) */
-  meta?: ReactNode;
 }
+
+/** The date pill (U80 7355:61155; U93 7362:54709): its line and, on a published connection, the ⋯ */
+export interface DatePillProps {
+  line: string;
+  actions?: ReactNode;
+}
+
+/** What the date pill's line is read from (data-model §1.4): a connection or a draft */
+export type DatePillSource = Pick<FormConnectionOrDraft, 'state' | 'updated_at'> &
+  Partial<Pick<FormConnection, 'published_at' | 'activated_at' | 'deactivated_at' | 'start_date'>>;
 
 /** One URL of a link card; with several, each is labelled with its variant (FR-026) */
 export interface LinkCardLink {
@@ -229,6 +342,56 @@ export interface DraftDetailsProps {
   draft: FormConnectionDraft;
   /** Loads the details again: after "Open the connection", once the draft was published */
   onReload: () => void;
+}
+
+/**
+ * The Activity card's list (S15 "The Activity card"; FR-022, FR-023): `closed` until the card first
+ * opens (nothing loaded); `loading` the first page; `loaded` with the pages so far, newest first;
+ * `loadingMore` the page after them; `failed` with the pages loaded before the failure (none when
+ * the first page failed) and why
+ */
+export type ActivityCardState =
+  | { kind: 'closed' }
+  | { kind: 'loading' }
+  | { kind: 'loaded'; pages: ActivityPage[] }
+  | { kind: 'loadingMore'; pages: ActivityPage[] }
+  | { kind: 'failed'; pages: ActivityPage[]; error: ErrorNotice };
+
+export type ActivityCardAction =
+  /** The card opened for the first time, or after `reset`: the first page */
+  | { type: 'load' }
+  /** The list's end came into view while there is an older page */
+  | { type: 'loadMore' }
+  /** "Try again": the page that failed, the first or the next */
+  | { type: 'retry' }
+  | { type: 'pageLoaded'; page: ActivityPage }
+  | { type: 'pageFailed'; error: ErrorNotice }
+  /** The connection changed on the page: the list loads again from the newest entry */
+  | { type: 'reset' };
+
+/** What the card asks for next: the first page, the page after a cursor, or nothing */
+export type ActivityRequest = { cursor: string | null } | null;
+
+export interface ActivityCardProps {
+  /** The connection or draft whose activity it shows */
+  formConnectionId: string;
+  /** The closed card's line (FR-024, FR-032), from the connection's `last_activity` */
+  lastActivity: ActivityEntry | null;
+  /** The connection's state, for "Deactivated by …" while it is deactivated */
+  state: ConnectionState;
+  /** Whether the card is open, kept by the page's accordion (FR-022: one card open at a time) */
+  open: boolean;
+  onToggle: () => void;
+  /**
+   * Changes when an action on the page changed the connection (a status or start date change):
+   * the list loads again, at once while open, otherwise when the card next opens
+   */
+  reloadKey?: string | number;
+}
+
+/** One entry of the open list: "date and time · event · person" (U86 6396:48528) */
+export interface ActivityRowProps {
+  entry: ActivityEntry;
 }
 
 /** Why deleting a draft failed: published or deleted meanwhile, or anything else */

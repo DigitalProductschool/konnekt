@@ -286,7 +286,9 @@ pending removal). The current `DocumentCard`, `DocumentPicker`, `FieldChecklist`
 **Toasts** gain an optional action ("Try again", "Undo", "Show"; FR-051 (33), FR-033) in
 `components/Toast`: one toast is visible at a time, the newest replaces the previous, every
 toast is announced through the live region (001-S7.7), and an action toast stays until used or
-dismissed. The failed-save toast carries the error ID of a 5xx (FR-033).
+dismissed. The failed-save toast carries the error ID of a 5xx (FR-033). (Superseded by spec 010's
+FR-082, `specs/010-revamp-backend-gaps/spec.md`: every toast, with or without an action, closes by
+itself after 6 seconds, the time running only while neither the pointer nor the focus is on it.)
 
 **The overview search** (FR-051 (27)) filters the loaded list in the page with a pure helper
 (name and description, case-folded), with a visible label, ×, "n of m connections", a no-results

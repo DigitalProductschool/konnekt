@@ -1,4 +1,5 @@
 // Mirrors the form connection schemas in backend/app/schemas.py
+import type { ApiErrorResponse } from './api';
 import type { DocumentField } from './document-types';
 
 /** A document to request, with the keys of its selected fields (input) */
@@ -128,6 +129,71 @@ export type ConnectionStatus = 'draft' | 'published';
 /** A step of the editor's wizard; mirrors EditorStep */
 export type EditorStep = 'connection' | 'documents' | 'rules' | 'test';
 
+/**
+ * What every consumer shows, derived by the server (spec 010, research R1); mirrors
+ * ConnectionState. `status` stays the discriminator
+ */
+export type ConnectionState = 'draft' | 'scheduled' | 'live' | 'deactivated';
+
+/**
+ * The example's mark (spec 010, research R7, data-model.md section 5): `unchanged` while the draft
+ * is the example as created, `changed` after a save that changed it; mirrors ExampleState
+ */
+export type ExampleState = 'unchanged' | 'changed';
+
+// The activity (specs/010-revamp-backend-gaps/contracts/management-api.md "Schemas")
+
+/** What happened, in the order of data-model.md section 2.2; mirrors ActivityKind */
+export type ActivityKind =
+  | 'created'
+  | 'renamed'
+  | 'description_changed'
+  | 'documents_changed'
+  | 'variant_added'
+  | 'variant_removed'
+  | 'variant_renamed'
+  | 'rules_changed'
+  | 'published'
+  | 'scheduled'
+  | 'start_date_changed'
+  | 'became_active'
+  | 'deactivated'
+  | 'reactivated'
+  | 'deleted'
+  | 'restored';
+
+/**
+ * Who made an entry. `agent` without `approved`: the agent made the change for the team member
+ * `name`; `agent` with `approved`: `name` approved what the agent asked for
+ */
+export interface ActivityActor {
+  /** The team member's username when the entry was made */
+  name: string;
+  agent: string | null;
+  approved: boolean;
+}
+
+/** One entry of a connection's activity; the server sends the kind and its data, no sentence */
+export interface ActivityEntry {
+  id: string;
+  kind: ActivityKind;
+  /** When it happened; the latest time of the entries merged into it */
+  at: string;
+  /** The variant's name for the kinds about a variant (the new name for a rename) */
+  variant: string | null;
+  /** YYYY-MM-DD: `scheduled`, and `start_date_changed` to a date */
+  start_date: string | null;
+  /** Null: the middleware did it by itself, or the entry was backfilled */
+  actor: ActivityActor | null;
+}
+
+/** A page of a connection's activity, newest first */
+export interface ActivityPage {
+  items: ActivityEntry[];
+  /** Null on the last page */
+  next_cursor: string | null;
+}
+
 export interface FormConnectionSummary {
   id: string;
   name: string;
@@ -139,6 +205,18 @@ export interface FormConnectionSummary {
   status: ConnectionStatus;
   /** A draft's last save (FR-007) */
   updated_at: string;
+  /** Spec 010 (research R1, R3) */
+  state: ConnectionState;
+  /** Null for a draft */
+  published_at: string | null;
+  /** Set only while deactivated */
+  deactivated_at: string | null;
+  /** YYYY-MM-DD, a day in Germany; set only while scheduled */
+  start_date: string | null;
+  /** A draft's stored step; null once published */
+  step: EditorStep | null;
+  /** Null unless the draft is the example (spec 010, research R7) */
+  example: ExampleState | null;
 }
 
 /** A page of the search's results (spec 007, research R9) */
@@ -168,14 +246,106 @@ export interface FormConnection {
   next_group_number: number;
   created_at: string;
   updated_at: string;
+  /** Spec 010 (research R1, R3) */
+  state: 'scheduled' | 'live' | 'deactivated';
+  published_at: string;
+  /** When it last became active; null if it never was */
+  activated_at: string | null;
+  /** Set only while deactivated */
+  deactivated_at: string | null;
+  /** YYYY-MM-DD, a day in Germany; set only while scheduled */
+  start_date: string | null;
+  /** The entry the activity card's closed line shows (data-model.md section 2.5) */
+  last_activity: ActivityEntry | null;
 }
 
-/** Without rules, the form connection gets a main branch "Standard" */
+/**
+ * What every delete answers: the deletion, which "Undo" can restore (spec 010, research R5,
+ * contracts/management-api.md "Deleting"); mirrors Deletion
+ */
+export interface Deletion {
+  /**
+   * The deletion's id, shared by the rows deleted together; null when nothing can restore it, as
+   * for a deletion an approved approval request ran (FR-067)
+   */
+  id: string | null;
+  /** When the restore time (DELETION_UNDO_SECONDS) ends; null with `id` */
+  restorable_until: string | null;
+}
+
+/**
+ * A connection of a bulk deletion, with the state the dialog showed for it (spec 010, research
+ * R10, contracts/management-api.md "Deleting"); mirrors DeletionItem
+ */
+export interface DeletionItem {
+  id: string;
+  state: ConnectionState;
+}
+
+/**
+ * The body of POST /api/form-connections/deletions: 1 to 500 items with distinct ids; an empty
+ * list, more items or an id listed twice answers `400 Validation error`; mirrors DeletionCreate
+ */
+export interface DeletionCreate {
+  items: DeletionItem[];
+}
+
+/**
+ * The `409` of a bulk deletion: nothing was deleted, as a listed connection no longer exists, is
+ * deleted or is in another state than its item names (FR-043). `changed_ids` holds every such
+ * item's id, in the order of the request's items. The body of the `HTTPException` that
+ * `deletions.delete_connections()` raises; `message` is the server's sentence, which names no
+ * connection
+ */
+export interface SelectionChanged extends ApiErrorResponse {
+  error: 'selection_changed';
+  changed_ids: string[];
+}
+
+/**
+ * What a restore answers: every connection of the deletion, back as it was, in the overview's
+ * order (spec 010, research R5, contracts/management-api.md "Deleting"); mirrors
+ * RestoredConnections
+ */
+export interface RestoredConnections {
+  items: FormConnectionSummary[];
+}
+
+/**
+ * Without rules, the form connection gets a main branch "Standard". Without `start_date` it is
+ * published active ("Now"); with one, scheduled (spec 010, research R1, R2)
+ */
 export interface FormConnectionCreate {
   name: string;
   description?: string;
   documents: RequestedDocument[];
   rules?: RulesInput;
+  /**
+   * YYYY-MM-DD, a day in Germany after today; absent or null: active at once. A day that isn't
+   * after today answers `400 invalid_start_date`
+   */
+  start_date?: string | null;
+}
+
+/**
+ * The body of POST /api/form-connections/:id/activate (spec 010, research R2). An empty object
+ * activates the deactivated connection at once ("Now"); a `start_date` schedules it for that day
+ */
+export interface ActivateRequest {
+  /**
+   * YYYY-MM-DD, a day in Germany after today; absent or null: active at once. A day that isn't
+   * after today answers `400 invalid_start_date`
+   */
+  start_date?: string | null;
+}
+
+/**
+ * The body of PUT /api/form-connections/:id/start-date (spec 010, FR-008, FR-009): a scheduled or
+ * live connection's new start
+ */
+export interface StartDateUpdate {
+  /** Required: YYYY-MM-DD, a day in Germany after today, or null for now */
+  start_date: string | null;
 }
 
 /** An absent field stays unchanged */
@@ -192,6 +362,8 @@ export interface FormConnectionUpdate {
 export interface FormConnectionDraft {
   /** Always 'draft' */
   status: 'draft';
+  /** Always 'draft' (spec 010, research R1) */
+  state: 'draft';
   id: string;
   name: string;
   /** '' possible */
@@ -212,6 +384,10 @@ export interface FormConnectionDraft {
   version: number;
   created_at: string;
   updated_at: string;
+  /** The entry the activity card's closed line shows (spec 010, data-model.md section 2.5) */
+  last_activity: ActivityEntry | null;
+  /** Null unless the draft is the example (spec 010, research R7) */
+  example: ExampleState | null;
 }
 
 /** What GET /api/form-connections/:id answers; discriminated by `status` */

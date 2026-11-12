@@ -15,8 +15,9 @@ function prefersReducedMotion(): boolean {
  * action blue. Its body's height animates over 200ms (design-notes §4: `grid-template-rows`
  * 0fr → 1fr, `.motion`). The body is clipped only while it is closed or moving, so that open, a
  * tooltip or the full URL's bubble can reach past the card (V6); closed, it is inert, so its
- * controls leave the tab order and the accessibility tree. Used by the Links (T078) and the
- * Summary (T079); the page keeps one open at a time.
+ * controls leave the tab order and the accessibility tree. Used by the Links (T078), the Summary
+ * (T079) and, since spec 010, the Activity card (FR-022); the page keeps one open at a time
+ * (`toggleAccordion()`).
  */
 export default function DetailAccordion({
   title,

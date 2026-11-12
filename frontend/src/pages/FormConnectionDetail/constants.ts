@@ -1,12 +1,19 @@
 import { defineTexts } from '@connection-portal/rules/language';
 
+import calendarPencilIcon from '../../assets/icons/calendar-pencil.svg';
 import doneWhiteIcon from '../../assets/icons/done-white.svg';
 import editWhiteSmallIcon from '../../assets/icons/edit-white-small.svg';
 import linkOffIcon from '../../assets/icons/link-off.svg';
 import linkOffWhiteIcon from '../../assets/icons/link-off-white.svg';
 import publishedArt from '../../assets/illustrations/published-art@2x.png';
 import publishedArtGrey from '../../assets/illustrations/published-art-grey@2x.png';
-import type { ActionsState, DraftDeleteState, StatusBandTone, StatusBandToneLook } from './types';
+import type {
+  ActionsState,
+  ActivityCardState,
+  DraftDeleteState,
+  StatusBandTone,
+  StatusBandToneLook,
+} from './types';
 
 // S15–S17, the details, the draft's details and their confirmations (spec 008); spec 009: the
 // German from the glossary (G§2 "details", "connection", "active/deactivated/deactivate/
@@ -22,8 +29,17 @@ export const CONNECTION_DETAIL_COPY = defineTexts(
     // The deactivated band (U89 7355:61540, 7355:61541, 7355:61549; U96, U97 the same)
     deactivatedTitle: 'Connection deactivated',
     deactivatedText: 'Citizens can’t start a new request. Your settings are saved.',
+    // The scheduled band (U94 7355:60687, 7355:60688; S15, FR-006)
+    scheduledTitle: 'Your connection is scheduled',
+    scheduledText:
+      'The links are ready to be added to your service. They become active on the scheduled date below.',
+    // The date pill's lines (FR-015, data-model §1.4; U80 7355:61158, U94 7355:60692, U89
+    // 7355:61546); a draft's is `edited`
+    activeSince: (dateTime: string) => `Active since ${dateTime}`,
+    activeFrom: (dateTime: string) => `Active from ${dateTime}`,
+    deactivatedSince: (dateTime: string) => `Deactivated since ${dateTime}`,
     activateAgain: 'Activate again',
-    // The band's ⋯ (U88 6417:31045, "More · connection actions"): "Change start date" is F1
+    // The ⋯ on the date pill (U80 7355:61160, "More · connection actions"; FR-016)
     connectionActions: 'Connection actions',
     // The Links accordion (U91 7246:51437; FR-052f: "1 request link · 3 result links")
     linksTitle: 'Links for your service',
@@ -64,7 +80,8 @@ export const CONNECTION_DETAIL_COPY = defineTexts(
     loadingRules: 'Loading the rules…',
     rulesErrorTitle: 'Couldn’t load the rules',
     rulesErrorText: 'Check your connection and try again.',
-    // The ⋯ menu's entries (U88 6417:31045)
+    // The ⋯ menu's entries (U88 6417:31045; S15, FR-008, FR-009)
+    changeStartDate: 'Change start date',
     deactivate: 'Deactivate',
     delete: 'Delete connection',
     // The confirmations (S17). Deactivating (U88 6417:31206): the design's title and buttons, F13's
@@ -74,13 +91,27 @@ export const CONNECTION_DETAIL_COPY = defineTexts(
       'The connection will be deactivated and its links will stop working at once. Requests in progress are cancelled. Remember to remove the wallet connection from your service.',
     keepActive: 'Keep active',
     deactivating: 'Deactivating…',
-    // Reactivating (U89 7173:52959): the documents and rules summary (FR-051 (40)); "Active from"
-    // is F1. "Activating…" isn't drawn (FR-008)
+    // Deactivating a scheduled connection (spec 010, S17; FR-012, W5): copy.md §2's sentence and
+    // cancel button; the title, "Deactivate" and the toast stay (F13)
+    deactivateScheduledText: (date: string) =>
+      `This connection will be active from ${date}. If you deactivate it, it won’t become active and its links won’t work. You can activate it again later.`,
+    keepScheduled: 'Keep scheduled',
+    // Reactivating (U89 7173:52959): the documents and rules summary (FR-051 (40)), then "Active
+    // from" (spec 010, S17; FR-011, W4). "Activating…" isn't drawn (FR-008). With "On a date"
+    // copy.md §2's hint, "Schedule" (the publish dialog's), "Scheduling…" and the toast
     activateTitle: 'Activate this connection again?',
     activateText:
       'Check the summary below. Once it’s active, citizens can share their data again, so make sure your service is ready to receive it.',
     activate: 'Activate',
     activating: 'Activating…',
+    activateDateHint:
+      'The connection becomes active again on the date you choose. Until then, its links don’t work.',
+    schedule: 'Schedule',
+    scheduling: 'Scheduling…',
+    scheduledFor: (date: string) => `Connection scheduled for ${date}.`,
+    // A failed reactivation when no answer came (FR-014, W8), as "Change start date"'s sentence
+    activateNoAnswer:
+      'Couldn’t reactivate, so nothing has changed. Check your internet connection and try again.',
     cancel: 'Cancel',
     // Deleting takes the overview's dialog (`DELETE_DIALOG_COPY`: U14 6699:44480, U90 6417:31599)
     retry: 'Try again',
@@ -94,6 +125,21 @@ export const CONNECTION_DETAIL_COPY = defineTexts(
     activated: 'Connection reactivated.',
     // U99 6730:39732 #19, FR-051 (42)
     saved: 'Changes saved.',
+    // "Change start date" (S15; U87 6396:48860; FR-008, FR-009): the frame's title (`changeStartDate`),
+    // text and buttons; "Now (active since <date>, <time>)" for an active connection; the hint
+    // with "On a date" for an active one F10's (copy.md §2); the busy label the publish dialog's
+    // "Saving…"; the failure's title and the no-answer sentence copy.md §2's (FR-014, W8); the
+    // toast the spec's (FR-008, W3)
+    startDateText: 'Choose when citizens can use this connection.',
+    nowActiveSince: (dateTime: string) => `Now (active since ${dateTime})`,
+    startDateHint:
+      'Until that date, citizens can’t start a new request. Requests in progress are cancelled.',
+    saveDate: 'Save date',
+    savingDate: 'Saving…',
+    startDateError: 'Couldn’t save the start date',
+    startDateNoAnswer:
+      'Couldn’t save the start date, so nothing has changed. Check your internet connection and try again.',
+    startDateSaved: 'Start date saved.',
     // A draft's details (S16; U93 7362:54691): the tab title "<name> (Draft) · Konnekt", the draft
     // band (7362:54697) with its date pill (7362:54709), and the Links card without links
     // (7362:54905)
@@ -124,6 +170,12 @@ export const CONNECTION_DETAIL_COPY = defineTexts(
     deactivatedTitle: 'Anbindung deaktiviert',
     deactivatedText:
       'Bürgerinnen und Bürger können keine neue Anfrage starten. Ihre Einstellungen sind gespeichert.',
+    scheduledTitle: 'Ihre Anbindung ist geplant',
+    scheduledText:
+      'Die Links können bereits in Ihren Dienst eingefügt werden. Sie werden an dem unten angegebenen Datum aktiv.',
+    activeSince: (dateTime: string) => `Aktiv seit ${dateTime}`,
+    activeFrom: (dateTime: string) => `Aktiv ab ${dateTime}`,
+    deactivatedSince: (dateTime: string) => `Deaktiviert seit ${dateTime}`,
     activateAgain: 'Wieder aktivieren',
     connectionActions: 'Aktionen für die Anbindung',
     linksTitle: 'Links für Ihren Dienst',
@@ -156,6 +208,7 @@ export const CONNECTION_DETAIL_COPY = defineTexts(
     loadingRules: 'Die Regeln werden geladen …',
     rulesErrorTitle: 'Die Regeln konnten nicht geladen werden',
     rulesErrorText: 'Prüfen Sie Ihre Internetverbindung und versuchen Sie es erneut.',
+    changeStartDate: 'Startdatum ändern',
     deactivate: 'Deaktivieren',
     delete: 'Anbindung löschen',
     deactivateTitle: 'Diese Anbindung deaktivieren?',
@@ -163,11 +216,21 @@ export const CONNECTION_DETAIL_COPY = defineTexts(
       'Die Anbindung wird deaktiviert, und ihre Links funktionieren sofort nicht mehr. Laufende Anfragen werden abgebrochen. Denken Sie daran, die Wallet-Anbindung aus Ihrem Dienst zu entfernen.',
     keepActive: 'Aktiv lassen',
     deactivating: 'Wird deaktiviert …',
+    deactivateScheduledText: (date: string) =>
+      `Diese Anbindung ist ab ${date} aktiv. Wenn Sie sie deaktivieren, wird sie nicht aktiv und ihre Links funktionieren nicht. Sie können sie später wieder aktivieren.`,
+    keepScheduled: 'Geplant lassen',
     activateTitle: 'Diese Anbindung wieder aktivieren?',
     activateText:
       'Prüfen Sie die Zusammenfassung unten. Sobald die Anbindung aktiv ist, können Bürgerinnen und Bürger ihre Daten wieder teilen. Stellen Sie daher sicher, dass Ihr Dienst bereit ist, sie zu empfangen.',
     activate: 'Aktivieren',
     activating: 'Wird aktiviert …',
+    activateDateHint:
+      'Die Anbindung wird am gewählten Datum wieder aktiv. Bis dahin funktionieren ihre Links nicht.',
+    schedule: 'Planen',
+    scheduling: 'Wird geplant …',
+    scheduledFor: (date: string) => `Anbindung für den ${date} geplant.`,
+    activateNoAnswer:
+      'Die Anbindung konnte nicht reaktiviert werden, daher hat sich nichts geändert. Prüfen Sie Ihre Internetverbindung und versuchen Sie es erneut.',
     cancel: 'Abbrechen',
     retry: 'Erneut versuchen',
     deactivateError: 'Die Anbindung konnte nicht deaktiviert werden',
@@ -178,6 +241,16 @@ export const CONNECTION_DETAIL_COPY = defineTexts(
     deactivated: 'Anbindung deaktiviert.',
     activated: 'Anbindung reaktiviert.',
     saved: 'Änderungen gespeichert.',
+    startDateText: 'Wählen Sie, ab wann Bürgerinnen und Bürger diese Anbindung nutzen können.',
+    nowActiveSince: (dateTime: string) => `Sofort (aktiv seit ${dateTime})`,
+    startDateHint:
+      'Bis zu diesem Datum können Bürgerinnen und Bürger keine neue Anfrage starten. Laufende Anfragen werden abgebrochen.',
+    saveDate: 'Datum speichern',
+    savingDate: 'Wird gespeichert …',
+    startDateError: 'Das Startdatum konnte nicht gespeichert werden',
+    startDateNoAnswer:
+      'Das Startdatum konnte nicht gespeichert werden, daher hat sich nichts geändert. Prüfen Sie Ihre Internetverbindung und versuchen Sie es erneut.',
+    startDateSaved: 'Startdatum gespeichert.',
     draftTabTitle: (name: string) => `${name} (Entwurf)`,
     draftTitle: 'Diese Anbindung ist ein Entwurf',
     draftText:
@@ -194,13 +267,125 @@ export const CONNECTION_DETAIL_COPY = defineTexts(
   }
 );
 
+// The Activity card (spec 010, S15 "The Activity card", W10; copy.md §3): the frames' English
+// (U86 6396:48520, U95 7246:54519, U97 7246:56962, 6809:46582: "Activity", "Last edited by …",
+// "View activity", "Hide activity", the drawn events), the undrawn sentences from copy.md §3, the
+// German from copy.md §1 and §3 and spec 009's glossary. One row is "date and time · event ·
+// person"; the server sends the kind, never a sentence
+export const ACTIVITY_COPY = defineTexts(
+  {
+    title: 'Activity',
+    viewActivity: 'View activity',
+    hideActivity: 'Hide activity',
+    // The closed line (FR-024, FR-032): the person and the time of `last_activity`
+    lastEditedBy: (person: string, dateTime: string) => `Last edited by ${person} · ${dateTime}`,
+    lastEdited: (dateTime: string) => `Last edited · ${dateTime}`,
+    deactivatedBy: (person: string, dateTime: string) => `Deactivated by ${person} · ${dateTime}`,
+    deactivated: (dateTime: string) => `Deactivated · ${dateTime}`,
+    // The person (FR-027): a team member's name; with the agent that made the change for them; or
+    // the team member who approved and the agent that asked
+    personWithAgent: (name: string, agent: string) => `${name} with ${agent}`,
+    personAskedBy: (name: string, agent: string) => `${name}, asked by ${agent}`,
+    // The events, by kind (data-model §2.2)
+    created: 'Created',
+    renamed: 'Name changed',
+    descriptionChanged: 'Description changed',
+    documentsChanged: 'Documents changed',
+    variantAdded: (name: string) => `Variant added: ${name}`,
+    variantRemoved: (name: string) => `Variant removed: ${name}`,
+    variantRenamed: (name: string) => `Variant renamed: ${name}`,
+    rulesChanged: (variant: string) => `Rules changed in ${variant}`,
+    published: 'Published',
+    scheduled: (date: string) => `Scheduled for ${date}`,
+    startDateChanged: (date: string) => `Start date changed to ${date}`,
+    startDateChangedToNow: 'Start date changed to now',
+    becameActive: 'Became active',
+    deactivatedEvent: 'Deactivated',
+    reactivated: 'Activated again',
+    deleted: 'Deleted',
+    restored: 'Restored',
+    // The open list (S15; FR-023): its name for screen readers, the loading and the failure
+    listName: 'Activity, newest first',
+    loading: 'Loading activity…',
+    loadingMore: 'Loading earlier activity…',
+    errorTitle: 'Couldn’t load the activity',
+    // When no answer came (as the Summary's "Couldn’t load the rules")
+    errorText: 'Check your connection and try again.',
+    retry: 'Try again',
+  },
+  {
+    title: 'Aktivität',
+    viewActivity: 'Aktivität ansehen',
+    hideActivity: 'Aktivität ausblenden',
+    lastEditedBy: (person: string, dateTime: string) =>
+      `Zuletzt bearbeitet von ${person} · ${dateTime}`,
+    lastEdited: (dateTime: string) => `Zuletzt bearbeitet · ${dateTime}`,
+    deactivatedBy: (person: string, dateTime: string) => `Deaktiviert von ${person} · ${dateTime}`,
+    deactivated: (dateTime: string) => `Deaktiviert · ${dateTime}`,
+    personWithAgent: (name: string, agent: string) => `${name} mit ${agent}`,
+    personAskedBy: (name: string, agent: string) => `${name}, angefragt von ${agent}`,
+    created: 'Erstellt',
+    renamed: 'Name geändert',
+    descriptionChanged: 'Beschreibung geändert',
+    documentsChanged: 'Dokumente geändert',
+    variantAdded: (name: string) => `Variante hinzugefügt: ${name}`,
+    variantRemoved: (name: string) => `Variante entfernt: ${name}`,
+    variantRenamed: (name: string) => `Variante umbenannt: ${name}`,
+    rulesChanged: (variant: string) => `Regeln in ${variant} geändert`,
+    published: 'Veröffentlicht',
+    scheduled: (date: string) => `Geplant für den ${date}`,
+    startDateChanged: (date: string) => `Startdatum auf den ${date} geändert`,
+    startDateChangedToNow: 'Startdatum auf sofort geändert',
+    becameActive: 'Aktiv geworden',
+    deactivatedEvent: 'Deaktiviert',
+    reactivated: 'Wieder aktiviert',
+    deleted: 'Gelöscht',
+    restored: 'Wiederhergestellt',
+    listName: 'Aktivität, neueste zuerst',
+    loading: 'Aktivität wird geladen …',
+    loadingMore: 'Frühere Aktivität wird geladen …',
+    errorTitle: 'Die Aktivität konnte nicht geladen werden',
+    errorText: 'Prüfen Sie Ihre Internetverbindung und versuchen Sie es erneut.',
+    retry: 'Erneut versuchen',
+  }
+);
+
+export const INITIAL_ACTIVITY_CARD_STATE: ActivityCardState = { kind: 'closed' };
+
+/**
+ * The open card's list (U86 6396:48527, U95 7246:54525, U97 7246:56965): the body 24 from the
+ * card's sides and 16 above its bottom; an entry 8 above and below its line, body/small muted
+ * (#4a5468), the date and time 160 wide, the event label/small and the rest of the row, the
+ * person at the right. The list scrolls inside the card (S15): at most 400 px high, ten entries.
+ * Below `sm` an entry's three parts stack (W16: the date's 160 px leave the event no room in a
+ * 320 px window), and stay stacked below 320 CSS px. The list takes the keyboard focus: KERN's
+ * unlayered rules for `[tabindex]` draw a ring on any focus and none on `:focus-visible`, hence
+ * the `!` (as `PersonaChip`'s), so that the ring shows for the keyboard only
+ */
+export const ACTIVITY_LIST_CLASSES =
+  'rounded-kern-small focus-visible:outline-kern-action-focus-default! max-h-400 overflow-y-auto focus-visible:outline-4! focus-visible:outline-offset-2! [&:focus:not(:focus-visible)]:outline-none!';
+export const ACTIVITY_ROW_CLASSES =
+  'text-kern-static-small text-kern-layout-text-muted flex flex-col py-8 leading-(--kern-typography-line-height-medium-static) break-words sm:flex-row sm:gap-16';
+
 export const INITIAL_ACTIONS_STATE: ActionsState = {
   dialog: 'deactivate',
   dialogOpen: false,
   running: null,
   error: null,
+  noAnswer: false,
+  activeFrom: 'now',
+  startDateText: '',
+  dateError: false,
+  dateRefusals: 0,
   toast: null,
 };
+
+/**
+ * The failure's alert in "Change start date" and "Activate this connection again?", as the publish
+ * dialog's (T024): the dialog's width (below 320 CSS px its title takes the whole width under the
+ * icon by index.css's narrow block, T098)
+ */
+export const START_DATE_FAILURE_ALERT_CLASSES = 'w-full';
 
 export const INITIAL_DRAFT_DELETE_STATE: DraftDeleteState = {
   dialogOpen: false,
@@ -217,6 +402,29 @@ export const SAVED_TIME_FORMATS = defineTexts(
 );
 
 /**
+ * A scheduled connection's start: 00:00 of its start date in Germany (data-model §1.3), written
+ * as the frame draws it, "Active from 01.12.2026, 00:00" (U94 7355:60692), the same for every
+ * team member (FR-020)
+ */
+export const START_TIME = '00:00';
+
+/**
+ * The date pill (U80 7355:61155, U94 7355:60689, U89 7355:61543): white, radius 8, the calendar
+ * 20 and the line (label/small, muted) 8 apart. With the ⋯ (32) the padding is 8 16 8 8 and the
+ * pill 48 high, the calendar and the line centred on the ⋯ from the top, so that the ⋯ stays on
+ * the first row when the line wraps (W16); a draft's pill without it 8 16, 40 high (U93
+ * 7362:54709). Under 320 CSS px the line takes the pill's width under the calendar and the ⋯
+ */
+export const DATE_PILL_CLASSES = {
+  withActions: {
+    pill: 'narrow:flex-wrap py-8 pr-8 pl-16',
+    icon: 'mt-6',
+    line: 'narrow:order-last narrow:basis-full narrow:py-0 py-4',
+  },
+  plain: { pill: 'px-16 py-8', icon: 'mt-2', line: '' },
+};
+
+/**
  * The status band's looks (U07 #6): the band's colour, the 32px status icon in its circle and the
  * picture at the bottom right. Active ("Status band · active" U80 7355:61767): green, the white
  * check 24px in a green circle, the colour picture. Deactivated ("Status band · deactivated" U89
@@ -225,27 +433,37 @@ export const SAVED_TIME_FORMATS = defineTexts(
  * same crop). Draft ("Status band · draft" U93 7362:54697; U07 #23): the gradient from
  * `feedback-info-background` (21.6 %) to `layout-background-hued` (75.9 %) at 113.27°, the white
  * "icon-edit-small" 20px (7362:54702, the export) in a `feedback-info` circle (7362:54701, at the
- * overlay's AA value), the grey picture
+ * overlay's AA value), the grey picture. Scheduled ("Status band · scheduled" U94 7355:60677):
+ * `feedback-info-background` #e0f2fe, KERN's calendar 20px in white (7355:60683) in a
+ * `feedback-info` circle (7355:60682, at the overlay's AA value, as the draft's), the colour
+ * picture ("Picture · scheduled" 7355:60695, the active band's art, T006's crop)
  */
 export const STATUS_BAND_TONES: Record<StatusBandTone, StatusBandToneLook> = {
   active: {
     band: 'bg-kern-feedback-success-background',
     iconCircle: 'bg-kern-feedback-success',
-    icon: doneWhiteIcon,
+    icon: { src: doneWhiteIcon },
     iconSize: 'size-24',
+    picture: publishedArt,
+  },
+  scheduled: {
+    band: 'bg-kern-feedback-info-background',
+    iconCircle: 'bg-kern-feedback-info',
+    icon: { kern: 'kern-icon--calendar-today' },
+    iconSize: 'size-20',
     picture: publishedArt,
   },
   deactivated: {
     band: 'bg-kern-layout-background-hued',
     iconCircle: 'bg-kern-layout-text-muted',
-    icon: linkOffWhiteIcon,
+    icon: { src: linkOffWhiteIcon },
     iconSize: 'size-20',
     picture: publishedArtGrey,
   },
   draft: {
     band: 'bg-[linear-gradient(113.27deg,var(--kern-color-feedback-info-background)_21.638%,var(--kern-color-layout-background-hued)_75.912%)]',
     iconCircle: 'bg-kern-feedback-info',
-    icon: editWhiteSmallIcon,
+    icon: { src: editWhiteSmallIcon },
     iconSize: 'size-20',
     picture: publishedArtGrey,
   },
@@ -261,6 +479,11 @@ export const SUMMARY_INTRO_CLASSES =
 export const SUMMARY_TABLE_CLASSES =
   'rounded-kern-default flex w-full flex-col overflow-clip border border-(--kern-color-decorative-border-default)';
 
+/**
+ * The ⋯ menu's "Change start date" glyph (U88 6417:31045, "Icon/Change date · calendar pencil"
+ * 6529:39066, the export), which KERN lacks
+ */
+export const CALENDAR_PENCIL_ICON = { src: calendarPencilIcon };
 /** The ⋯ menu's "Deactivate" glyph (U88 6417:31045, "Icon/Link off"), which KERN lacks */
 export const LINK_OFF_ICON = { src: linkOffIcon };
 export const DELETE_ICON = { kern: 'kern-icon--delete' };

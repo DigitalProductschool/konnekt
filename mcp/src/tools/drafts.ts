@@ -10,8 +10,10 @@ import type {
 } from '@connection-portal/api-types/form-connections';
 import {
   addVariant,
+  appendDocument,
   deleteVariant,
   editVariant,
+  moveDocument,
   removeRules,
   resetOperator,
   rulesCheckingRemoval,
@@ -184,18 +186,6 @@ registerTool({
 
 // set_document
 
-/** The requested documents in catalog order, those the catalog dropped last. */
-function inCatalogOrder(
-  documents: RequestedDocument[],
-  catalog: RuleDocument[]
-): RequestedDocument[] {
-  const rank = (key: string) => {
-    const index = catalog.findIndex((entry) => entry.key === key);
-    return index < 0 ? catalog.length : index;
-  };
-  return [...documents].sort((a, b) => rank(a.document_type) - rank(b.document_type));
-}
-
 /** A field's label in the catalog, or its key where the catalog dropped it. */
 function fieldLabelOf(document: RuleDocument | undefined, key: string): string {
   return document?.fields.find((field) => field.key === key)?.label ?? key;
@@ -205,9 +195,37 @@ interface DocumentChange {
   removedRules: ItemRef[];
 }
 
+/** A document as `set_document` and `move_document` answer it. */
+interface DocumentAnswer {
+  document_type: string;
+  label: string;
+  fields: { key: string; label: string; kind: string }[];
+}
+
+/** The draft's documents as saved, in the stored order (the team's, FR-050). */
+function documentsOf(draft: FormConnectionDraft): DocumentAnswer[] {
+  return draft.documents.map((document) => ({
+    document_type: document.document_type,
+    label: document.label,
+    fields: document.fields.map(({ key, label, kind }) => ({ key, label, kind })),
+  }));
+}
+
+/** The text block's lines on the documents, in their order. */
+function documentsTextOf(documents: DocumentAnswer[]): string {
+  if (documents.length === 0) {
+    return 'Documents: none.';
+  }
+  const lines = documents.map((document, index) => {
+    const fields = document.fields.map((field) => field.key).join(', ');
+    return `${index + 1}. ${document.label} (${document.document_type}): ${fields || 'no fields yet'}`;
+  });
+  return 'Documents:\n' + lines.join('\n');
+}
+
 /**
- * The documents with `documentType` added, its fields replaced (in catalog order) or, with
- * `fields` null, removed; refused while rules check the data that stops being requested, unless
+ * The documents with `documentType` added at the end, its fields replaced (in catalog order) in
+ * its place, or, with `fields` null, removed, the others keeping their order (FR-064); refused while rules check the data that stops being requested, unless
  * `alsoRemoveRules`, which removes those rules in every variant (`removeRules()`).
  */
 function setDocument(
@@ -252,8 +270,8 @@ function setDocument(
     }
     const fields = known.fields.filter((field) => wanted.has(field.key)).map((field) => field.key);
     const dropped = (requested?.fields ?? []).filter((field) => !wanted.has(field));
-    const others = content.documents.filter((document) => document !== requested);
-    documents = inCatalogOrder([...others, { document_type: key, fields }], catalog);
+    // The team's order (FR-045): a new document goes to the end, a changed one keeps its place
+    documents = appendDocument(content.documents, { document_type: key, fields });
     // Several fields at once: each rule that checks any of them once, in variant and tree order
     removal =
       dropped.length > 0
@@ -295,8 +313,10 @@ registerTool({
   name: 'set_document',
   level: 'drafts',
   description:
-    'Adds a document type to a draft or replaces the fields it requests (put in catalog order), ' +
-    'or removes it with fields null. Removing a document or a field that rules check is refused ' +
+    'Adds a document type to a draft, after the documents it requests, or replaces the fields ' +
+    'it requests (put in catalog order; the document keeps its place), or removes it with ' +
+    'fields null (the others keep their order); move_document changes the order. Removing a ' +
+    'document or a field that rules check is refused ' +
     'with the names of those rules, unless also_remove_rules is true: then those rules are ' +
     'removed in every variant too, and the answer names them.',
   input: z.object({
@@ -324,27 +344,76 @@ registerTool({
     }
     const { draft } = outcome;
     const connection = connectionRefOf(draft);
-    const documents = draft.documents.map((document) => ({
-      document_type: document.document_type,
-      label: document.label,
-      fields: document.fields.map(({ key, label, kind }) => ({ key, label, kind })),
-    }));
+    const documents = documentsOf(draft);
     const removedRules = outcome.result.removedRules;
     return toolResult(
       { connection, documents, removed_rules: removedRules },
       summaryTextOf(
         connectionLineOf(connection),
-        documents.length === 0
-          ? 'Documents: none.'
-          : 'Documents:\n' +
-              documents
-                .map((document) => {
-                  const fields = document.fields.map((field) => field.key).join(', ');
-                  return `- ${document.label} (${document.document_type}): ${fields || 'no fields yet'}`;
-                })
-                .join('\n'),
+        documentsTextOf(documents),
         removedRules.length > 0 &&
           'Removed with the data:\n' + removedRules.map((ref) => `- ${itemLineOf(ref)}`).join('\n'),
+        draftLineOf(draft)
+      )
+    );
+  },
+});
+
+// move_document
+
+/** How `move_document` answers the editor's refusals of a move, by their code. */
+const MOVE_REFUSAL_CODES: Record<string, 'not_found' | 'validation'> = {
+  documentNotRequested: 'not_found',
+  positionOutside: 'validation',
+  alreadyInPosition: 'validation',
+};
+
+registerTool({
+  name: 'move_document',
+  level: 'drafts',
+  description:
+    "Moves a draft's document to another place in the documents' order (1 is the first), the " +
+    'others keeping theirs, as a drag in the editor does. The order is how Konnekt lists the ' +
+    'documents; what the wallet asks for and serviceBW receives keeps the catalog order.',
+  input: z.object({
+    connection: CONNECTION,
+    document_type: z
+      .string()
+      .min(1)
+      .describe('The catalog key of a document type the draft requests: pid, mdl, …'),
+    position: z
+      .number()
+      .describe('The place to move it to: 1 is the first, the number of documents the last'),
+  }),
+  changesContent: true,
+  handler: async (caller, input, { backend }) => {
+    const key = input.document_type.trim();
+    const outcome = await editDraft(backend, caller, input.connection, (read) => {
+      const content = draftContentOf(read);
+      const moved = moveDocument(content.documents, key, input.position - 1);
+      if (!moved.ok) {
+        return {
+          ok: false,
+          refusal: moved.refusal,
+          code: MOVE_REFUSAL_CODES[moved.refusal.code ?? ''] ?? 'validation',
+        };
+      }
+      return { ok: true, content: { ...content, documents: moved.documents }, result: null };
+    });
+    if (!outcome.ok) {
+      return outcome.error;
+    }
+    const { draft } = outcome;
+    const connection = connectionRefOf(draft);
+    const documents = documentsOf(draft);
+    const position = documents.findIndex((document) => document.document_type === key) + 1;
+    const label = documents[position - 1]?.label ?? key;
+    return toolResult(
+      { connection, documents },
+      summaryTextOf(
+        connectionLineOf(connection),
+        `Moved ${label} (${key}) to position ${position} of ${documents.length}.`,
+        documentsTextOf(documents),
         draftLineOf(draft)
       )
     );

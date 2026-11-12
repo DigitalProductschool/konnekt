@@ -1,12 +1,14 @@
 import type { ErrorNotice } from '@connection-portal/api-types/api';
 import type {
   EditorStep,
+  ExampleState,
   FormConnection,
   RequestedDocument,
 } from '@connection-portal/api-types/form-connections';
 import type { FindingTone, RuleChecks } from '@connection-portal/rules/checks/types';
 import type { Ref } from 'react';
 
+import type { ActiveFrom } from '../../components/ActiveFromChoice/types';
 import type { ToastContent } from '../../components/Toast/types';
 import type { LocalDraftContent, LocalDraftRecord } from '../../utils/localDrafts/types';
 import type { LinkNoticeKind, RulesBranch, RulesState } from './RulesStep/types';
@@ -83,8 +85,26 @@ export interface EditorLinkProps {
   onLinkLeft?: () => void;
 }
 
+/**
+ * The example's mark of the stored draft the flow loaded (spec 010, FR-058 to FR-060; research
+ * R7): the edit page passes `FormConnectionDraft.example`. Left out (a new connection, a stored
+ * draft's local draft resumed through `?local=`, a published connection) it is null: no banner and
+ * no line
+ */
+export interface EditorExampleProps {
+  example?: ExampleState | null;
+}
+
+/**
+ * A step that shows the example's banner (spec 010, S7, S8, S9/S11, S13; FR-058): while the loaded
+ * draft is the example, whatever was changed; never for a published connection (FR-059)
+ */
+export interface ExampleStepProps {
+  isExample?: boolean;
+}
+
 /** The wizard itself, once the page has decided what it opens */
-export interface ConnectionWizardProps extends EditorLinkProps {
+export interface ConnectionWizardProps extends EditorLinkProps, EditorExampleProps {
   flow: EditorFlow;
   firstConnection: boolean;
   onReload?: () => void;
@@ -110,7 +130,7 @@ export interface DraftConflict {
   message: string;
 }
 
-export interface FormConnectionEditorPageProps extends EditorLinkProps {
+export interface FormConnectionEditorPageProps extends EditorLinkProps, EditorExampleProps {
   /** Opened at /get-started while no connection exists: step 1 is the first connection's */
   firstConnection?: boolean;
   /**
@@ -175,10 +195,33 @@ export type PendingRemoval =
   /** Deselecting every field through "All data"; `label` is the document's */
   | { type: 'allFields'; documentType: string; label: string }
   /**
+   * Clearing a data group's checkbox (FR-079; `groupRemovalOf()`): `fields` are the group's chosen
+   * data items, which go; `kept` the document's other fields, which stay; `label` is the group's
+   * and `documentLabel` the document's, both from the catalog
+   */
+  | {
+      type: 'group';
+      documentType: string;
+      group: string;
+      fields: string[];
+      kept: string[];
+      label: string;
+      documentLabel: string;
+    }
+  /**
    * "Remove it" on the note of data the catalog dropped (S8; W10): every item at once; `label`
    * names them all, from `droppedRemovalOf()`
    */
   | { type: 'dropped'; items: DroppedData[]; label: string };
+
+/**
+ * The last removed document, with its selection, and the index it had in the editor's documents:
+ * the removal's "Undo" puts it back there (FR-045; `restoreDocument()`)
+ */
+export interface RemovedDocument {
+  document: RequestedDocument;
+  index: number;
+}
 
 /**
  * A document type, or a field of a known one, that the flow requests and the catalog no longer
@@ -203,7 +246,10 @@ export interface EditorState {
   step: EditorStep;
   name: string;
   description: string;
-  /** The documents added so far, in catalog order, with the keys of their selected fields */
+  /**
+   * The documents added so far, in the team's order (FR-045: an added one goes to the end, a move
+   * puts one elsewhere), with the keys of their selected fields
+   */
   documents: RequestedDocument[];
   errors: EditorErrors;
   /** The API's message after publishing failed, with the error ID of a 5xx answer */
@@ -212,8 +258,8 @@ export interface EditorState {
   rulesChanged: boolean;
   dialogOpen: boolean;
   publishing: boolean;
-  /** The last removed document, with its selection, which Undo brings back */
-  removed: RequestedDocument | null;
+  /** The last removed document, with its selection and its index, which Undo brings back */
+  removed: RemovedDocument | null;
   /** Data that rules check, waiting for the team member to confirm its removal (FR-029) */
   pendingRemoval: PendingRemoval | null;
   toast: ToastContent | null;
@@ -233,9 +279,16 @@ export type EditorAction =
   | { type: 'changeDescription'; value: string }
   | { type: 'showErrors'; errors: EditorErrors }
   | { type: 'goToStep'; step: EditorStep }
-  | { type: 'addDocument'; documentType: string; catalogOrder: string[] }
+  /** Adds a document at the end (FR-045); one already added stays as it is */
+  | { type: 'addDocument'; documentType: string }
   | { type: 'removeDocument'; documentType: string; label: string }
-  | { type: 'undoRemove'; catalogOrder: string[] }
+  /** The toast's "Undo": the removed document goes back to the index it had */
+  | { type: 'undoRemove' }
+  /**
+   * Moves a document to `toIndex` of the editor's documents (0 is the first place; FR-046,
+   * FR-047), the others keeping their order; a move `moveDocument()` refuses changes nothing
+   */
+  | { type: 'moveDocument'; documentType: string; toIndex: number }
   | { type: 'dismissToast' }
   | { type: 'setField'; documentType: string; field: string; selected: boolean }
   | { type: 'setAllFields'; documentType: string; fields: string[] }
@@ -285,9 +338,13 @@ export type PublishDialogPhase =
   'closed' | 'summary' | 'noRules' | 'publishing' | 'published' | 'failed' | 'conflict';
 
 /**
- * Why publishing or saving failed: a network failure or a `5xx` gets the design's sentence and
- * the error ID the server sent (U79 6376:27178; F46); any other answer, such as a `400`, shows the
- * server's message, which says what went wrong (002-S5.3)
+ * Why publishing or saving failed (FR-014, F2, W8; U79 6376:27178):
+ * - `general`: no answer came (a network failure, or a `5xx` without the API's envelope, as
+ *   nginx's `502`): the design's sentence "Couldn’t publish, so nothing has changed. Check your
+ *   internet connection and try again." The edit flow's save keeps spec 008's look (F46): the
+ *   sentence also for the API's `5xx`, with its error ID;
+ * - `refused`: the server answered: its message, which says what went wrong (002-S5.3), under
+ *   "Couldn’t publish", with the error ID of a `5xx` (spec 008's alert, slim, wrapping for it).
  */
 export type PublishFailure =
   { kind: 'general'; errorId?: string } | { kind: 'refused'; notice: ErrorNotice };
@@ -312,6 +369,18 @@ export interface PublishDialogState {
   conflict: PublishConflict | null;
   /** The connection the details open after `published` */
   connectionId: string | null;
+  /**
+   * "Active from" (C2; FR-001–FR-003): "Now" when it opens, or "On a date"; kept through a
+   * failure, so that "Try again" sends the same choice (FR-014). Publishing only: the edit flow's
+   * "Save changes?" has none (F9)
+   */
+  activeFrom: ActiveFrom;
+  /** The date field's text as typed, kept while "Now" is chosen */
+  startDateText: string;
+  /** The field's error "Enter a date after today.": `startDateOf()`'s, or the server's (W1) */
+  dateError: boolean;
+  /** How often the date was refused since the dialog opened: each refusal focuses the field */
+  dateRefusals: number;
 }
 
 export type PublishDialogAction =
@@ -323,6 +392,16 @@ export type PublishDialogAction =
   | { type: 'published'; connectionId: string }
   | { type: 'failed'; failure: PublishFailure }
   | { type: 'conflict'; conflict: PublishConflict }
+  /** A radio of "Active from" */
+  | { type: 'chooseActiveFrom'; choice: ActiveFrom }
+  /** The date field's text changed */
+  | { type: 'typeStartDate'; text: string }
+  /**
+   * "Schedule" with a day that isn't after today (`startDateOf()`), or the server's `400
+   * invalid_start_date` (the day changed while the dialog was open; W1): the summary again, with
+   * the field's error
+   */
+  | { type: 'dateRefused' }
   /**
    * "Back to test", the other cancel buttons, the ×, Escape, a conflict's "Cancel", and the log-out
    * after the edit flow's "Save and log out"
@@ -351,8 +430,12 @@ export interface PublishDialogProps {
   onCancel: () => void;
   /** The close button and Escape, and a draft conflict's "Cancel" */
   onClose: () => void;
-  /** "Publish connection", "Save", "Try again" */
+  /** "Publish connection", "Schedule", "Save", "Try again" */
   onConfirm: () => void;
+  /** A radio of "Active from" */
+  onActiveFromChange: (choice: ActiveFrom) => void;
+  /** The date field's text changed */
+  onStartDateTextChange: (text: string) => void;
   /** "Reload", after `rules_changed` or `draft_changed` */
   onReload: () => void;
   /**
@@ -364,6 +447,11 @@ export interface PublishDialogProps {
   onOpenConnection: () => void;
   /** "Save as new draft", after `draft_deleted` */
   onSaveAsNew: () => void;
+  /**
+   * The example's line under "Active from" (spec 010, S14; FR-060, F30): `showsExampleLine()`'s
+   * answer
+   */
+  exampleLine?: boolean;
 }
 
 /** The status dialog of the publish and save dialog (U78 6387:65280, 6387:65289) */

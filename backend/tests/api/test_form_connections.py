@@ -1,5 +1,5 @@
 from collections.abc import Callable
-from datetime import datetime, timezone
+from datetime import date, datetime, timezone
 from typing import Any
 
 import pytest
@@ -19,6 +19,8 @@ from app.models import (
 from app.routers.form_connections import CONFIG_FAILED as CONFIG_FAILED_TEXT
 from app.services.dcql import config_hash
 from app.services.eudiplo import NOT_CONFIGURED_MESSAGE as NOT_CONFIGURED_MESSAGE_TEXT
+from app.services.form_connections import state_of
+from tests.api.test_form_connection_drafts import create_draft
 from tests.fake_eudiplo import FAKE_TRUST_LIST_ID, FakeEudiplo
 
 # The messages as answered without a German header (spec 009)
@@ -56,6 +58,8 @@ def _field(key: str, label: str, kind: str, **details: Any) -> dict[str, Any]:
         'date_of_birth': False,
         'parts': None,
         'multiple_values': False,
+        # Only GET /api/document-types gives a field its data group (spec 010, FR-078)
+        'group': None,
     } | details
 
 
@@ -164,9 +168,11 @@ def test_the_catalog_returns_each_fields_kind_and_parts(
         for document_type in response.json()['data']
         for field in document_type['fields']
     }
-    assert fields['pid', 'family_name'] == _field('family_name', 'Family name', 'text')
+    assert fields['pid', 'family_name'] == _field(
+        'family_name', 'Family name', 'text', group='name'
+    )
     assert fields['pid', 'birthdate'] == _field(
-        'birthdate', 'Date of birth', 'date', date_of_birth=True
+        'birthdate', 'Date of birth', 'date', date_of_birth=True, group='birth'
     )
     assert fields['pid', 'nationalities'] == _field(
         'nationalities',
@@ -174,11 +180,13 @@ def test_the_catalog_returns_each_fields_kind_and_parts(
         'enum',
         option_set='countries',
         multiple_values=True,
+        group='birth',
     )
     assert fields['pid', 'place_of_birth'] == _field(
         'place_of_birth',
         'Place of birth',
         'parts',
+        group='birth',
         parts=[
             {
                 'key': 'country',
@@ -206,11 +214,21 @@ def test_the_catalog_returns_each_fields_kind_and_parts(
             },
         ],
     )
-    assert fields['pid', 'picture'] == _field('picture', 'Photo', 'image')
-    assert fields['mdl', 'height'] == _field('height', 'Height (cm)', 'number')
-    assert fields['mdl', 'sex'] == _field('sex', 'Sex', 'enum', option_set='sex')
+    assert fields['pid', 'picture'] == _field(
+        'picture', 'Photo', 'image', group='other'
+    )
+    assert fields['mdl', 'height'] == _field(
+        'height', 'Height (cm)', 'number', group='appearance'
+    )
+    assert fields['mdl', 'sex'] == _field(
+        'sex', 'Sex', 'enum', option_set='sex', group='birth'
+    )
     assert fields['mdl', 'driving_privileges'] == _field(
-        'driving_privileges', 'Licence classes', 'parts', parts=LICENCE_CLASS_PARTS
+        'driving_privileges',
+        'Licence classes',
+        'parts',
+        parts=LICENCE_CLASS_PARTS,
+        group='licence',
     )
     # Every field and part says whether a document can give several values for it:
     # only the Personal ID's nationalities and the driving licence's classes can
@@ -308,8 +326,16 @@ def test_creating_returns_the_form_connection_with_its_urls(
         'next_group_number': 1,
         'created_at': data['created_at'],
         'updated_at': data['updated_at'],
+        'state': 'live',
+        'published_at': data['published_at'],
+        'activated_at': data['activated_at'],
+        'deactivated_at': None,
+        'start_date': None,
+        # The activity's entries are test_activity.py's
+        'last_activity': data['last_activity'],
     }
     assert data['created_at'].endswith('Z')
+    assert data['published_at'].endswith('Z')
 
 
 def test_a_form_connection_created_without_rules_has_a_main_branch_without_rules(
@@ -410,15 +436,19 @@ def test_creating_stores_revision_1_with_its_eudiplo_configuration(
         assert form_connection.current_revision == 1
 
 
-def test_documents_are_stored_in_catalog_order(
+def test_documents_are_answered_in_the_order_sent(
     signed_in_client: TestClient, fake_eudiplo: FakeEudiplo
 ) -> None:
+    """Spec 010, FR-045: the team's order; the revision keeps catalog order.
+
+    test_document_order.py pins the revision and the configuration.
+    """
     data = _create(
         signed_in_client,
         documents=list(reversed(NEW_FORM_CONNECTION['documents'])),
     )
 
-    assert data['documents'] == [PID_VIEW, MDL_VIEW]
+    assert data['documents'] == [MDL_VIEW, PID_VIEW]
 
 
 def test_texts_are_trimmed(
@@ -719,6 +749,12 @@ def test_the_list_hides_deleted_form_connections_and_shows_the_newest_first(
             'is_active': True,
             'status': 'published',
             'updated_at': second['updated_at'],
+            'state': 'live',
+            'published_at': second['published_at'],
+            'deactivated_at': None,
+            'start_date': None,
+            'step': None,
+            'example': None,
         },
         {
             'id': first['id'],
@@ -727,6 +763,12 @@ def test_the_list_hides_deleted_form_connections_and_shows_the_newest_first(
             'is_active': True,
             'status': 'published',
             'updated_at': first['updated_at'],
+            'state': 'live',
+            'published_at': first['published_at'],
+            'deactivated_at': None,
+            'start_date': None,
+            'step': None,
+            'example': None,
         },
     ]
 
@@ -753,6 +795,194 @@ def test_an_empty_list(signed_in_client: TestClient) -> None:
 
     assert response.status_code == 200
     assert response.json() == {'data': [], 'message': None}
+
+
+# The state and the status dates (spec 010, research R1, R3, data-model 1.2, 1.4)
+
+ACTIVATED_AT = datetime(2026, 10, 1, 8, 30, tzinfo=timezone.utc)
+DEACTIVATED_AT = datetime(2026, 10, 20, 14, 5, tzinfo=timezone.utc)
+
+
+def _set_columns(form_connection_id: str, **values: Any) -> None:
+    """Write a row's columns directly, as the transitions of later tasks will."""
+    with SessionLocal() as db:
+        db.execute(
+            update(FormConnection)
+            .where(FormConnection.id == form_connection_id)
+            .values(**values)
+        )
+        db.commit()
+
+
+def _stored(form_connection_id: str) -> FormConnection:
+    with SessionLocal() as db:
+        form_connection = db.get(FormConnection, form_connection_id)
+    assert form_connection is not None
+    return form_connection
+
+
+def test_state_of_derives_the_four_states(
+    signed_in_client: TestClient, fake_eudiplo: FakeEudiplo
+) -> None:
+    draft_id = create_draft(signed_in_client)
+    live_id = _create(signed_in_client, name='Live')['id']
+    deactivated_id = _create(signed_in_client, name='Deactivated')['id']
+    _set_columns(deactivated_id, is_active=False)
+    scheduled_id = _create(signed_in_client, name='Scheduled')['id']
+    # Nothing writes a start date through the API yet: set up the row directly
+    _set_columns(scheduled_id, is_active=False, start_date=date(2026, 12, 1))
+
+    assert state_of(_stored(draft_id)) == 'draft'
+    assert state_of(_stored(live_id)) == 'live'
+    assert state_of(_stored(deactivated_id)) == 'deactivated'
+    assert state_of(_stored(scheduled_id)) == 'scheduled'
+
+
+def _three_connections(client: TestClient) -> tuple[str, str, str]:
+    """A draft in the documents step, a live and a deactivated connection."""
+    draft_id = create_draft(client, name='Draft', step='documents')
+    live_id = _create(client, name='Live')['id']
+    # Deactivated before, then active again: deactivated_at is kept but not answered
+    _set_columns(live_id, activated_at=ACTIVATED_AT, deactivated_at=DEACTIVATED_AT)
+    deactivated_id = _create(client, name='Deactivated')['id']
+    _set_columns(
+        deactivated_id,
+        is_active=False,
+        activated_at=ACTIVATED_AT,
+        deactivated_at=DEACTIVATED_AT,
+    )
+    return draft_id, live_id, deactivated_id
+
+
+def _published_at_of(form_connection_id: str) -> str:
+    published_at = _stored(form_connection_id).published_at
+    assert published_at is not None
+    return published_at.astimezone(timezone.utc).isoformat().replace('+00:00', 'Z')
+
+
+def _expected_summary_fields(
+    draft_id: str, live_id: str, deactivated_id: str
+) -> dict[str, dict[str, Any]]:
+    return {
+        draft_id: {
+            'status': 'draft',
+            'state': 'draft',
+            'published_at': None,
+            'deactivated_at': None,
+            'start_date': None,
+            'step': 'documents',
+        },
+        live_id: {
+            'status': 'published',
+            'state': 'live',
+            'published_at': _published_at_of(live_id),
+            'deactivated_at': None,
+            'start_date': None,
+            'step': None,
+        },
+        deactivated_id: {
+            'status': 'published',
+            'state': 'deactivated',
+            'published_at': _published_at_of(deactivated_id),
+            'deactivated_at': '2026-10-20T14:05:00Z',
+            'start_date': None,
+            'step': None,
+        },
+    }
+
+
+def _summary_fields(item: dict[str, Any]) -> dict[str, Any]:
+    keys = ('status', 'state', 'published_at', 'deactivated_at', 'start_date', 'step')
+    return {key: item[key] for key in keys}
+
+
+def test_the_list_answers_the_state_and_the_dates(
+    signed_in_client: TestClient, fake_eudiplo: FakeEudiplo
+) -> None:
+    ids = _three_connections(signed_in_client)
+
+    response = signed_in_client.get('/api/form-connections')
+
+    assert response.status_code == 200
+    assert {
+        item['id']: _summary_fields(item) for item in response.json()['data']
+    } == _expected_summary_fields(*ids)
+
+
+def test_the_search_answers_the_state_and_the_dates(
+    signed_in_client: TestClient, fake_eudiplo: FakeEudiplo
+) -> None:
+    ids = _three_connections(signed_in_client)
+
+    response = signed_in_client.get('/api/form-connections/search')
+
+    assert response.status_code == 200
+    assert {
+        item['id']: _summary_fields(item) for item in response.json()['data']['items']
+    } == _expected_summary_fields(*ids)
+
+
+def test_the_detail_answers_the_state_and_the_dates(
+    signed_in_client: TestClient, fake_eudiplo: FakeEudiplo
+) -> None:
+    draft_id, live_id, deactivated_id = _three_connections(signed_in_client)
+
+    draft = signed_in_client.get(f'/api/form-connections/{draft_id}').json()['data']
+    live = signed_in_client.get(f'/api/form-connections/{live_id}').json()['data']
+    deactivated = signed_in_client.get(
+        f'/api/form-connections/{deactivated_id}'
+    ).json()['data']
+
+    assert draft['status'] == draft['state'] == 'draft'
+    assert 'published_at' not in draft
+    assert {
+        key: live[key]
+        for key in (
+            'state',
+            'published_at',
+            'activated_at',
+            'deactivated_at',
+            'start_date',
+        )
+    } == {
+        'state': 'live',
+        'published_at': _published_at_of(live_id),
+        'activated_at': '2026-10-01T08:30:00Z',
+        'deactivated_at': None,
+        'start_date': None,
+    }
+    assert {
+        key: deactivated[key]
+        for key in (
+            'state',
+            'published_at',
+            'activated_at',
+            'deactivated_at',
+            'start_date',
+        )
+    } == {
+        'state': 'deactivated',
+        'published_at': _published_at_of(deactivated_id),
+        'activated_at': '2026-10-01T08:30:00Z',
+        'deactivated_at': '2026-10-20T14:05:00Z',
+        'start_date': None,
+    }
+
+
+def test_a_scheduled_connection_answers_its_start_date_as_written(
+    signed_in_client: TestClient, fake_eudiplo: FakeEudiplo
+) -> None:
+    scheduled_id = _create(signed_in_client)['id']
+    _set_columns(scheduled_id, is_active=False, start_date=date(2026, 12, 1))
+
+    detail = signed_in_client.get(f'/api/form-connections/{scheduled_id}').json()[
+        'data'
+    ]
+    [item] = signed_in_client.get('/api/form-connections').json()['data']
+
+    assert detail['state'] == item['state'] == 'scheduled'
+    assert detail['start_date'] == item['start_date'] == '2026-12-01'
+    assert detail['deactivated_at'] is item['deactivated_at'] is None
 
 
 # Updating

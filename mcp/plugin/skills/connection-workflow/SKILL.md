@@ -51,13 +51,51 @@ which countries) rather than guessing. Read the guide's topics before working on
 ## Reading what is there
 
 - `search_connections` finds connections by a part of their name or description (letter case
-  doesn't matter) and by status: `draft`, `live` or `deactivated`. It answers at most 25 at a
-  time, the most recently changed first; pass its `next_cursor` to read the next page. Each
-  connection comes with its id and link.
+  doesn't matter) and by status: `draft`, `scheduled`, `live` or `deactivated`. It answers at
+  most 25 at a time, the most recently changed first; pass its `next_cursor` to read the next
+  page. Each connection comes with its id and link, a published one with `published_at` (when it
+  was first published), while deactivated `deactivated_at` and while scheduled `start_date` (the
+  day in Germany it becomes active), and a draft with its `step`.
 - `get_connection` reads one connection: its documents and fields, its variants with how many
   rules and groups each has (read the rules themselves with `get_variant`), its connection URLs
-  once published, and for a draft its version, its step and `dropped`: requested data the wallet
-  no longer offers, which must be removed before publishing.
+  once published, and for a draft its version, its `step` and `dropped`: requested data the
+  wallet no longer offers, which must be removed before publishing. A published connection also
+  carries its dates, as the details page in Konnekt shows them: `published_at`, when it was first
+  published, which nothing changes afterwards; `active_since`, when it last became active, which
+  reactivating moves (left out while it has never been active); and `deactivated_since`, only
+  while it is deactivated. Saving, renaming or reordering moves none of them. The dates are
+  timestamps in UTC; the text says "Draft at the rules step." for a draft.
+- `get_activity` reads a connection's activity, as the Activity card on its page in Konnekt
+  shows it: what happened and when, newest first, 50 entries at a time; pass its `next_cursor` to
+  read earlier ones. Each entry has `at` (a timestamp in UTC), `event` (the card's sentence, such
+  as "Rules changed in Ambulance", "Scheduled for 2026-12-01" or "Start date changed to now"),
+  `kind`, and the `variant` or `start_date` it concerns. Who did it: `by` is the team member;
+  with `agent`, that agent made the change for them; with `agent` and `approved`, the team member
+  approved what that agent asked for. An entry without `by` was made by the middleware itself
+  (a scheduled connection becoming active) or before Konnekt recorded the activity. Many changes
+  of one person to the same thing in a row show as one entry with the time of the last. The
+  activity never holds the rules' content: read that with `get_variant`.
+
+## The example
+
+A team member can start from an example in Konnekt: a complete draft, "Passenger transport
+licence (example)" in English, with two documents, two rules in Standard and a variant
+("Ambulance" in English), which shows them how a connection works. It keeps the language it was
+created in. Only a person creates it, in Konnekt: no tool creates the
+example, so never try to build one for them. The example is an ordinary draft otherwise, and the
+draft tools change it as any other.
+
+- `search_connections` marks it with `example: true`, and its text adds "This draft is the
+  example." after the step.
+- `get_connection` answers `example: 'unchanged'` while nothing was changed since it was created,
+  and `example: 'changed'` once a save changed its content (a variant's description included);
+  moving the step alone changes nothing, and the mark never goes back. Its text says "This draft
+  is the example." either way.
+- A draft that isn't the example, and every published connection, carry no `example`: publishing
+  the example ends the mark.
+
+Before you ask to publish the example while it is `unchanged`, ask the team member to check that
+its name, documents and rules fit their service, as Konnekt's publish dialog does.
 
 ## Creating a draft and changing its name
 

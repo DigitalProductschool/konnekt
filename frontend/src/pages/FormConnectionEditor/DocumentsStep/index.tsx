@@ -1,22 +1,60 @@
 import { KernAlert } from '@kern-ux-annex/kern-react-kit';
+import { type ReactNode, useState } from 'react';
+import { flushSync } from 'react-dom';
 
+import ExampleBanner from '../../../components/ExampleBanner';
+import { EXAMPLE_BANNER_COPY } from '../../../components/ExampleBanner/constants';
 import FeedbackLoader from '../../../components/FeedbackLoader';
 import { useLanguage } from '../../../hooks/useLanguage';
 import CatalogDroppedNote from '../CatalogDroppedNote';
 import { EDITOR_COPY } from '../constants';
+import type { ExampleStepProps } from '../types';
 import { offeredFieldsOf } from '../utils';
+import { DOCUMENTS_STEP_IDS } from './constants';
 import DocumentDetail from './DocumentDetail';
 import DocumentsList from './DocumentsList';
 import EmptyPanel from './EmptyPanel';
 import type { DocumentsStepProps } from './types';
-import { documentsNeedingData, listedDocumentsOf, pagerOf, shownDocumentOf } from './utils';
+import {
+  documentsNeedingData,
+  listedDocumentsOf,
+  moveAnnouncementOf,
+  pagerOf,
+  shownDocumentOf,
+} from './utils';
+
+/** The ⋯ of a document's row, which takes the focus after its document moved (FR-047) */
+function focusMoveButton(documentType: string) {
+  document
+    .getElementById(DOCUMENTS_STEP_IDS.listRow(documentType))
+    ?.querySelector<HTMLElement>('[aria-haspopup="menu"]')
+    ?.focus();
+}
+
+/** The example's banner, when there is one, 24px above the catalog's loader or its failure */
+function WithBanner({ banner, children }: { banner: ReactNode; children: ReactNode }) {
+  return banner ? (
+    <div className="flex flex-col gap-24">
+      {banner}
+      {children}
+    </div>
+  ) : (
+    children
+  );
+}
 
 /**
  * Step 2 (S8; Figma U20, U21; FR-031, research R8), under the step head: a master-detail. On the
  * left the added documents with "Add document" and its search card; on the right the shown
  * document's data items with the pager "Document n of m", or the empty panel while none is
  * added. What it shows (the shown document, the search) is the view the editor holds
- * (`documentsViewReducer`); the documents and their data stay the editor's, in catalog order.
+ * (`documentsViewReducer`); the documents and their data stay the editor's, in the team's order
+ * (FR-045).
+ *
+ * A move, by a row's ⋯ menu or by a drag (FR-046, FR-047), goes to the editor (`onMove`), which
+ * keeps the open document open; then the focus goes to the moved row's ⋯ and the polite region,
+ * in the page from the start so that screen readers read its changes, says "“<document>” moved
+ * to position <n> of <m>.".
  *
  * The documents "Set rules →" flagged as having no data, while they still have none, show in red
  * (F67, U25 A14): the list's "1 document needs data", their items and the shown one's header.
@@ -26,6 +64,10 @@ import { documentsNeedingData, listedDocumentsOf, pagerOf, shownDocumentOf } fro
  * neither shown nor counted. Ticking "All data items" keeps it, so that it goes only through the
  * note's "Remove it". The step is the box a search card spans where it fits on neither side of
  * its button (R10).
+ *
+ * While the loaded draft is the example, `ExampleBanner` says so at the top of the step, above the
+ * note and the list, 24px from each, as on step 1 (spec 010, S8; FR-058; W15: the step isn't
+ * drawn with it).
  */
 export default function DocumentsStep({
   catalogStatus,
@@ -39,27 +81,39 @@ export default function DocumentsStep({
   dispatchView,
   onAdd,
   onRemove,
+  onMove,
   onSetField,
   onSetAllFields,
-}: DocumentsStepProps) {
+  onClearGroup,
+  isExample = false,
+}: DocumentsStepProps & ExampleStepProps) {
   const { language } = useLanguage();
+  // The last move's announcement (FR-047); never stored, sent or logged
+  const [moveStatus, setMoveStatus] = useState('');
+  const banner = isExample && <ExampleBanner text={EXAMPLE_BANNER_COPY[language].connection} />;
   if (catalogStatus === 'loading') {
-    return <FeedbackLoader label={EDITOR_COPY[language].loadingCatalog} />;
+    return (
+      <WithBanner banner={banner}>
+        <FeedbackLoader label={EDITOR_COPY[language].loadingCatalog} />
+      </WithBanner>
+    );
   }
   if (catalogStatus === 'failed') {
     return (
-      <div className="flex flex-col items-start gap-16">
-        <KernAlert
-          variant="danger"
-          title={EDITOR_COPY[language].catalogErrorTitle}
-          className="w-full"
-        >
-          {EDITOR_COPY[language].catalogErrorText}
-        </KernAlert>
-        <button type="button" onClick={onRetryCatalog} className="kern-btn kern-btn--secondary">
-          <span className="kern-label">{EDITOR_COPY[language].retry}</span>
-        </button>
-      </div>
+      <WithBanner banner={banner}>
+        <div className="flex flex-col items-start gap-16">
+          <KernAlert
+            variant="danger"
+            title={EDITOR_COPY[language].catalogErrorTitle}
+            className="w-full"
+          >
+            {EDITOR_COPY[language].catalogErrorText}
+          </KernAlert>
+          <button type="button" onClick={onRetryCatalog} className="kern-btn kern-btn--secondary">
+            <span className="kern-label">{EDITOR_COPY[language].retry}</span>
+          </button>
+        </div>
+      </WithBanner>
     );
   }
 
@@ -72,8 +126,22 @@ export default function DocumentsStep({
     : documentsNeedingData(view.needsData.documentIds, documents, documentTypes);
   const select = (index: number) => dispatchView({ type: 'select', index });
 
+  function moveDocument(documentType: string, toIndex: number) {
+    const announcement = moveAnnouncementOf(listed, documentType, toIndex, language);
+    if (announcement === null) {
+      return;
+    }
+    // The rows are in their new order before the focus goes to the moved one's ⋯
+    flushSync(() => {
+      onMove(documentType, toIndex);
+      setMoveStatus(announcement);
+    });
+    focusMoveButton(documentType);
+  }
+
   return (
     <div className="relative flex flex-col gap-24">
+      {banner}
       {dropped.length > 0 && (
         <CatalogDroppedNote ref={droppedNoteRef} items={dropped} onRemove={onRemoveDropped} />
       )}
@@ -90,6 +158,7 @@ export default function DocumentsStep({
           onAdd={onAdd}
           onSelect={select}
           onRemove={onRemove}
+          onMove={moveDocument}
         />
         {shown ? (
           <DocumentDetail
@@ -105,10 +174,20 @@ export default function DocumentsStep({
               const kept = document.fields.filter((field) => !offered.includes(field));
               onSetAllFields(documentType.key, fields.length > 0 ? [...fields, ...kept] : fields);
             }}
+            onClearGroup={onClearGroup}
           />
         ) : (
           <EmptyPanel />
         )}
+      </div>
+      <div
+        id={DOCUMENTS_STEP_IDS.moveStatus}
+        role="status"
+        aria-live="polite"
+        aria-atomic="true"
+        className="sr-only"
+      >
+        {moveStatus}
       </div>
     </div>
   );

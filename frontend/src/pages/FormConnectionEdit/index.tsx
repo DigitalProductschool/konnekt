@@ -229,6 +229,7 @@ function DraftEditFlow({
         baseline={storedContentOf(draft)}
         onReload={onReload}
         reloaded={answered}
+        example={draft.example}
         {...link}
       />
     );
@@ -244,6 +245,8 @@ function DraftEditFlow({
       initialStates={stored.states}
       onReload={onReload}
       reloaded={answered}
+      // The example's banners and line (spec 010, FR-058 to FR-060)
+      example={draft.example}
       {...link}
     />
   );

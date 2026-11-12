@@ -542,6 +542,8 @@ def test_re_syncing_a_draft_does_nothing(
 
 def test_the_steps_run_in_the_order_of_research_r7() -> None:
     assert worker.STEPS == (
+        # The scheduled starts first (spec 010, R2; tests/api/test_scheduling.py)
+        worker.activate_scheduled_connections,
         worker.sync_sessions,
         worker.expire_requests,
         worker.cancel_requests,
@@ -558,6 +560,8 @@ def test_the_steps_run_in_the_order_of_research_r7() -> None:
         worker.delete_unused_oauth_clients,
         # Approval requests (spec 007; tests/api/test_approval_requests.py)
         worker.delete_old_approval_requests,
+        # The deletions made final, last (spec 010, R5; tests/api/test_deletions.py)
+        worker.finish_deletions,
     )
 
 

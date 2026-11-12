@@ -216,7 +216,10 @@ export type EditMessageKey =
   | 'inheritedGroup'
   | 'cantGroup'
   | 'mainVariant'
-  | 'noCopyTarget';
+  | 'noCopyTarget'
+  | 'documentNotRequested'
+  | 'positionOutside'
+  | 'alreadyInPosition';
 
 /**
  * What a problem is, whatever the language of its message (spec 009, R10): the key of its message
@@ -316,6 +319,12 @@ export type EditRefusal = Omit<RulesProblem, 'code'> & { code?: RulesProblemCode
 /** What an action answers: the new state and what changed (`T`), or why it was refused */
 export type EditResult<T extends object = object> =
   ({ ok: true; state: EditState } & T) | { ok: false; refusal: EditRefusal };
+
+/**
+ * What a move of the documents' order answers (`moveDocument`; spec 010, R6): the documents in
+ * their new order, or why the move was refused
+ */
+export type DocumentsResult<D> = { ok: true; documents: D[] } | { ok: false; refusal: EditRefusal };
 
 /** A rule's content as an action sets it: what is left out stays as it is */
 export interface RuleChanges {

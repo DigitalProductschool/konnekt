@@ -3,8 +3,8 @@ import { describe, expect, it } from 'vitest';
 import { localDraftActionOf } from '../../hooks/utils';
 import { emptyContent } from '../../utils/localDrafts/content';
 import type { LocalDraftContent } from '../../utils/localDrafts/types';
-import { INITIAL_LEAVE_FLOW_STATE } from './constants';
-import { hasUnsavedWork, leaveFlowReducer, leaveFlowStep } from './leaveFlow';
+import { INITIAL_LEAVE_FLOW_STATE, LEAVE_COPY } from './constants';
+import { hasUnsavedWork, leaveFlowReducer, leaveFlowStep, saveQuestionTextOf } from './leaveFlow';
 import type {
   EditorOrigin,
   LeaveFlowAction,
@@ -446,5 +446,22 @@ describe('hasUnsavedWork', () => {
     ]) {
       expect(hasUnsavedWork('published', content, baseline)).toBe(true);
     }
+  });
+});
+
+describe('saveQuestionTextOf', () => {
+  it('keeps the active version for an active or deactivated connection', () => {
+    expect(saveQuestionTextOf(null, LEAVE_COPY.en)).toBe(
+      'If you leave now, your changes are lost. Save them, or discard them and keep the active version.'
+    );
+  });
+
+  it('keeps the scheduled version for a scheduled connection, in both languages (W7)', () => {
+    expect(saveQuestionTextOf('2026-12-01', LEAVE_COPY.en)).toBe(
+      'If you leave now, your changes are lost. Save them, or discard them and keep the scheduled version.'
+    );
+    expect(saveQuestionTextOf('2026-12-01', LEAVE_COPY.de)).toBe(
+      'Wenn Sie jetzt gehen, gehen Ihre Änderungen verloren. Speichern Sie sie oder verwerfen Sie sie und behalten Sie die geplante Version.'
+    );
   });
 });

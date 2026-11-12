@@ -15,7 +15,8 @@ import { urlsLinksOf } from './utils';
  * body of the status actions (`StatusSummary`: what becomes of the URLs) and the outcome after
  * publishing or reactivating (`ApprovalUrls`: what to do with them). While the connection is
  * deactivated, the copy buttons are off and say why ("Activate the connection first", W21). The
- * section's `h2` keeps the cards' `h3` titles one level under it.
+ * section's `h2` keeps the cards' `h3` titles one level under it. `set_start_date` passes no lead
+ * (spec 010): its sentences stand under the card.
  */
 export default function ApprovalLinkCards({
   urls,
@@ -32,7 +33,7 @@ export default function ApprovalLinkCards({
         <h2 id={titleId} className={SECTION_TITLE_CLASSES}>
           {copy.linksTitle}
         </h2>
-        <p className={BODY_TEXT_CLASSES}>{lead}</p>
+        {lead && <p className={BODY_TEXT_CLASSES}>{lead}</p>}
       </div>
       {links && (
         <ol className="flex flex-col divide-y divide-(--kern-color-decorative-border-default)">

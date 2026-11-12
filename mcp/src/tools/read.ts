@@ -2,6 +2,7 @@
 // connections, one connection with its documents, variants and URLs, one variant with its items
 // and citizen fields, and one rule or group. Every answer carries the links of what it read
 import type {
+  ActivityPage,
   BranchInput,
   FormConnectionOrDraft,
   FormConnectionPage,
@@ -12,19 +13,27 @@ import { z } from 'zod';
 import type { BackendClient } from '../backend';
 import { resolveConnectionId, resolveItem, resolveVariant } from '../resolve';
 import {
+  activityEntryViewOf,
+  activityLineOf,
   applicantFieldsOf,
+  connectionDatesLineOf,
+  connectionFactsOf,
   connectionLineOf,
   connectionRefOf,
   connectionUrlsOf,
   type DroppedData,
   droppedDataOf,
   droppedTextOf,
+  EXAMPLE_LINE,
   itemCountsOf,
   type ItemRef,
   itemRefOf,
   itemViewLinesOf,
   itemViewOf,
   ruleContextOf,
+  stepLineOf,
+  summaryFactsLineOf,
+  summaryFactsOf,
   summaryTextOf,
   type ToolRuleContext,
   unrequestedRulesOf,
@@ -85,14 +94,17 @@ function operatorLineOf(branch: Pick<BranchInput, 'operator' | 'operator_mark'>)
 
 // search_connections
 
-const STATUSES = ['draft', 'live', 'deactivated'] as const;
+const STATUSES = ['draft', 'scheduled', 'live', 'deactivated'] as const;
 
 const searchInput = z.object({
   query: z
     .string()
     .optional()
     .describe('A part of the name or description, ignoring letter case; all connections without'),
-  status: z.enum(STATUSES).optional().describe('Only drafts, live or deactivated connections'),
+  status: z
+    .enum(STATUSES)
+    .optional()
+    .describe('Only drafts, scheduled, live or deactivated connections'),
   cursor: z.string().optional().describe("The previous answer's next_cursor, for the next page"),
 });
 
@@ -101,8 +113,10 @@ registerTool({
   level: 'read',
   description:
     'Finds connections (serviceBW forms linked to the EUDI Wallet) by a part of their name or ' +
-    'description, and by status: draft, live or deactivated. Answers at most 25 per page, the ' +
-    'most recently changed first, each with its link; pass next_cursor to read the next page. ' +
+    'description, and by status: draft, scheduled, live or deactivated. Answers at most 25 per ' +
+    'page, the most recently changed first, each with its link, when it was published and ' +
+    "deactivated, the day a scheduled one becomes active, a draft's step, and example: true on " +
+    'the example a team member created in Konnekt; pass next_cursor to read the next page. ' +
     'Look here before creating a draft, so that a form gets one connection.',
   input: searchInput,
   handler: async (_caller, input, { backend }) => {
@@ -119,13 +133,17 @@ registerTool({
       ...connectionRefOf(item),
       ...descriptionOf(item.description),
       updated_at: item.updated_at,
+      ...summaryFactsOf(item),
     }));
     const count = items.length === 1 ? 'One connection' : `${items.length} connections`;
     return toolResult(
       { items, next_cursor: page.next_cursor },
       summaryTextOf(
         items.length === 0 ? 'No connection matches.' : `${count}:`,
-        ...items.map((item) => `- ${connectionLineOf(item)}`),
+        ...items.map((item) => {
+          const facts = summaryFactsLineOf(item);
+          return `- ${connectionLineOf(item, item.start_date)}${facts ? `\n  ${facts}` : ''}`;
+        }),
         page.next_cursor && `More connections match: pass the cursor ${page.next_cursor}.`
       )
     );
@@ -140,12 +158,16 @@ registerTool({
   description:
     'Reads one connection: its name, description and status, the documents and fields it ' +
     'requests, its variants with their number of rules and groups (never the rules: use ' +
-    'get_variant), its connection URLs once published, and for a draft its version, its step ' +
-    'and the requested data the wallet no longer offers. Every part comes with its link.',
+    'get_variant), its connection URLs once published, when it was published, became active ' +
+    'and was deactivated, the day a scheduled one becomes active, and for a draft its version, ' +
+    'its step, the requested data the wallet no longer offers and, for the example a team ' +
+    "member created in Konnekt, its mark example: 'unchanged' or 'changed'. Every part comes " +
+    'with its link.',
   input: z.object({ connection: CONNECTION }),
   handler: async (_caller, input, { backend }) => {
     const fc = await connectionOf(backend, input.connection);
     const ref = connectionRefOf(fc);
+    const facts = connectionFactsOf(fc);
     const documents = fc.documents.map((document) => ({
       document_type: document.document_type,
       label: document.label,
@@ -171,6 +193,7 @@ registerTool({
       {
         ...ref,
         ...descriptionOf(fc.description),
+        ...facts,
         documents,
         variants,
         urls,
@@ -179,10 +202,12 @@ registerTool({
         ...draft,
       },
       summaryTextOf(
-        connectionLineOf(ref),
+        connectionLineOf(ref, facts.start_date),
         fc.description && `Description: ${fc.description}`,
-        fc.status === 'draft' &&
-          `Draft version ${fc.version}, at the ${fc.step} step, last saved ${fc.updated_at}.`,
+        fc.status === 'draft'
+          ? `${stepLineOf(fc.step)} Version ${fc.version}, last saved ${fc.updated_at}.`
+          : connectionDatesLineOf(facts),
+        facts.example && EXAMPLE_LINE,
         documents.length === 0
           ? 'Documents: none yet.'
           : 'Documents:\n' +
@@ -202,6 +227,44 @@ registerTool({
             .join('\n'),
         urlsTextOf(urls, urlsNote),
         droppedTextOf(dropped)
+      )
+    );
+  },
+});
+
+// get_activity
+
+registerTool({
+  name: 'get_activity',
+  level: 'read',
+  description:
+    "Reads a connection's activity, as the Activity card in Konnekt shows it: what happened " +
+    'and when, newest first, 50 entries per page; pass next_cursor to read earlier ones. Each ' +
+    'entry has its time, its event in words ("Rules changed in Ambulance"), its kind, the ' +
+    'variant or start date it concerns, and who did it: the team member (by), the agent that ' +
+    'made the change for them (agent), or the agent whose request they approved (agent with ' +
+    'approved). An entry without by was made by the middleware itself, or before the activity ' +
+    'was recorded.',
+  input: z.object({
+    connection: CONNECTION,
+    cursor: z
+      .string()
+      .optional()
+      .describe("The previous answer's next_cursor, for earlier entries"),
+  }),
+  handler: async (_caller, input, { backend }) => {
+    const fc = await connectionOf(backend, input.connection);
+    const connection = connectionRefOf(fc);
+    const query = input.cursor ? `?${new URLSearchParams({ cursor: input.cursor })}` : '';
+    const page = await backend.get<ActivityPage>(`/api/form-connections/${fc.id}/activity${query}`);
+    const entries = page.items.map(activityEntryViewOf);
+    return toolResult(
+      { connection, entries, ...(page.next_cursor ? { next_cursor: page.next_cursor } : {}) },
+      summaryTextOf(
+        connectionLineOf(connection),
+        entries.length === 0 ? 'No activity yet.' : 'Activity, newest first:',
+        ...entries.map(activityLineOf),
+        page.next_cursor && `Earlier entries exist: pass the cursor ${page.next_cursor}.`
       )
     );
   },

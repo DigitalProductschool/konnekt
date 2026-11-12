@@ -44,6 +44,7 @@ import { DEFAULT_LANGUAGE } from './language';
 import { canGroup, defaultRuleName, findItem, flattenItems, newRule, numberOfId } from './tree';
 import type {
   DataRemoval,
+  DocumentsResult,
   EditEffect,
   EditRefusal,
   EditResult,
@@ -876,4 +877,70 @@ export function removeRules(
     current = removed.state;
   }
   return { ok: true, state: current, removed: rules };
+}
+
+// The documents' order (spec 010, R6; FR-045): the team's order, which the editor's reducer and the
+// agents' tools keep alike. A document is named by its type's key; the inputs are never changed
+
+/** A document of a connection's list, by its type's key: a requested one, or its view. */
+type ListedDocument = Pick<RequestedDocument, 'document_type'>;
+
+/**
+ * The documents with `documentType` moved to `toIndex` (0 is the first place), the others keeping
+ * their order. Refused for a document the list doesn't hold, an index outside the list and the
+ * place the document already has; the messages count positions from 1.
+ */
+export function moveDocument<D extends ListedDocument>(
+  documents: readonly D[],
+  documentType: string,
+  toIndex: number
+): DocumentsResult<D> {
+  const from = documents.findIndex((document) => document.document_type === documentType);
+  if (from < 0) {
+    return refuse('documentNotRequested', editMessages.documentNotRequested(documentType));
+  }
+  if (!Number.isInteger(toIndex) || toIndex < 0 || toIndex >= documents.length) {
+    return refuse('positionOutside', editMessages.positionOutside(documents.length));
+  }
+  if (toIndex === from) {
+    return refuse('alreadyInPosition', editMessages.alreadyInPosition(documentType, from + 1));
+  }
+  const others = documents.filter((_, index) => index !== from);
+  return {
+    ok: true,
+    documents: [...others.slice(0, toIndex), documents[from], ...others.slice(toIndex)],
+  };
+}
+
+/**
+ * The documents with `document` at the end (an added one goes last, FR-045), or, when its type is
+ * already there, in that one's place: a changed document keeps its place.
+ */
+export function appendDocument<D extends ListedDocument>(
+  documents: readonly D[],
+  document: D
+): D[] {
+  const at = documents.findIndex((entry) => entry.document_type === document.document_type);
+  return at < 0
+    ? [...documents, document]
+    : documents.map((entry, index) => (index === at ? document : entry));
+}
+
+/**
+ * The documents with a removed `document` back at the index it had ("Undo"), clamped to the list:
+ * at the end when the list has become shorter. A list that holds its type already is answered as
+ * it is.
+ */
+export function restoreDocument<D extends ListedDocument>(
+  documents: readonly D[],
+  document: D,
+  index: number
+): D[] {
+  if (documents.some((entry) => entry.document_type === document.document_type)) {
+    return [...documents];
+  }
+  const at = Number.isNaN(index)
+    ? documents.length
+    : Math.min(Math.max(Math.trunc(index), 0), documents.length);
+  return [...documents.slice(0, at), document, ...documents.slice(at)];
 }

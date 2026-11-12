@@ -1,7 +1,8 @@
 // An in-memory fake of the management API, for the MCP server's integration tests (research R19):
 // the endpoints the server calls, with a `read`, a `drafts` and a `manage` caller, a small catalog
 // and a store of connections (a draft with Standard, a based variant that changed one rule and an
-// empty variant; a live connection; a deactivated one). The tool tests of later phases add to it
+// empty variant; a live connection; a deactivated one; one scheduled to become active, spec 010).
+// The tool tests of later phases add to it
 import { randomUUID } from 'node:crypto';
 import { createServer, type IncomingMessage, type ServerResponse } from 'node:http';
 import type { AddressInfo } from 'node:net';
@@ -15,10 +16,13 @@ import type {
   ApprovalPreview,
   ApprovalRequest,
 } from '@connection-portal/api-types/approvals';
-import type { DocumentType } from '@connection-portal/api-types/document-types';
+import type { DocumentField, DocumentType } from '@connection-portal/api-types/document-types';
 import type {
+  ActivityEntry,
+  ActivityPage,
   Branch,
   BranchInput,
+  ConnectionState,
   DraftCreate,
   DraftUpdate,
   FormConnection,
@@ -30,6 +34,7 @@ import type {
   RuleTreeItem,
 } from '@connection-portal/api-types/form-connections';
 import type { OptionSet } from '@connection-portal/api-types/option-sets';
+import { isValidIsoDate, todayInGermany } from '@connection-portal/rules/dates';
 import { MDL, OPTION_SETS, PID, rule, target } from '@connection-portal/rules/testData';
 
 /** The callers' bearer tokens, one per access level. */
@@ -49,7 +54,12 @@ export const IDS = {
   liveStandard: '22222222-2222-4222-8222-2222222222a1',
   deactivated: '33333333-3333-4333-8333-333333333333',
   deactivatedStandard: '33333333-3333-4333-8333-3333333333a1',
+  scheduled: '55555555-5555-4555-8555-555555555555',
+  scheduledStandard: '55555555-5555-4555-8555-5555555555a1',
 } as const;
+
+/** The day the scheduled fixture becomes active, in Germany (spec 010, research R1). */
+export const SCHEDULED_START = '2026-12-01';
 
 export const LEVELS: AccessLevelInfo[] = [
   { level: 'read', name: 'Read only', allows: 'Reading connections' },
@@ -111,6 +121,8 @@ const LEVEL_ORDER: AccessLevel[] = ['read', 'drafts', 'manage'];
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const SERVICEBW_URL = 'https://portal.example/api/connect';
 const APPROVAL_MINUTES = 10;
+// The activity's page size (activity.py)
+const ACTIVITY_PAGE_SIZE = 50;
 // The server's limits on a connection's name and description (form_connections.py)
 const NAME_MAX_LENGTH = 200;
 const DESCRIPTION_MAX_LENGTH = 500;
@@ -128,6 +140,8 @@ export interface FakeStore {
   optionSets: OptionSet[];
   connections: Map<string, FormConnectionOrDraft>;
   approvals: Map<string, StoredApproval>;
+  /** Each connection's activity, newest first (spec 010) */
+  activity: Map<string, ActivityEntry[]>;
   /** New drafts per bearer, for the limit */
   draftsCreated: Map<string, number>;
 }
@@ -188,6 +202,64 @@ function meOf(level: AccessLevel): AgentMe {
   };
 }
 
+/**
+ * The data groups in the panel's order, in English, as backend/app/catalog.py's FIELD_GROUPS
+ * (spec 010, FR-077, FR-078)
+ */
+const FIELD_GROUPS = [
+  { key: 'name', label: 'Name' },
+  { key: 'birth', label: 'Birth' },
+  { key: 'address', label: 'Address' },
+  { key: 'document', label: 'Document' },
+  { key: 'licence', label: 'Licence' },
+  { key: 'appearance', label: 'Appearance' },
+  { key: 'other', label: 'Other details' },
+];
+
+/** The groups of the test catalog's fields, as data-model §6 places them in both documents */
+const GROUP_OF: Record<string, string> = {
+  family_name: 'name',
+  birthdate: 'birth',
+  birth_date: 'birth',
+  place_of_birth: 'birth',
+  nationalities: 'birth',
+  nationality: 'birth',
+  sex: 'birth',
+  address_locality: 'address',
+  address_country: 'address',
+  resident_city: 'address',
+  date_of_issuance: 'document',
+  date_of_expiry: 'document',
+  issue_date: 'document',
+  expiry_date: 'document',
+  issuing_country: 'document',
+  driving_privileges: 'licence',
+  un_distinguishing_sign: 'licence',
+  portrait: 'appearance',
+  height: 'appearance',
+  eye_colour: 'appearance',
+  picture: 'other',
+};
+
+/**
+ * A catalog entry as GET /api/document-types answers it: a document with more than 10 fields
+ * gives each field its group and names its groups in the panel's order; one with 10 or fewer
+ * neither. In the test catalog the Personal ID (11 fields) has groups, the licence (10) none
+ */
+function withGroups(document: { key: string; label: string; fields: DocumentField[] }) {
+  const grouped = document.fields.length > 10;
+  const fields = document.fields.map((field) => ({
+    ...field,
+    group: grouped ? (GROUP_OF[field.key] ?? 'other') : null,
+  }));
+  const used = new Set(fields.map((field) => field.group));
+  return {
+    ...document,
+    fields,
+    field_groups: grouped ? FIELD_GROUPS.filter((group) => used.has(group.key)) : [],
+  } satisfies DocumentType;
+}
+
 function documentViewOf(
   catalog: DocumentType[],
   requested: RequestedDocument
@@ -197,18 +269,22 @@ function documentViewOf(
     document_type: requested.document_type,
     // A type or field the catalog dropped keeps its key as its label (spec 005)
     label: type?.label ?? requested.document_type,
-    fields: requested.fields.map(
-      (key) =>
-        type?.fields.find((field) => field.key === key) ?? {
-          key,
-          label: key,
-          kind: 'text',
-          option_set: null,
-          date_of_birth: false,
-          parts: null,
-          multiple_values: false,
-        }
-    ),
+    // Only GET /api/document-types gives a field its group (FR-078)
+    fields: requested.fields.map((key) => {
+      const field = type?.fields.find((each) => each.key === key);
+      return field
+        ? { ...field, group: null }
+        : {
+            key,
+            label: key,
+            kind: 'text',
+            option_set: null,
+            date_of_birth: false,
+            parts: null,
+            multiple_values: false,
+            group: null,
+          };
+    }),
   };
 }
 
@@ -222,7 +298,32 @@ function highestNumber(items: RuleTreeItem[], prefix: 'rule' | 'group'): number 
   return highest;
 }
 
-/** The fixtures: a draft with three variants, a live connection and a deactivated one. */
+/** An entry of the fixtures' activity; `actor` null for one without a person. */
+function activityEntry(
+  kind: ActivityEntry['kind'],
+  at: string,
+  actor: ActivityEntry['actor'] = null
+): ActivityEntry {
+  return { id: randomUUID(), kind, at, variant: null, start_date: null, actor };
+}
+
+/**
+ * The closed card's line as the backend's `last_activity()` picks it from entries newest first:
+ * while deactivated the newest `deactivated` entry, else the newest with a person, else the newest
+ */
+function lastActivityOf(entries: ActivityEntry[], deactivated: boolean): ActivityEntry | null {
+  return (
+    (deactivated ? entries.find((entry) => entry.kind === 'deactivated') : undefined) ??
+    entries.find((entry) => entry.actor !== null) ??
+    entries[0] ??
+    null
+  );
+}
+
+/**
+ * The fixtures: a draft with three variants, a live connection, a deactivated one and a scheduled
+ * one
+ */
 export function fixtureStore(): FakeStore {
   const age = rule(
     1,
@@ -259,10 +360,44 @@ export function fixtureStore(): FakeStore {
   const documents = (catalog: DocumentType[]) => [
     documentViewOf(catalog, { document_type: 'pid', fields: ['birthdate', 'address_locality'] }),
   ];
-  const catalog: DocumentType[] = [PID, MDL];
+  const catalog: DocumentType[] = [PID, MDL].map(withGroups);
+  // Newest first: the draft an agent created, the others as the migration backfilled them, the
+  // deactivated one deactivated by its team member since
+  const activity = new Map<string, ActivityEntry[]>([
+    [
+      IDS.draft,
+      [
+        activityEntry('created', '2026-11-01T09:00:00Z', {
+          name: 'anna',
+          agent: 'Claude Code',
+          approved: false,
+        }),
+      ],
+    ],
+    [
+      IDS.live,
+      [
+        activityEntry('published', '2026-10-01T09:00:00Z'),
+        activityEntry('created', '2026-10-01T09:00:00Z'),
+      ],
+    ],
+    [
+      IDS.deactivated,
+      [
+        activityEntry('deactivated', '2026-11-01T09:00:00Z', {
+          name: 'anna',
+          agent: null,
+          approved: false,
+        }),
+        activityEntry('published', '2026-10-01T09:00:00Z'),
+        activityEntry('created', '2026-10-01T09:00:00Z'),
+      ],
+    ],
+  ]);
 
   const draft: FormConnectionDraft = {
     status: 'draft',
+    state: 'draft',
     id: IDS.draft,
     name: 'Resident parking permit',
     description: 'The parking permit for residents of the city centre.',
@@ -278,6 +413,8 @@ export function fixtureStore(): FakeStore {
     version: 1,
     created_at: '2026-11-01T09:00:00Z',
     updated_at: '2026-11-03T09:00:00Z',
+    last_activity: lastActivityOf(activity.get(IDS.draft) ?? [], false),
+    example: null,
   };
 
   const published = (
@@ -309,6 +446,12 @@ export function fixtureStore(): FakeStore {
       next_group_number: 1,
       created_at: '2026-10-01T09:00:00Z',
       updated_at: updated,
+      state: active ? 'live' : 'deactivated',
+      published_at: '2026-10-01T09:00:00Z',
+      activated_at: '2026-10-01T09:00:00Z',
+      deactivated_at: active ? null : updated,
+      start_date: null,
+      last_activity: lastActivityOf(activity.get(id) ?? [], !active),
     };
   };
 
@@ -339,8 +482,26 @@ export function fixtureStore(): FakeStore {
           '2026-11-01T09:00:00Z'
         ),
       ],
+      [
+        IDS.scheduled,
+        {
+          // Scheduled when it was published: inactive, never active yet, with its start day
+          ...published(
+            IDS.scheduled,
+            IDS.scheduledStandard,
+            'Boat licence',
+            false,
+            '2026-10-31T09:00:00Z'
+          ),
+          state: 'scheduled',
+          activated_at: null,
+          deactivated_at: null,
+          start_date: SCHEDULED_START,
+        },
+      ],
     ]),
     approvals: new Map(),
+    activity,
     draftsCreated: new Map(),
   };
 }
@@ -357,6 +518,7 @@ export function publishedOf(draft: FormConnectionDraft): FormConnection {
     const id = branch.id ?? randomUUID();
     return { ...branch, id, is_main: branch.origin === 'main', pull_url: pullUrlOf(id) };
   });
+  const now = new Date().toISOString();
   return {
     status: 'published',
     id: draft.id,
@@ -371,11 +533,41 @@ export function publishedOf(draft: FormConnectionDraft): FormConnection {
     next_rule_number: draft.next_rule_number,
     next_group_number: draft.next_group_number,
     created_at: draft.created_at,
-    updated_at: new Date().toISOString(),
+    updated_at: now,
+    state: 'live',
+    published_at: now,
+    activated_at: now,
+    deactivated_at: null,
+    start_date: null,
+    last_activity: draft.last_activity,
   };
 }
 
-function summaryOf(fc: FormConnectionOrDraft): FormConnectionSummary {
+/**
+ * The state as the backend's `state_of()` derives it from the stored columns, so that a test
+ * that changes `is_active` or `start_date` in the store reads the matching state
+ */
+function stateOf(fc: FormConnectionOrDraft): ConnectionState {
+  if (fc.status === 'draft') return 'draft';
+  if (fc.is_active) return 'live';
+  return fc.start_date ? 'scheduled' : 'deactivated';
+}
+
+/** A stored connection as the backend answers it: the derived state, the dates of that state. */
+function answeredOf<T extends FormConnectionOrDraft>(fc: T): T;
+function answeredOf(fc: FormConnectionOrDraft): FormConnectionOrDraft {
+  if (fc.status === 'draft') return { ...fc, state: 'draft' };
+  const state = stateOf(fc) as FormConnection['state'];
+  return {
+    ...fc,
+    state,
+    deactivated_at: state === 'deactivated' ? fc.deactivated_at : null,
+    start_date: state === 'scheduled' ? fc.start_date : null,
+  };
+}
+
+function summaryOf(stored: FormConnectionOrDraft): FormConnectionSummary {
+  const fc = answeredOf(stored);
   return {
     id: fc.id,
     name: fc.name,
@@ -383,12 +575,13 @@ function summaryOf(fc: FormConnectionOrDraft): FormConnectionSummary {
     is_active: fc.status === 'draft' ? true : fc.is_active,
     status: fc.status,
     updated_at: fc.updated_at,
+    state: fc.state,
+    published_at: fc.status === 'draft' ? null : fc.published_at,
+    deactivated_at: fc.status === 'draft' ? null : fc.deactivated_at,
+    start_date: fc.status === 'draft' ? null : fc.start_date,
+    step: fc.status === 'draft' ? fc.step : null,
+    example: fc.status === 'draft' ? fc.example : null,
   };
-}
-
-function stateOf(fc: FormConnectionOrDraft): 'draft' | 'live' | 'deactivated' {
-  if (fc.status === 'draft') return 'draft';
-  return fc.is_active ? 'live' : 'deactivated';
 }
 
 async function bodyOf(request: IncomingMessage): Promise<unknown> {
@@ -436,7 +629,8 @@ export async function startFakeBackend(options: { portalUrl?: string } = {}): Pr
   /**
    * The server's checks of a draft's name, description and documents (`clean_name`,
    * `clean_description`, `clean_documents(complete=False)`), with its messages: the documents
-   * and their fields in catalog order
+   * in the order sent, as the backend stores (`document_order`) and answers them (spec 010,
+   * FR-045, FR-050), each with its fields in catalog order
    */
   function cleanDraft(body: DraftCreate): {
     name: string;
@@ -461,13 +655,15 @@ export async function startFakeBackend(options: { portalUrl?: string } = {}): Pr
         throw validation(`Unknown field '${unknown}' for '${type.label}'.`);
       }
     }
-    const documents = catalog.flatMap((type) => {
-      const requested = body.documents.find((each) => each.document_type === type.key);
-      if (!requested) return [];
-      const fields = type.fields
+    const seen = new Set<string>();
+    const documents = body.documents.flatMap((requested) => {
+      if (seen.has(requested.document_type)) return [];
+      seen.add(requested.document_type);
+      const type = catalog.find((each) => each.key === requested.document_type);
+      const fields = (type?.fields ?? [])
         .filter((field) => requested.fields.includes(field.key))
         .map((field) => field.key);
-      return [{ document_type: type.key, fields }];
+      return [{ document_type: requested.document_type, fields }];
     });
     return { name, description, documents };
   }
@@ -484,6 +680,7 @@ export async function startFakeBackend(options: { portalUrl?: string } = {}): Pr
     const items = branches.flatMap((branch) => branch.items);
     return {
       status: 'draft',
+      state: 'draft',
       id,
       name,
       description,
@@ -503,6 +700,11 @@ export async function startFakeBackend(options: { portalUrl?: string } = {}): Pr
       version,
       created_at: created,
       updated_at: new Date().toISOString(),
+      last_activity: previous?.last_activity ?? null,
+      // The example's mark: a new draft is never the example (agents can't create it), and a
+      // save keeps the stored mark; the fake doesn't compare contents, so it never moves
+      // `unchanged` to `changed` as the backend does (data-model.md section 5)
+      example: previous?.example ?? null,
     };
   }
 
@@ -512,7 +714,7 @@ export async function startFakeBackend(options: { portalUrl?: string } = {}): Pr
   } {
     const q = (query.get('q') ?? '').trim().toLowerCase();
     const status = query.get('status');
-    if (status !== null && !['draft', 'live', 'deactivated'].includes(status)) {
+    if (status !== null && !['draft', 'scheduled', 'live', 'deactivated'].includes(status)) {
       throw validation('Unknown status.');
     }
     const offset = Number(query.get('cursor') ?? '0');
@@ -529,6 +731,19 @@ export async function startFakeBackend(options: { portalUrl?: string } = {}): Pr
     return {
       items: page.map(summaryOf),
       next_cursor: offset + limit < matches.length ? String(offset + limit) : null,
+    };
+  }
+
+  /** A page of a connection's activity, newest first; the cursor is an offset here. */
+  function activityPage(id: string, query: URLSearchParams): ActivityPage {
+    connectionOf(id);
+    const offset = Number(query.get('cursor') ?? '0');
+    if (!Number.isInteger(offset) || offset < 0) throw validation('Unknown cursor.');
+    const entries = fake.store.activity.get(id) ?? [];
+    return {
+      items: entries.slice(offset, offset + ACTIVITY_PAGE_SIZE),
+      next_cursor:
+        offset + ACTIVITY_PAGE_SIZE < entries.length ? String(offset + ACTIVITY_PAGE_SIZE) : null,
     };
   }
 
@@ -568,15 +783,26 @@ export async function startFakeBackend(options: { portalUrl?: string } = {}): Pr
   function requestApproval(
     token: string,
     me: AgentMe,
-    body: { form_connection_id?: string; action?: ApprovalAction }
+    body: { form_connection_id?: string; action?: ApprovalAction; start_date?: string | null }
   ): ApprovalRequest {
     const action = body.action;
     const draftAction = action === 'publish' || action === 'delete_draft';
     if (
       !action ||
-      !['publish', 'delete_draft', 'deactivate', 'reactivate', 'delete'].includes(action)
+      !['publish', 'delete_draft', 'deactivate', 'reactivate', 'delete', 'set_start_date'].includes(
+        action
+      )
     ) {
       throw validation('Unknown action.');
+    }
+    // As the backend's body validation (before the level): a date only for the actions that
+    // take one, and a date the calendar has
+    const startDate = body.start_date ?? null;
+    if (
+      startDate !== null &&
+      (!['publish', 'reactivate', 'set_start_date'].includes(action) || !isValidIsoDate(startDate))
+    ) {
+      throw validation('Invalid request payload');
     }
     // As the backend: each action's own level, so that a read caller asking to deactivate reads
     // the manage level's message
@@ -584,7 +810,14 @@ export async function startFakeBackend(options: { portalUrl?: string } = {}): Pr
     if (!draftAction && !allows(me, 'manage')) {
       throw insufficient('manage', 'Deactivating, reactivating and deleting published connections');
     }
+    if (startDate !== null && startDate <= todayInGermany()) {
+      throw new HttpError(400, {
+        error: 'invalid_start_date',
+        message: 'Enter a date after today.',
+      });
+    }
     const fc = connectionOf(body.form_connection_id ?? '');
+    const state = stateOf(fc);
     if (draftAction && fc.status !== 'draft')
       throw notAllowed('This connection is already published.');
     if (!draftAction && fc.status === 'draft') {
@@ -592,11 +825,27 @@ export async function startFakeBackend(options: { portalUrl?: string } = {}): Pr
     }
     if (action === 'publish' && fc.documents.length === 0)
       throw validation('Add at least one document.');
-    if (action === 'deactivate' && fc.status === 'published' && !fc.is_active) {
+    // A scheduled connection may be deactivated or deleted, not reactivated (spec 010, data-model
+    // §7)
+    if (action === 'deactivate' && state === 'deactivated') {
       throw notAllowed('This connection is already deactivated.');
     }
-    if (action === 'reactivate' && fc.status === 'published' && fc.is_active) {
+    if (action === 'reactivate' && state === 'live') {
       throw notAllowed('This connection is already live.');
+    }
+    if (action === 'reactivate' && state === 'scheduled') {
+      throw notAllowed('This connection is scheduled. Change its start date instead.');
+    }
+    if (action === 'set_start_date') {
+      if (state === 'deactivated') {
+        throw notAllowed('This connection is deactivated. Reactivate it instead.');
+      }
+      if (state === 'live' && startDate === null) {
+        throw notAllowed('This connection is already live.');
+      }
+      if (state === 'scheduled' && fc.status === 'published' && startDate === fc.start_date) {
+        throw notAllowed('This connection is already scheduled for that date.');
+      }
     }
     for (const stored of fake.store.approvals.values()) {
       const waiting = stored.request;
@@ -619,6 +868,8 @@ export async function startFakeBackend(options: { portalUrl?: string } = {}): Pr
       status: 'waiting',
       outcome: 'waiting',
       cancel_reason: null,
+      // The start date as asked (spec 010, research R9); null: at once, or none
+      start_date: startDate,
       link: `${portalUrl}/approvals/${id}`,
       expires_at: new Date(now.getTime() + APPROVAL_MINUTES * 60_000).toISOString(),
       created_at: now.toISOString(),
@@ -637,8 +888,8 @@ export async function startFakeBackend(options: { portalUrl?: string } = {}): Pr
     const fc = fake.store.connections.get(stored.request.form_connection_id) ?? null;
     return {
       request: stored.request,
-      draft: fc?.status === 'draft' ? fc : null,
-      connection: fc?.status === 'published' ? fc : null,
+      draft: fc?.status === 'draft' ? answeredOf(fc) : null,
+      connection: fc?.status === 'published' ? answeredOf(fc) : null,
       // As the backend: a published connection's URLs in every status (a done publish's too),
       // so that check_approval's own filtering shows
       urls:
@@ -687,7 +938,16 @@ export async function startFakeBackend(options: { portalUrl?: string } = {}): Pr
       parts.length === 3 &&
       method === 'GET'
     ) {
-      return ok(connectionOf(parts[2]));
+      return ok(answeredOf(connectionOf(parts[2])));
+    }
+    if (
+      parts[0] === 'api' &&
+      parts[1] === 'form-connections' &&
+      parts.length === 4 &&
+      parts[3] === 'activity' &&
+      method === 'GET'
+    ) {
+      return ok(activityPage(parts[2], url.searchParams));
     }
     if (
       parts[0] === 'api' &&
@@ -702,6 +962,7 @@ export async function startFakeBackend(options: { portalUrl?: string } = {}): Pr
       const body = (await bodyOf(request)) as {
         form_connection_id?: string;
         action?: ApprovalAction;
+        start_date?: string | null;
       };
       return ok(requestApproval(token, me, body ?? {}), 201);
     }

@@ -1,40 +1,67 @@
 import type { ErrorNotice } from '@connection-portal/api-types/api';
 import type { DocumentType } from '@connection-portal/api-types/document-types';
 import type {
+  ActivityActor,
+  ActivityEntry,
+  ActivityPage,
   BranchInput,
+  ConnectionState,
+  Deletion,
   FormConnection,
   RequestedDocument,
   RequestedDocumentView,
   RuleTreeItem,
 } from '@connection-portal/api-types/form-connections';
-import type { DetailLocationState } from '@connection-portal/api-types/routing';
+import type {
+  DetailLocationState,
+  OverviewLocationState,
+} from '@connection-portal/api-types/routing';
 import type { RuleChecks } from '@connection-portal/rules/checks/types';
 import { ruleDocumentsOf } from '@connection-portal/rules/conditions';
+import { formatDate } from '@connection-portal/rules/dates';
 import type { Language } from '@connection-portal/rules/language';
 import { countRules } from '@connection-portal/rules/tree';
 import type { RuleDocument } from '@connection-portal/rules/types';
 
 import { ApiError, errorNoticeOf } from '../../api/client';
+import type { ActiveFrom } from '../../components/ActiveFromChoice/types';
+import { startDateOf } from '../../components/ActiveFromChoice/utils';
+import { EDIT_ENTRY_DIALOG_COPY } from '../FormConnectionEdit/constants';
 import { PUBLISH_DIALOG_COPY } from '../FormConnectionEditor/constants';
 import type { BannerItem, RulesBranch } from '../FormConnectionEditor/RulesStep/types';
 import type { FindingLine } from '../FormConnectionEditor/types';
 import { findingLinesOf } from '../FormConnectionEditor/utils';
 import { DELETE_CONNECTION_COPY } from '../FormConnectionList/constants';
 import { deleteDialogCopyOf, formatRowDate } from '../FormConnectionList/utils';
-import { CONNECTION_DETAIL_COPY, INITIAL_ACTIONS_STATE, SAVED_TIME_FORMATS } from './constants';
+import {
+  ACTIVITY_COPY,
+  CONNECTION_DETAIL_COPY,
+  INITIAL_ACTIONS_STATE,
+  SAVED_TIME_FORMATS,
+  START_TIME,
+} from './constants';
 import type {
+  ActionDialog,
   ActionDialogCopy,
   ActionsAction,
   ActionsState,
+  ActivityCardAction,
+  ActivityCardState,
+  ActivityRequest,
   Arrival,
   ConfirmedAction,
+  ConnectionMenuEntry,
+  DatePillSource,
   DeleteDraftFailure,
   DetailAccordionName,
   DraftDeleteAction,
   DraftDeleteState,
   LinkCardLink,
+  ReactivatePlan,
   ReactivateSummary,
-  StatusAction,
+  RunningAction,
+  StartDatePlan,
+  StatusBandTone,
 } from './types';
 
 export function arrivalOf(state: unknown): Arrival {
@@ -53,15 +80,32 @@ export function initialActionsState(arrival: Arrival, language: Language): Actio
   };
 }
 
+/**
+ * The page's dialogs and the calls they run (S15, S17). Opening one clears the last failure and
+ * sets its "Active from" (C2): "Change start date" opens with the connection's choice
+ * (`startDateChoiceOf()`), any other with "Now" and an empty field. The choice and the text stay
+ * through a call and its failure, so that "Try again" repeats them (FR-014, W8); a refused date
+ * shows the field's error, which goes when the choice or the text changes or a call starts.
+ */
 export function actionsReducer(state: ActionsState, action: ActionsAction): ActionsState {
   switch (action.type) {
     case 'openDialog':
-      return { ...state, dialog: action.dialog, dialogOpen: true, error: null };
+      return {
+        ...state,
+        dialog: action.dialog,
+        dialogOpen: true,
+        error: null,
+        noAnswer: false,
+        activeFrom: action.activeFrom ?? 'now',
+        startDateText: action.startDateText ?? '',
+        dateError: false,
+      };
     case 'closeDialog':
-      return state.running ? state : { ...state, dialogOpen: false, error: null };
+      return state.running ? state : { ...state, dialogOpen: false, error: null, noAnswer: false };
     case 'start':
-      // A retry takes the old message away, so that a new failure is announced again
-      return { ...state, running: action.action, error: null };
+      // A retry takes the old message away, so that a new failure is announced again; the date it
+      // sends passed the check, so the field's error goes too
+      return { ...state, running: action.action, error: null, noAnswer: false, dateError: false };
     case 'succeeded':
       return {
         ...state,
@@ -71,24 +115,144 @@ export function actionsReducer(state: ActionsState, action: ActionsAction): Acti
       };
     case 'failed':
       // A dialog stays open and shows the message where the user is looking
-      return { ...state, running: null, error: action.error };
+      return { ...state, running: null, error: action.error, noAnswer: action.noAnswer ?? false };
+    case 'chooseActiveFrom':
+      return { ...state, activeFrom: action.choice, dateError: false };
+    case 'typeStartDate':
+      return { ...state, startDateText: action.text, dateError: false };
+    case 'dateRefused':
+      // The dialog again without a failure, with the field's error (FR-003, W1)
+      return {
+        ...state,
+        running: null,
+        error: null,
+        noAnswer: false,
+        dateError: true,
+        dateRefusals: state.dateRefusals + 1,
+      };
     case 'dismissToast':
       return { ...state, toast: null };
   }
 }
 
 /**
+ * "Change start date"'s first choice (S15; FR-008, FR-009): a scheduled connection's "On a date"
+ * with its start date as the field shows it, `DD.MM.YYYY` (FR-020); an active one's "Now" with
+ * an empty field
+ */
+export function startDateChoiceOf(
+  formConnection: Pick<FormConnection, 'state' | 'start_date'>
+): Pick<ActionsState, 'activeFrom' | 'startDateText'> {
+  if (formConnection.state === 'scheduled' && formConnection.start_date) {
+    return { activeFrom: 'date', startDateText: formatDate(formConnection.start_date) };
+  }
+  return { activeFrom: 'now', startDateText: '' };
+}
+
+/**
+ * "Now (active since 23.10.2026, 14:32)" for an active connection (FR-009; U87 6396:48860), its
+ * time as the date pill writes it; none for a scheduled one, whose radio reads "Now"
+ */
+export function startDateNowLabelOf(
+  formConnection: Pick<FormConnection, 'state' | 'activated_at' | 'published_at'>,
+  language: Language
+): string | undefined {
+  const since = formConnection.activated_at ?? formConnection.published_at;
+  if (formConnection.state !== 'live' || !since) {
+    return undefined;
+  }
+  return CONNECTION_DETAIL_COPY[language].nowActiveSince(dateTimeOf(since, language));
+}
+
+/**
+ * The hint under "Active from" (FR-009, F10): with "On a date", an active connection's requests in
+ * progress are cancelled; none otherwise
+ */
+export function startDateHintOf(
+  state: FormConnection['state'],
+  activeFrom: ActiveFrom,
+  language: Language
+): string | undefined {
+  return state === 'live' && activeFrom === 'date'
+    ? CONNECTION_DETAIL_COPY[language].startDateHint
+    : undefined;
+}
+
+/**
+ * What "Save date" does (S15; FR-003, FR-008, FR-009): "Now" sends null for a scheduled
+ * connection, which becomes active at once, and nothing for an active one, which stays as it is;
+ * "On a date" refuses a day that isn't after `today` (today in Germany), sends nothing for a
+ * scheduled connection's own date, and sends the day otherwise
+ */
+export function startDatePlanOf(
+  formConnection: Pick<FormConnection, 'state' | 'start_date'>,
+  activeFrom: ActiveFrom,
+  text: string,
+  today: string
+): StartDatePlan {
+  if (activeFrom === 'now') {
+    return formConnection.state === 'live'
+      ? { kind: 'unchanged' }
+      : { kind: 'send', startDate: null };
+  }
+  const result = startDateOf(text, today);
+  if (!result.ok) {
+    return { kind: 'refused' };
+  }
+  if (formConnection.state === 'scheduled' && result.date === formConnection.start_date) {
+    return { kind: 'unchanged' };
+  }
+  return { kind: 'send', startDate: result.date };
+}
+
+/**
+ * No answer came (FR-014, F2, W8): a network failure, or a `5xx` without the API's envelope
+ * (nginx's `502` or `503`), which has no error ID; a `5xx` with its error ID is an answer
+ */
+export function isNoAnswer(error: unknown): boolean {
+  return !(error instanceof ApiError) || (error.status >= 500 && !error.data.error_id);
+}
+
+/**
+ * The ⋯ menu's entries by the connection's state (S15; FR-008, FR-009; U88 6417:31045): a
+ * scheduled and an active connection "Change start date", "Deactivate", then, after the divider,
+ * "Delete connection"; a deactivated one "Delete connection" alone (its band holds "Activate
+ * again"). A draft's band has no ⋯ (`DraftDetails`).
+ */
+export function connectionMenuOf(state: FormConnection['state']): ConnectionMenuEntry[] {
+  switch (state) {
+    case 'live':
+    case 'scheduled':
+      return ['startDate', 'deactivate', 'delete'];
+    case 'deactivated':
+      return ['delete'];
+  }
+}
+
+/** The confirmation a dialog of the page is, or null for "Change start date", which isn't one */
+export function confirmationOf(dialog: ActionDialog): ConfirmedAction | null {
+  return dialog === 'startDate' ? null : dialog;
+}
+
+/**
  * A confirmation's texts and look (S17): deleting with the overview's one delete dialog, its body
- * by the connection's state (FR-029c; U14, U90), in danger red; deactivating with F13's body and
- * "Keep active" (U88 6417:31206); reactivating with its summary in the wide dialog (U89
- * 7173:52959).
+ * by the connection's state (FR-029c; U14, U90; a scheduled one's FR-010, U14 6872:45929), in
+ * danger red; deactivating with F13's body and "Keep active" (U88 6417:31206), a scheduled
+ * connection with copy.md §2's sentence and "Keep scheduled" (FR-012, W5); reactivating with its
+ * summary in the wide dialog (U89 7173:52959), "Activate" with "Now" and "Schedule" /
+ * "Scheduling…" with "On a date" (FR-011, W4).
  */
 export function dialogCopyOf(
   action: ConfirmedAction,
-  formConnection: Pick<FormConnection, 'name' | 'status' | 'is_active'>,
-  language: Language
+  formConnection: Pick<FormConnection, 'name' | 'status' | 'is_active' | 'state' | 'start_date'>,
+  language: Language,
+  activeFrom: ActiveFrom = 'now'
 ): ActionDialogCopy {
   const copy = CONNECTION_DETAIL_COPY[language];
+  const scheduledStart =
+    formConnection.state === 'scheduled' && formConnection.start_date
+      ? formatDate(formConnection.start_date, language)
+      : null;
   switch (action) {
     case 'delete': {
       const deleteCopy = DELETE_CONNECTION_COPY[language];
@@ -105,9 +269,9 @@ export function dialogCopyOf(
     case 'deactivate':
       return {
         title: copy.deactivateTitle,
-        text: copy.deactivateText,
+        text: scheduledStart ? copy.deactivateScheduledText(scheduledStart) : copy.deactivateText,
         confirmLabel: copy.deactivate,
-        cancelLabel: copy.keepActive,
+        cancelLabel: scheduledStart ? copy.keepScheduled : copy.keepActive,
         busyLabel: copy.deactivating,
         errorTitle: copy.deactivateError,
         danger: false,
@@ -117,9 +281,9 @@ export function dialogCopyOf(
       return {
         title: copy.activateTitle,
         text: copy.activateText,
-        confirmLabel: copy.activate,
+        confirmLabel: activeFrom === 'date' ? copy.schedule : copy.activate,
         cancelLabel: copy.cancel,
-        busyLabel: copy.activating,
+        busyLabel: activeFrom === 'date' ? copy.scheduling : copy.activating,
         errorTitle: copy.activateError,
         danger: false,
         wide: true,
@@ -146,18 +310,74 @@ export function reactivateSummaryOf(
   };
 }
 
+/**
+ * What "Activate" or "Schedule" does (S17; FR-003, FR-011): "Now" activates at once (null); "On a
+ * date" refuses a day that isn't after `today` (today in Germany) and sends the day otherwise
+ */
+export function reactivatePlanOf(
+  activeFrom: ActiveFrom,
+  text: string,
+  today: string
+): ReactivatePlan {
+  if (activeFrom === 'now') {
+    return { kind: 'send', startDate: null };
+  }
+  const result = startDateOf(text, today);
+  return result.ok ? { kind: 'send', startDate: result.date } : { kind: 'refused' };
+}
+
+/** The hint under "Active from" when reactivating (FR-011, copy.md §2): with "On a date" only */
+export function reactivateHintOf(activeFrom: ActiveFrom, language: Language): string | undefined {
+  return activeFrom === 'date' ? CONNECTION_DETAIL_COPY[language].activateDateHint : undefined;
+}
+
+/**
+ * The details' edit entry question (S17, F48; U87 6396:49030): "Edit “<name>”?" with the design's
+ * body, or for a scheduled connection "Edit this scheduled connection?" and that saved changes
+ * become active on its start date (spec 010; FR-013, W7)
+ */
+export function editEntryCopyOf(
+  formConnection: Pick<FormConnection, 'name' | 'state' | 'start_date'>,
+  language: Language
+): { title: string; text: string; cancel: string; confirm: string } {
+  const copy = EDIT_ENTRY_DIALOG_COPY[language];
+  const { cancel, confirm } = copy;
+  if (formConnection.state === 'scheduled' && formConnection.start_date) {
+    return {
+      title: copy.scheduledTitle,
+      text: copy.scheduledText(formatDate(formConnection.start_date, language)),
+      cancel,
+      confirm,
+    };
+  }
+  return { title: copy.title(formConnection.name), text: copy.text, cancel, confirm };
+}
+
 /** The API's message, with the error ID of a 5xx answer, or "Nothing changed. …". */
 export function actionErrorNotice(error: unknown, language: Language) {
   return errorNoticeOf(error, CONNECTION_DETAIL_COPY[language].actionErrorText);
 }
 
-/** The toast after an action that keeps the connection. */
+/**
+ * The toast after an action that keeps the connection; after "Save date" "Start date saved.", also
+ * when "Now" made the connection active (FR-008, W3; copy.md §2); after reactivating on a date,
+ * `scheduledFor` the answered start date (YYYY-MM-DD), "Connection scheduled for 01.12.2026."
+ * (FR-011, W4)
+ */
 export function successMessageOf(
-  action: Exclude<StatusAction, 'delete'>,
-  language: Language
+  action: Exclude<RunningAction, 'delete'>,
+  language: Language,
+  scheduledFor: string | null = null
 ): string {
   const copy = CONNECTION_DETAIL_COPY[language];
-  return action === 'deactivate' ? copy.deactivated : copy.activated;
+  switch (action) {
+    case 'deactivate':
+      return copy.deactivated;
+    case 'activate':
+      return scheduledFor ? copy.scheduledFor(formatDate(scheduledFor, language)) : copy.activated;
+    case 'startDate':
+      return copy.startDateSaved;
+  }
 }
 
 /**
@@ -178,14 +398,19 @@ export function linksCountsOf(formConnection: FormConnection, language: Language
 }
 
 /**
- * The accordion open on arrival (FR-046, F50): Links right after publishing (U80), otherwise
- * the Summary, as from the overview's "View" (U91), which passes no state of its own.
+ * The accordion open on arrival (FR-046, F50; spec 010 FR-022, F40): Links right after publishing
+ * (U80), also after "Schedule", which arrives as a publish does (S15; U94 7246:53289), and after
+ * the edit flow's "Save" (E4 U99 6730:39754); otherwise the Summary, as from the overview's "View"
+ * (U91, U94 7246:52715), which passes no state of its own.
  */
 export function initialAccordionOf(arrival: Arrival): DetailAccordionName {
-  return arrival === 'published' ? 'links' : 'summary';
+  return arrival === null ? 'summary' : 'links';
 }
 
-/** One accordion open at a time (FR-046): opening one closes the other; its toggle closes it. */
+/**
+ * One card open at a time (FR-046, FR-022): opening Links, Summary or Activity closes the one that
+ * was open; its own toggle closes it.
+ */
 export function toggleAccordion(
   open: DetailAccordionName | null,
   name: DetailAccordionName
@@ -295,8 +520,252 @@ export function draftRuleDocumentsOf(
  * §3 "Dates").
  */
 export function editedLineOf(updatedAt: string, language: Language): string {
-  const time = SAVED_TIME_FORMATS[language].format(new Date(updatedAt));
-  return CONNECTION_DETAIL_COPY[language].edited(`${formatRowDate(updatedAt)}, ${time}`);
+  return CONNECTION_DETAIL_COPY[language].edited(dateTimeOf(updatedAt, language));
+}
+
+/** "23.10.2026, 14:32": an instant from the API, the time in the browser's time zone (FR-020) */
+function dateTimeOf(timestamp: string, language: Language): string {
+  return `${formatRowDate(timestamp)}, ${SAVED_TIME_FORMATS[language].format(new Date(timestamp))}`;
+}
+
+/**
+ * An activity entry's date and time, "23.10.2026, 14:32" (U86 6396:48529; FR-020), as the date
+ * pill writes its instants
+ */
+export function activityDateTimeOf(entry: Pick<ActivityEntry, 'at'>, language: Language): string {
+  return dateTimeOf(entry.at, language);
+}
+
+/**
+ * What happened, one sentence per kind (FR-025; copy.md §3, W10): the drawn "Created",
+ * "Documents changed", "Variant added: <name>", "Rules changed in <variant>", "Published",
+ * "Deactivated", and the undrawn ones in their style; a variant's kinds with its name (the new
+ * name for a rename), "Scheduled for <date>" and "Start date changed to <date>" with the start
+ * date written as stored (a day in Germany, `DD.MM.YYYY`, never through `Date`), or "Start date
+ * changed to now" without one
+ */
+export function activityEventOf(
+  entry: Pick<ActivityEntry, 'kind' | 'variant' | 'start_date'>,
+  language: Language
+): string {
+  const copy = ACTIVITY_COPY[language];
+  const variant = entry.variant ?? '';
+  const startDate = entry.start_date ? formatDate(entry.start_date, language) : null;
+  switch (entry.kind) {
+    case 'created':
+      return copy.created;
+    case 'renamed':
+      return copy.renamed;
+    case 'description_changed':
+      return copy.descriptionChanged;
+    case 'documents_changed':
+      return copy.documentsChanged;
+    case 'variant_added':
+      return copy.variantAdded(variant);
+    case 'variant_removed':
+      return copy.variantRemoved(variant);
+    case 'variant_renamed':
+      return copy.variantRenamed(variant);
+    case 'rules_changed':
+      return copy.rulesChanged(variant);
+    case 'published':
+      return copy.published;
+    case 'scheduled':
+      // A `scheduled` entry always has its date (data-model §2.2)
+      return copy.scheduled(startDate ?? '');
+    case 'start_date_changed':
+      return startDate ? copy.startDateChanged(startDate) : copy.startDateChangedToNow;
+    case 'became_active':
+      return copy.becameActive;
+    case 'deactivated':
+      return copy.deactivatedEvent;
+    case 'reactivated':
+      return copy.reactivated;
+    case 'deleted':
+      return copy.deleted;
+    case 'restored':
+      return copy.restored;
+  }
+}
+
+/**
+ * Who did it (FR-027; copy.md §3): the team member's name; "<name> with <agent>" for an agent's
+ * change; "<name>, asked by <agent>" for what a team member approved; null for what the middleware
+ * did by itself and for backfilled entries (FR-032)
+ */
+export function activityPersonOf(actor: ActivityActor | null, language: Language): string | null {
+  if (!actor) {
+    return null;
+  }
+  const copy = ACTIVITY_COPY[language];
+  if (actor.agent === null) {
+    return actor.name;
+  }
+  return actor.approved
+    ? copy.personAskedBy(actor.name, actor.agent)
+    : copy.personWithAgent(actor.name, actor.agent);
+}
+
+/**
+ * The closed card's line (FR-024, FR-032; data-model §2.5): "Last edited by <person> · <date>,
+ * <time>"; while the connection is deactivated and the entry is its deactivation, "Deactivated by
+ * <person> · …"; without a person the time alone, "Last edited · …" / "Deactivated · …". Null for a
+ * connection without entries
+ */
+export function activityClosedLineOf(
+  lastActivity: ActivityEntry | null,
+  state: ConnectionState,
+  language: Language
+): string | null {
+  if (!lastActivity) {
+    return null;
+  }
+  const copy = ACTIVITY_COPY[language];
+  const person = activityPersonOf(lastActivity.actor, language);
+  const dateTime = activityDateTimeOf(lastActivity, language);
+  if (state === 'deactivated' && lastActivity.kind === 'deactivated') {
+    return person ? copy.deactivatedBy(person, dateTime) : copy.deactivated(dateTime);
+  }
+  return person ? copy.lastEditedBy(person, dateTime) : copy.lastEdited(dateTime);
+}
+
+/**
+ * The Activity card's list (S15; FR-022, FR-023): the first page when the card first opens, the
+ * next when the list's end comes into view, down to the oldest entry; a failure keeps the pages
+ * loaded before it, and "Try again" asks for the page that failed. An answer that arrives in a
+ * state that didn't ask for it changes nothing; `reset` forgets the pages, so that the list loads
+ * again from the newest entry
+ */
+export function activityCardReducer(
+  state: ActivityCardState,
+  action: ActivityCardAction
+): ActivityCardState {
+  switch (action.type) {
+    case 'load':
+      return state.kind === 'closed' ? { kind: 'loading' } : state;
+    case 'loadMore':
+      return state.kind === 'loaded' && nextCursorOf(state.pages) !== null
+        ? { kind: 'loadingMore', pages: state.pages }
+        : state;
+    case 'retry':
+      if (state.kind !== 'failed') {
+        return state;
+      }
+      return state.pages.length === 0
+        ? { kind: 'loading' }
+        : { kind: 'loadingMore', pages: state.pages };
+    case 'pageLoaded':
+      switch (state.kind) {
+        case 'loading':
+          return { kind: 'loaded', pages: [action.page] };
+        case 'loadingMore':
+          return { kind: 'loaded', pages: [...state.pages, action.page] };
+        default:
+          return state;
+      }
+    case 'pageFailed':
+      switch (state.kind) {
+        case 'loading':
+          return { kind: 'failed', pages: [], error: action.error };
+        case 'loadingMore':
+          return { kind: 'failed', pages: state.pages, error: action.error };
+        default:
+          return state;
+      }
+    case 'reset':
+      return { kind: 'closed' };
+  }
+}
+
+/** The cursor of the page after the last one loaded; null on the oldest page or before any */
+function nextCursorOf(pages: ActivityPage[]): string | null {
+  return pages.at(-1)?.next_cursor ?? null;
+}
+
+/** The entries loaded so far, newest first */
+export function activityEntriesOf(state: ActivityCardState): ActivityEntry[] {
+  return 'pages' in state ? state.pages.flatMap((page) => page.items) : [];
+}
+
+/** The page the card is loading: the first (cursor null) or the next; null while it isn't */
+export function activityRequestOf(state: ActivityCardState): ActivityRequest {
+  switch (state.kind) {
+    case 'loading':
+      return { cursor: null };
+    case 'loadingMore':
+      return { cursor: nextCursorOf(state.pages) };
+    default:
+      return null;
+  }
+}
+
+/** Whether an older page is there to load when the list's end comes into view */
+export function hasOlderActivity(state: ActivityCardState): boolean {
+  return state.kind === 'loaded' && nextCursorOf(state.pages) !== null;
+}
+
+/** What the card announces (S15): the first page's or an older page's loading, or nothing */
+export function activityStatusOf(state: ActivityCardState, language: Language): string {
+  const copy = ACTIVITY_COPY[language];
+  switch (state.kind) {
+    case 'loading':
+      return copy.loading;
+    case 'loadingMore':
+      return copy.loadingMore;
+    default:
+      return '';
+  }
+}
+
+/**
+ * The status band of a published connection by its state (C1, S15): green "Your connection is
+ * active", blue "Your connection is scheduled" (U94 7355:60677), grey "Connection deactivated".
+ */
+export function statusBandOf(
+  state: FormConnection['state'],
+  language: Language
+): { tone: StatusBandTone; title: string; text: string } {
+  const copy = CONNECTION_DETAIL_COPY[language];
+  switch (state) {
+    case 'live':
+      return { tone: 'active', title: copy.activeTitle, text: copy.activeText };
+    case 'scheduled':
+      return { tone: 'scheduled', title: copy.scheduledTitle, text: copy.scheduledText };
+    case 'deactivated':
+      return { tone: 'deactivated', title: copy.deactivatedTitle, text: copy.deactivatedText };
+  }
+}
+
+/**
+ * The date pill's line by the connection's state (FR-015, FR-020, data-model §1.4; C1): "Active
+ * since 23.10.2026, 14:32" while live, "Active from 01.12.2026, 00:00" while scheduled,
+ * "Deactivated since 24.10.2026, 10:05" while deactivated, and a draft's "Edited 03.10.2026,
+ * 14:32"; in the given language ("Aktiv seit", "Aktiv ab", "Deaktiviert seit", "Bearbeitet"). The
+ * start date is a day in Germany sent as YYYY-MM-DD and written as it is, never through `Date`,
+ * so that it reads the same for every team member. The pill is never empty (FR-021): a live
+ * connection that was never recorded as activated reads its publication, a deactivated one
+ * without its time its last change, and a scheduled one without its date "Edited <date>, <time>"
+ */
+export function datePillOf(connection: DatePillSource, language: Language): string {
+  const copy = CONNECTION_DETAIL_COPY[language];
+  switch (connection.state) {
+    case 'live': {
+      const since = connection.activated_at ?? connection.published_at;
+      return since
+        ? copy.activeSince(dateTimeOf(since, language))
+        : editedLineOf(connection.updated_at, language);
+    }
+    case 'scheduled':
+      return connection.start_date
+        ? copy.activeFrom(`${formatDate(connection.start_date, language)}, ${START_TIME}`)
+        : editedLineOf(connection.updated_at, language);
+    case 'deactivated':
+      return copy.deactivatedSince(
+        dateTimeOf(connection.deactivated_at ?? connection.updated_at, language)
+      );
+    case 'draft':
+      return editedLineOf(connection.updated_at, language);
+  }
 }
 
 /**
@@ -378,4 +847,16 @@ export function deleteDraftDialogOf(failure: DeleteDraftFailure | null, language
     default:
       return { errorTitle: copy.deleteError, retryLabel: copy.retry, danger: true };
   }
+}
+
+/**
+ * What the details hand the overview after a deletion (spec 010, FR-033; S4 "After a deletion"):
+ * the deleted connection's or draft's name for the toast "“<name>” deleted." and the deletion's
+ * id for its "Undo"
+ */
+export function overviewStateAfterDeletion(
+  name: string,
+  deletion: Deletion
+): OverviewLocationState {
+  return { deleted: { names: [name], deletionId: deletion.id } };
 }

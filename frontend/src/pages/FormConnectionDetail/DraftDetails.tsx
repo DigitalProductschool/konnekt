@@ -1,4 +1,3 @@
-import type { OverviewLocationState } from '@connection-portal/api-types/routing';
 import { useEffect, useReducer, useRef, useState } from 'react';
 import { useNavigate } from 'react-router';
 
@@ -11,6 +10,7 @@ import { useDocumentTitle } from '../../hooks/useDocumentTitle';
 import { useLanguage } from '../../hooks/useLanguage';
 import { useSignOutOnUnauthorized } from '../../hooks/useSignOutOnUnauthorized';
 import { DELETE_CONNECTION_COPY } from '../FormConnectionList/constants';
+import ActivityCard from './ActivityCard';
 import { CONNECTION_DETAIL_COPY, INITIAL_DRAFT_DELETE_STATE } from './constants';
 import DetailFooter from './DetailFooter';
 import DraftCard from './DraftCard';
@@ -18,11 +18,12 @@ import RulesSummary from './RulesSummary';
 import StatusBand from './StatusBand';
 import type { DetailAccordionName, DraftDetailsProps } from './types';
 import {
+  datePillOf,
   deleteDraftDialogOf,
   deleteDraftErrorOf,
   deleteDraftNoticeOf,
   draftDeleteReducer,
-  editedLineOf,
+  overviewStateAfterDeletion,
   toggleAccordion,
 } from './utils';
 
@@ -34,12 +35,15 @@ import {
  * visible "Delete draft" at the band's right end (F56), which asks in the overview's one delete
  * dialog with the draft's body (S17: "Delete “<name>”?", F55, "Keep connection" / "Delete
  * connection", the scrim not closing it) and returns to the overview with the toast "“<name>”
- * deleted." (no Undo, F4), or, if the draft was published or deleted meanwhile, says so in the
- * dialog's alert (W8): "Open the connection" loads the details again, "Go to overview" leaves. Then the Summary,
- * open first (its documents and rules, incomplete parts with the placeholders, unchecked), and
- * the Links card without links: the draft isn't live, so no connection URL shows anywhere
- * (FR-006). The footer's "Edit connection" opens its flow at the step it was saved in. No
- * Activity (F2), no PDF (F53); the view-only variant (U93 7362:54923) isn't built (F12).
+ * deleted." and its "Undo" (spec 010, FR-033: the deletion's id goes with it), or, if the draft
+ * was published or deleted meanwhile, says so in the dialog's alert (W8): "Open the connection"
+ * loads the details again, "Go to overview" leaves.
+ * Then the Summary, open first (its documents and rules, incomplete parts with the placeholders,
+ * unchecked), the Links card without links and without a toggle: the draft isn't live, so no
+ * connection URL shows anywhere (FR-006), and the Activity card (spec 010 S16, FR-022; U93
+ * 7362:54915): Summary and Activity are one accordion, one open at a time, or none. The footer's
+ * "Edit connection" opens its flow at the step it was saved in, for every team member (F31). No
+ * PDF (F53); the view-only variant (U93 7362:54923) isn't built (F12, spec 010 F31).
  */
 export default function DraftDetails({ draft, onReload }: DraftDetailsProps) {
   const { language } = useLanguage();
@@ -51,7 +55,8 @@ export default function DraftDetails({ draft, onReload }: DraftDetailsProps) {
     languageRef.current = language;
   }, [language]);
   const [state, dispatch] = useReducer(draftDeleteReducer, INITIAL_DRAFT_DELETE_STATE);
-  // The Summary opens first (U07 #24); the Links card has nothing to open
+  // The Summary opens first (U07 #24, U93 7362:54691); the Links card has nothing to open, so
+  // Summary and Activity open one at a time
   const [openAccordion, setOpenAccordion] = useState<DetailAccordionName | null>('summary');
   const navigate = useNavigate();
   const handleUnauthorized = useSignOutOnUnauthorized();
@@ -62,9 +67,11 @@ export default function DraftDetails({ draft, onReload }: DraftDetailsProps) {
   async function remove() {
     dispatch({ type: 'start' });
     try {
-      await deleteDraft(id);
-      const overviewState: OverviewLocationState = { deleted: name };
-      navigate(ROUTES.overview, { replace: true, state: overviewState });
+      const deletion = await deleteDraft(id);
+      navigate(ROUTES.overview, {
+        replace: true,
+        state: overviewStateAfterDeletion(name, deletion),
+      });
     } catch (error) {
       if (!handleUnauthorized(error)) {
         dispatch({ type: 'failed', failure: deleteDraftErrorOf(error, languageRef.current) });
@@ -91,7 +98,7 @@ export default function DraftDetails({ draft, onReload }: DraftDetailsProps) {
     <WizardLayout
       variant="details"
       title={name}
-      badge={<ConnectionStatusBadge isActive draft />}
+      badge={<ConnectionStatusBadge state="draft" />}
       meta={draft.description || undefined}
       footer={<DetailFooter formConnectionId={id} draft={draft} />}
       overlay={
@@ -119,17 +126,7 @@ export default function DraftDetails({ draft, onReload }: DraftDetailsProps) {
           tone="draft"
           title={copy.draftTitle}
           text={copy.draftText}
-          meta={
-            // The date pill (7362:54709): white, radius 8, padding 8 16, the calendar 8px before
-            // the date in label/small muted
-            <p className="bg-kern-layout-background-default rounded-kern-default text-kern-static-small text-kern-layout-text-muted flex items-center gap-8 self-start px-16 py-8 leading-(--kern-typography-line-height-medium-static) font-semibold">
-              <span
-                aria-hidden="true"
-                className="kern-icon kern-icon--calendar-today kern-icon--small bg-kern-layout-text-default! shrink-0"
-              />
-              {editedLineOf(draft.updated_at, language)}
-            </p>
-          }
+          dateLine={datePillOf(draft, language)}
           mainAction={
             <button
               type="button"
@@ -149,6 +146,14 @@ export default function DraftDetails({ draft, onReload }: DraftDetailsProps) {
           onToggle={() => setOpenAccordion((open) => toggleAccordion(open, 'summary'))}
         />
         <DraftCard />
+        <ActivityCard
+          formConnectionId={id}
+          lastActivity={draft.last_activity}
+          state="draft"
+          open={openAccordion === 'activity'}
+          onToggle={() => setOpenAccordion((open) => toggleAccordion(open, 'activity'))}
+          reloadKey={draft.updated_at}
+        />
       </div>
     </WizardLayout>
   );

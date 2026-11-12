@@ -146,7 +146,8 @@ catalog-dropped warning of W6 stays an alert listing the data with "Remove it".
 
 `Toast`: `{ id, kind: 'neutral' | 'success', text, action?: { label, onAction }, errorId? }`;
 one visible at a time, the newest replaces the previous, announced through the live region; an
-action toast stays until used or dismissed. Texts: "Draft saved. You can pick it up any time.",
+action toast stays until used or dismissed (superseded by spec 010's FR-082: every toast closes
+by itself after 6 seconds, held while the pointer or the focus is on it). Texts: "Draft saved. You can pick it up any time.",
 "Couldn't save. Check your internet connection and try again." + "Try again" (+ error ID),
 "Results updated. <name> now meets <rule>.", "You're logged out.", "Changes saved.", the delete,
 deactivate, reactivate and publish toasts (FR-051 (42)), the document and variant undo toasts.
