@@ -82,6 +82,7 @@ function draft(overrides: Partial<FormConnectionDraft> = {}): FormConnectionDraf
     next_group_number: 1,
     step: 'documents',
     version: 1,
+    version_fingerprint: '62D0-715F-01D1',
     created_at: '2026-11-01T09:00:00Z',
     updated_at: '2026-11-01T09:00:00Z',
     last_activity: null,

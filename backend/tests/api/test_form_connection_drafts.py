@@ -12,6 +12,7 @@ that gives the stored drafts' branches theirs (research R10, data-model.md secti
 
 import importlib.util
 import json
+import re
 import threading
 import uuid
 from collections.abc import Callable
@@ -94,7 +95,37 @@ DRAFT_KEYS = {
     'updated_at',
     'last_activity',
     'example',
+    # Spec 011: the version, a fingerprint of the content, not `version`
+    'version_fingerprint',
 }
+
+# What a published connection answers (spec 001 to 011)
+CONNECTION_KEYS = {
+    'status',
+    'id',
+    'name',
+    'description',
+    'version_fingerprint',
+    'is_active',
+    'documents',
+    'trigger_url',
+    'pull_url',
+    'branches',
+    'rule_set_version',
+    'next_rule_number',
+    'next_group_number',
+    'created_at',
+    'updated_at',
+    'state',
+    'published_at',
+    'activated_at',
+    'deactivated_at',
+    'start_date',
+    'last_activity',
+}
+
+# The version's format (spec 011, FR-028)
+VERSION = re.compile(r'[0-9A-F]{4}-[0-9A-F]{4}-[0-9A-F]{4}')
 
 
 # Helpers, shared with the parity (T017) and concurrency (T018) tests
@@ -878,6 +909,7 @@ def test_publishing_a_draft_answers_the_published_connection(
     assert response.status_code == 200, response.json()
     assert response.json()['message'] == 'Form connection published'
     data = response.json()['data']
+    assert set(data) == CONNECTION_KEYS
     assert data['status'] == 'published'
     assert data['id'] == draft_id
     assert data['name'] == FORM_CONNECTION['name']
@@ -1321,7 +1353,8 @@ def published_shape(data: dict[str, Any]) -> dict[str, Any]:
 
     Branch ids become their positions, in the URLs too. Its last activity is left
     out too: an entry has an id and a time of its own, and names who acted
-    (spec 010; test_activity.py checks it).
+    (spec 010; test_activity.py checks it). So is its version, which the id is
+    part of (spec 011; the tests of the version below check it).
     """
     placeholders = {data['id']: '<id>'} | {
         branch['id']: f'<branch {position}>'
@@ -1345,6 +1378,7 @@ def published_shape(data: dict[str, Any]) -> dict[str, Any]:
             'activated_at',
             'deactivated_at',
             'last_activity',
+            'version_fingerprint',
         }
     } | {
         'trigger_url': without_ids(data['trigger_url']),
@@ -2634,3 +2668,234 @@ def test_publish_stored_draft_publishes_only_its_version(
     assert get(signed_in_client, draft_id) == before
     assert rows(draft_id) == (0, 0, 0)
     assert fake_eudiplo.calls == []
+
+
+# Spec 011: the version (data-model.md section 1; FR-028 to FR-031, SC-004). Its
+# canonical form is tests/unit/test_versions.py's; here, the answers carry it, and a
+# draft published unchanged, by the editor or by an approved approval request,
+# keeps it
+
+
+def as_sent_items() -> list[dict[str, Any]]:
+    """us2_items() as a draft may store them: a condition without `match_case` and
+    with an extra key, and one with `years: 5.0` and an extra key (spec 005,
+    FR-004). Publishing stores them in their publishable form."""
+    stuttgart, outer = us2_items(group_message='You are too young.')
+    age_21, sub_group = outer['items']
+    return [
+        stuttgart
+        | {'condition': {'operator': 'equal_to', 'value': 'Stuttgart', 'years': 3}},
+        outer
+        | {
+            'items': [
+                age_21
+                | {
+                    'condition': {
+                        'operator': 'at_least_years_ago',
+                        'years': 5.0,
+                        'value': 'x',
+                    }
+                },
+                sub_group,
+            ]
+        },
+    ]
+
+
+def version_content(**changes: Any) -> dict[str, Any]:
+    """A complete draft as test_publish_stored_draft_publishes_as_the_editor_does
+    builds it, with the conditions of `as_sent_items()`."""
+    items = as_sent_items()
+    content = {
+        'documents': FORM_CONNECTION['documents'],
+        'rules': draft_rules(
+            [
+                main_branch(items),
+                variant(items),
+                variant([AGE_RULE, CLASS_RULE], name='Taxi', origin='empty'),
+            ]
+        ),
+        'step': 'test',
+    }
+    return content | changes
+
+
+def documents_of(data: dict[str, Any]) -> list[dict[str, Any]]:
+    """An answer's documents as a request sends them: keys, in the answer's order."""
+    return [
+        {
+            'document_type': document['document_type'],
+            'fields': [field['key'] for field in document['fields']],
+        }
+        for document in data['documents']
+    ]
+
+
+def unchanged_save(draft: dict[str, Any]) -> dict[str, Any]:
+    """A save of `draft` as loaded: its content with its ids, its identifiers
+    counting as loaded (research R4)."""
+    return {
+        'name': draft['name'],
+        'description': draft['description'],
+        'documents': documents_of(draft),
+        'rules': draft_rules(
+            draft['branches'],
+            rule_base=draft['next_rule_number'],
+            group_base=draft['next_group_number'],
+        ),
+        'step': draft['step'],
+        'version': draft['version'],
+    }
+
+
+def save_answer(client: TestClient, draft_id: str, body: dict[str, Any]) -> Any:
+    """`PUT …/{id}/draft` with `body`; the saved draft."""
+    response = client.put(f'{BASE}/{draft_id}/draft', json=body)
+    assert response.status_code == 200, response.json()
+    return response.json()['data']
+
+
+def publish_unchanged(
+    client: TestClient, draft: dict[str, Any], path: str
+) -> dict[str, Any]:
+    """Publish `draft` as loaded: the editor's publish (`editor`), or an approved
+    approval request's (`approval`, `publish_stored_draft`); the connection."""
+    if path == 'editor':
+        response = client.post(
+            f'{BASE}/{draft["id"]}/publish',
+            json=editor_publish_body(draft, documents_of(draft)),
+        )
+        assert response.status_code == 200, response.json()
+        data: dict[str, Any] = response.json()['data']
+        return data
+    with SessionLocal() as db:
+        view = drafts.publish_stored_draft(
+            db,
+            draft['id'],
+            draft['version'],
+            actor=Actor(name=TEST_USERNAME, agent='Test agent', approved=True),
+        )
+    return view.model_dump(mode='json')
+
+
+PUBLISH_PATHS = ['editor', 'approval']
+
+
+@pytest.mark.parametrize('path', PUBLISH_PATHS)
+def test_a_draft_published_unchanged_keeps_its_version(
+    signed_in_client: TestClient, fake_eudiplo: FakeEudiplo, path: str
+) -> None:
+    """FR-031, SC-004: also when publishing stores its conditions otherwise."""
+    draft = get(signed_in_client, create_draft(signed_in_client, **version_content()))
+    assert VERSION.fullmatch(draft['version_fingerprint'])
+
+    published = publish_unchanged(signed_in_client, draft, path)
+
+    assert published['status'] == 'published'
+    assert published['version_fingerprint'] == draft['version_fingerprint']
+    again = get(signed_in_client, draft['id'])
+    assert again['version_fingerprint'] == draft['version_fingerprint']
+    # Publishing stored the conditions without the draft's extra keys, with
+    # `match_case` and with whole years as an int
+    [stored_city, stored_group] = draft['branches'][0]['items']
+    [city, outer] = again['branches'][0]['items']
+    assert stored_city['condition'] == {
+        'operator': 'equal_to',
+        'value': 'Stuttgart',
+        'years': 3,
+    }
+    assert city['condition'] == {
+        'operator': 'equal_to',
+        'value': 'Stuttgart',
+        'match_case': False,
+    }
+    assert stored_group['items'][0]['condition']['value'] == 'x'
+    years = outer['items'][0]['condition']
+    assert years == {'operator': 'at_least_years_ago', 'years': 5}
+    assert isinstance(years['years'], int)
+
+
+def test_saving_a_draft_unchanged_keeps_its_version(
+    signed_in_client: TestClient, fake_eudiplo: FakeEudiplo
+) -> None:
+    """SC-004: the save number grows, the version stays; the step is no content."""
+    draft = get(signed_in_client, create_draft(signed_in_client, **version_content()))
+
+    saved = save_answer(signed_in_client, draft['id'], unchanged_save(draft))
+    moved_on = save_answer(
+        signed_in_client, draft['id'], unchanged_save(saved) | {'step': 'rules'}
+    )
+
+    assert [saved['version'], moved_on['version']] == [2, 3]
+    assert moved_on['step'] == 'rules'
+    assert saved['version_fingerprint'] == draft['version_fingerprint']
+    assert moved_on['version_fingerprint'] == draft['version_fingerprint']
+
+
+def test_reordering_a_drafts_documents_changes_its_version(
+    signed_in_client: TestClient, fake_eudiplo: FakeEudiplo
+) -> None:
+    """The order is content (spec 011, Clarifications 2026-11-12); moving the
+    documents back gives the version back."""
+    draft = get(signed_in_client, create_draft(signed_in_client, **version_content()))
+    in_catalog_order = documents_of(draft)
+
+    moved = save_answer(
+        signed_in_client,
+        draft['id'],
+        unchanged_save(draft) | {'documents': in_catalog_order[::-1]},
+    )
+    back = save_answer(
+        signed_in_client,
+        draft['id'],
+        unchanged_save(moved) | {'documents': in_catalog_order},
+    )
+
+    assert [document['document_type'] for document in moved['documents']] == [
+        'mdl',
+        'pid',
+    ]
+    assert moved['version_fingerprint'] != draft['version_fingerprint']
+    assert back['version_fingerprint'] == draft['version_fingerprint']
+
+
+@pytest.mark.parametrize('path', PUBLISH_PATHS)
+def test_a_draft_not_in_catalog_order_keeps_its_version_when_published(
+    signed_in_client: TestClient, fake_eudiplo: FakeEudiplo, path: str
+) -> None:
+    """Both answers hash the documents in the team's order, never in the
+    revision's catalog order (spec 010, data-model.md section 1)."""
+    draft_id = create_draft(
+        signed_in_client,
+        **version_content(documents=FORM_CONNECTION['documents'][::-1]),
+    )
+    draft = get(signed_in_client, draft_id)
+
+    published = publish_unchanged(signed_in_client, draft, path)
+
+    for answer in (draft, published):
+        assert [d['document_type'] for d in answer['documents']] == ['mdl', 'pid']
+    assert published['version_fingerprint'] == draft['version_fingerprint']
+    with SessionLocal() as db:
+        revision = db.scalars(
+            select(FormConnectionRevision).where(
+                FormConnectionRevision.form_connection_id == draft_id
+            )
+        ).one()
+    assert [d['document_type'] for d in revision.documents] == ['pid', 'mdl']
+
+
+def test_a_drafts_version_is_the_same_in_german(
+    signed_in_client: TestClient, fake_eudiplo: FakeEudiplo
+) -> None:
+    """FR-030: the labels follow the language, the version doesn't."""
+    draft_id = create_draft(signed_in_client, **version_content())
+
+    english = get(signed_in_client, draft_id)
+    german = signed_in_client.get(
+        f'{BASE}/{draft_id}', headers={'Accept-Language': 'de'}
+    ).json()['data']
+
+    assert english['documents'][0]['label'] == 'Personal ID'
+    assert german['documents'][0]['label'] == 'Personalausweis'
+    assert german['version_fingerprint'] == english['version_fingerprint']

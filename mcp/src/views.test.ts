@@ -47,6 +47,7 @@ import {
   urlsTextOf,
   variantLineOf,
   variantRefOf,
+  versionLineOf,
 } from './views';
 
 // A fixture draft with Standard, a variant based on it and an empty variant. Standard checks the
@@ -60,6 +61,9 @@ const AMBULANCE = '22222222-2222-4222-8222-222222222222';
 const NIGHT_SHIFT = '33333333-3333-4333-8333-333333333333';
 
 const CATALOG: DocumentType[] = [PID, MDL];
+
+/** The fixtures' version: publishing a draft unchanged keeps it (spec 011, research R12) */
+const VERSION = '62D0-715F-01D1';
 
 function fieldOf(documentType: DocumentType, key: string): DocumentField {
   const field = documentType.fields.find((entry) => entry.key === key);
@@ -165,6 +169,7 @@ const DRAFT: FormConnectionDraft = {
   next_group_number: 2,
   step: 'rules',
   version: 3,
+  version_fingerprint: VERSION,
   created_at: '2026-11-01T10:00:00Z',
   updated_at: '2026-11-02T10:00:00Z',
   last_activity: null,
@@ -191,6 +196,7 @@ const PUBLISHED: FormConnection = {
     pull_url: pullUrl(entry.id ?? ''),
   })),
   rule_set_version: 1,
+  version_fingerprint: VERSION,
   next_rule_number: 6,
   next_group_number: 2,
   created_at: '2026-11-01T10:00:00Z',
@@ -563,7 +569,7 @@ describe('the dates and the step (spec 010, FR-062)', () => {
 
   it("gives get_connection a draft's step and no dates", () => {
     const facts = connectionFactsOf(DRAFT);
-    expect(facts).toEqual({ step: 'rules' });
+    expect(facts).toEqual({ version_fingerprint: VERSION, step: 'rules' });
     expect(stepLineOf('rules')).toBe('Draft at the rules step.');
     expect(connectionDatesLineOf(facts)).toBeNull();
   });
@@ -572,6 +578,7 @@ describe('the dates and the step (spec 010, FR-062)', () => {
     const reactivated = { ...PUBLISHED, activated_at: '2026-11-05T10:00:00Z' };
     const facts = connectionFactsOf(reactivated);
     expect(facts).toEqual({
+      version_fingerprint: VERSION,
       published_at: '2026-11-01T10:00:00Z',
       active_since: '2026-11-05T10:00:00Z',
     });
@@ -583,6 +590,7 @@ describe('the dates and the step (spec 010, FR-062)', () => {
   it('gives a deactivated connection deactivated_since', () => {
     const facts = connectionFactsOf(DEACTIVATED);
     expect(facts).toEqual({
+      version_fingerprint: VERSION,
       published_at: '2026-11-01T10:00:00Z',
       active_since: '2026-11-01T10:00:00Z',
       deactivated_since: '2026-11-03T10:00:00Z',
@@ -592,7 +600,11 @@ describe('the dates and the step (spec 010, FR-062)', () => {
 
   it('gives a scheduled connection its start_date, and no active_since while never active', () => {
     const facts = connectionFactsOf(SCHEDULED);
-    expect(facts).toEqual({ start_date: '2026-12-01', published_at: '2026-11-01T10:00:00Z' });
+    expect(facts).toEqual({
+      version_fingerprint: VERSION,
+      start_date: '2026-12-01',
+      published_at: '2026-11-01T10:00:00Z',
+    });
     expect(connectionDatesLineOf(facts)).toBe('Published 2026-11-01T10:00:00Z.');
   });
 
@@ -600,6 +612,30 @@ describe('the dates and the step (spec 010, FR-062)', () => {
     expect(connectionFactsOf(PUBLISHED)).not.toHaveProperty('start_date');
     expect(connectionFactsOf(DEACTIVATED)).not.toHaveProperty('start_date');
     expect(connectionFactsOf(DRAFT)).not.toHaveProperty('start_date');
+  });
+});
+
+describe('the version (spec 011, research R12)', () => {
+  it('gives get_connection the version of a published connection and of a draft', () => {
+    expect(connectionFactsOf(PUBLISHED).version_fingerprint).toBe(VERSION);
+    expect(connectionFactsOf(SCHEDULED).version_fingerprint).toBe(VERSION);
+    expect(connectionFactsOf(DRAFT).version_fingerprint).toBe(VERSION);
+  });
+
+  it("copies the field as the API answers it, never the draft's save number", () => {
+    const other = '0A1B-2C3D-4E5F';
+    const facts = connectionFactsOf({ ...DRAFT, version: 7, version_fingerprint: other });
+    expect(facts.version_fingerprint).toBe(other);
+    expect(Object.values(facts)).not.toContain(7);
+    expect(connectionFactsOf({ ...PUBLISHED, version_fingerprint: other })).toMatchObject({
+      version_fingerprint: other,
+    });
+  });
+
+  it('names it in the text block as the details page and the PDF show it', () => {
+    expect(versionLineOf(VERSION)).toBe(
+      'Version 62D0-715F-01D1, as the details page and the PDF show it.'
+    );
   });
 });
 
@@ -634,10 +670,12 @@ describe("the example's mark (spec 010, FR-062; research R7)", () => {
 
   it('gives get_connection the mark as stored, unchanged or changed', () => {
     expect(connectionFactsOf({ ...DRAFT, example: 'unchanged' })).toEqual({
+      version_fingerprint: VERSION,
       step: 'rules',
       example: 'unchanged',
     });
     expect(connectionFactsOf({ ...DRAFT, example: 'changed' })).toEqual({
+      version_fingerprint: VERSION,
       step: 'rules',
       example: 'changed',
     });

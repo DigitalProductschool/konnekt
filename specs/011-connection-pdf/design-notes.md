@@ -330,4 +330,31 @@ S.A.". The largest file is 473160 bytes, under the 500 KB (512000 bytes) of the
   (port 5435). `pdfkit` was moved into alphabetical order in `frontend/package.json` (the
   lockfile is unchanged by it).
 
+**2026-11-12, T011 checkpoint of the version in the API (Phase 2).**
+- **`curl`**: the backend ran on the dev database (`template_db`, migrated to head) with the
+  tests' fake EUDIPLO (`tests/fake_eudiplo.py`), port 3000, no worker. "Start from an example"
+  (`POST /api/form-connections/example`) stored a draft with `version_fingerprint`
+  `10F5-92A4-B177` (save number 1), the same with `Accept-Language: de`. Published unchanged
+  through `POST /{id}/publish` with the draft's content as the editor sends it, it answered `live`
+  with `10F5-92A4-B177`; `GET` in English and German, deactivating and activating kept it. The field
+  sits after `description`; both values match `^[0-9A-F]{4}-[0-9A-F]{4}-[0-9A-F]{4}$`; the
+  overview's list (`FormConnectionSummary`) has no such field. The account `t011` and the
+  published example stay in `template_db` (not the tests' database).
+- **The canonical form** (T007): the prototype's sample as stored gives `FA7E-47BB-5368`, its
+  draft with C's two gaps `3D3C-F9EA-5FE0`, both cross-checked with the prototype's JS
+  `canonical()` and pinned in `backend/tests/unit/test_versions.py` (74 tests, among them a guard
+  that fails when a field is added to the content's schemas until it is decided). The fixture's
+  mapping of the prototype's composed rules to catalog keys and UUIDs is carried to T018.
+  `_clean_condition()` now returns `publishable_condition()`; a grid of 4788 condition × target
+  cases gave byte-identical stored JSON and refusal messages (English and German) before and after,
+  and `test_rules_validation.py` and the API rule tests passed unedited.
+- **Gates**: backend: Ruff, format, mypy (97 source files); the full pytest run 2643 passed,
+  0 skipped (14 min 15 s, T008's agent, on the final backend files), and the five changed or
+  guarding files again at the checkpoint (689 passed). Node: lint, 2664 / 1573 / 513 tests in
+  `rules/`, `frontend/`, `mcp/` (513: 3 new cases of T010), the build with the main entry
+  unchanged (934.62 kB, 278.94 kB gzip). `rules/src/personas/performance.test.ts` failed once
+  on its time budget while pytest ran beside it and passed alone (7 / 7), as T006 noted.
+- **Carried**: T010's question whether the MCP's draft text keeps "Version {n}" for the save
+  number goes to T051.
+
 ## 9. Closing report

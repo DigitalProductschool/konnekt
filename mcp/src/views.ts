@@ -414,6 +414,12 @@ export function summaryFactsOf(
  * reactivating moves and publishing doesn't (FR-018)
  */
 export interface ConnectionFacts {
+  /**
+   * The "Version" the details page and the PDF show: a fingerprint of the content
+   * (`XXXX-XXXX-XXXX`), for a published connection and a draft alike; not a draft's save number
+   * (spec 011, research R12)
+   */
+  version_fingerprint: string;
   /** YYYY-MM-DD, the day in Germany a scheduled connection becomes active */
   start_date?: string;
   published_at?: string;
@@ -430,18 +436,32 @@ export interface ConnectionFacts {
 }
 
 /**
- * A connection's dates, or a draft's step and example mark, as `get_connection` answers them.
+ * A connection's version and dates, or a draft's version, step and example mark, as
+ * `get_connection` answers them.
  */
 export function connectionFactsOf(fc: FormConnectionOrDraft): ConnectionFacts {
   if (fc.status === 'draft') {
-    return { step: fc.step, ...(fc.example ? { example: fc.example } : {}) };
+    return {
+      version_fingerprint: fc.version_fingerprint,
+      step: fc.step,
+      ...(fc.example ? { example: fc.example } : {}),
+    };
   }
   return {
+    version_fingerprint: fc.version_fingerprint,
     ...(fc.start_date ? { start_date: fc.start_date } : {}),
     published_at: fc.published_at,
     ...(fc.activated_at ? { active_since: fc.activated_at } : {}),
     ...(fc.deactivated_at ? { deactivated_since: fc.deactivated_at } : {}),
   };
+}
+
+/**
+ * The text block's line on the version: "Version 62D0-715F-01D1, as the details page and the PDF
+ * show it."
+ */
+export function versionLineOf(fingerprint: string): string {
+  return `Version ${fingerprint}, as the details page and the PDF show it.`;
 }
 
 /** The text block's line on a draft's step: "Draft at the rules step." */

@@ -94,6 +94,7 @@ function connection(branches: Branch[]): FormConnection {
     pull_url: 'https://connect.example/api/connect/fc/requests/{reference}',
     branches,
     rule_set_version: 1,
+    version_fingerprint: '62D0-715F-01D1',
     next_rule_number: 1,
     next_group_number: 1,
     created_at: '2026-10-25T10:00:00Z',

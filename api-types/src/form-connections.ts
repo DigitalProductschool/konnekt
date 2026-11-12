@@ -241,6 +241,12 @@ export interface FormConnection {
   branches: Branch[];
   /** The current rule set, which a save of rules names as its base_version */
   rule_set_version: number;
+  /**
+   * The "Version" the details page and the PDF show: a fingerprint of the content, as
+   * `XXXX-XXXX-XXXX` (equal content, equal version; spec 011, data-model.md section 1). Not a
+   * counter, and not `rule_set_version`
+   */
+  version_fingerprint: string;
   /** The next free identifier numbers */
   next_rule_number: number;
   next_group_number: number;
@@ -382,6 +388,12 @@ export interface FormConnectionDraft {
   step: EditorStep;
   /** The draft version, sent back on save and publish (FR-022) */
   version: number;
+  /**
+   * The "Version" the details page and the PDF show: a fingerprint of the content, as
+   * `XXXX-XXXX-XXXX` (equal content, equal version; spec 011, data-model.md section 1). Not
+   * `version`, the draft's save number
+   */
+  version_fingerprint: string;
   created_at: string;
   updated_at: string;
   /** The entry the activity card's closed line shows (spec 010, data-model.md section 2.5) */
