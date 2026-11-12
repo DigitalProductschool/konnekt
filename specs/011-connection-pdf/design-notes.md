@@ -47,7 +47,8 @@ frame draws it, so this is the proposal):
   which browsers would load only where the class is used, would print the code as the PDF does.)
 - Plain text, not a control and not a tooltip; screen readers read it in place, after the
   counts. No copy button (the details' copy buttons are for links).
-- Shown open or closed, on the published (active and deactivated) and the draft details; the
+- Shown open or closed, on the published (scheduled, active and deactivated) and the draft
+  details; the
   value comes from the loaded connection and changes when the page loads a newer one (FR-005).
 - Rejected places: in the counts line (it would read as one more count, and the clarification
   put it beside the button); in the status band (not where a reader looks when comparing with the
@@ -90,6 +91,7 @@ background each text sits on:
 | Top band, details box | `#EEF3FA` | `#F2F5FB` layout-background-hued | muted text on it | 7.0 |
 | Active pill | `#16683A` on `#E5F3EA` | `#1D7A2E` on `#EAF7E6` (feedback-success) | | 4.9 |
 | Deactivated pill | `#5F6270` on `#F2F3F6` | `#4A5468` on `#EFF1F4`, dot `#8C94A1` (ConnectionStatusBadge) | | 6.7 |
+| Scheduled pill (spec 010; not in the prototype) | none | as the Active pill, with a hollow dot (ConnectionStatusBadge) | | 4.9 |
 | Draft pill, draft accents, dashed box | `#05669E`, dot `#0284C7`, `#E3F1FB` | `#05669E`, dot `#0284C7`, `#E0F2FE` (ConnectionStatusBadge, feedback-info-background) | | 5.4 |
 | "Draft · Not live" pill in the band | white on `#0284C7` (**4.1, fails**) | white on `#05669E` | | 6.2 |
 | Marks "Changed here", "Added here" | purple `#6B2D8F`, teal `#0D6B6B` | `#8A22B5` on `#F8F1FC` (BranchMark: variant-changed and variant-new share it; the words tell them apart) | | 6.4 |
@@ -130,6 +132,9 @@ token's name beside each, since the worker can't read CSS.
 13. The document properties have no custom keys (the prototype wrote `ConnectionId`,
     `ConnectionVersion`, `ConnectionStatus`): Subject and Keywords carry the ID and the version,
     and readers show those.
+14. A scheduled connection (spec 010), which the prototype doesn't have: the "Scheduled" pill
+    with "as of <generated> · starts on <start date>", and the links section's sentence that the
+    links answer "unavailable" until that day (FR-007, FR-012).
 
 ## 6. How it is verified
 

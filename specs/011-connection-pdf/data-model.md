@@ -28,12 +28,14 @@ whitespace, `ensure_ascii=False`, encoded as UTF-8):
 | `id` | the connection's id | the same row before and after publishing |
 | `name` | the name as stored (trimmed) | |
 | `description` | the description as stored (`''` when none) | |
-| `documents` | `[{document_type, fields: [key, …]}]` in the stored (catalog) order | keys only, never labels (FR-029: not the wording of labels) |
+| `documents` | `[{document_type, fields: [key, …]}]`, the documents in the team's order as the answer's `documents` lists them (spec 010: `ordered_documents()` with the row's `document_order`), each document's fields in catalog order | keys only, never labels (FR-029: not the wording of labels); the order is content (spec, Clarifications 2026-11-12): a save that only reorders changes the version although it creates no revision |
 | `branches` | `[{id, name, description, origin, operator, operator_mark, items}]` in the stored order | not `is_main`, not `pull_url` |
 | `items` (inside) | each rule `{type, id, name, mark, target, condition, message}`, each group `{type, id, name, mark, operator, message, items}` | `target` with its four keys, `None` kept as `null` |
 | `condition` (inside) | the **publishable form** (below) | |
 
-**Left out** (FR-029): `status`, `is_active`, `trigger_url`, every `pull_url`,
+**Left out** (FR-029): `status`, `is_active`, `state`, `start_date`, the status dates
+(`published_at`, `activated_at`, `deactivated_at`), `last_activity`, `example`, `trigger_url`,
+every `pull_url`,
 `rule_set_version`, `next_rule_number`, `next_group_number`, `step`, the draft's `version` (its
 save number), `created_at`, `updated_at`, labels, language.
 
@@ -59,8 +61,12 @@ and `_clean_condition` returns its result after its checks, so the two can't dri
 - A complete stored draft and the connection `publish_stored_draft()` makes of it have the same
   `version_fingerprint`, including a draft whose conditions carry extra keys, no `match_case`, or
   `years: 5.0`.
-- Changing any one element of the table above changes it; deactivating, activating, saving a
-  draft unchanged, `Accept-Language` and the catalog's labels don't.
+- Changing any one element of the table above changes it, the documents' order included;
+  deactivating, activating, scheduling, changing the start date, saving a draft unchanged,
+  `Accept-Language` and the catalog's labels don't.
+- A draft whose documents aren't in catalog order keeps its `version_fingerprint` when it is
+  published: both builders hash the documents in the order their answer lists them, never the
+  revision's catalog order.
 
 ## 2. The content model (frontend, pure)
 
@@ -73,7 +79,8 @@ for a draft (FR-013).
 interface ConnectionPdfModel {
   language: Language;                  // spec 009's 'en' | 'de'; the PDF's /Lang and its texts
   kind: 'published' | 'draft';
-  status: 'active' | 'deactivated' | 'draft';
+  status: 'scheduled' | 'active' | 'deactivated' | 'draft';   // a published one's `state` (spec 010; `live` reads 'active')
+  startDate: string | null;            // "01.12.2026", a scheduled connection's start date (FR-035); else null
   id: string;                          // the connection ID
   name: string;                        // as entered (FR-034)
   description: string | null;          // null when empty (the line is left out)

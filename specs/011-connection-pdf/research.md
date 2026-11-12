@@ -186,8 +186,10 @@ failure (SC-006), or waiting for an upstream fix.
   fingerprint hashes conditions in that **publishable form**: the key selection moves into
   `publishable_condition()`, which `_clean_condition` returns after its checks, so the two can't
   drift. Everything else is already identical: ids kept on publish (connection, branches, items),
-  names and messages trimmed the same way on save and publish, documents and fields in catalog
-  order on both paths, marks untouched.
+  names and messages trimmed the same way on save and publish, fields in catalog order on both
+  paths, marks untouched. Since spec 010 the documents are in the team's order in both answers
+  (`ordered_documents()` with the row's `document_order`), while a revision keeps catalog order:
+  the fingerprint hashes the answer's order (spec, Clarifications 2026-11-12).
 - Computed per response, not stored.
 - **pytest**: a complete draft published unchanged keeps its fingerprint, including conditions
   saved with extra keys, without `match_case` and with `years: 5.0` (publishing normalises them:

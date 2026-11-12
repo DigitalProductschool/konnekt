@@ -33,7 +33,9 @@ It supersedes:
 
 Everything else of specs 008 and 009 is the baseline and is taken as complete: the details page
 with its status band, its Links and Summary accordions, the draft's details, the website's two
-languages and their glossary.
+languages and their glossary. Spec 010, implemented after this spec was first written, is part of
+the baseline too: the scheduled state with its start date, the status dates, the activity, the
+documents' order and the example (Clarifications, 2026-11-12).
 
 A working prototype is kept in `prototype/`. It is a sketch, not the implementation: this spec
 describes behaviour, not the prototype's code. Its two PDFs `published-ids-top.pdf` and
@@ -57,12 +59,28 @@ top.
   Summary card's header, beside "Download PDF", visible whether the Summary is open or closed, on
   the published and the draft details (FR-032).
 
+### Session 2026-11-12
+
+Spec 010 was implemented after this spec was written; these answers align the two.
+
+- Q: What does the PDF of a scheduled connection show (spec 010: published, not live until its
+  start date)? → A: "Scheduled" with "as of <date and time of the download>" and its start date;
+  its links are printed, with a sentence that they answer "unavailable" until the start date. The
+  start date is not content: it never changes the version (FR-007, FR-012, FR-029).
+- Q: Is the order of the requested documents (spec 010) content? → A: Yes. The PDF lists the
+  documents in the team's order, as the Summary does, and the version is derived from that order,
+  so a save that only reorders them changes the version although it creates no revision (FR-014,
+  FR-029).
+- Q: Does the example draft (spec 010) get a PDF? → A: Yes, as any stored draft, without a mark
+  of its own; that a draft is the example never changes the version (FR-001, FR-029).
+
 ## User Scenarios & Testing *(mandatory)*
 
 ### User Story 1 - Download a published connection's details (Priority: P1)
 
-A team member of DO.IT opens the details of a published connection, active or deactivated, to
-hand it over to a colleague or to keep it. In the header of the Summary card they activate
+A team member of DO.IT opens the details of a published connection, scheduled, active or
+deactivated, to hand it over to a colleague or to keep it. In the header of the Summary card they
+activate
 "Download PDF". The button shows that the file is being made, and a moment later the browser
 saves it as "<connection name>_<version>.pdf". The PDF holds everything a colleague needs to add
 the connection to serviceBW and to understand it: page 1 with the name, description, status and a
@@ -103,6 +121,10 @@ added and removed items, and comparing the file with the details page and with t
 6. **Given** the network fails while the file is being made, **When** making it fails, **Then**
    the page says so, offers to try again and saves no file; trying again once the network is back
    saves the file.
+7. **Given** a scheduled connection whose start date is 01.12.2026, **When** its PDF is
+   downloaded, **Then** page 1 reads "Scheduled" with "as of <date of the download>" and "starts on
+   01.12.2026", and the links section shows the links and adds that they answer "unavailable"
+   until the connection starts on that day.
 
 ---
 
@@ -162,9 +184,9 @@ to be useful, and it can be tested on its own once one of them exists.
 
 **Independent Test**: can be fully tested by downloading a connection's PDF, comparing the
 version with the details page, then changing one thing at a time (a name, a description, a data
-item, a rule's value, a message, a variant's AND/OR, a mark) and checking that the version
-changes, and changing nothing that is content (status, language, a re-save without changes, the
-time) and checking that it does not.
+item, the documents' order, a rule's value, a message, a variant's AND/OR, a mark) and checking
+that the version changes, and changing nothing that is content (status, start date, language, a
+re-save without changes, the time) and checking that it does not.
 
 **Acceptance Scenarios**:
 
@@ -218,7 +240,8 @@ validator and a screen reader.
 ### Edge Cases
 
 - **The connection changed since the page was opened** (another team member saved it, published
-  the draft, or deactivated it): the PDF shows the connection as stored when "Download PDF" was
+  the draft, deactivated it or changed its start date, or it went live on its start date): the
+  PDF shows the connection as stored when "Download PDF" was
   activated, and the page updates to show the same: the new content and version, the new
   status, or, for a draft published meanwhile, the published connection's details (FR-005). The
   file is then named and made as for what is stored now.
@@ -276,8 +299,9 @@ validator and a screen reader.
 
 **Downloading**
 
-- **FR-001**: The details of a published connection, active or deactivated, and the details of a
-  stored draft MUST offer "Download PDF" as a secondary button with a download icon in the header
+- **FR-001**: The details of a published connection (scheduled, active or deactivated) and the
+  details of a stored draft, the example draft included, MUST offer "Download PDF" as a secondary
+  button with a download icon in the header
   of the Summary card, as Figma draws it (`6396:48196`, `6809:46423`; the draft's details U93
   #10), whether the Summary is open or closed. Every signed-in team member who can open the
   details MUST be able to use it.
@@ -290,9 +314,9 @@ validator and a screen reader.
   (with its error id when the server gave one), MUST offer to try again, and MUST NOT save a file,
   complete or partial.
 - **FR-005**: The PDF MUST describe the connection as it is stored at the moment "Download PDF" is
-  activated. When that differs from what the page shows (its content, its status, or a draft
-  published meanwhile), the page MUST show the stored state too, so that the page, the file, the
-  "as of" status and the version agree.
+  activated. When that differs from what the page shows (its content, its status or start date,
+  or a draft published meanwhile), the page MUST show the stored state too, so that the page, the
+  file, the "as of" status and the version agree.
 - **FR-006**: "Download PDF" MUST NOT be offered for local drafts, in the create and edit flow or
   on the approval page.
 
@@ -301,7 +325,8 @@ validator and a screen reader.
 - **FR-007**: Page 1 MUST show, in this order: "Connection details" (a draft's: "Connection
   details · Draft for review"); the connection's name as the document's main heading; its
   description when it has one; and its status: "Active" or "Deactivated" with "as of <date and
-  time of the download>", or for a draft "Draft" with "Not live yet".
+  time of the download>"; "Scheduled" with "as of <date and time of the download>" and its start
+  date ("starts on 01.12.2026"); or for a draft "Draft" with "Not live yet".
 - **FR-008**: Below the status, a details box MUST show: the connection ID; the version; for a
   draft, "Last saved" with the date and time of its last save and its save number ("draft save
   7"); the date and time of the download, marked as Germany's time; and the contents, counted as
@@ -332,7 +357,9 @@ validator and a screen reader.
   MUST be printed in full, without added hyphens, breaking only after a "/"; only a part
   between two "/" that is wider than a line on its own MAY break at the line's end.
 - **FR-012**: For a deactivated connection, the section MUST add that its links answer
-  "unavailable" until the connection is activated again.
+  "unavailable" until the connection is activated again. For a scheduled connection, it MUST add
+  that its links can already be added to the service and answer "unavailable" until the
+  connection starts on its start date.
 - **FR-013**: For a draft, the PDF MUST NOT contain any URL of the connection, anywhere (spec 005,
   FR-006). The section MUST instead read "Created when the connection is published and active."
   and name the links publishing will create: one request link for all variants and a result link
@@ -340,7 +367,8 @@ validator and a screen reader.
 
 **2 Documents and data items**
 
-- **FR-014**: The section MUST list each requested document in the Summary's order with the
+- **FR-014**: The section MUST list each requested document in the Summary's order (the order
+  the team gave the documents, spec 010) with the
   number of its data items and their names, as the Summary names them. A draft without documents
   and a document without data items MUST show the Summary's placeholders ("No documents yet").
 
@@ -396,11 +424,13 @@ validator and a screen reader.
 - **FR-028**: The version MUST be twelve characters, digits 0–9 and letters A–F, in three groups
   of four separated by hyphens ("62D0-715F-01D1").
 - **FR-029**: The version MUST be derived from the connection's content: its connection ID, name
-  and description; its requested documents and data items; each variant's identity, name,
+  and description; its requested documents, in the order the team gave them, and their data
+  items; each variant's identity, name,
   description, kind and top-level AND/OR with its mark; and each variant's rules and groups with
   their identifiers, names, conditions, messages, order, nesting and marks. It MUST NOT depend on
-  the status, the language, the wording of labels or statements, the URLs, the draft's save
-  number, the date or time, or who downloads the file.
+  the status, a scheduled connection's start date, the language, the wording of labels or
+  statements, the URLs, the draft's save number, whether the draft is the example, the date or
+  time, or who downloads the file.
 - **FR-030**: The same content MUST give the same version, on any computer, in either language
   and at any time; any change of content MUST give a different version, with a chance that two
   different contents share a version too small to matter in practice (twelve hexadecimal
@@ -422,7 +452,8 @@ validator and a screen reader.
   citizens, values typed as text) MUST stay as entered, and the version MUST be the same in both
   languages.
 - **FR-035**: Every date and time in the PDF MUST read "dd.mm.yyyy, hh:mm" on a 24-hour clock
-  ("09.11.2026, 16:45"), in Germany's time, in both languages.
+  ("09.11.2026, 16:45"), in Germany's time, in both languages. A scheduled connection's start
+  date is a day in Germany and MUST read "dd.mm.yyyy" ("01.12.2026").
 
 **Accessibility**
 
@@ -484,7 +515,8 @@ validator and a screen reader.
   connection the size of the prototype's sample (2 documents, 3 variants, 12 rules) is saved
   within 3 seconds; a connection at the limits (20 variants of 200 items) within 60 seconds, with
   the page responding throughout.
-- **SC-002**: For the test connections (active, deactivated, a draft with gaps, a draft without,
+- **SC-002**: For the test connections (active, deactivated, scheduled, a draft with gaps, a
+  draft without,
   a connection at the limits), 100 % of the documents, data items, variants, rules, groups,
   identifiers, marks, messages and (published only) links that the details page shows appear in
   the PDF, in the same order and nesting, and the PDF contains no finding, persona or URL of a
@@ -495,7 +527,8 @@ validator and a screen reader.
   shows.
 - **SC-004**: In 100 % of the tested cases, the version stays the same when nothing of the
   content changes (a second download, the other language, another computer, deactivating and
-  activating, a save without changes, publishing a draft unchanged) and changes when any one
+  activating, scheduling and changing the start date, a save without changes, publishing a draft
+  unchanged) and changes when any one
   element of the content changes (each kind of element of FR-029 tested once).
 - **SC-005**: No test PDF splits a rule, a group's header, a link or a document's data items
   (apart from a rule taller than a page), ends a page with a heading, or continues a variant or
@@ -515,12 +548,16 @@ validator and a screen reader.
 
 ## Assumptions
 
-- **Specs 008 and 009 are complete**: the details page, its Summary card and its accordions are
-  as spec 008 built them, and the website speaks English and German with spec 009's glossary.
+- **Specs 008, 009 and 010 are complete**: the details page, its Summary card and its accordions
+  are as spec 008 built them and spec 010 extended them (the scheduled state and its start date,
+  the status dates, the activity card, the documents' order, the example), and the website speaks
+  English and German with spec 009's glossary.
   The German copy of the PDF is written in this feature with that glossary and reviewed by the
   team, as spec 009 does for the website.
 - **The agreed layout and English wording** are those of `prototype/published-ids-top.pdf` and
   `prototype/draft-ids-top.pdf`. Where this spec and the prototype differ, this spec wins.
+- **The example draft** (spec 010) is a stored draft like any other: it gets the draft's PDF,
+  which doesn't say that it is the example.
 - **The PDF is a snapshot**: it shows one moment and is never updated; the product keeps no
   history of versions.
 - **Who can download**: every signed-in team member who can open the details; no new permission.
@@ -540,6 +577,7 @@ validator and a screen reader.
 - Local drafts: they live in one browser, so nobody can compare a printout against them.
 - A PDF from the create and edit flow or from the approval page.
 - An MCP tool for the PDF.
-- The activity log, the status dates ("Active since", "Deactivated since") and "Generated by".
+- The activity log, the status dates ("Active since", "Deactivated since") and "Generated by". A
+  scheduled connection's start date is shown (FR-007).
 - The rule checks' findings, test personas and anything a citizen shared.
 - Other file formats.

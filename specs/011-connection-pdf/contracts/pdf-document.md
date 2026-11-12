@@ -28,8 +28,10 @@ Sizes and spacing are the prototype's (`make.mjs`); colours are KERN's (design-n
    "C O N N E C T I O N"; spike).
 2. **H1**: the connection's name, in full, wrapping.
 3. The description, when there is one.
-4. The status: a pill ("Active", "Deactivated", "Draft"; the pill's shape and dot are artifacts,
-   its word is text) and beside it "as of <generated>" or, for a draft, "Not live yet".
+4. The status: a pill ("Active", "Deactivated", "Scheduled", "Draft"; the pill's shape and dot
+   are artifacts, its word is text) and beside it "as of <generated>", for a scheduled connection
+   "as of <generated> · starts on <start date>" (spec 010; the date as "dd.mm.yyyy", FR-035), or,
+   for a draft, "Not live yet".
 5. The details box, a **Table** with one row per line, the key a **TH** (`scope: Row`):
    "Connection ID" (mono), "Version" (mono, larger), a draft's "Last saved" ("<date> (draft save
    <n>)"), "Generated" ("<date> (Germany)"), "Contents" ("2 documents · 12 data items · 3 variants
@@ -48,6 +50,8 @@ Sizes and spacing are the prototype's (`make.mjs`); colours are KERN's (design-n
     variant in the details' order "Variant · <name>" and its URL.
   - A deactivated connection adds, under the lead, that the links answer "unavailable" until the
     connection is activated again (FR-012).
+  - A scheduled connection adds, under the lead, that the links can already be added to the
+    service and answer "unavailable" until the connection starts on its start date (FR-012).
 - Draft: no URL anywhere (FR-013). A dashed box: "Created when the connection is published and
   active." and "There will be one request link for all variants, and a result link for each
   variant: Standard, Taxi and Hire car."
@@ -147,8 +151,9 @@ there first. The proposal:
 |---|---|---|
 | eyebrow | Connection details | Anbindungsdetails |
 | eyebrowDraft | Connection details · Draft for review | Anbindungsdetails · Entwurf zur Prüfung |
-| statusActive / statusDeactivated / statusDraft | Active / Deactivated / Draft | Aktiv / Deaktiviert / Entwurf |
+| statusActive / statusDeactivated / statusScheduled / statusDraft | Active / Deactivated / Scheduled / Draft | Aktiv / Deaktiviert / Geplant / Entwurf |
 | asOf(date) | as of {date} | Stand: {date} |
+| startsOn(date) | starts on {date} | Start am {date} |
 | notLiveYet | Not live yet | Noch nicht veröffentlicht |
 | connectionId | Connection ID | Anbindungs-ID |
 | version | Version | Version |
@@ -164,6 +169,7 @@ there first. The proposal:
 | referenceNote | Your service replaces {reference} with the reference the request link returned. | Ihr Dienst ersetzt {reference} durch die Referenz, die der Anfrage-Link zurückgegeben hat. |
 | variantLink(name) | Variant · {name} | Variante · {name} |
 | deactivatedLinks | The connection is deactivated: its links answer “unavailable” until it is activated again. | Die Anbindung ist deaktiviert: Ihre Links antworten mit „unavailable“, bis sie wieder aktiviert wird. |
+| scheduledLinks(date) | The connection is scheduled: its links can already be added to your service and answer “unavailable” until it starts on {date}. | Die Anbindung ist geplant: Ihre Links können bereits in Ihren Dienst eingefügt werden und antworten mit „unavailable“, bis sie am {date} startet. |
 | linksToCreate(list) | There will be one request link for all variants, and a result link for each variant: {list}. | Es wird einen Anfrage-Link für alle Varianten geben und einen Ergebnis-Link für jede Variante: {list}. |
 | section2 / section2Lead | Documents and data items / The wallet asks the citizen for these documents and shares only these data items with your service. | Dokumente und Datenfelder / Die Wallet fragt die Bürgerin oder den Bürger nach diesen Dokumenten und teilt nur diese Datenfelder mit Ihrem Dienst. |
 | dataItems(n) | {n} data items (1 data item) | {n} Datenfelder (1 Datenfeld) |

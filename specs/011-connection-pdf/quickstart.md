@@ -9,7 +9,8 @@ says so.
 
 ## 0. Prerequisites
 
-- Specs 008 and 009 implemented (the language switch in the header, German copy).
+- Specs 008, 009 and 010 implemented (the language switch in the header, German copy, the
+  scheduled state and the documents' order).
 - The stack running as in `README.md` ("Local Development"); a signed-in team member.
 - Chromium and Firefox (current), a PDF reader (Acrobat Reader, or Okular / Evince on Linux).
 - For PDF/UA: veraPDF 1.28 or later (`verapdf --flavour ua1 <file>`), or PAC 2024 on Windows.
@@ -21,6 +22,7 @@ says so.
   rules):
   - **A** the sample, published and active;
   - **B** a copy of A, deactivated;
+  - **F** a copy of A, scheduled: published with a start date some days ahead (spec 010);
   - **C** the sample saved as a draft, with Hire car's rule-11 without a message and rule-12
     without a check;
   - **D** a draft without gaps;
@@ -64,6 +66,8 @@ the button and the model (compare with the size before the change; research, spi
 5. Every page: the band names the connection, its ID, "Version …" and "Generated …"; the bottom
    says where the page is ("3 Rules per variant › Variant Taxi (continued)") and "Page n of N".
 6. B: page 1 reads "Deactivated as of …", and the links section adds the "unavailable" sentence.
+   F: page 1 reads "Scheduled as of … · starts on <its start date>", and the links section shows
+   the links and adds that they answer "unavailable" until that day.
 7. Print one PDF in black and white. Expected: statuses, marks, AND/OR and removed items are
    readable without colour.
 8. Network failure: open the browser's devtools, set the network offline, activate the button.
@@ -88,9 +92,12 @@ the button and the model (compare with the size before the change; research, spi
 
 1. Note A's version on the details page and in its PDF. Expected: equal.
 2. Download A again in German (switch to DE). Expected: the same version.
-3. Deactivate A, activate it again. Expected: the same version.
+3. Deactivate A, activate it again. Expected: the same version. F: change its start date.
+   Expected: the same version.
 4. Edit one rule's message and save. Expected: a different version on the page and in a new PDF.
-5. Change it back. Expected: the first version again.
+5. Change it back. Expected: the first version again. Then move A's second document first and
+   save. Expected: a different version, and the PDF lists the documents in the new order. Move it
+   back. Expected: the first version again.
 6. D: note the draft's version, publish it unchanged. Expected: the published connection shows
    the same version; its PDF too.
 7. A PDF's document properties (the reader's "Properties"): Subject and Keywords contain the

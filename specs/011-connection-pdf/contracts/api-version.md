@@ -23,8 +23,8 @@ query:
 | Endpoint | Answers |
 |---|---|
 | `GET /api/form-connections/{id}` | `FormConnection` or `FormConnectionDraft` |
-| `POST /api/form-connections`, `PUT /{id}`, `POST /{id}/deactivate`, `POST /{id}/activate`, `POST /{id}/publish` | `FormConnection` |
-| `POST /api/form-connections/drafts`, `PUT /{id}/draft` | `FormConnectionDraft` |
+| `POST /api/form-connections`, `PUT /{id}`, `POST /{id}/deactivate`, `POST /{id}/activate`, `POST /{id}/publish`, `PUT /{id}/start-date` (spec 010) | `FormConnection` |
+| `POST /api/form-connections/drafts`, `PUT /{id}/draft`, `POST /api/form-connections/example` (spec 010) | `FormConnectionDraft` |
 | `GET /api/approval-requests/{id}`, `POST …/approve`, `POST …/decline` | `ApprovalPreview` (through its `draft` and `connection`) |
 
 `FormConnectionSummary` (the overview's list and search) does not get it.
@@ -53,7 +53,9 @@ shows; the UI never calls it "version" (spec, Key Entities).
 As [data-model.md](../data-model.md) §1: SHA-256 over the canonical JSON of the content, the
 first 12 hex digits upper case in groups of four. Conditions in their publishable form
 (`publishable_condition()` in `app/services/rules.py`, which `_clean_condition()` also returns
-after its checks).
+after its checks). Documents in the order the answer lists them (the team's order, spec 010:
+`ordered_documents()` with the row's `document_order`), never the revision's catalog order: the
+order is content (spec, Clarifications 2026-11-12).
 
 The function is pure (no session, no catalog, no settings) and logs nothing. A failure to compute
 can't happen for content that passed the schemas; if it raises, the endpoint's usual `500` with
@@ -66,9 +68,10 @@ an `error_id` applies (`CLAUDE.md`, "A 5xx never says what went wrong").
   Python fixture) gives a fixed string, so a change of the canonical form is noticed;
 - one test per kind of element of FR-029 that changes it: the name, the description, a document,
   a data item, a variant's name, description, origin, AND/OR, its mark, a rule's name, target,
-  condition value, message, mark, the order of two items, a group's operator and message, the
-  nesting;
-- what doesn't change it: `is_active`, URLs, counters, `step`, the save number, times, labels;
+  condition value, message, mark, the order of two items, the order of two documents, a group's
+  operator and message, the nesting;
+- what doesn't change it: `is_active`, `state`, `start_date`, `example`, URLs, counters, `step`,
+  the save number, times, labels;
 - the publishable form: extra keys, a missing `match_case`, `years: 5.0` and `amount: 2.0` give
   the same fingerprint as the cleaned condition.
 
@@ -78,7 +81,10 @@ an `error_id` applies (`CLAUDE.md`, "A 5xx never says what went wrong").
   `test_publish_stored_draft_publishes_as_the_editor_does` builds it, plus a condition saved with
   extra keys and `years: 5.0`) keeps its fingerprint;
 - saving a draft unchanged keeps it, while its save number grows;
-- deactivating and activating keeps it; an edit of a rule's message changes it;
+- deactivating and activating keeps it, and so do publishing with a start date and changing or
+  clearing the start date (spec 010); an edit of a rule's message changes it; a save that only
+  reorders the documents changes it; a draft whose documents aren't in catalog order keeps it
+  when published;
 - `Accept-Language: de` gives the same fingerprint as English (once spec 009 is in).
 
 ## 4. The MCP server (research R12)

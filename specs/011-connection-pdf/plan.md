@@ -11,9 +11,10 @@ exploration with that prototype produced (given with the planning request; recor
 rejected alternatives in [research.md](research.md)).
 
 **Note**: git works in this checkout only with the two environment variables tasks.md's "Notes"
-name; nothing here was committed or staged. Specs 008 and 009 are the baseline (spec,
-Assumptions); spec 009 is being implemented on its own branch and this branch is rebased on it
-before `/speckit-implement`, so this plan uses the API its contracts define (`defineTexts`,
+name; nothing here was committed or staged. Specs 008, 009 and 010 are the baseline (spec,
+Assumptions; spec 010 was implemented after this plan was written, and the documents were aligned
+with it on 2026-11-12: spec, Clarifications); spec 009 was being implemented on its own branch
+when this plan was written, so this plan uses the API its contracts define (`defineTexts`,
 `Language`, `useLanguage`, `RuleContext.language`, `ruleProblemOf`, `ApiFetchOptions.language`)
 and its tasks must land first.
 
