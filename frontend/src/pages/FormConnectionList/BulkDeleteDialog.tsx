@@ -10,7 +10,7 @@ import {
   BULK_DELETE_MIN_REGION,
 } from './constants';
 import type { BulkDeleteDialogProps } from './types';
-import { bulkWarningsOf } from './utils';
+import { bulkDeleteNoticeOf, bulkWarningsOf } from './utils';
 
 /**
  * The most a modal dialog may be high: the browser's `calc(100% - 6px - 2em)` of the window
@@ -70,8 +70,10 @@ function useRegionCap(region: HTMLDivElement | null, open: boolean): boolean {
  * nothing closes it while the deletion runs, and closing it gives the focus back to the selection
  * bar's "Delete" (the native dialog's opener). A long list scrolls inside it, the buttons in view.
  * A failure keeps it open above the text: "Nothing was deleted: “<name>” was deleted or changed
- * in the meantime." when a connection changed (`409 selection_changed`), or spec 008's failure
- * with its error ID; the confirm button then reads "Try again"
+ * in the meantime." when a connection changed (`409 selection_changed`), without the confirm
+ * button and with the focus on "Keep connections", since the selection is out of date (the
+ * person reopens the dialog from the bar and sees the current statuses; design-notes §4.2 T084
+ * (3)); or spec 008's failure with its error ID, the confirm button then reading "Try again"
  */
 export default function BulkDeleteDialog({ state, onCancel, onConfirm }: BulkDeleteDialogProps) {
   const { language } = useLanguage();
@@ -84,7 +86,7 @@ export default function BulkDeleteDialog({ state, onCancel, onConfirm }: BulkDel
   }
   const title = copy.title(rows.length);
   const warnings = bulkWarningsOf(rows, language);
-  const error = state.changedName ? { message: copy.changed(state.changedName) } : state.error;
+  const { error, retry } = bulkDeleteNoticeOf(state, language);
   return (
     <ConfirmDialog
       open={state.open}
@@ -99,6 +101,7 @@ export default function BulkDeleteDialog({ state, onCancel, onConfirm }: BulkDel
       error={error}
       errorTitle={copy.errorTitle}
       retryLabel={copy.retry}
+      hideConfirm={error !== null && !retry}
       dismissOnScrim={false}
       onCancel={onCancel}
       onConfirm={onConfirm}

@@ -113,7 +113,10 @@ No route is added or changed. Every new page state keeps one `h1` and its tab ti
   scrolls inside the dialog and the buttons stay in view. It sends each row's `id` and `state`.
   `409 selection_changed` keeps the dialog open with "Nothing was deleted: “<name>” was deleted or
   changed in the meantime." (the first changed id's name from the dialog's rows) and reloads the
-  list behind it; another failure shows as spec 008's failures do, with the error ID.
+  list behind it; the dialog then offers no retry: its confirm button is hidden and the focus is on
+  "Keep connections", and the person opens the dialog again from the bar to see the current
+  statuses (design-notes §4.2 T084 (3)). Another failure shows as spec 008's failures do, with the
+  error ID and "Try again".
 - **After a deletion** (FR-033, FR-037, FR-044; W11): the rows are gone, the selection is cleared,
   the toolbar is back, and the toast reads "“<name>” deleted." or "<n> connections deleted." with
   "Undo". The page keeps the deletion's id with the toast. A deletion made on the details arrives

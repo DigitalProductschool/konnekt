@@ -23,6 +23,7 @@ import type {
 } from './types';
 import {
   bulkDeleteFailureOf,
+  bulkDeleteNoticeOf,
   bulkDeleteReducer,
   bulkWarningsOf,
   canRestore,
@@ -708,7 +709,14 @@ describe('bulkDeleteReducer (spec 010, FR-041 to FR-043)', () => {
   });
 
   it('opens with the rows in the given order and no failure', () => {
-    expect(opened).toEqual({ rows, open: true, deleting: false, error: null, changedName: null });
+    expect(opened).toEqual({
+      rows,
+      open: true,
+      deleting: false,
+      error: null,
+      changedName: null,
+      stale: false,
+    });
   });
 
   it('ignores a close while the deletion runs (FR-042)', () => {
@@ -716,7 +724,7 @@ describe('bulkDeleteReducer (spec 010, FR-041 to FR-043)', () => {
   });
 
   it('stays open after a failure, naming the changed connection (FR-043)', () => {
-    expect(changed).toMatchObject({ open: true, deleting: false, changedName: 'B' });
+    expect(changed).toMatchObject({ open: true, deleting: false, changedName: 'B', stale: true });
     expect(changed.error).toEqual({ message: 'Server' });
   });
 
@@ -725,6 +733,7 @@ describe('bulkDeleteReducer (spec 010, FR-041 to FR-043)', () => {
       deleting: true,
       error: null,
       changedName: null,
+      stale: false,
     });
   });
 
@@ -733,7 +742,14 @@ describe('bulkDeleteReducer (spec 010, FR-041 to FR-043)', () => {
       bulkDeleteReducer(changed, { type: 'close' }),
       bulkDeleteReducer(deleting, { type: 'done' }),
     ]) {
-      expect(state).toEqual({ rows, open: false, deleting: false, error: null, changedName: null });
+      expect(state).toEqual({
+        rows,
+        open: false,
+        deleting: false,
+        error: null,
+        changedName: null,
+        stale: false,
+      });
     }
   });
 });
@@ -782,6 +798,65 @@ describe('bulkWarningsOf (spec 010, FR-041; copy.md §4)', () => {
 
   it('has no line for drafts and deactivated connections', () => {
     expect(bulkWarningsOf(rows.slice(1, 2).concat(rows.slice(3, 4)), 'en')).toEqual([]);
+  });
+});
+
+describe('bulkDeleteNoticeOf (spec 010, FR-043; design-notes §4.2 T084 (3))', () => {
+  const server = { message: 'Nothing was deleted: a connection was deleted or changed.' };
+
+  it('shows no notice and offers no retry without a failure', () => {
+    expect(bulkDeleteNoticeOf(INITIAL_BULK_DELETE_STATE, 'en')).toEqual({
+      error: null,
+      retry: false,
+    });
+  });
+
+  it('names the changed connection without "Try again" after selection_changed', () => {
+    const state = { error: server, changedName: 'Taxi licence', stale: true };
+    expect(bulkDeleteNoticeOf(state, 'en')).toEqual({
+      error: {
+        message: 'Nothing was deleted: “Taxi licence” was deleted or changed in the meantime.',
+      },
+      retry: false,
+    });
+    expect(bulkDeleteNoticeOf(state, 'de').retry).toBe(false);
+  });
+
+  it("keeps the server's sentence, also without a retry, for a connection it doesn't hold", () => {
+    expect(bulkDeleteNoticeOf({ error: server, changedName: null, stale: true }, 'en')).toEqual({
+      error: server,
+      retry: false,
+    });
+  });
+
+  it('offers "Try again" after another failure, with its error ID (spec 008)', () => {
+    const error = { message: 'Failed.', error_id: 'e-1' };
+    expect(bulkDeleteNoticeOf({ error, changedName: null, stale: false }, 'en')).toEqual({
+      error,
+      retry: true,
+    });
+    const offline = { message: 'Nothing changed. Check your connection and try again.' };
+    expect(
+      bulkDeleteNoticeOf({ error: offline, changedName: null, stale: false }, 'en').retry
+    ).toBe(true);
+  });
+
+  it('follows the reducer: stale after selection_changed, retrying after another failure', () => {
+    const rows = [summary({ id: 'a' }), summary({ id: 'b' })];
+    const deleting = bulkDeleteReducer(
+      bulkDeleteReducer(INITIAL_BULK_DELETE_STATE, { type: 'open', rows }),
+      { type: 'start' }
+    );
+    const changed = bulkDeleteReducer(deleting, {
+      type: 'failed',
+      failure: { error: server, changedName: 'B', stale: true },
+    });
+    const failed = bulkDeleteReducer(deleting, {
+      type: 'failed',
+      failure: { error: { message: 'Failed.', error_id: 'e-1' }, changedName: null, stale: false },
+    });
+    expect(bulkDeleteNoticeOf(changed, 'en').retry).toBe(false);
+    expect(bulkDeleteNoticeOf(failed, 'en').retry).toBe(true);
   });
 });
 

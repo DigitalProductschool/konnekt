@@ -53,7 +53,8 @@ NOT_RESTORABLE_DETAIL = {
 SELECTION_CHANGED_MESSAGE = Text(
     en='Nothing was deleted: a connection was deleted or changed in the meantime.',
     de=(
-        'Nichts wurde gelöscht: Eine Anbindung wurde inzwischen gelöscht oder geändert.'
+        'Nichts wurde gelöscht: Eine Anbindung wurde in der Zwischenzeit '
+        'gelöscht oder geändert.'
     ),
 )
 

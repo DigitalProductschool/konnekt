@@ -1209,7 +1209,8 @@ SELECTION_CHANGED = (
     'Nothing was deleted: a connection was deleted or changed in the meantime.'
 )
 SELECTION_CHANGED_DE = (
-    'Nichts wurde gelöscht: Eine Anbindung wurde inzwischen gelöscht oder geändert.'
+    'Nichts wurde gelöscht: Eine Anbindung wurde in der Zwischenzeit '
+    'gelöscht oder geändert.'
 )
 
 

@@ -1,7 +1,7 @@
 import ActionMenu from '../../../components/ActionMenu';
 import type { MenuAction } from '../../../components/ActionMenu/types';
 import { useCopy } from '../../../hooks/useLanguage';
-import { DOCUMENTS_COPY, DOCUMENTS_STEP_IDS, MOVE_ICONS } from './constants';
+import { DOCUMENTS_COPY, DOCUMENTS_STEP_IDS, MOVE_ICONS, ROW_ACTIONS_CLASSES } from './constants';
 import type { DocumentListItemProps } from './types';
 import { documentGlyphOf, moveTargetsOf } from './utils';
 
@@ -90,7 +90,7 @@ export default function DocumentListItem({
       </button>
       {/* The trash and the ⋯ side by side, their 32px boxes touching, so that the name keeps
           room for "Personalausweis" in the 264px card */}
-      <div data-no-drag="true" className="flex shrink-0">
+      <div data-no-drag="true" className={ROW_ACTIONS_CLASSES}>
         <div className="relative flex shrink-0">
           {needsData && (
             // Figma "icon-emergency_home-small" (24), at the tile's right padding as drawn

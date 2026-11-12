@@ -6,7 +6,7 @@ task touches its subject.
 
 | Document | Read it when |
 |---|---|
-| `docs/ARCHITECTURE.md` | You need to know how something works: data flow, sign-in, the EUDIPLO client and its transactions, form connections and revisions, rules and branches (spec 002), rule checks (spec 003), drafts and local drafts (spec 005), agent access, approval requests and the MCP server (spec 007), the languages (spec 009), the worker, serviceBW's URLs, error handling, database conventions, layouts and routing, environment variables, deployment |
+| `docs/ARCHITECTURE.md` | You need to know how something works: data flow, sign-in, the EUDIPLO client and its transactions, form connections and revisions, rules and branches (spec 002), rule checks (spec 003), drafts and local drafts (spec 005), agent access, approval requests and the MCP server (spec 007), the languages (spec 009), scheduling, the activity, restorable deletions, the document order and the example (spec 010), the worker, serviceBW's URLs, error handling, database conventions, layouts and routing, environment variables, deployment |
 | `docs/KERN-DESIGN-SYSTEM.md` | You build or style UI: KERN's components, tokens, Tailwind classes and gotchas |
 | `docs/EUDIPLO.md` | You call or change anything that talks to EUDIPLO |
 | `docs/FIGMA-WORKFLOW.md` | A task comes with a Figma URL: follow it step by step |
@@ -96,8 +96,9 @@ The UI says "connection" for form connection and "variant" for branch, and calls
   component: its types in `types.ts`, its constants in `constants.ts`, state-independent helpers
   in `utils.ts`. Several state variables → `useReducer` with actions. JSX mapped over a list → a
   sub-component.
-- **Styling**: Tailwind classes only, no inline styles (a measured height may be set as a CSS
-  custom property for classes to read, as `WizardLayout` does); custom tokens go into `@theme` in
+- **Styling**: Tailwind classes only, no inline styles (a measured value (a height, a drag's
+  offset) may be set as a CSS custom property for classes to read, as `WizardLayout` and
+  `useRowDrag` do); custom tokens go into `@theme` in
   `index.css`. Numeric utilities are pixels (`p-16` is 16px). KERN's CSS beats Tailwind on the
   same property: wrap the KERN element, or use the `!` suffix sparingly.
 - **KERN Revamp** (spec 008): the Revamp's values live in the overlay block of `index.css`
@@ -124,6 +125,8 @@ The UI says "connection" for form connection and "variant" for branch, and calls
   (ARCHITECTURE, "frontend").
 - **Dialogs**: a scrim click closes a dialog unless it deletes or publishes
   (`ConfirmDialog`'s `dismissOnScrim={false}`; ARCHITECTURE, "frontend").
+- **Toasts**: every toast closes after 6 seconds (`TOAST_DURATION_MS`), with or without an
+  action, the time held while the pointer or the focus is on it (ARCHITECTURE, "frontend").
 - No `any` without a justification, no `require()`. Never add a `vitest.config.ts` to
   `frontend/`: it would replace the `test` block of `vite.config.ts`.
 
@@ -146,8 +149,9 @@ The UI says "connection" for form connection and "variant" for branch, and calls
   does. `rules/src/checks/caseFolding.ts` and `rules/src/checks/fixtures/evaluator-vectors.json`
   are generated: never edit them by hand. After a Python upgrade or a change to the evaluator's
   comparisons, run `uv run python -m scripts.export_check_fixtures` in `backend/` and commit the
-  result; it also writes `rules/src/fixtures/server-messages.json`, so run it after a change to
-  the rules' messages (`backend/app/services/rules_texts.py`) too.
+  result; it also writes `rules/src/fixtures/server-messages.json` and
+  `rules/src/fixtures/example-connection.json`, so run it after a change to the rules' messages
+  (`backend/app/services/rules_texts.py`) or the example (`backend/app/example.py`) too.
 - **Findings** are never stored, sent or logged (no `console.*` in `checks/`, `workers/checks.ts`
   or `useRuleChecks`), every finding text comes from `checks/findingMessages.ts` (its words in
   `checks/findingTexts.ts`), and only the Rules step passes the `finding` / `findings` props.
@@ -179,6 +183,19 @@ The UI says "connection" for form connection and "variant" for branch, and calls
 - The MCP server logs only through `mcp/src/log.ts` (method, tool, status, duration), never
   arguments, results, tokens, findings or citizens (ARCHITECTURE, "Agent access and the MCP
   server (spec 007)").
+
+## Scheduling, activity and deletions (spec 010)
+
+- A start date is a day in Germany, checked by `clean_start_date()` (before EUDIPLO and again
+  under the row lock), and only the worker's step activates on a date (ARCHITECTURE, "Form
+  connections").
+- A service that changes a connection takes the `actor` and records the change with
+  `activity.record()` under the row lock (ARCHITECTURE, "The activity (spec 010)").
+- The order of `documents` in a body is the stored order, while revisions and the DCQL query
+  stay in catalog order (ARCHITECTURE, "Form connections").
+- Deleting is `_mark_deleted()` for drafts too, and only `restore_deletion()` undoes it; a
+  worker step that acts on deletions waits for `deletions.restore_cutoff()` and checks it again
+  under the row lock (ARCHITECTURE, "Form connections" and "Background worker").
 
 ## Code style
 
@@ -238,7 +255,8 @@ too (`README.md`, "Continuous integration").
 - Get past a gitleaks finding with `--no-verify` or `SKIP=gitleaks`: rotate a real secret, allow
   a false positive (`README.md`, "Secrets (gitleaks)").
 - Edit generated files: Alembic migrations after creation, `rules/src/checks/caseFolding.ts`,
-  `rules/src/checks/fixtures/evaluator-vectors.json`, `rules/src/fixtures/server-messages.json`.
+  `rules/src/checks/fixtures/evaluator-vectors.json`, `rules/src/fixtures/server-messages.json`,
+  `rules/src/fixtures/example-connection.json`.
 
 ## Documentation checklist
 

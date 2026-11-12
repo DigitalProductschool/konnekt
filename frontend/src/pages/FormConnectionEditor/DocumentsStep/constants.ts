@@ -170,7 +170,7 @@ export const REMOVAL_DIALOG_COPY = defineTexts(
     fieldRules: (count) => `${rulesCheckDe(count)} dieses Feld:`,
     allFieldsTitle: (document) => `Alle Daten aus „${document}“ nicht mehr anfordern?`,
     groupTitle: (group, document) =>
-      `Felder der Gruppe „${group}“ aus ${document} nicht mehr anfordern?`,
+      `Daten der Gruppe „${group}“ aus „${document}“ nicht mehr anfordern?`,
     dataRules: (count) => `${rulesCheckDe(count)} diese Daten:`,
     after: (count, editing) =>
       `Bearbeiten oder löschen Sie ${count === 1 ? 'die Regel' : 'die Regeln'} vor dem ${editing ? 'Speichern' : 'Veröffentlichen'}.`,
@@ -256,6 +256,15 @@ export const MOVE_ICONS = {
   up: { kern: 'kern-icon--arrow-up' },
   down: { kern: 'kern-icon--arrow-down' },
 } as const;
+
+/**
+ * The trash's and the ⋯'s wrapper, around the ⋯ menu: below 320 CSS px (`narrow:`), where the
+ * menu spans the card less its gutters (97px at 160 CSS px beside Chromium's scrollbar), the
+ * menu's and its entries' side paddings are 4px instead of 8, so that the text column keeps
+ * "unten" of "Nach unten" whole (T092, T098); spec 008's `ActionMenu` stays as it is elsewhere
+ */
+export const ROW_ACTIONS_CLASSES =
+  'flex shrink-0 narrow:[&_[role=menu]]:px-4 narrow:[&_[role=menuitem]]:px-4';
 
 /**
  * Figma "Icon/Glyph" per document type, in the tones the step uses (U21 7290:61204, 7290:61207,

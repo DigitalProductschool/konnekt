@@ -49,8 +49,22 @@ scheduled: 'This connection is scheduled: its URLs answer "unavailable" until it
             on {date}, 00:00 in Germany.'
 ```
 
-The text block's lines gain the same facts: "Connection '{name}' (scheduled from {date}): {link}",
-"Draft at the {step} step", "This draft is the example.".
+The text block's lines gain the same facts: "Connection '{name}' (scheduled from {date}): {link}"
+(where the tool holds the date: `search_connections`, `get_connection`, `check_approval`; the other
+tools' lines keep "(scheduled)"), "Draft at the {step} step.", the dates' line "Published {at};
+active since {at}; deactivated since {at}." (the parts the connection has; a scheduled connection's
+says only "Published {at}."), and "This draft is the example.". The dates are the API's UTC
+timestamps and days as `YYYY-MM-DD`; a date that is null is left out, not sent as null.
+`get_connection` keeps spec 007's nested `draft: { version, step, updated_at }` beside the new
+top-level `step`, and its draft line reads "Draft at the {step} step. Version {n}, last saved {at}."
+(design-notes §4.2 T016).
+
+As built (design-notes §4.2 T029): `search_connections`' `status` input is described "Only drafts,
+scheduled, live or deactivated connections"; both reading tools' descriptions name "the day a
+scheduled one becomes active"; and `mcp/plugin/instructions.md` gains the paragraph "A connection's
+status is `draft`, `scheduled`, `live` or `deactivated`. A scheduled connection is published but
+becomes active only on its start date; until then its URLs answer "unavailable". A start is a day
+in Germany: the connection becomes active at 00:00 there."
 
 ### Changing drafts
 

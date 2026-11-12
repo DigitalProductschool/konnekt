@@ -57,6 +57,13 @@ ask for the team member's **approval** to publish or delete a draft or to deacti
 reactivate or delete a live connection. See
 [Agent access and the MCP server](#agent-access-and-the-mcp-server-spec-007).
 
+Spec 010 ([plan](../specs/010-revamp-backend-gaps/plan.md)) builds the stored-data features of
+the KERN Revamp design that spec 008 deferred: **scheduling** a connection to become active on a
+date, its **status dates**, an **activity** log per connection, **deleting that can be taken
+back** ("Undo"), deleting several connections at once, the documents in the **team's order**,
+the **example** connection and the catalog's **data groups**. See
+[Form connections](#form-connections) and [The activity](#the-activity-spec-010).
+
 ### Data Flow
 
 1. User interacts with the React frontend
@@ -83,7 +90,8 @@ dps-react-python-template/
 ├── .prettierrc            # Prettier formatting rules
 ├── api-types/             # @connection-portal/api-types: the TypeScript mirrors of the schemas
 ├── rules/                 # @connection-portal/rules: the pure rules logic, checks/ and personas/,
-│                          # language.ts (spec 009), fixtures/server-messages.json (generated)
+│                          # language.ts (spec 009), fixtures/server-messages.json and
+│                          # fixtures/example-connection.json (spec 010), both generated
 ├── frontend/              # React SPA (Vite), depends on api-types and rules
 │   └── .prettierrc        # The root's rules plus the Tailwind plugin
 ├── mcp/                   # @connection-portal/mcp: the MCP server, depends on api-types and rules
@@ -153,13 +161,16 @@ frontend/
 │   │                     # BranchName; FindingNote, the note under a rule or group with a
 │   │                     # finding of the rule checks; LocalDraftsOffer (spec 005);
 │   │                     # AccessLevelChoice, the three access levels as radio buttons (spec 007);
-│   │                     # LanguageProvider (the language) and LanguageSwitch (spec 009)
+│   │                     # LanguageProvider (the language) and LanguageSwitch (spec 009);
+│   │                     # ActiveFromChoice ("Active from: Now / On a date") and
+│   │                     # ExampleBanner (spec 010)
 │   ├── hooks/            # useCurrentUser (sign-in state), useDocumentTitle, useDocumentTypes,
 │   │                     # useOptionSets, useFormConnection, useSignOutOnUnauthorized,
 │   │                     # useRuleChecks (the rule checks' run and their worker), usePersonas,
 │   │                     # useTodayInGermany (spec 004), useLocalDraftStore, useLocalDraft,
 │   │                     # useLocalDrafts (spec 005), useRememberedHomepage (spec 008),
-│   │                     # usePinned, useUndoShortcut; useLanguage with useCopy (spec 009)
+│   │                     # usePinned, useUndoShortcut; useLanguage with useCopy (spec 009);
+│   │                     # useRowDrag (dragging the documents, spec 010)
 │   ├── pages/            # One folder per screen: Login, ForgotPassword, FormConnectionList
 │   │                     # (the overview and the welcome page at /), FirstConnection
 │   │                     # (/get-started), FormConnectionEditor (the wizard, with
@@ -243,6 +254,9 @@ frontend/
   `--wizard-sticky-bottom` (the sticky footer's height, else 0) on `<html>`, and the rules
   step sets `--rules-tabs-height` (its pinned tab row's height) on its own root, both with
   `style.setProperty()` (constitution 1.2.1: a measured value only, the styles are classes).
+  Spec 010 adds two more measured values: the dragged document's box and offset
+  (`--drag-left`, `--drag-top`, `--drag-width`, `--drag-x`, `--drag-y`, set by `useRowDrag`)
+  and the bulk delete dialog's list height (`BulkDeleteDialog`).
   `index.css`'s `scroll-padding` keeps what scrolls into view clear of them (WCAG 2.4.11),
   and the steps' exceptions read them (the documents step's list, the rules step's pinned
   selection bar, the test step's panel, the toast above the footer, the menus' edges in
@@ -269,7 +283,20 @@ frontend/
   in and out with its scrim. The ×, Escape and a click on the scrim close it, except for the
   dialogs that delete or publish (`dismissOnScrim={false}`: deleting a connection or a
   draft, revoking an agent's access, the publish dialog; FR-052a), where only the buttons,
-  the × and Escape do; a dialog that is busy (publishing, deleting) can't be closed at all
+  the × and Escape do; a dialog that is busy (publishing, deleting) can't be closed at all.
+  `hideConfirm` (spec 010) takes the confirm button away while the dialog stays open, the
+  cancel button taking the focus: the bulk delete dialog sets it after `409
+  selection_changed`, so that it offers no retry and the person reopens it from the selection
+  bar with the current statuses (design-notes §4.2 T084 (3), T106)
+- **Toasts** (`components/Toast`): one at a time, the newest replacing the previous, announced
+  through the live region, in three kinds: `neutral`, `success` and `danger` (red with the
+  delete icon, for this feature's deletions and a document's removal; spec 010, design-notes
+  §4.2 T038). **Every toast closes by itself after 6 seconds** (`TOAST_DURATION_MS`), with or
+  without an action; the time runs only while neither the pointer nor the keyboard focus is on
+  it, and starts again from the beginning once both have left (the pure reducer in
+  `Toast/utils.ts`). Escape on it
+  closes it. This replaces spec 008's rule that a toast with an action stays until it is used
+  (spec 010, FR-082)
 - KERN design system: `index.css` imports Tailwind, KERN's fonts, `kern.css` and the
   KERN Tailwind theme, in that order. The React kit's own stylesheet is not imported,
   because it bundles an older KERN whose rules override KERN 2.8 (`docs/KERN-DESIGN-SYSTEM.md`
@@ -308,9 +335,16 @@ frontend/
   its summary, then its status ("Publishing…", "Published"), a failure with the error ID, or
   a conflict; while no variant has rules, the rules step's "Publish without rules" (and the
   edit flow's "Save") opens "Publish without rules?" ("Save without rules?") instead.
+  Spec 010 puts "Active from" into the publish dialog (`ActiveFromChoice`):
+  "Now" publishes as before, "On a date" with a date field that refuses a day not after
+  today in Germany (today from `useTodayInGermany()`; the server's `400 invalid_start_date` shows there
+  too) turns the button into "Schedule" and publishes with `start_date`; "Try again" repeats
+  the same choice. The edit flow of a scheduled connection says that its changes take effect
+  on its date, and saving never changes the date.
   The editor's reducer keeps the connection and its documents; the documents step's view
   reducer (`DocumentsStep/reducer.ts`) the shown document, the search, the removal waiting
-  for "Undo", the removal question and the needs-data flags; the Rules step's own reducer
+  for "Undo", the removal question and the needs-data flags, and `rowDragReducer`
+  (`DocumentsStep/utils.ts`) a drag in progress; the Rules step's own reducer
   the branches, the open tab, select mode and its dialogs; the rule editor a fourth one.
   Nothing reaches the API before Publish
   or Save, or, in the create flow, "Save and exit", which stores the work as a draft (see
@@ -325,6 +359,12 @@ frontend/
   account pill, so every layout that renders `TopBar` (`AppLayout`, `AuthLayout`,
   `WizardLayout`, the homepage's loading page) shows it, signed out too (see
   [Languages](#languages-spec-009)).
+  The connection's name in that pill is the only place on the details and in the edit flow
+  that says which connection is open, so it keeps at least min(its own width, 96 px) at every
+  width (flex basis 96 px, growing to its full width where there is room) and is cut with
+  "…" only beyond that; where it can't stand beside the status pill, the status pill wraps
+  under it inside the pill (spec 010, design-notes §4.2 T084 (4), T098). The status pill
+  reads "Scheduled · <date>" for a scheduled connection.
   In a flow, the product name, "Your connections" and "Log out" go through the editor's
   leave model (`FormConnectionEditor/leaveFlow.ts`, pure, research R9): a new connection's
   or a stored draft's flow asks "Leave this connection?" ("Save progress" stores it through
@@ -341,12 +381,62 @@ frontend/
   connection is deleted, and the pure `homepageOf(list, remembered)` picks the page while the
   list loads; without a memory the loading page shows. The local-drafts offer
   (`LocalDraftsOffer`, spec 005) sits above the welcome page's h1, between the overview's
-  title and its toolbar, and above step 1's card on `/get-started`
-- **The details** (`/form-connections/:id`, L4, S15, S16): the status band with the ⋯ menu
-  or "Activate again", the Links and Summary accordions; the Summary shows the documents, the
-  rules as variant tabs and the rule checks' findings, computed in the browser with
-  `useRuleChecks()` (`RulesSummaryContent`), never by the server. A stored draft's details
-  show the Summary first and the Links card without URLs
+  title and its toolbar, and above step 1's card on `/get-started`. The welcome page's "Start
+  from an example" opens `ExampleDialog`, whose "Create the example" calls
+  `POST /api/form-connections/example` and opens the new draft at step 1; while a loaded
+  draft is the example, each step shows `ExampleBanner` and the publish dialog a line, until
+  the draft is changed (spec 010, FR-054 to FR-061)
+- **The overview's rows and selection** (spec 010, S4): a row's date reads by state
+  (`rowMetaOf`): "Edited <date> · <step> step" for a draft, "Active from <date>" while
+  scheduled, "Published <date>" while live, "Deactivated <date>" while deactivated. Every
+  row has a checkbox and the list's header a select-all over the rows the search shows
+  (`selectionReducer`, never stored; a row that leaves the list leaves the selection). While
+  a row is selected the selection bar ("<n> selected", announced; "Cancel"; "Delete") stands
+  where the toolbar was; its "Delete" opens the row's own delete dialog for one row and
+  `BulkDeleteDialog` for more, which sends each row's id and the state it shows to
+  `POST /api/form-connections/deletions`. After a `409 selection_changed` the dialog names the
+  connection that changed, offers no retry (`hideConfirm`) and the list loads again behind it.
+  Every deletion, single or bulk, from the overview or the details, ends on the overview with
+  the red toast "“<name>” deleted." or "<n> connections deleted." and "Undo", which sends the
+  restore of the deletion's id (`deletionReducer`): the rows come back without a reload and
+  "restored." is announced; `409 not_restorable` says the deletion can no longer be restored;
+  another failure offers "Undo" again. The deletion's id lives only with its toast: once the
+  toast is gone (its 6 seconds, Escape, a newer toast, leaving the page), nothing can restore
+  it from the UI
+- **The details** (`/form-connections/:id`, L4, S15, S16): the status band, whose sentence is
+  the page's h1, with the **date pill** under it (`StatusBand.tsx`, C1): the calendar, the line
+  by state ("Active since <date>, <time>", "Active from <date>, 00:00", "Deactivated since
+  <date>, <time>", a draft's "Edited <date>, <time>") and, on a published connection, the ⋯
+  menu inside it ("Change start date", "Deactivate", "Delete connection" by state); while
+  deactivated, "Activate again" stands next to the pill (spec 010, FR-015, FR-016). A
+  scheduled connection reads "Your connection is scheduled" in the blue band and otherwise
+  shows a live connection's details, every link with its copy button. "Change start date"
+  opens `StartDateDialog` (`PUT …/start-date`, "Now" or a date), "Activate again"
+  `ReactivateDialog` with "Active from"; a failure stays in the dialog with "Try again". Under
+  the band, **three cards as one accordion** (one open at a time, or none): Links (open after
+  publishing, scheduling and the edit flow's "Save"), Summary (open on every other arrival;
+  the documents in the stored order, the rules as variant tabs and the rule checks' findings,
+  computed in the browser with `useRuleChecks()` (`RulesSummaryContent`), never by the server)
+  and Activity (`ActivityCard`: closed, one line from `last_activity`, "Last edited by …" or
+  "Deactivated by …"; open, the entries newest first, 50 at a time, loaded again after an
+  action on the page changed the connection; see [The activity](#the-activity-spec-010)). A
+  stored draft's details show the Summary first, then the Links card without URLs, then the
+  Activity, with "Delete draft" in the band
+- **The documents step** (spec 010, S8): the documents stay in the team's order. A row is
+  dragged to its place with a mouse, a pen or, after a 400 ms hold, a touch (`useRowDrag`
+  feeding the pure `rowDragReducer`; no library and no HTML drag and drop; Escape or a
+  release outside the list changes nothing), and its ⋯ menu offers "Move up" and "Move down"
+  as the keyboard's way, announced in a status region; both go through `moveDocument()` of
+  `rules/src/edits.ts`. A new document goes to the end; "Undo" after a removal puts it back
+  at its place. A document with more than 10 data items shows them under the catalog's data
+  groups (`groupedFieldsOf()`: the catalog's `field_groups`, each group's items in catalog
+  order; `null`, the flat list, for a document without groups or with an item outside them),
+  each group headed by a checkbox (`FieldGroup.tsx`) that is ticked, clear or mixed; ticking
+  chooses all its items, and clearing a fully ticked group clears them through the question
+  that "All data items" asks when rules check the data, with its own title ("Stop requesting
+  “<group>” data from <document>?"; the editor's removal of kind `'group'`, judged item by
+  item by `dataRemovalOf()`). The groups come from `GET /api/document-types` only, never
+  from a connection's documents
 - **Vitest** tests the pure logic in Node, without a DOM: the modules of `rules/src/`
   and the sibling `utils.ts` of components, each with its `*.test.ts` beside it. `npm test`
   is a gate (constitution III), because the rules' propagation between branches runs only
@@ -373,9 +463,11 @@ frontend/
     would do, from `GET /api/approval-requests/{id}`. For `publish` it shows the publish
     step's summary of the stored draft and the findings of the rule checks, computed in the
     page with `useRuleChecks()`; for the other actions the connection and the URLs it
-    affects. "Approve" and "Decline" give way to the outcome (done, declined, expired,
-    replaced, cancelled with its reason, another team member's request, or a failure with
-    "Try again").
+    affects; with spec 010 also the start date the agent asked for, the `set_start_date`
+    action, and the example's line while the stored draft is the unchanged example.
+    "Approve" and "Decline" give way to the outcome (done, declined, expired, replaced,
+    cancelled with its reason, another team member's request, or a failure with "Try
+    again").
 
   The rules step's menus have **"Copy link"** for a variant, a rule and a group, and
   `FormConnectionEdit` opens a link's `step`, `variant` and `item` search parameters, with
@@ -403,9 +495,13 @@ backend/
 │   │                     # evaluation.py (the rules on the shared documents),
 │   │                     # qr.py, worker.py; spec 007: oauth.py (the authorization
 │   │                     # server), agent_access.py (the user page, the draft limit),
-│   │                     # approvals.py (approval requests)
-│   ├── catalog.py        # Document types, their fields, and each field's kind, parts
-│   │                     # and multiple_values (whether it can hold several values)
+│   │                     # approvals.py (approval requests); spec 010: start_dates.py (a
+│   │                     # start date's day in Germany), activity.py (the activity),
+│   │                     # deletions.py (bulk deletion, restore, finishing deletions)
+│   ├── catalog.py        # Document types, their fields, and each field's kind, parts,
+│   │                     # multiple_values (whether it can hold several values) and data
+│   │                     # group (spec 010)
+│   ├── example.py        # The example connection's content in both languages (spec 010)
 │   ├── option_sets.py    # The value sets of enum fields: countries, sex, licence
 │   │                     # classes, eye and hair colours
 │   ├── cli.py            # Accounts: create-user, set-password, delete-user; clear-connections
@@ -445,6 +541,19 @@ backend/
 - Only libraries the code imports are declared.
 - Domain logic lives in `app/services/`, so the routers stay thin and the worker
   reuses the same functions.
+- **The catalog's data groups** (spec 010, FR-077 to FR-080, research R8, data-model §6):
+  `FIELD_GROUPS` in `app/catalog.py` lists the groups in the panel's order (Name, Birth,
+  Address, Document, Licence, Appearance, Other details), each with its German label, and
+  every field of a document with more than `MAX_FIELDS_WITHOUT_GROUPS` (10) fields names its
+  group's key in `CatalogField.group`; `CatalogDocumentType.field_groups()` answers the groups
+  a document uses, empty for 10 fields or fewer. The groups change neither the catalog's
+  order nor its keys or claims, so nothing changes for EUDIPLO or serviceBW. Only
+  `GET /api/document-types` answers them: each document type's `field_groups` (`FieldGroup
+  { key, label }`, the label through `label_of()`) and each field's `group`
+  (`routers/document_types.py`, `_document_type_view()`); every other `DocumentField` (a
+  connection's or a draft's documents, the approval previews) carries `group: null`, since the
+  panel and `get_catalog` read the groups from the catalog (design-notes §4.2 T072 (1), T084
+  (9)). Agents still choose data items one by one: no endpoint or tool takes a group.
 - Outside development the backend refuses to start unless `CONNECTION_BASE_URL`
   is set and uses `https://` (or `ALLOW_PLAIN_HTTP=true`): the connection URLs
   that DO.IT copies into serviceBW are built from it.
@@ -506,10 +615,14 @@ and commits, calls EUDIPLO, then locks again to make it current (see
 ### Form connections
 
 `app/routers/form_connections.py` is the management API
-(`specs/001-servicebw-eudi-middleware/contracts/management-api.md`, and for drafts
-`specs/005-connection-drafts/contracts/management-api.md`), and
+(`specs/001-servicebw-eudi-middleware/contracts/management-api.md`, for drafts
+`specs/005-connection-drafts/contracts/management-api.md`, and for scheduling, the activity,
+restorable and bulk deletions, the document order and the example
+`specs/010-revamp-backend-gaps/contracts/management-api.md`, with the columns and transitions
+in its [data-model.md](../specs/010-revamp-backend-gaps/data-model.md)), and
 `app/services/form_connections.py` holds its logic, `app/services/drafts.py` that of
-drafts:
+drafts, `app/services/start_dates.py` the start date's day in Germany and
+`app/services/deletions.py` the bulk deletion, the restore and the deletions' end:
 
 - **Revisions**: each set of documents is an immutable revision with its own EUDIPLO
   presentation configuration, `fc-<id>-r<n>`. Creating a form connection stores
@@ -534,10 +647,13 @@ drafts:
   holds the two states: `published_at`, `current_revision` and `current_rule_set` all
   set and `draft` and `draft_version` null, or the other way round. The migration
   (`d2b97ba4a2c7_connection_drafts`) published every existing row as of its
-  `created_at`, and its downgrade deletes the drafts first.
+  `created_at`, and its downgrade deletes the drafts first. Since spec 010 a deleted draft's
+  row stays too, marked deleted, until its restore time has passed (see "Deleting, and taking
+  it back" below).
 - **The draft endpoints**: `POST /api/form-connections/drafts` stores a new draft,
   `PUT …/{id}/draft` replaces its content and raises its version, `POST …/{id}/publish`
-  publishes it, and `DELETE …/{id}/draft` removes it. Only publishing calls EUDIPLO.
+  publishes it, and `DELETE …/{id}/draft` marks it deleted, restorable for
+  `DELETION_UNDO_SECONDS`. Only publishing calls EUDIPLO.
   `GET /api/form-connections` lists drafts with the published connections, each with its
   `status`, and `GET …/{id}` answers a draft's content and version, without URLs. The
   refusals, all `409` with the `{error, message}` detail:
@@ -571,20 +687,209 @@ drafts:
   commit. If EUDIPLO fails, the row stays a draft. If the guard refuses under the last
   lock (another publish won, or a save raised the version and this publish has no
   `replace`), the configuration is deleted and the revision removed again.
-- **Deleting a draft removes its row**, with any revision that a publish in flight has
-  reserved, in one commit, and calls no EUDIPLO; that publish then finds no row, answers
-  `404` and deletes its own configuration. Its URLs answer `404` from then on, unlike a
-  deleted published connection's.
+- **The four states** (spec 010, research R1, data-model §1.2): a connection's `state` is
+  derived, never stored, by `state_of()`, the one place that derives it: `draft`
+  (`published_at` null), `live` (published and `is_active`), `scheduled` (published, not
+  active, with a `start_date`) and `deactivated` (published, not active, without one).
+  `STATE_CONDITIONS`, right under it, says the same in SQL for the search's `status` filter
+  and the worker's scheduled starts; a change to one changes the other. A scheduled
+  connection is a published connection whose `is_active` is false, so everything that reads
+  `is_active` (the connection URLs, the trigger, the worker's cancel step) treats it as not
+  usable without a change. `status` stays `'draft' | 'published'`, the discriminator of
+  `FormConnectionOrDraft`; `state` is what the UI and the agents show. The CHECK
+  `ck_form_connections_start_date` allows a `start_date` only on a published, inactive row,
+  and the partial index `ix_form_connections_start_date` serves the worker's scan.
+- **Scheduling** (FR-001 to FR-014, research R2, data-model §1.3): a start date is a
+  calendar day in Germany (`YYYY-MM-DD`, shown as written), and the connection becomes
+  active at 00:00 of that day in `Europe/Berlin` (`start_instant()`; midnight exists on every
+  day there). It is set by publishing on a date (`start_date` in the body of
+  `POST …/{id}/publish` or `POST /api/form-connections`: published and calling EUDIPLO as any
+  publish, so the URLs exist at once, but not active), by "Activate again" on a date
+  (`POST …/{id}/activate` with `ActivateRequest`; an empty body is "now"), and by
+  `PUT …/{id}/start-date` (`StartDateUpdate`): a scheduled connection's date moves, or `null`
+  makes it live now; a live connection given a date is scheduled and its open requests are
+  cancelled, while `null` changes nothing; a deactivated connection answers `409
+  status_changed`, a draft `409 not_published`. A scheduled connection given the date it
+  already has answers `200` and writes nothing. Activating a scheduled connection answers
+  `409 status_changed`; deactivating it ends the schedule (`start_date` null, `deactivated_at`
+  now). Saving a published connection (`PUT …/{id}`) takes no date and never changes one.
+  Every status change locks the row through `_lock_for_status_change()` (and, for a date,
+  `_lock_for_start_date()`), which refuses the state the action doesn't apply to and an
+  approval's stale snapshot (`expected: StatusSnapshot(was_active, was_start_date)`). **Only
+  the worker's first step activates on a date** (`activate_due_connections()`, see
+  [Background worker](#background-worker)), with `activated_at` at the start, also when the
+  middleware wasn't running then.
+- **The start date is checked before EUDIPLO and under the locks** (FR-003): `check_start_date()`
+  passes `None` ("Now") and hands a date to `start_dates.clean_start_date()`, which refuses
+  today or an earlier day in Germany with `400 invalid_start_date` ("Enter a date after
+  today."). Every path that takes one checks it first, before it reads the connection, so an
+  invalid date answers `400` before a `404` or `409`, and again under the row lock, so that a
+  day that ends between the dialog and the save is refused and nothing changes. A publish
+  checks it before EUDIPLO is called and again under both of `create_revision()`'s locks,
+  after the `DraftGuard` and refused as the guard refuses: under the first lock nothing is
+  reserved or called yet; under the last, after EUDIPLO answered, the configuration is
+  deleted, the revision removed and the row stays a draft. `create_form_connection()` has no
+  row to lock before its insert: its second check runs in the transaction that inserts the
+  row, after EUDIPLO answered. The content's checks come before the date's, and
+  `create_revision()` takes a date only with a guard. Publishing on a date records
+  `published` then `scheduled`.
+- **The status dates** (FR-015 to FR-021, data-model §1.1, §1.4): `published_at` is when the
+  draft was published, "Now" or on a date; `activated_at` when the connection last became
+  active (publishing "Now", its start, "Activate again" or "Change start date" with "Now"),
+  null for a draft and a connection never active; `deactivated_at` when it was last
+  deactivated, kept after a reactivation and shown only while it is deactivated.
+  Deactivating twice or activating an active connection changes no date and records
+  nothing; a save, rename or reorder changes no status column. The answers carry them with
+  `state`, `start_date`, a draft's `step` (`FormConnectionSummary`) and `last_activity`. Their
+  migration (`bfd1be13755d`) set `activated_at` to `published_at` and a deactivated row's
+  `deactivated_at` to its `updated_at`.
+- **The document order** (FR-045 to FR-052, research R6, data-model §4):
+  `document_order` (JSONB, default `[]`) holds the document type keys in the team's order,
+  for a draft and a published connection alike. Every save path (`create_draft()`,
+  `save_draft()`, `publish_draft()`, `create_form_connection()`, `update_form_connection()`)
+  stores the order of `documents` as sent (`document_order_of()`), and every answer lists
+  `documents` in the stored order (`ordered_documents()`: the stored keys first, any other
+  document after them in catalog order, so `[]` is catalog order). The draft's content,
+  every revision's `documents`, the DCQL query and its `config_hash`, the re-sync and what
+  serviceBW receives stay in catalog order (`clean_documents()`), and so do the data items
+  inside a document. A save that only reorders creates no revision and calls no EUDIPLO:
+  under the row lock `update_form_connection()` writes the order only while the stored
+  documents still equal the sent ones (in any order) and only when it differs, and records
+  `documents_changed`; `create_revision(document_order=…)` writes it when its revision
+  becomes current.
+- **The example** (FR-054 to FR-061, research R7, data-model §5):
+  `POST /api/form-connections/example` (browser only) stores a new draft through the same
+  `_insert_draft()` as `create_draft()`, with `example_content()` of `app/example.py` in the
+  request's language, the step `connection` and `example = 'unchanged'`; every call creates
+  another, and it doesn't count towards the agents' draft limit. `app/example.py` is a leaf
+  like `rules_texts.py` (it imports `app.language`, `app.catalog` and `app.schemas`, never
+  `app.config`), so that `scripts/export_check_fixtures.py` writes the example in both
+  languages to `rules/src/fixtures/example-connection.json` (generated: never edit it by
+  hand), on which `rules/src/example.test.ts` runs the validation and the rule checks and
+  expects nothing. A draft save that changes anything (`changes_between()`'s `changed`, a
+  variant's description included; not a save that only moves the step) sets `example =
+  'changed'`, which never goes back; publishing sets it null (`_publish()`), and
+  `ck_form_connections_example` holds that. The publish dialog shows the example's line
+  while the loaded draft is `'unchanged'` and unchanged in the page, the approval page while
+  the stored draft is.
+- **Deleting, and taking it back** (FR-033 to FR-044, research R5, R10, data-model §3): every
+  deletion marks the row and keeps it. `_mark_deleted()`, shared by `delete_form_connection()`,
+  `drafts.delete_draft()` and the bulk deletion, sets `deleted_at`, `deletion_id` (a UUID the
+  router or the bulk deletion makes, one for the rows deleted together) and `deleted_by_id`
+  under the row lock, keeps `updated_at` (`flag_modified`), cancels the open requests as
+  deactivating does, removes a revision that a draft's publish in flight has reserved, stores
+  the connection's waiting approval requests as `cancelled` with `draft_deleted` or
+  `connection_deleted` (`approvals.cancel_for_deletion()`), so that a restore doesn't bring
+  them back, and records `deleted`. It calls no EUDIPLO. Every delete answers a `Deletion {
+  id, restorable_until }`. A marked row is gone for every read of the management API
+  (`find_form_connection()` and `_lock_form_connection()` answer `404`; the list and the
+  search filter it out). `POST /api/form-connections/deletions` (browser only; 1 to 500
+  distinct items, each with the `state` the dialog showed) deletes drafts and published
+  connections as one deletion: it locks every row in one `SELECT … ORDER BY id FOR UPDATE`,
+  and if one is gone, deleted or in another state, it answers `409 selection_changed` with
+  `changed_ids` and changes nothing. `_mark_deleted()` reads the clock for each row, so the
+  rows of a bulk deletion get slightly increasing `deleted_at`, and the deletion's
+  `restorable_until` is the first row's (`DELETION_UNDO_SECONDS` after it).
+  `POST /api/form-connections/deletions/{deletion_id}/restore` (browser only, the account that
+  deleted) locks the rows that the id still marks deleted, in id order as every deletion
+  locks them, reads the clock only then, and either clears the three columns on all of them,
+  keeping `updated_at`, and records `restored`, or answers `409 not_restorable` and changes
+  nothing: for an unknown or already restored id, a row deleted at or before
+  `deletions.restore_cutoff()`, or another account's deletion. It judges the rows it still
+  finds, so a draft of a bulk deletion that the worker has already finished is not among
+  them (open as T110 in the feature's `tasks.md`). Nothing else comes back: the requests and
+  approval requests the deletion cancelled stay cancelled, and a scheduled connection whose
+  day came meanwhile is activated by the worker's next cycle, as of its start. A deletion
+  that an approved approval request runs has no `deletion_id` and no `deleted_by_id`,
+  answers `id` null and can never be restored (FR-067), yet the worker finishes it only after
+  the same restore time as a person's. `DELETION_UNDO_SECONDS=0` switches restoring off.
+  After the restore time the worker's last step, `finish_deletions`, deletes the activity of
+  those connections and the rows of deleted drafts (what deleting a draft did before spec
+  010), and `delete_unused_configs` their configurations; a deleted published connection keeps
+  its row for good, so that its URLs keep answering `409 unavailable`.
+- **The reservation guard** (`_check_reservation()`, under `create_revision()`'s last lock): a
+  draft deleted while its publish waited for EUDIPLO lost the revision the publish reserved;
+  restored before that lock, the row would pass every other check, and making the number
+  current would leave the published connection without its revision. The guard answers
+  `404` and deletes the configuration, unless a later publish has reserved the same number
+  since, whose configuration has the same id (`fc-<id>-r<n>`). Two windows stay, left by the
+  user's decision (design-notes §4.2 T084 (1)); both need a delete and its "Undo" inside one
+  publish's EUDIPLO call plus a second publish of the same draft: (a) the second publish can
+  reserve the same revision between the first one's rollback and its `delete_config`, which
+  then deletes the configuration the second publish's revision uses; (b) the configuration
+  holds whichever of the two bodies EUDIPLO received last.
 - **Deactivating and deleting** cancel the open requests in the same transaction,
   and call no EUDIPLO: the worker deletes the sessions and, once no request needs
-  them, the configurations. A deleted published form connection keeps its row, so its
-  URLs keep answering `409 unavailable`; the management API answers `404` for it.
+  them (after a deletion also once its restore time has passed), the configurations. A
+  deleted published form connection keeps its row, so its URLs keep answering `409
+  unavailable`; a deleted draft's URLs answer `404` (see
+  [serviceBW's connection URLs](#servicebws-connection-urls)); the management API answers
+  `404` for both.
 - **Clearing everything** (`python -m app.cli clear-connections`) deletes the rows of
   every form connection, with its revisions, branches, rule sets and requests. It
   first deletes the EUDIPLO session of every request that
   still has one, and deletes no row unless all of them are gone; a request that
   starts meanwhile stops it too. The configurations stay, as they hold no personal
   data.
+
+### The activity (spec 010)
+
+Every connection has an activity log: who changed what, shown in the details' Activity card
+and read by agents with `get_activity`. The decisions are research R3 and R4 in
+`specs/010-revamp-backend-gaps/`, the table its data-model §2; `app/services/activity.py` holds
+the logic.
+
+- **The table** `connection_activity` (`ON DELETE CASCADE` from `form_connections`, indexed on
+  (`form_connection_id`, `occurred_at`)): `kind`, `occurred_at`, `position` (the entry's place
+  among one action's entries), `variant_id` and `variant_name` for the kinds about a variant,
+  `start_date` for `scheduled` and `start_date_changed`, and the person: `actor_name` (the
+  team member's username when the entry was made, kept as text so that it survives the
+  account), `agent_name` and `approved`. The kinds: `created`, `renamed`,
+  `description_changed`, `documents_changed`, `variant_added`, `variant_removed`,
+  `variant_renamed`, `rules_changed`, `published`, `scheduled`, `start_date_changed`,
+  `became_active`, `deactivated`, `reactivated`, `deleted`, `restored`. Nothing else is ever
+  written: no view, copy or test, no declined or expired approval request, no rule's
+  content, message or value (FR-029); a change of a variant's description alone writes no
+  entry. Nothing in the module logs.
+- **The `Actor`**: every service that changes a connection takes `actor: Actor` as a keyword
+  argument without a default, so that no call site can leave it out. The routers build it
+  from the call's principal with `actor_of()` (a browser session: the username; a bearer: the
+  username of the account the agent acts for, with the agent's name, `agent_name()`), an
+  approved approval request passes the approver with the asking agent and `approved=True`,
+  and the worker passes `SYSTEM` (no person: the scheduled start, the re-sync).
+- **What a save records** (data-model §2.3): `changes_between(before, after)` is a pure
+  function over two contents (name, description, documents in their order, branches). The
+  save paths call it with the content read under the row lock and the content they are about
+  to store (`save_draft()`, `publish_draft()`, `update_form_connection()`, and
+  `create_revision()` under its last lock), and record one entry per kind and variant: the
+  name and the description compared as cleaned, the documents as the ordered list of
+  (document type, fields), variants matched by id (added, removed, renamed), and a variant's
+  rules when its own tree differs. For a variant linked to Standard only what is its own
+  counts (its marked items and, while `operator_mark` is set, its top level's AND/OR), so a
+  change of Standard that propagates is one entry, "Rules changed in Standard". Its answer's
+  `changed` is true also when nothing is recorded but the content differs, which the
+  example's mark reads. Status changes, deletions and restores record their own kind.
+- **Writing and merging** (FR-025 to FR-027): `activity.record()` writes one action's entries
+  in the transaction that makes the change, under the connection's row lock, with one
+  `occurred_at` and each entry's `position` in the kinds' order (publishing on a date:
+  `published` 0, `scheduled` 1). An entry whose kind, person (`actor_name`, `agent_name`,
+  `approved`) and `variant_id` equal one of the entries at the connection's newest instant
+  merges into it (its time moves to now, its `position`, `variant_name` and `start_date` take
+  the new values); any other is inserted. So twenty rule edits of one agent on one variant
+  are one entry, and anything in between starts a new one. A refused or failed change
+  records nothing.
+- **Reading**: `GET /api/form-connections/{id}/activity?cursor=` answers an `ActivityPage`,
+  newest first (`occurred_at`, `position`, `id`, all descending but the id), 50 entries a
+  page, with a keyset cursor built as the search's; a deleted or unknown connection answers
+  `404`, an unknown cursor `400`. Agents may read it at every level. There is no endpoint
+  that writes, changes or removes an entry (FR-031). `last_activity` on a connection and a
+  draft is the closed card's line: while deactivated its newest `deactivated` entry,
+  otherwise the newest entry with a person, else the newest entry.
+- **Lifetime** (FR-030): entries stay as long as the row. Deleting doesn't touch them, so a
+  restore brings them back; once a deletion can no longer be restored, the worker's
+  `finish_deletions` deletes them (see [Background worker](#background-worker)). The
+  migration (`bfd1be13755d`) wrote entries without a person for every existing connection
+  that wasn't deleted: `created`, `published` (never before `created`) and `deactivated`.
 
 ### Rules and branches (spec 002)
 
@@ -968,9 +1273,12 @@ states its [data-model.md](../specs/007-agent-mcp-server/data-model.md), the sha
   `403 insufficient_access` and `needs_access_level`; `require_browser_session` refuses every
   bearer with `403 browser_only` ("This action is done in Konnekt."), on the
   endpoints that agents reach only through approval requests, `PUT /api/form-connections/{id}`,
-  the user page's and the approval page's endpoints and `/api/auth/*`. `get_current_user` stays
-  the cookie-only dependency. The table of who may call what is in the spec's
-  `contracts/management-api.md`. `/api/connect/` is unchanged.
+  the user page's and the approval page's endpoints and `/api/auth/*`. Spec 010 adds
+  `PUT …/{id}/start-date` (agents ask with `set_start_date`), and
+  `POST /api/form-connections/example`, `POST /api/form-connections/deletions` and its restore,
+  which no tool offers (FR-068). `get_current_user` stays the cookie-only dependency. The
+  table of who may call what is in the spec's `contracts/management-api.md`. `/api/connect/`
+  is unchanged.
 - **Three access levels**, one value per agent connection or token (`access_level`), each
   including the one before:
 
@@ -978,7 +1286,7 @@ states its [data-model.md](../specs/007-agent-mcp-server/data-model.md), the sha
   |---|---|---|
   | `read` | Read only | Every read, `check_rules`, `test_applicants`, `get_guide` |
   | `drafts` | Read and edit drafts | Also every change to a draft, and approval requests to publish or delete a draft |
-  | `manage` | Read, edit drafts and manage live connections | Also approval requests to deactivate, reactivate or delete a published connection |
+  | `manage` | Read, edit drafts and manage live connections | Also approval requests to deactivate, reactivate, change the start date of (`set_start_date`, spec 010) or delete a published connection |
 
   No level changes a published connection's content. The level is read from the row at every
   call, so a change on the user page applies from the agent's next call; tokens carry none.
@@ -998,15 +1306,26 @@ states its [data-model.md](../specs/007-agent-mcp-server/data-model.md), the sha
   sessions aren't limited.
 - **Search** (research R9): `GET /api/form-connections/search?q=&status=&cursor=` answers a page
   of at most 25 connections (`limit`) that aren't deleted, matched on name and description, newest change
-  first, with a keyset cursor (`search_form_connections()`).
+  first, with a keyset cursor (`search_form_connections()`). Its `status` filter takes the four
+  states of spec 010 (`STATE_CONDITIONS`): `scheduled` is its own, and `deactivated` no longer
+  matches a scheduled connection.
 - **Approval requests** (research R12; `routers/approval_requests.py`, `services/approvals.py`,
   the table `approval_requests`): an agent asks with `POST /api/approval-requests` for one of
-  `publish`, `delete_draft` (level `drafts`), `deactivate`, `reactivate` or `delete` (level
-  `manage`). The action's preconditions are checked without writing (for `publish`,
+  `publish`, `delete_draft` (level `drafts`), `deactivate`, `reactivate`, `set_start_date`
+  (spec 010) or `delete` (level `manage`). Spec 010 adds a `start_date` (research R9,
+  data-model §7): with `publish` and `reactivate` the connection is scheduled for it, null
+  meaning at once; with `set_start_date` it is the new date, null meaning now; another action
+  with one fails the body's validation. A date not after today answers `400
+  invalid_start_date` before the connection is read, and the date is checked again under the
+  row lock. `reactivate` refuses a scheduled connection, `set_start_date` a draft, a
+  deactivated connection, a live one with "now" and the date it already has (`409
+  not_allowed`); `deactivate` and `delete` accept a scheduled one. The action's preconditions
+  are checked without writing (for `publish`,
   `drafts.check_publishable()`: publishing's checks with publishing's messages), a waiting
   request for the same connection and action becomes `replaced` under the row lock, and the new
   one is `waiting` for `APPROVAL_REQUEST_MINUTES`, with a snapshot of what it was made for (the
-  draft's version, or the connection's `is_active`) and the agent's name as `requested_by`. Its
+  draft's version, or the connection's `is_active` and, since spec 010, its `start_date` as
+  `was_start_date`) and the agent's name as `requested_by`. Its
   link is `{PORTAL_URL}/approvals/{id}`. States:
 
   ```text
@@ -1015,21 +1334,31 @@ states its [data-model.md](../specs/007-agent-mcp-server/data-model.md), the sha
           ──decline──▶ declined
           ──a newer request, same connection and action──▶ replaced
           ──revoke / lower the agent's level──▶ cancelled (revoked, access_changed; stored)
+          ──the connection or draft is deleted──▶ cancelled (connection_deleted, draft_deleted; stored)
           ──expires_at passes──▶ expired (computed)
-          ──the connection moved on, or the agent's access ended──▶ cancelled (computed)
+          ──the connection moved on, its asked date came, or the agent's access ended──▶ cancelled (computed)
   ```
 
-  Staleness is computed at every read and again under the row lock at approval, never written
-  by the save paths: a draft whose version moved, that was published or deleted, a connection
-  whose `is_active` moved or that was deleted, or an authorization that is gone (the row keeps
-  `authorization_id` null) reads as `cancelled` with its reason. Approving
+  Staleness is computed at every read and again under the row lock at approval; the save
+  paths never write it. Only a deletion stores it: `_mark_deleted()` sets the connection's
+  waiting requests to `cancelled` with `draft_deleted` or `connection_deleted` (spec 010,
+  `approvals.cancel_for_deletion()`), so that a restore doesn't bring them back. Computed
+  (`_stale_reason()`): a draft whose version moved, that was published or is deleted
+  (`draft_deleted`, also while its marked row stays), a connection that is deleted, or whose
+  `is_active` or `start_date` is no longer the snapshot's (`connection_changed`: deactivated,
+  reactivated, scheduled, became active or its date moved), a requested start date that is no
+  longer after today in Germany (`start_date_passed`), or an authorization that is gone (the
+  row keeps `authorization_id` null) reads as `cancelled` with its reason. Approving
   (`POST …/{id}/approve`) and declining are for the browser session of the request's team
   member only (`403 not_yours` for another). **Approving runs the existing services, never a
   second path**: `drafts.publish_stored_draft()`, which publishes the stored draft through
-  `create_revision()` with its `DraftGuard`, `drafts.delete_draft()`, and
-  `form_connections.deactivate_form_connection()`, `activate_form_connection()` and
-  `delete_form_connection()` with the request's snapshot as `expected_active`. An
-  `EudiploError` leaves the request waiting with the failure's `error_id`. The tool
+  `create_revision()` with its `DraftGuard` and the asked start date, `drafts.delete_draft()`,
+  and `form_connections.deactivate_form_connection()`, `activate_form_connection()` (with the
+  asked date), `set_start_date()` and `delete_form_connection()` with the request's snapshot as
+  `expected` (`StatusSnapshot(was_active, was_start_date)`). The activity entry's person is the
+  approver with the asking agent (`approved`). A deletion an approval runs has no deletion id
+  and can't be restored. An `EudiploError` leaves the request waiting with the failure's
+  `error_id`. The tool
   `request_approval` returns the link at once and, for a client that declared URL-mode
   elicitation, also asks the client to open it; `check_approval` reads the outcome. A request
   that ended or expired is deleted by the worker a day later.
@@ -1070,6 +1399,33 @@ states its [data-model.md](../specs/007-agent-mcp-server/data-model.md), the sha
   values against the variant's persona fields (`mcp/src/applicants.ts`) and evaluates them with
   `rules/src/evaluation.ts`, on today in Germany or a given day. Findings, citizens and
   results are never stored, sent on or logged.
+- **The 26 tools** (`mcp/src/tools/`; spec 007's 24 and spec 010's `get_activity` and
+  `move_document`): reading `search_connections`, `get_connection`, `get_activity`,
+  `get_variant`, `get_item` (`read.ts`), `get_catalog`, `search_values` (`catalog.ts`),
+  `check_rules`, `test_applicants` (`checks.ts`) and `get_guide`; changing drafts
+  `create_draft`, `update_connection`, `set_document`, `move_document`, `add_variant`,
+  `update_variant`, `delete_variant` (`drafts.ts`), `add_rule`, `update_item`, `delete_item`,
+  `reset_item`, `copy_rule`, `group_items` (`items.ts`); and `request_approval`,
+  `check_approval` (`approvals.ts`) and `request_access` (`access.ts`).
+- **What spec 010 gives agents** (the spec's `contracts/mcp-tools.md`; research R9, R10): a
+  connection's `status` is the API's `state` (`connectionStateOf()` in `mcp/src/views.ts`
+  reads it), so `scheduled` stands beside draft, live and deactivated; `search_connections`
+  and `get_connection` also answer the dates (`published_at`, `active_since`,
+  `deactivated_since`, the `start_date` of a scheduled one), a draft's `step` and the example's
+  mark, and a scheduled connection's URLs come with the note that they answer "unavailable"
+  until its day, 00:00 in Germany. A start date is a day in Germany, `YYYY-MM-DD` in every
+  MCP text: `request_approval` takes `start_date` (a date or `'now'`) for `publish`,
+  `reactivate` and the new `set_start_date`, checks it before the backend does, and words
+  `what_happens` with the date; `check_approval` answers the asked date and the reason
+  `start_date_passed`. The **snapshot** an approval request keeps (`was_active`,
+  `was_start_date`) makes a request cancelled once the status it was made for moved.
+  `get_activity` reads the Activity card's entries, 50 a page, each with the card's English
+  sentence, the team member and the agent. `move_document` moves a document to a position
+  with `moveDocument()` of `rules/src/edits.ts`, and `set_document` adds a document at the end
+  and keeps the others' places. `get_catalog` answers each data item's `group` and a
+  document's `groups`, in English and in the panel's order. No tool restores a deletion,
+  deletes several connections, creates the example or chooses a whole data group (FR-068):
+  those are a person's actions in Konnekt, and the backend refuses a bearer there.
 - **Guidance from one source** (research R16; the spec's `contracts/guidance.md`):
   `mcp/plugin/` holds the server instructions (`instructions.md`), the eight skills
   (`skills/<topic>/SKILL.md`) and the Claude Code plugin's `.claude-plugin/plugin.json` and
@@ -1090,7 +1446,11 @@ states its [data-model.md](../specs/007-agent-mcp-server/data-model.md), the sha
   metadata, citizen, finding or rule content; the token endpoint's refusals are logged as
   their error code. The OAuth endpoints read no query, so both access logs, uvicorn's
   (`redact_references()` in `app/main.py`) and nginx's (`$redacted_request_uri`), show
-  `/api/oauth/…?<redacted>` in place of any query sent there.
+  `/api/oauth/…?<redacted>` in place of any query sent there. The search's and the activity's
+  keyset cursors (base64 of `<updated_at>|<id>` and of `<occurred_at>|<position>|<id>`) do
+  appear in uvicorn's access line as the query string, as the search's has since spec 007:
+  they hold times and ids only, never a name or content, and were kept so by the user's
+  decision (spec 010, design-notes §4.2 T084 (2)). The activity itself is never logged.
 
 ### Languages (spec 009)
 
@@ -1206,56 +1566,86 @@ an internal id, never a request reference. A step is a plain function without
 arguments in the `STEPS` tuple, in the order below. Tests set `WORKER_ENABLED=false`
 and call the steps directly.
 
-Implemented steps, in the order of research R7 in the spec folder, then those of
-agents' access (spec 007), which log counts and ids only:
+Implemented steps: first the scheduled starts (spec 010), then those of research R7 in spec
+001's folder, in its order, then those of agents' access (spec 007), and last the deletions
+made final (spec 010). The steps of specs 007 and 010 log counts and ids only.
 
-1. **Sync**: one `GET /api/session` per page of sessions updated since the cursor,
+1. **Activate scheduled connections** (`activate_scheduled_connections`, spec 010, research
+   R2): `activate_due_connections()` with today in Germany locks the published, not deleted
+   connections whose `start_date` is on or before today, `FOR UPDATE SKIP LOCKED` in id order,
+   and makes each live in one flush (`is_active`, no `start_date`, `activated_at` at 00:00 of
+   its date in Germany, also after a downtime), recording `became_active` without a person;
+   one commit per cycle. A row that a status change holds is skipped and taken by the next
+   cycle, and PostgreSQL re-checks the conditions on the newest version, so a date moved,
+   deactivated, deleted or started "Now" meanwhile is left alone. It runs first, ahead of the
+   sync's wait for EUDIPLO, and calls nothing outside the database (the configuration exists
+   since publishing). The activation moves `updated_at`. It is the only code that activates
+   on a date.
+2. **Sync**: one `GET /api/session` per page of sessions updated since the cursor,
    which is the latest `updatedAt` seen less 5 seconds. It applies each outcome to
    its pending request and ignores sessions it doesn't know, such as those of other
    environments in the shared tenant. The cursor lives in memory; after a start it
    begins at the oldest pending request. Without a pending request, EUDIPLO isn't
    called.
-2. **Expire**: the last check of each pending request past its `expires_at`, in
+3. **Expire**: the last check of each pending request past its `expires_at`, in
    the pool. An answer given in time still counts; otherwise the request becomes
    `expired`.
-3. **Cancel**: the open requests of deactivated or deleted form connections become
-   `unavailable`. Deactivating and deleting already do this; the step catches a
+4. **Cancel**: the open requests of deactivated, scheduled or deleted form connections
+   become `unavailable` (the step reads `is_active`, which a scheduled connection has
+   false). Deactivating, scheduling and deleting already do this; the step catches a
    request that a trigger inserted afterwards.
-4. **Delete EUDIPLO sessions**, with any documents in them: after any final status
+5. **Delete EUDIPLO sessions**, with any documents in them: after any final status
    other than `completed`, when a pull's 60-second repeat window ends, and for
    documents never delivered 30 minutes less a minute after the citizen shared. A
    `404` counts as deleted; another failure is tried again in the next cycle.
-5. **Re-sync configurations**, once after each start: a published form connection
+6. **Re-sync configurations**, once after each start: a published form connection
    whose current configuration, built again with the current trust list, request
    lifetime and catalog, has a different hash gets a new revision with the same
-   documents. Drafts are skipped, in the step's query and in `resync_config()`: nothing
-   is set up with EUDIPLO for a draft (spec 005). The checks run in the pool, and a
-   failed one is tried again in the next cycle.
-6. **Delete unused EUDIPLO configurations**: those of revisions that a later one
-   replaced, or whose form connection was deleted, once no request on them still
-   has an EUDIPLO session. A `404` counts as deleted. A revision that a draft's publish
-   in flight has reserved is never one of them, since a draft's `current_revision` is
-   null.
-7. **Delete expired sign-in sessions.**
-8. **Delete request records** `REQUEST_RECORD_RETENTION_SECONDS` after the request
+   documents; its actor is `SYSTEM`, and as nothing in the content changes it records no
+   activity. Drafts
+   are skipped, in the step's query and in `resync_config()`: nothing is set up with
+   EUDIPLO for a draft (spec 005). The checks run in the pool, and a failed one is tried
+   again in the next cycle.
+7. **Delete unused EUDIPLO configurations**: those of revisions that a later one
+   replaced, or whose form connection was deleted at or before
+   `deletions.restore_cutoff()`, that is longer ago than `DELETION_UNDO_SECONDS` (spec 010),
+   once no request on them still has an EUDIPLO session. `delete_unused_config()` checks the
+   restore time again under the connection's row lock, which a restore takes too, before it
+   releases the lock and calls EUDIPLO: a connection restored meanwhile keeps its
+   configurations, and a restore that comes after the check finds the time over and is
+   refused. A `404` counts as deleted. A revision that a draft's publish in flight has
+   reserved is never one of them, since a draft's `current_revision` is null.
+8. **Delete expired sign-in sessions.**
+9. **Delete request records** `REQUEST_RECORD_RETENTION_SECONDS` after the request
    ended.
-9. **Delete expired authorization codes**, used or not, after their 5 minutes.
-10. **Delete expired agent tokens**: access tokens past their expiry, and refresh tokens
+10. **Delete expired authorization codes**, used or not, after their 5 minutes.
+11. **Delete expired agent tokens**: access tokens past their expiry, and refresh tokens
     past theirs or replaced more than a day ago (until then, a replaced one used again still
     finds its row and revokes its agent connection).
-11. **Delete idle agent connections**: an agent connection without an unexpired, unreplaced
+12. **Delete idle agent connections**: an agent connection without an unexpired, unreplaced
     refresh token can't be renewed, because it was unused for `AGENT_CONNECTION_IDLE_DAYS`.
     Its tokens go with it; its waiting approval requests then read as cancelled.
-12. **Delete expired personal access tokens**, past the expiry chosen at creation.
-13. **Delete unused OAuth clients**: dynamically registered clients older than an hour that
+13. **Delete expired personal access tokens**, past the expiry chosen at creation.
+14. **Delete unused OAuth clients**: dynamically registered clients older than an hour that
     no agent connection or authorization code uses. Clients of metadata documents stay, as
     their cache.
-14. **Delete old approval requests** a day after they ended or expired; their approval page
+15. **Delete old approval requests** a day after they ended or expired; their approval page
     then answers `404`.
+16. **Finish deletions** (`finish_deletions`, spec 010, research R5): for the rows deleted at
+    or before `deletions.restore_cutoff()`, the same clock as step 7's, it deletes their
+    activity entries and the rows of deleted drafts (with any revision a publish in flight
+    had reserved): what a deletion was before spec 010. A deleted published connection keeps
+    its row for good. A deletion that an approval request ran has no deletion id and can't be
+    restored, yet waits the same time. It works in batches of at most 100 rows
+    (`FINISH_BATCH_SIZE`), each locked `FOR UPDATE SKIP LOCKED` and committed, and the draft
+    rows' delete checks its conditions again.
 
-Steps 11 to 13 lock the rows they delete (`skip_locked`) and check their conditions again
+Steps 12 to 14 lock the rows they delete (`skip_locked`) and check their conditions again
 in the deleting statement, so that, for example, a consent that renews an agent connection at
-the same moment keeps it.
+the same moment keeps it. Steps 1 and 16 skip a row another transaction holds the same way,
+and a later cycle takes it. The steps that act on a deletion (7 and 16) wait for
+`deletions.restore_cutoff()` and check it again under the row lock a restore takes. The
+clock seams are `worker._now()` and `deletions._now()`, which the tests move.
 
 The production image runs one uvicorn process, so there is one worker thread; row
 locks keep the steps correct if that changes.
@@ -1269,8 +1659,19 @@ and `app/services/document_requests.py` holds their logic:
 
 - **Drafts** (spec 005, research R8): a draft's URLs answer `409 unavailable`, exactly
   as a deactivated connection's, so serviceBW can't tell them apart, and the check comes
-  before anything reads a revision (`_usable_form_connection()`). A deleted draft has no
-  row, so its URLs answer `404`. Neither calls EUDIPLO.
+  before anything reads a revision (`_usable_form_connection()`). A deleted draft's URLs
+  answer `404`, as when deleting removed its row: since spec 010 its row stays, marked
+  deleted, until the worker finishes the deletion after `DELETION_UNDO_SECONDS`, and
+  `_usable_form_connection()` answers `404` for an unpublished row with `deleted_at`, also
+  while the draft can still be restored. Neither calls EUDIPLO.
+- **Scheduled connections** (spec 010, FR-004, FR-075): a scheduled connection's trigger and
+  pull URLs answer `409 unavailable` with the message "This form connection is deactivated
+  or deleted", word for word a deactivated connection's answer, since it is a published
+  connection whose `is_active` is false; nothing new under `/api/connect/`. The worker's
+  first step makes it live at 00:00 of its date in Germany, and the URLs work from then on,
+  on the configuration made when it was published. A restored connection answers as it
+  did before its deletion. The documents and their fields are delivered in catalog order,
+  whatever order the team stored (FR-051).
 - **Trigger**, `POST /api/connect/{id}/requests`: creates a EUDIPLO request
   (`POST /api/verifier/offer`) on the form connection's current revision, and
   answers with the same-device wallet link, a QR code of the link for another
@@ -1290,7 +1691,7 @@ and `app/services/document_requests.py` holds their logic:
   delivery through any pull URL starts the repeat window for all of them. Its checks
   run in this order:
   1. unknown form connection, or a deleted draft: `404`;
-  2. deactivated or deleted form connection, or a draft: `409 unavailable`;
+  2. deactivated, scheduled or deleted form connection, or a draft: `409 unavailable`;
   3. unknown branch, another form connection's, or the main branch (whose pull URL is
      the one above): `404`;
   4. deleted branch: `409 unavailable`, for good;
@@ -1429,11 +1830,17 @@ the rules and branches in
 [spec 002's data-model.md](../specs/002-connection-rules/data-model.md), and the drafts
 in [spec 005's data-model.md](../specs/005-connection-drafts/data-model.md), and agents'
 access and approval requests in
-[spec 007's data-model.md](../specs/007-agent-mcp-server/data-model.md). A rule set's
+[spec 007's data-model.md](../specs/007-agent-mcp-server/data-model.md), and the start date,
+the status dates, the activity, the deletion marks, the document order and the example in
+[spec 010's data-model.md](../specs/010-revamp-backend-gaps/data-model.md). A rule set's
 tree and a draft's content are one JSONB column each, since they are always read and
 written whole. Autogenerate emits no CHECK constraint, partial unique index or backfill, so
 the drafts migration and spec 007's migration (`uq_agent_authorizations_oauth_client`, the
-variant ids in drafts) add them by hand. No table holds a citizen's documents, an
+variant ids in drafts) add them by hand, as does spec 010's first one
+(`ck_form_connections_start_date`, `ix_form_connections_start_date` and the status dates'
+backfill). Where a change must leave `updated_at` as it is (a deletion and its restore),
+`flag_modified(row, 'updated_at')` puts the current value into the UPDATE, so that the
+column's `onupdate` doesn't move it. No table holds a citizen's documents, an
 evaluation, a finding, a test citizen or a token's secret.
 
 ## Environment Variables
@@ -1468,6 +1875,7 @@ declared there is ignored (`extra='ignore'`).
 | `AGENT_TOKEN_MAX_DAYS` | Longest expiry of a personal access token | `90` |
 | `APPROVAL_REQUEST_MINUTES` | How long an approval link is valid | `10` |
 | `AGENT_DRAFTS_PER_HOUR` | Drafts one agent connection or token may create per hour | `20` |
+| `DELETION_UNDO_SECONDS` | How long the team member who deleted a connection or draft can take the deletion back ("Undo"); afterwards the worker deletes its configurations, its activity and a draft's row. `0` switches restoring off: every "Undo" answers `409 not_restorable` | `300` |
 
 The three URLs are resolved by `resolve_agent_urls`, after the check of
 `CONNECTION_BASE_URL`; trailing slashes are removed. In the Coolify setup all three live on

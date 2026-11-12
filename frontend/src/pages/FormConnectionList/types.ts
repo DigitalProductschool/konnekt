@@ -267,7 +267,8 @@ export type SelectAllState = 'none' | 'some' | 'all';
  * about, in the list's order (kept while it closes, so that its text stays during the fade),
  * whether it is open, the working state, and the last failure: the name of the first connection
  * that changed meanwhile (`409 selection_changed`), whose sentence is built in the language shown,
- * or another failure's notice
+ * or another failure's notice; `stale` when the failure was `selection_changed`, which a retry
+ * can't mend (design-notes §4.2 T084 (3))
  */
 export interface BulkDeleteState {
   rows: FormConnectionSummary[] | null;
@@ -275,6 +276,7 @@ export interface BulkDeleteState {
   deleting: boolean;
   error: ErrorNotice | null;
   changedName: string | null;
+  stale: boolean;
 }
 
 export type BulkDeleteAction =
@@ -294,12 +296,21 @@ export interface BulkDeleteFailure {
   stale: boolean;
 }
 
+/**
+ * What the bulk delete dialog shows after a failure: the notice under "Couldn’t delete" (none
+ * without a failure) and whether it offers "Try again"
+ */
+export interface BulkDeleteNotice {
+  error: ErrorNotice | null;
+  retry: boolean;
+}
+
 /** The bulk delete dialog's props: its state and what its buttons do */
 export interface BulkDeleteDialogProps {
   state: BulkDeleteState;
   /** "Keep connections", × and Escape: nothing happens while the deletion runs */
   onCancel: () => void;
-  /** "Delete connections", and "Try again" after a failure */
+  /** "Delete connections", and "Try again" after a failure other than `selection_changed` */
   onConfirm: () => void;
 }
 

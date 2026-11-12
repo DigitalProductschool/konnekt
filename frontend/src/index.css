@@ -401,6 +401,14 @@
     padding-inline: 0.5rem;
   }
 
+  /*
+   * The title on its own line under the icon: inside a dialog kern.css gives every `.kern-title`
+   * `flex: 1 0 0`, which kept it beside the icon, a few letters wide (spec 010, T084 (5))
+   */
+  .kern-alert__header > .kern-title {
+    flex-basis: 100%;
+  }
+
   .kern-alert__body {
     padding-inline: 0.75rem;
   }

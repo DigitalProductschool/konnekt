@@ -10,6 +10,7 @@ import {
   DIALOG_WIDTH_CLASSES,
 } from './constants';
 import type { ConfirmDialogProps } from './types';
+import { dialogButtonCountOf } from './utils';
 
 /** Whether a pointer event on the dialog element itself lies outside its box: on the scrim */
 function isOnScrim(event: MouseEvent<HTMLDialogElement>): boolean {
@@ -35,7 +36,8 @@ function isOnScrim(event: MouseEvent<HTMLDialogElement>): boolean {
  * control that opened it. Escape and the × close it (`onClose`), and so does a click on the
  * scrim unless `dismissOnScrim` is off (the dialogs that delete or publish, FR-052a). While the
  * action runs (`busy`, the working state) nothing closes it. If the action fails, it stays open
- * with the API's message above the text and offers to try again: wherever the page is
+ * with the API's message above the text and offers to try again, or, where trying again can't
+ * mend it (`hideConfirm`), only the cancel button, which takes the focus: wherever the page is
  * scrolled, the dialog is in view. It and its scrim fade in and out (design-notes §4).
  */
 export default function ConfirmDialog({
@@ -52,6 +54,7 @@ export default function ConfirmDialog({
   error = null,
   errorTitle = '',
   retryLabel = '',
+  hideConfirm = false,
   onCancel,
   onClose = onCancel,
   onConfirm,
@@ -63,6 +66,7 @@ export default function ConfirmDialog({
 }: ConfirmDialogProps) {
   const copy = useCopy(CONFIRM_DIALOG_COPY);
   const dialogRef = useRef<HTMLDialogElement>(null);
+  const cancelRef = useRef<HTMLButtonElement>(null);
   // Whether the press that ends in a click began on the scrim too, so that selecting text in
   // the dialog and letting go outside it doesn't close it
   const pressedOnScrim = useRef(false);
@@ -76,10 +80,7 @@ export default function ConfirmDialog({
   const textId = `${id}-text`;
   const hasCancel = cancelLabel !== '';
   const hasSecondary = onSecondary !== undefined;
-  const buttonCount = ((hasCancel ? 1 : 0) +
-    (hasSecondary ? 1 : 0) +
-    1) as keyof typeof DIALOG_ACTIONS_CLASSES;
-  const actions = DIALOG_ACTIONS_CLASSES[buttonCount];
+  const actions = DIALOG_ACTIONS_CLASSES[dialogButtonCountOf(hasCancel, hasSecondary, hideConfirm)];
   // With three buttons, cancel turns tertiary (P33 dialog-actions, number of buttons=3)
   const cancelVariant = hasSecondary ? 'kern-btn--tertiary' : 'kern-btn--secondary';
 
@@ -94,6 +95,14 @@ export default function ConfirmDialog({
       dialog.close();
     }
   }, [open]);
+
+  // The confirm button went away (or the dialog opened without it): the cancel button takes the
+  // focus, which would otherwise fall to the page's body with the removed button
+  useEffect(() => {
+    if (open && hideConfirm) {
+      cancelRef.current?.focus();
+    }
+  }, [open, hideConfirm]);
 
   function close() {
     if (!busy) {
@@ -183,6 +192,7 @@ export default function ConfirmDialog({
         <div className={`flex w-full flex-1 gap-16 ${actions}`}>
           {hasCancel && (
             <button
+              ref={cancelRef}
               type="button"
               onClick={busy ? undefined : onCancel}
               aria-disabled={busy}
@@ -201,16 +211,18 @@ export default function ConfirmDialog({
               <span className="kern-label">{secondaryLabel}</span>
             </button>
           )}
-          <button
-            type="button"
-            onClick={busy ? undefined : onConfirm}
-            aria-disabled={busy}
-            className={`kern-btn kern-btn--primary ${danger ? 'kern-btn--danger' : ''}`}
-          >
-            <span className="kern-label">
-              {busy ? busyLabel : error ? retryLabel : confirmLabel}
-            </span>
-          </button>
+          {!hideConfirm && (
+            <button
+              type="button"
+              onClick={busy ? undefined : onConfirm}
+              aria-disabled={busy}
+              className={`kern-btn kern-btn--primary ${danger ? 'kern-btn--danger' : ''}`}
+            >
+              <span className="kern-label">
+                {busy ? busyLabel : error ? retryLabel : confirmLabel}
+              </span>
+            </button>
+          )}
         </div>
       </footer>
     </dialog>

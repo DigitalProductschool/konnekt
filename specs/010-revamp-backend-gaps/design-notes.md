@@ -32,6 +32,22 @@ to; nothing here is re-decided.
   `--radius-drag-copy: 6px`, `--radius-drop-line: 1px` in `@theme` (`frontend/src/index.css`).
   The copy is placed by `--drag-left`, `--drag-top`, `--drag-width`, `--drag-x` and `--drag-y`,
   set with `style.setProperty` on the list's scroll area (§4.1 call 1).
+- **The connection pill grows to two rows between `md` and about 900 px** (T098; T084 (4); the
+  coordinator, phase 12): no frame draws 768–1023 px; U03 #39 draws a one-row "Where you are" pill
+  in a 64 px header area. So that the header's name keeps at least min(its own width, 96 px) at
+  every width, the status pill wraps under the name inside the "Where you are" pill wherever both
+  don't fit: below `md`, and between 768 and about 900 px on the details page (where the
+  description takes the room) and in the edit flow for a long scheduled name; the pill is then
+  72 px high and the header 88 px. 1440 px is unchanged. In the edit flow at those widths the
+  pinned step header (`wizard-pinned:top-64`) sits 24 px under an 88 px header, leaving 8 px above
+  the step title; nothing is hidden (T098's UNCERTAIN 2), kept.
+- **The start date field's unfocused line is `layout-border`** (T106; T087's sweep; SC-009): P1b
+  `6380:26675` (U75, "Rules/Number field" `6194:42241`; the same field in S15 and S17) draws the
+  1 px line in `decorative-border` `#e1e6f0`, 1.25:1 on white; WCAG 1.4.11 asks 3:1 for a field's
+  boundary, so the build draws `--kern-color-layout-border` `#6b7488` (`border-kern-layout-border`;
+  4.69:1 on white, 4.29:1 on `#f2f5fb`), the nearest KERN token of the overlay that passes and the
+  one the radios beside it already use. Fill, width, radius, size, the error line and the focus
+  ring are unchanged. For the designer's list.
 
 ## 2. Verification
 
@@ -2149,7 +2165,1135 @@ Items: FR-062–FR-069, SC-010, US8-AS1–AS5; V12.1–V12.9 (plus V12.7b: `star
 
 ### 2.3 The measured sweeps
 
+#### T086, this feature's text pairs (script-first, report only)
+
+Items FR-071, R11, SC-009. No browsers, widths or screenshots: a text check over `main` (git archive) and the working tree (`010-revamp-backend-gaps`, phases 1–11 committed), languages en and de. Data made: none. Pairs: 156 (new 135, new key with a pair main has elsewhere in the file 13, changed English 0, example.py 8); copy.md §2–§8 texts 87. Scripts and CSV: `<SP>/pairs/` (`collect_ts.cjs`, `collect_py.py`, `check.py`, `summarize.py`, `T086.csv`, `T086-summary.md`).
+
+1. Counts per check
+
+| check | pass | flag | unsure |
+|---|---|---|---|
+| german | 155 | 0 | 1 |
+| glossary | 151 | 5 | 0 |
+| quotes | 155 | 0 | 1 |
+| variables | 156 | 0 | 0 |
+| formal_address | 155 | 0 | 1 |
+| dates | 156 | 0 | 0 |
+| copy_md | 81 | 4 | 2 |
+| copy_md_german | 83 | 0 | 3 |
+
+2. Flagged rows (real): `file | key | check | english | german | why`
+
+| file | key | check | english | german | why |
+|---|---|---|---|---|---|
+| contracts/copy.md | §2 "Change start date" on an active connection, "On a date": the hint (FR-009) | copy_md | Until that date, citizens can't start a new request. Requests in progress are cancelled. | Bis zu diesem Datum können Bürgerinnen und Bürger keine neue Anfrage starten. Laufende Anfragen werden abgebrochen. | copy.md §2 writes a straight apostrophe (can't, don't, won't) where the code, like the frame and copy.md §4 since T049, writes ’; the code is right by the project's typography, copy.md §2 is the side to change (T097/T099); found only with ’ where copy.md writes a straight ': Until that date, citizens can’t start a new request. Requests in progress are cancelled. |
+| contracts/copy.md | §2 "Activate this connection again?", "On a date": the hint (FR-011) | copy_md | The connection becomes active again on the date you choose. Until then, its links don't work. | Die Anbindung wird am gewählten Datum wieder aktiv. Bis dahin funktionieren ihre Links nicht. | copy.md §2 writes a straight apostrophe (can't, don't, won't) where the code, like the frame and copy.md §4 since T049, writes ’; the code is right by the project's typography, copy.md §2 is the side to change (T097/T099); found only with ’ where copy.md writes a straight ': The connection becomes active again on the date you choose. Until then, its links don’t work. |
+| contracts/copy.md | §2 The deactivate dialog for a scheduled connection: the sentence (FR-012) | copy_md | This connection will be active from <date>. If you deactivate it, it won't become active and its links won't work. You can activate it again later. | Diese Anbindung ist ab <date> aktiv. Wenn Sie sie deaktivieren, wird sie nicht aktiv und ihre Links funktionieren nicht. Sie können sie später wieder aktivieren. | copy.md §2 writes a straight apostrophe (can't, don't, won't) where the code, like the frame and copy.md §4 since T049, writes ’; the code is right by the project's typography, copy.md §2 is the side to change (T097/T099); found only with ’ where copy.md writes a straight ': This connection will be active from ${date}. If you deactivate it, it won’t become active and its links won’t work. You can activate it agai |
+| contracts/copy.md | §2 "Save changes?" for a scheduled connection: the sentence (FR-013) | copy_md | Your changes become active with the connection on <date>. Citizens can't use it before then. | Ihre Änderungen werden mit der Anbindung am <date> aktiv. Vorher können Bürgerinnen und Bürger sie nicht nutzen. | copy.md §2 writes a straight apostrophe (can't, don't, won't) where the code, like the frame and copy.md §4 since T049, writes ’; the code is right by the project's typography, copy.md §2 is the side to change (T097/T099); found only with ’ where copy.md writes a straight ': Your changes become active with the connection on ${date}. Citizens can’t use it before then. |
+
+False positives removed after reading:
+
+| file | key | check | english | german | why it is not a defect |
+|---|---|---|---|---|---|
+| frontend/src/components/ExampleBanner/constants.ts | EXAMPLE_BANNER_COPY.standard | glossary | Try changing the age to 18 or adding a rule. Then use Test rules to check the result. | Versuchen Sie, das Alter auf 18 zu ändern oder eine Regel hinzuzufügen. Prüfen Sie das Ergebnis dann mit „Regeln testen“. | "adding" is there: "hinzuzufügen" (the zu-infinitive splits the stem "hinzufüg") |
+| frontend/src/pages/FormConnectionDetail/constants.ts | CONNECTION_DETAIL_COPY.scheduledText | glossary | The links are ready to be added to your service. They become active on the scheduled date below. | Die Links können bereits in Ihren Dienst eingefügt werden. Sie werden am geplanten Datum unten aktiv. | "added to your service" → "in Ihren Dienst eingefügt": the glossary's own verb for the service ("Add the links below to your service." → "Fügen Sie die Links unten in Ihren Dienst ein."); accepted by T015 (design-notes §4.2) |
+| frontend/src/pages/FormConnectionDetail/constants.ts | CONNECTION_DETAIL_COPY.deactivateScheduledText | glossary | This connection will be active from ${date}. If you deactivate it, it won’t become active and its links won’t work. You can activate it again later. | Diese Anbindung ist ab ${date} aktiv. Wenn Sie sie deaktivieren, wird sie nicht aktiv und ihre Links funktionieren nicht. Sie können sie später wieder aktivieren. | "will be active from <date>" is a sentence, not the label "Active from"; copy.md §2 gives "ist ab <date> aktiv" word for word |
+| frontend/src/pages/FormConnectionList/constants.ts | DELETE_CONNECTION_COPY.scheduled | glossary | This connection will be active from ${date}. If you delete it, it won’t become active and its links won’t work. | Diese Anbindung ist ab ${date} aktiv. Wenn Sie sie löschen, wird sie nicht aktiv und ihre Links funktionieren nicht. | as the deactivate sentence: "ist ab <date> aktiv" (T027's German, design-notes §4.2) |
+| rules/src/constants.ts | EDIT_MESSAGES.documentNotRequested | glossary | The connection doesn’t request “${document}”. | Die Anbindung fordert „${document}“ nicht an. | "request" is there as the separable verb "fordert … an" (anfordern, the glossary's "requested → angefordert") |
+
+3. Unsure rows with the verdict
+
+| file | key | check | english | german | verdict |
+|---|---|---|---|---|---|
+| frontend/src/pages/Approval/constants.ts | STATUS_LEADS.set_start_date | german | ${null} | ${null} | pass: `null` in both languages (no lead line for set_start_date), not a text |
+| frontend/src/pages/FormConnectionDetail/constants.ts | CONNECTION_DETAIL_COPY.activateDateHint | formal_address | The connection becomes active again on the date you choose. Until then, its links don’t work. | Die Anbindung wird am gewählten Datum wieder aktiv. Bis dahin funktionieren ihre Links nicht. | pass: "on the date you choose" → "am gewählten Datum", impersonal, copy.md §2's German word for word |
+| backend/app/services/approvals.py | <module>::START_DATE_CHANGED_TEXT | quotes | The connection's start date changed in the meantime. | Das Startdatum der Anbindung wurde inzwischen geändert. | pass as decided: the server's messages keep the straight apostrophe ("The connection's start date …"), the page's own table writes ’ (T080, design-notes §4.2); carried to the review |
+| contracts/copy.md | §3 The closed line without a person (FR-032) | copy_md | Last edited · <date>, <time> | Zuletzt bearbeitet · <date>, <time> | pass: `Last edited · ${dateTime}`, where `dateTimeOf()` writes "DD.MM.YYYY, HH:MM" (`formatRowDate`, ", ", `SAVED_TIME_FORMATS`), so the line reads as copy.md |
+| contracts/copy.md | §3 The closed line without a person (FR-032) | copy_md_german | Last edited · <date>, <time> | Zuletzt bearbeitet · <date>, <time> | pass: `Zuletzt bearbeitet · ${dateTime}`, as above |
+| contracts/copy.md | §3 The closed line, deactivated, without a person | copy_md | Deactivated · <date>, <time> | Deaktiviert · <date>, <time> | pass: `Deactivated · ${dateTime}`, as above |
+| contracts/copy.md | §3 The closed line, deactivated, without a person | copy_md_german | Deactivated · <date>, <time> | Deaktiviert · <date>, <time> | pass: `Deaktiviert · ${dateTime}`, as above |
+| contracts/copy.md | §6 Rule 02's message, Standard / the variant | copy_md_german | … for at least 1 year. | … seit mindestens 1 Jahr … | pass: copy.md elides both ends ("… seit mindestens 1 Jahr …"); example.py has "Sie müssen seit mindestens 1 Jahr einen Führerschein der Klasse B besitzen." |
+
+4. Cited rows: none (a text check; the sweeps T087–T096 cite the per-task tables).
+
+Open rows: 4 (the real flags, which T097 decides; nothing is fixed here).
+
+#### T087, US1's dialogs and edit flow (T085's harness, report only)
+
+Items FR-072, SC-009, W16 (screens S14, S15, S17, S18, C2; copy.md §2). Measured 2026-11-12 on the main installation (backend 3016 against `template_db_010_p12` with the fake EUDIPLO and the worker off, Vite 5180), account `p10-alice`, by `<SP>/sweep/T087/sweep.mjs` on `<SP>/sweep/measure.mjs`: Chromium 156 (`/usr/bin/chromium`) and Firefox (Playwright build 1572), English and German (the stored language choice), 1440 × 900, 320 × 720 and 160 × 450 CSS px viewports, time zone Europe/Berlin. **The full matrix ran** (English in Chromium included, beside the cited rows): 27 states × 12 cells = 324 cells, 15,587 rows, 1,660 s (Chromium 7.9 s, Firefox 9.9 s per cell on average). Measures: the harness's ten (horizontal_scroll, clipped, h1_count, focus_visible, contrast, durations, label_width, live_region, lang, forbidden_text; FORBIDDEN plus "PDF herunterladen" and "Entwurfsänderungen") and `alert_title` (T084 (5): each visible `.kern-alert .kern-title` against its alert's content width at 160 CSS px, under 50 % a defect). Output: `<SP>/sweep/T087/out/` (`T087.csv`, `T087-summary.md`, `shots/`).
+
+Data made through the API from `P3 seed live`'s content (kept for reruns, found by name): `T087 sweep base scheduled` (`d21c60ce-c8be-4f1c-8629-555a5d56462c`, start 2026-12-12), `T087 sweep base live` (`cb7c44ee-23ff-4922-bbc7-4e02e64510d9`), `T087 sweep base deactivated` (`0d0877a7-50cf-4302-a4df-b78339544973`), the drafts `T087 sweep base draft` (`6e3eaadc-4f35-465f-afa7-4834fa0ccca1`, step test, with rules) and `T087 sweep base norules` (`9d51f573-272e-4cc3-bcfc-dd5f4d945bbb`, step rules, no rule). Per cell, for the states that act: 42 rows `T087 sweep <cell uid> {publishing,published,deactivated}` (a draft whose publish was held, a draft published against the fake, a deactivated connection whose reactivation was held), all deleted through the API at the end. Failures with `failNext` (500 with the error ID `T087-xxxxxxxx-fake`, `abort` for no answer); "Publishing…" and "Scheduling…" with a `page.route()` that never answers (the request never reaches the backend); "Published" with the editor's 0.5 s timer stretched in the page; the start date typed 10.12.2026 (28 days out). The states: publish-now, publish-date, publish-date-error (empty field, "Schedule"), publish-publishing, publish-published, publish-failed (500 + error ID), publish-no-answer, publish-no-rules ("On a date" with its hint); start-scheduled-date, start-scheduled-now, start-active-now, start-active-date (hint), start-error (empty field), start-failed (500 + error ID); activate-now, activate-date, activate-error, activate-scheduling; deactivate-details, delete-details, delete-row (the overview's bin); edit-entry (details, "Edit this scheduled connection?"), edit-entry-row (the row's "Edit “<name>”?"); edit-step1 (header pill and step 1's note), edit-leave, edit-discard, edit-save (each after a change to the description).
+
+1. Counts per state × measure (pass/fail/unsure; every state 12 cells; horizontal_scroll, h1_count and lang 12/0/0 everywhere, left out)
+
+| state | clipped | label_width | contrast | live_region | forbidden_text | durations | focus_visible | alert_title |
+|---|---|---|---|---|---|---|---|---|
+| publish-now | 12/0/0 | 84/0/0 | 204/0/0 | 37/0/0 | 118/2/0 | 36/0/0 | 96/0/0 | 4/0/0 |
+| publish-date | 12/0/0 | 84/0/0 | 227/0/0 | 36/0/0 | 118/2/0 | 36/0/0 | 120/0/0 | 4/0/0 |
+| publish-date-error | 12/0/0 | 84/0/0 | 240/0/0 | 60/0/0 | 116/4/0 | 36/0/0 | 120/0/0 | 4/0/0 |
+| publish-publishing | 12/0/0 | 12/0/0 | 24/0/0 | 48/0/0 | 118/2/0 | 48/0/0 | – | 4/0/0 |
+| publish-published | 12/0/0 | 12/0/0 | 24/0/0 | 36/0/0 | 117/3/0 | 36/0/0 | – | 4/0/0 |
+| publish-failed | 12/0/0 | 84/0/0 | 240/0/0 | 60/0/0 | 118/2/0 | 36/0/0 | 96/0/0 | 4/0/0 |
+| publish-no-answer | 12/0/0 | 84/0/0 | 216/0/0 | 60/0/0 | 116/4/0 | 36/0/0 | 96/0/0 | 4/0/0 |
+| publish-no-rules | 12/0/0 | 84/0/0 | 240/0/0 | 36/0/0 | 120/0/0 | 36/0/0 | 120/0/0 | 4/0/0 |
+| start-scheduled-date | 12/0/0 | 84/0/0 | 156/**12**/0 | 12/0/0 | 120/0/0 | 36/0/0 | 120/0/0 | 4/0/0 |
+| start-scheduled-now | 12/0/0 | 84/0/0 | 144/0/0 | 12/0/0 | 120/0/0 | 36/0/0 | 96/0/0 | 4/0/0 |
+| start-active-now | 12/0/0 | 84/0/0 | 144/0/0 | 12/0/0 | 120/0/0 | 36/0/0 | 96/0/0 | 4/0/0 |
+| start-active-date | 12/0/0 | 84/0/0 | 180/0/0 | 12/0/0 | 120/0/0 | 36/0/0 | 120/0/0 | 4/0/0 |
+| start-error | 12/0/0 | 84/0/0 | 180/0/0 | 48/0/0 | 120/0/0 | 36/0/0 | 120/0/0 | 4/0/0 |
+| start-failed | 12/0/0 | 84/0/0 | 192/**12**/0 | 48/0/0 | 120/0/0 | 36/0/0 | 120/0/0 | 4/0/0 |
+| activate-now | 12/0/0 | 84/0/0 | 203/0/0 | 12/0/0 | 120/0/0 | 36/0/0 | 96/0/0 | 4/0/0 |
+| activate-date | 12/0/0 | 84/0/0 | 240/0/0 | 12/0/0 | 120/0/0 | 36/0/0 | 120/0/0 | 4/0/0 |
+| activate-error | 12/0/0 | 84/0/0 | 252/0/0 | 48/0/0 | 120/0/0 | 36/0/0 | 120/0/0 | 4/0/0 |
+| activate-scheduling | 12/0/0 | 84/0/0 | 132/0/0 | 12/0/0 | 120/0/0 | 36/0/0 | 72/0/0 | 4/0/0 |
+| deactivate-details | 12/0/0 | 60/0/0 | 84/0/0 | 12/0/0 | 120/0/0 | 36/0/0 | 72/0/0 | 4/0/0 |
+| delete-details | 12/0/0 | 60/0/0 | 84/0/0 | 12/0/0 | 120/0/0 | 36/0/0 | 72/0/0 | 4/0/0 |
+| delete-row | 12/0/0 | 60/0/0 | 84/0/0 | 24/0/0 | 120/0/0 | 36/0/0 | 72/0/0 | 4/0/0 |
+| edit-entry | 12/0/0 | 60/0/0 | 84/0/0 | 12/0/0 | 120/0/0 | 36/0/0 | 72/0/0 | 4/0/0 |
+| edit-entry-row | 12/0/0 | 60/0/0 | 84/0/0 | 24/0/0 | 120/0/0 | 36/0/0 | 72/0/0 | 4/0/0 |
+| edit-step1 | 8/0/**4** | 192/0/0 | 408/0/0 | 36/0/0 | 120/0/0 | 132/0/0 | 288/0/0 | 4/0/0 |
+| edit-leave | 12/0/0 | 60/0/0 | 84/0/0 | 36/0/0 | 120/0/0 | 36/0/0 | 72/0/0 | 4/0/0 |
+| edit-discard | 12/0/0 | 60/0/0 | 84/0/0 | 36/0/0 | 120/0/0 | 36/0/0 | 72/0/0 | 4/0/0 |
+| edit-save | 12/0/0 | 60/0/0 | 144/0/0 | 36/0/0 | 120/0/0 | 36/0/0 | 72/0/0 | 4/0/0 |
+
+Totals: 15,540 pass, 43 fail (24 contrast, 19 forbidden_text), 4 unsure (clipped). The live regions' expectations all passed: the date error "Enter a date after today." / "Geben Sie ein Datum nach dem heutigen Tag ein." (`role="alert"`), the error ID line ("Error ID:" / "Fehler-ID:" with `T087-…-fake`), the no-answer sentence "Couldn’t publish, so nothing has changed. …" / "Die Anbindung konnte nicht veröffentlicht werden, daher hat sich nichts geändert. …", the status dialog's "Publishing… This takes a few seconds." / "Wird veröffentlicht … Das dauert einige Sekunden." and "Published Opening your connection page…" / "Veröffentlicht Die Seite Ihrer Anbindung wird geöffnet …". Alert titles at 160 CSS px: publish-failed, publish-no-answer and start-failed, 73 of 89 px (82 %, Chromium) and 88 of 104 px (85 %, Firefox) in both languages (T024's local `narrow:[&_.kern-title]:basis-full!` and `DialogFailureAlert`'s classes); no other state shows a `.kern-alert` (96 "(none visible)" rows).
+
+2. Defects: `state | language | width | browser | measure | element | value | limit | suspected file`
+
+| state | language | width | browser | measure | element | value | limit | suspected file |
+|---|---|---|---|---|---|---|---|---|
+| start-scheduled-date | en, de | 1440, 320, 160 | Chromium, Firefox | contrast | dialog > input "Start date (DD.MM.YYYY)" / "Startdatum (TT.MM.JJJJ)" (boundary), unfocused | border 1.25 (#e1e6f0 on #ffffff), no fill | 3 | `frontend/src/components/ActiveFromChoice/constants.ts` (`DATE_FIELD_CLASSES.valid`: `border-(--kern-color-decorative-border-default)`, as T023 built P1b's 1 px #e1e6f0; KERN's own fields measure border-bottom #22293a 14.52 and fill #f2f5fb) |
+| start-failed | en, de | 1440, 320, 160 | Chromium, Firefox | contrast | the same field after the failure (unfocused) | border 1.25 (#e1e6f0 on #ffffff) | 3 | the same; the field is the same in the publish dialog and "Activate again" (there it was focused while measured, so its outline passed) |
+| edit-step1 | en, de | 320 | Chromium | clipped (unsure → defect) | nav > span "T087 sweep base scheduled" (the header's name) | 0 px of 178 shown (text 165–343 in 165–165; de 169–347 in 169–169) | ≥ min(own width, 96 px) (T084 (4)) | `frontend/src/components/TopBar/index.tsx` (T084 (4), T098's decided fix; T088 measures it) |
+| edit-step1 | en, de | 320 | Firefox | clipped (unsure → defect) | the same | 7–8 px of 178 shown (165–172; de 169–177) | ≥ min(own width, 96 px) | the same |
+
+3. Unsure and failing rows looked at, with the verdict
+
+| state | measure | element | cells | verdict |
+|---|---|---|---|---|
+| publish-now, publish-date, publish-date-error, publish-publishing, publish-published, publish-failed, publish-no-answer | forbidden_text "Message … reads" (19 rows) | th "Message Emre reads" (Giulia, Felix, Jonas, …) | English only, cells varying with the generated personas | pass: the test step behind the modal dialog, `TestStep/ResultTable.tsx`'s column head for a persona who doesn't meet a variant (spec 004, F3/F14); FR-076 excludes the box only for a persona who meets every rule (spec.md Clarification 2026-11-10 #8), and the table shows "Rules <name> meets" then. The harness's pattern can't tell them apart (a limit for every sweep over the test step) |
+| edit-step1 | clipped (4 rows) | the header's name | en/de 320 ch/ff | defect (section 2): the cut is an ellipsis, but to 0–8 px, under T084 (4)'s minimum |
+| (screenshot `start-failed-de-160-firefox.png`) | label_width | "Abbrechen" breaks as "Abbreche / n" at 160 | de 160 | pass: index.css's narrow block wraps words below 320 CSS px by design (CLAUDE.md "Narrow windows"); the label fits its box |
+
+4. Cited rows: English in Chromium at 1440, 320 and 160 from §2.1 `#### T023` ("Active from"), `#### T024` (the publish dialog), `#### T025` (the scheduled details and the menu), `#### T026` ("Change start date"), `#### T027` (the scheduled confirmations and "Activate again"), `#### T028` (the scheduled edit flow; Firefox at 1440 there) and §2.2 `#### T030` (the walk V1–V4, both browsers and languages at 1440). The sweep ran those cells too; they found the same two defects (the date field's border, the header's name at 320), which the cited tables didn't measure (contrast of an unfocused border) or left to T084 (the name).
+
+Open rows: 4 defects (2 groups: the date field's border, the header's name at 320), for T098.
+
+#### T088: sweep of US2's rows and pill (C1, S4 "The row's date", S15, S16; FR-072, SC-009, W16; T085's harness, scripted `playwright-core` 1.65: Chromium `/usr/bin/chromium` and Firefox build 1572, CSS px viewports, zone Europe/Berlin, language through the stored choice; main installation, backend 3016 on `template_db_010_p12` with the fake EUDIPLO, Vite 5180; signed in as `p10-alice`)
+
+**Items**: the overview's row in the four states (`row-live`, `row-scheduled`, `row-deactivated`,
+`row-draft`: the overview filtered by the row's full name, so that one row shows; scope: the row);
+the details' status band with its date pill and the header's "Where you are" pill in the four
+states (`band-*`; scope: the header's nav and the band); the ⋯ menu open on the date pill for a
+scheduled, an active and a deactivated connection (`menu-*`; scope: the menu); and, carried from
+T014, the edit flow's header in the four states (`header-edit-*`; `/form-connections/<id>/edit`,
+the draft's editor; scope: the header's nav). 15 states over en, de × 1440, 320, 160 × Chromium,
+Firefox (180 cells, English Chromium included: it adds contrast, label widths and focus). Carried
+from T084 (4): the header name's visible width (`name-details-*`, `name-edit-*`) at 320, 400, 600,
+767, 768, 900 and 1024 CSS px, en and de, in Chromium, and in Firefox at 320 and 768 (144 cells,
+measures `horizontal_scroll`, `clipped` and the rows below).
+
+**Measures**: the harness's ten, plus the sweep's own rows: `name_width` (the name's box, its
+`getBoundingClientRect()` width clipped by its `truncate`, against min(its own `scrollWidth`, 96);
+T084 (4)), `pill_in_nav` (the status pill inside the "Where you are" pill and the viewport; its
+label's lines), `pill_label` (the header pill's text; the scheduled label with U+00A0 before "·"
+and a date), `row_date` and `band_line` (the texts of S4 and C1 by pattern), `menu_in_viewport`
+and `menu_entries` (S15's entries), `alert_title_width` (T084 (5), at 160 CSS px).
+
+**Data** (made through the API by `<SP>/sweep/T088/rows.mjs`, found again on a rerun; kept for
+T098): "T088 sweep Anwohnerparkausweis live" `ef470389-8579-4477-b734-53e0f1bdbe3b`, "… scheduled"
+`62ec4dfd-2764-48bf-b653-1ce95e6896c9` (starts 12.12.2026), "… deactivated"
+`e6467ac4-70e4-4ae7-b6a7-38fb71d57ab8`, "… draft" `701824a9-15cd-41ae-b5e4-9da296773d5d` (step
+rules). The names are of a realistic length (249–302 px of text at 14 px), as T084 (4) asks.
+
+**Run**: 2026-11-12, 324 cells, 6968 rows (main 180 cells / 6248 rows in 1077 s; names 144 cells /
+720 rows in 419 s), with T087, T089 and T090 running at the same time. Script:
+`<SP>/sweep/T088/sweep.mjs`; output `<SP>/sweep/T088/out/` and `<SP>/sweep/T088/out-names/`.
+
+**1. Counts per state × measure** (pass/fail/unsure; main matrix, 12 cells per state; "–" not
+measured)
+
+| state | h_scroll | h1 | lang | clipped | label_w | contrast | live | forbidden | durations | focus | own rows |
+|---|---|---|---|---|---|---|---|---|---|---|---|
+| row-live | 12/0/0 | 12/0/0 | 12/0/0 | 0/0/12 | 72/0/0 | 132/0/0 | 24/0/0 | 96/0/0 | 24/0/0 | 120/0/0 | row_date 12/0/0, alert 4/0/0 |
+| row-scheduled | 12/0/0 | 12/0/0 | 12/0/0 | 0/0/12 | 72/0/0 | 132/0/0 | 24/0/0 | 96/0/0 | 24/0/0 | 120/0/0 | row_date 12/0/0, alert 4/0/0 |
+| row-deactivated | 12/0/0 | 12/0/0 | 12/0/0 | 0/0/12 | 72/0/0 | 132/0/0 | 24/0/0 | 96/0/0 | 24/0/0 | 120/0/0 | row_date 12/0/0, alert 4/0/0 |
+| row-draft | 12/0/0 | 12/0/0 | 12/0/0 | 12/0/0 | 72/0/0 | 120/0/0 | 24/0/0 | 96/0/0 | 24/0/0 | 120/0/0 | row_date 12/0/0, alert 4/0/0 |
+| band-live | 12/0/0 | 12/0/0 | 12/0/0 | 8/0/4 | 12/0/0 | 96/0/0 | 12/0/0 | 96/0/0 | 48/0/0 | 48/0/0 | band_line 12/0/0, name_width 8/**4**/0, pill_in_nav 12/0/0, pill_label 12/0/0, alert 4/0/0 |
+| band-scheduled | 12/0/0 | 12/0/0 | 12/0/0 | 8/0/4 | 12/0/0 | 96/0/0 | 12/0/0 | 96/0/0 | 48/0/0 | 48/0/0 | band_line 12/0/0, name_width 8/**4**/0, pill_in_nav 12/0/0, pill_label 12/0/0, alert 4/0/0 |
+| band-deactivated | 12/0/0 | 12/0/0 | 12/0/0 | 8/0/4 | 36/0/0 | 120/0/0 | 12/0/0 | 96/0/0 | 48/0/0 | 72/0/0 | band_line 12/0/0, name_width 8/**4**/0, pill_in_nav 12/0/0, pill_label 12/0/0, alert 4/0/0 |
+| band-draft | 12/0/0 | 12/0/0 | 12/0/0 | 8/0/4 | 24/0/0 | 60/0/48 | 12/0/0 | 96/0/0 | 36/0/0 | 48/0/0 | band_line 12/0/0, name_width 8/**4**/0, pill_in_nav 12/0/0, pill_label 12/0/0, alert 4/0/0 |
+| menu-scheduled | 12/0/0 | 12/0/0 | 12/0/0 | 12/0/0 | 36/0/0 | 46/0/0 | 12/0/0 | 96/0/0 | 48/0/0 | 72/0/0 | menu_in_viewport 12/0/0, menu_entries 12/0/0, alert 4/0/0 |
+| menu-live | 12/0/0 | 12/0/0 | 12/0/0 | 12/0/0 | 36/0/0 | 46/0/0 | 12/0/0 | 96/0/0 | 48/0/0 | 72/0/0 | menu_in_viewport 12/0/0, menu_entries 12/0/0, alert 4/0/0 |
+| menu-deactivated | 12/0/0 | 12/0/0 | 12/0/0 | 12/0/0 | 12/0/0 | 24/0/0 | 12/0/0 | 96/0/0 | 24/0/0 | 24/0/0 | menu_in_viewport 12/0/0, menu_entries 12/0/0, alert 4/0/0 |
+| header-edit-live | 12/0/0 | 12/0/0 | 12/0/0 | 8/0/4 | 12/0/0 | 48/0/0 | 36/0/0 | 96/0/0 | 36/0/0 | 24/0/0 | name_width 8/**4**/0, pill_in_nav 12/0/0, pill_label 12/0/0, alert 4/0/0 |
+| header-edit-scheduled | 12/0/0 | 12/0/0 | 12/0/0 | 8/0/4 | 12/0/0 | 48/0/0 | 36/0/0 | 96/0/0 | 36/0/0 | 24/0/0 | name_width 8/**4**/0, pill_in_nav 12/0/0, pill_label 12/0/0, alert 4/0/0 |
+| header-edit-deactivated | 12/0/0 | 12/0/0 | 12/0/0 | 8/0/4 | 12/0/0 | 48/0/0 | 36/0/0 | 96/0/0 | 36/0/0 | 24/0/0 | name_width 8/**4**/0, pill_in_nav 12/0/0, pill_label 12/0/0, alert 4/0/0 |
+| header-edit-draft | 12/0/0 | 12/0/0 | 12/0/0 | 8/0/4 | 12/0/0 | 48/0/0 | 36/0/0 | 96/0/0 | 36/0/0 | 24/0/0 | name_width 8/**4**/0, pill_in_nav 12/0/0, pill_label 12/0/0, alert 4/0/0 |
+| name-details-live | 18/0/0 | – | – | 6/0/12 | – | – | – | – | – | – | name_width 10/**8**/0, pill_in_nav 18/0/0, pill_label 18/0/0 |
+| name-edit-live | 18/0/0 | – | – | 8/0/10 | – | – | – | – | – | – | name_width 14/**4**/0, pill_in_nav 18/0/0, pill_label 18/0/0 |
+| name-details-scheduled | 18/0/0 | – | – | 2/0/16 | – | – | – | – | – | – | name_width 7/**11**/0, pill_in_nav 15/**3**/0, pill_label 18/0/0 |
+| name-edit-scheduled | 18/0/0 | – | – | 4/0/14 | – | – | – | – | – | – | name_width 8/**10**/0, pill_in_nav 18/0/0, pill_label 18/0/0 |
+| name-details-deactivated | 18/0/0 | – | – | 2/0/16 | – | – | – | – | – | – | name_width 8/**10**/0, pill_in_nav 18/0/0, pill_label 18/0/0 |
+| name-edit-deactivated | 18/0/0 | – | – | 4/0/14 | – | – | – | – | – | – | name_width 12/**6**/0, pill_in_nav 18/0/0, pill_label 18/0/0 |
+| name-details-draft | 18/0/0 | – | – | 8/0/10 | – | – | – | – | – | – | name_width 13/**5**/0, pill_in_nav 18/0/0, pill_label 18/0/0 |
+| name-edit-draft | 18/0/0 | – | – | 8/0/10 | – | – | – | – | – | – | name_width 13/**5**/0, pill_in_nav 18/0/0, pill_label 18/0/0 |
+
+(A name-* state has 18 cells: 14 in Chromium, 4 in Firefox.) The live regions held: the overview's count ("1 of <n> connections" / "1 von
+<n> Anbindungen"; n grew while other sweeps made rows), empty status regions elsewhere, and the
+edit flow's not-rendered "Saving…"/"Publishing…" regions. No FR-076 text in any cell; `<html lang>`
+right in every cell; no `error` or `page_error` row.
+
+**The header name's visible width** (CSS px; **bold** = below min(own, 96), a defect; own width at
+14 px: live 249, scheduled 292, deactivated 302, draft 257; the details page and the edit flow
+differ from 768 px up, where the details' header also shows the description beside the nav)
+
+Chromium:
+
+| page | state | lang | 160 | 320 | 400 | 600 | 767 | 768 | 900 | 1024 | 1440 |
+|---|---|---|---|---|---|---|---|---|---|---|---|
+| details | live | en | 113 | **27** | 107 | 248.7 | 248.7 | **69.9** | 201.9 | 248.7 | 248.7 |
+| details | live | de | 113 | **30.2** | 110.2 | 248.7 | 248.7 | **73.1** | 205.1 | 248.7 | 248.7 |
+| details | scheduled | en | 113 | **0** | **72.1** | 234.6 | 291.7 | **0** | **94.1** | 218.1 | 291.7 |
+| details | scheduled | de | 113 | **0** | **72.9** | 241 | 291.7 | **0** | 107.3 | 231.3 | 291.7 |
+| details | deactivated | en | 113 | **0** | **69.3** | 269.3 | 301.7 | **32.2** | 164.2 | 288.2 | 301.7 |
+| details | deactivated | de | 113 | **0** | **71.1** | 271.1 | 301.7 | **34** | 166 | 290 | 301.7 |
+| details | draft | en | 113 | **33.6** | 113.6 | 257 | 257 | 171.5 | 257 | 257 | 257 |
+| details | draft | de | 113 | **12.7** | **92.7** | 257 | 257 | 150.5 | 257 | 257 | 257 |
+| edit | live | en | 113 | **27** | 107 | 248.7 | 248.7 | 164.9 | 248.7 | 248.7 | 248.7 |
+| edit | live | de | 113 | **30.2** | 110.2 | 248.7 | 248.7 | 168.1 | 248.7 | 248.7 | 248.7 |
+| edit | scheduled | en | 113 | **0** | **72.1** | 234.6 | 291.7 | **57.1** | 189.1 | 291.7 | 291.7 |
+| edit | scheduled | de | 113 | **0** | **72.9** | 241 | 291.7 | **70.3** | 202.3 | 291.7 | 291.7 |
+| edit | deactivated | en | 113 | **0** | **69.3** | 269.3 | 301.7 | 127.2 | 259.2 | 301.7 | 301.7 |
+| edit | deactivated | de | 113 | **0** | **71.1** | 271.1 | 301.7 | 129 | 261 | 301.7 | 301.7 |
+| edit | draft | en | 113 | **33.6** | 113.6 | 257 | 257 | 171.5 | 257 | 257 | 257 |
+| edit | draft | de | 113 | **12.7** | **92.7** | 257 | 257 | 150.5 | 257 | 257 | 257 |
+
+Firefox (the check; 160 and 1440 from the main matrix):
+
+| page | state | en 160 | en 320 | en 768 | en 1440 | de 160 | de 320 | de 768 | de 1440 |
+|---|---|---|---|---|---|---|---|---|---|
+| details | live | 128 | **42** | **84.9** | 248.7 | 128 | **45.2** | **88.1** | 248.7 |
+| details | scheduled | 128 | **7.1** | **0** | 291.7 | 128 | **8** | **0** | 291.6 |
+| details | deactivated | 128 | **4.3** | **47.2** | 301.7 | 128 | **6.1** | **49** | 301.7 |
+| details | draft | 128 | **48.6** | 186.5 | 257 | 128 | **27.7** | 165.6 | 257 |
+| edit | live | 128 | **42** | 179.9 | 248.7 | 128 | **45.2** | 183.1 | 248.7 |
+| edit | scheduled | 128 | **7.1** | **72.1** | 291.7 | 128 | **8** | **85.4** | 291.6 |
+| edit | deactivated | 128 | **4.3** | 142.2 | 301.7 | 128 | **6.1** | 144 | 301.7 |
+| edit | draft | 128 | **48.6** | 186.5 | 257 | 128 | **27.7** | 165.6 | 257 |
+
+At 160 the name wraps (`narrow:`) and shows whole; at 600 and 767 it fits beside the pill.
+
+**The scheduled header pill** (carried from T014, Chromium; EN/DE): one line at 1440, 1024, 900,
+768 and 767 (180.6 / 163.9 wide); two lines ("Scheduled ·" / "<date>", the no-break space holding
+"·" to the first line) at 600 (145.3 / 135.4), 400 and 320 (107.8 / 103.4), and 160 (113 × 48);
+the "Where you are" pill grows to 64 px from 320 to 600 and stays inside the window (no
+horizontal scroll at any width); `pill_label` passed in all 228 cells.
+
+**2. Defects** (17 rows, all open; one row per page, state and browser, the cells in the value)
+
+| state | language | width | browser | measure | element | value | limit | suspected file |
+|---|---|---|---|---|---|---|---|---|
+| details live (band-live, name-details-live) | en, de | 320, 768 | chromium | name_width | header nav > span.truncate (the name) | 320: en 27, de 30.2; 768: en 69.9, de 73.1 | ≥ min(own, 96) = 96 | `frontend/src/components/TopBar/index.tsx` |
+| details live | en, de | 320, 768 | firefox | name_width | the name | 320: en 42, de 45.2; 768: en 84.9, de 88.1 | ≥ 96 | `components/TopBar/index.tsx` |
+| details scheduled (band-scheduled, name-details-scheduled) | en, de | 320, 400, 768, 900 | chromium | name_width | the name | 320: 0 / 0; 400: 72.1 / 72.9; 768: 0 / 0; 900: en 94.1 | ≥ 96 | `components/TopBar/index.tsx` |
+| details scheduled | en, de | 320, 768 | firefox | name_width | the name | 320: 7.1 / 8; 768: 0 / 0 | ≥ 96 | `components/TopBar/index.tsx` |
+| details deactivated | en, de | 320, 400, 768 | chromium | name_width | the name | 320: 0 / 0; 400: 69.3 / 71.1; 768: 32.2 / 34 | ≥ 96 | `components/TopBar/index.tsx` |
+| details deactivated | en, de | 320, 768 | firefox | name_width | the name | 320: 4.3 / 6.1; 768: 47.2 / 49 | ≥ 96 | `components/TopBar/index.tsx` |
+| details draft | en, de | 320, 400 (de) | chromium | name_width | the name | 320: 33.6 / 12.7; 400: de 92.7 | ≥ 96 | `components/TopBar/index.tsx` |
+| details draft | en, de | 320 | firefox | name_width | the name | 48.6 / 27.7 | ≥ 96 | `components/TopBar/index.tsx` |
+| edit live (header-edit-live, name-edit-live) | en, de | 320 | chromium | name_width | the name | 27 / 30.2 | ≥ 96 | `components/TopBar/index.tsx` |
+| edit live | en, de | 320 | firefox | name_width | the name | 42 / 45.2 | ≥ 96 | `components/TopBar/index.tsx` |
+| edit scheduled | en, de | 320, 400, 768 | chromium | name_width | the name | 320: 0 / 0; 400: 72.1 / 72.9; 768: 57.1 / 70.3 | ≥ 96 | `components/TopBar/index.tsx` |
+| edit scheduled | en, de | 320, 768 | firefox | name_width | the name | 320: 7.1 / 8; 768: 72.1 / 85.4 | ≥ 96 | `components/TopBar/index.tsx` |
+| edit deactivated | en, de | 320, 400 | chromium | name_width | the name | 320: 0 / 0; 400: 69.3 / 71.1 | ≥ 96 | `components/TopBar/index.tsx` |
+| edit deactivated | en, de | 320 | firefox | name_width | the name | 4.3 / 6.1 | ≥ 96 | `components/TopBar/index.tsx` |
+| edit draft | en, de | 320, 400 (de) | chromium | name_width | the name | 320: 33.6 / 12.7; 400: de 92.7 | ≥ 96 | `components/TopBar/index.tsx` |
+| edit draft | en, de | 320 | firefox | name_width | the name | 48.6 / 27.7 | ≥ 96 | `components/TopBar/index.tsx` |
+| details scheduled (name-details-scheduled) | en, de (ch); en (ff) | 768 | chromium, firefox | pill_in_nav | header nav > status pill "Scheduled · 12.12.2026" | the status pill runs out of the "Where you are" pill: right edge 494.9 (en) / 481.7 (de) against the nav's 473.0 (Chromium), 494.9 against 488.0 (Firefox en); the name is 0 wide and the pill overlaps the header's description ("scheduled co…") | inside the nav | `components/TopBar/index.tsx` |
+
+59 distinct cells of `name_width` fail (Chromium 35, Firefox 24), all in `TopBar`'s
+`ConnectionPill`, which T084 (4) gives to T098 (the status pill wraps under the name inside the
+"Where you are" pill where both can't fit on one row). No contrast, focus, label-width,
+horizontal-scroll, clipped, durations, live-region, lang or FR-076 defect; the menu is inside the
+viewport in all 36 menu cells, at 160 CSS px included (24–121 wide); no alert shows in any of
+these states, so no `alert_title_width` row fails.
+
+**3. Unsure rows and verdicts**
+
+| state | measure | element | cells | verdict |
+|---|---|---|---|---|
+| row-live, row-scheduled, row-deactivated | clipped | the row's description `p.truncate` ("live connection of T088 sweep …") | all 12 cells each | pass: spec 008's intended ellipsis (the full text in the row's tooltip); the draft's row has no description |
+| band-*, header-edit-*, name-* | clipped | the header's name `span.truncate` | 320 (and 400–1024 where cut) | not a pass by itself: the ellipsis is spec 008's, but below 96 px it is the `name_width` defect above; above 96 px pass (T084 (4): "a cut with … beyond that stays") |
+| band-draft | contrast | h1 "This connection is a draft", the sub-line, "Delete draft" (text and icon), en and de | all 12 cells | pass: the draft band's fill is a gradient (`feedback-info-background` #e0f2fe → `layout-background-hued` #f2f5fb, `pages/FormConnectionDetail/constants.ts`); against both ends #0b1220 is 16.3–17.1, #4a5468 6.6–7.0, #1d56f0 5.0–5.3 (all ≥ 4.5) |
+
+**4. Cited rows** (English in Chromium, not judged anew; the sweep reran them and they agree
+except the name widths): design-notes §2.1 `#### T013` (the row's date by state, 1440, and the
+narrow rows at 320 and 160), `#### T015` (the date pill, the band, the ⋯ menu at 1440, 320, 160,
+Chromium), `#### T014` (the status pill: measured in Firefox, so this sweep's English Chromium
+cells of `band-*`, `header-edit-*` and `name-*` are the Chromium rows T014 lacked); §2.2
+`#### T017` (walk V5, both browsers and languages at 1440). T014's "header name … 7.1 (EN), 8 (DE)"
+at 320 was Firefox; Chromium cuts the same names to 0.
+
+#### T089, sweep of US3's Activity card (S15 "The Activity card", "The three cards", S16; FR-072, SC-009, W16; report only)
+
+T085's harness (`<SP>/sweep/measure.mjs`, `playwright-core` 1.65): Chromium 156 (`/usr/bin/chromium`) and Firefox (build 1572), headless, side by side. Every state ran over the full matrix: en and de × 1440, 320 and 160 CSS px viewports (heights 900, 720, 450) × Chromium and Firefox. That is 144 cells and 5,617 CSV rows in 980 s of wall time (Chromium 9.7 s per cell, Firefox 13.4 s). The English Chromium cells were run too: they add contrast, label widths and focus, which T033, T034 and T036 didn't measure. The installation was the main one (backend 3016 on `template_db_010_p12`, fake EUDIPLO, worker off; Vite 5180), signed in as `p10-alice`, with the browser zone Europe/Berlin.
+
+Measures: the harness's ten (horizontal_scroll, clipped, h1_count, focus_visible, contrast, durations, label_width, live_region, lang, forbidden_text). The element measures were scoped to the Activity card, or to the three cards in the accordion states. The sweep added its own rows:
+- `text`: the closed line against copy.md §3 / data-model §2.5, the toggle's label and `aria-expanded`, the failure's title, the list's name and the last entry.
+- `rows`: the entry count, no entry wider than the list, and the entry's `flex-direction` (`column` below 640 px, as §4.2 T032/T033 (2) decides; `row` at 1440).
+- `scroll`: the 62-entry list scrolled to its end by `End`, still focused, at most 400 px high.
+- `accordion`: one card open; "View summary" closes Activity.
+- `alert_title_width`: T084 (5), at 160 CSS px.
+
+Data, made through the API by `<SP>/sweep/T089/seed.mjs` (idempotent: it finds the rows by the search before making any):
+
+| Connection | id | What it shows |
+|---|---|---|
+| `T089 sweep live` | `ca54607a-3aa3-4ec5-bef1-dea0945d1c4e` | live, by p10-alice |
+| `T089 sweep scheduled` | `6521dae7-510c-4a39-be03-00bf91240561` | scheduled 30 days ahead |
+| `T089 sweep deactivated` | `1480a4c1-7313-43ba-9987-0ebc983eeac8` | deactivated by p10-alice |
+| `T089 sweep draft` | `efd619a2-a9fa-4450-9920-096de4c94cd5` | a draft, saved once through a revoked token "T089 agent": "p10-alice with T089 agent" |
+| `T089 sweep none live` | `56327e79-758d-4b78-91d2-b3572e3ddbc6` | live; its two entries' person cleared with `psql` (as T033's "none"): the time alone |
+| `T089 sweep mixed` | `e4691164-c201-4bf1-9e6f-2a5047391a44` | 10 entries by p10-alice and p10-bob in turn: Created, Published, Name changed, Description changed, Scheduled for, Start date changed to <date>, … to now, Deactivated, Activated again, Description changed |
+| `T089 sweep long` | `8e893e71-8537-4570-9668-a06bc33e1971` | Created, Published, then 60 renames by p10-bob and p10-alice in turn (no entry merges, data-model §2.4): 62 entries, two pages |
+
+How each state was reached:
+- **closed-person, closed-time, closed-deactivated**: the details as loaded (Summary open, Activity closed). The live, none and deactivated connections respectively.
+- **open**: `mixed` with "View activity", body settled and loaded.
+- **open-loading**: `live` with the activity GET held by `page.route()`.
+- **open-failed**: `live` with `failNext(apiPattern('/form-connections/*/activity'), 500, 'always')`.
+- **open-loading-more**: `long` with the `?cursor=` GET held; the list focused, then `End`.
+- **open-long-end**: `long`; Tab from the toggle to the list, `End`, all 62 loaded, `End` again.
+- **accordion-live, accordion-scheduled, accordion-deactivated, accordion-draft**: Activity opened on each.
+
+1. Counts per state × measure (pass/fail/unsure; every cell of the matrix; – = not measured)
+
+| state | h_scroll | h1 | lang | clipped | label_width | contrast | live_region | forbidden | durations | text | focus_visible | alert_title | rows | scroll | accordion |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| closed-person | 12/0/0 | 12/0/0 | 12/0/0 | 12/0/0 | 24/0/0 | 36/0/0 | 12/0/0 | 96/0/0 | 36/0/0 | 24/0/0 | 24/0/0 | 4/0/0 | – | – | – |
+| closed-time | 12/0/0 | 12/0/0 | 12/0/0 | 12/0/0 | 24/0/0 | 36/0/0 | 12/0/0 | 96/0/0 | 36/0/0 | 24/0/0 | 24/0/0 | 4/0/0 | – | – | – |
+| closed-deactivated | 12/0/0 | 12/0/0 | 12/0/0 | 12/0/0 | 24/0/0 | 36/0/0 | 12/0/0 | 96/0/0 | 36/0/0 | 24/0/0 | 24/0/0 | 4/0/0 | – | – | – |
+| open | 12/0/0 | 12/0/0 | 12/0/0 | 12/0/0 | 24/0/0 | 181/0/0 | 12/0/0 | 96/0/0 | 36/0/0 | 24/0/0 | 48/0/0 | 4/0/0 | 36/0/0 | – | – |
+| open-loading | 12/0/0 | 12/0/0 | 12/0/0 | 12/0/0 | 24/0/0 | 49/0/0 | 36/0/0 | 96/0/0 | 36/0/0 | 12/0/0 | 24/0/0 | 4/0/0 | – | – | – |
+| open-failed | 12/0/0 | 12/0/0 | 12/0/0 | 12/0/0 | 48/0/0 | 109/0/0 | 48/0/0 | 96/0/0 | 36/0/0 | 12/0/0 | 48/0/0 | 4/0/0 | – | – | – |
+| open-loading-more | 12/0/0 | 12/0/0 | 12/0/0 | 12/0/0 | 24/0/0 | 96/0/0 | 36/0/0 | 96/0/0 | 36/0/0 | 12/0/0 | 48/0/0 | 4/0/0 | 36/0/0 | – | – |
+| open-long-end | 12/0/0 | 12/0/0 | 12/0/0 | 12/0/0 | 24/0/0 | 108/0/0 | 12/0/0 | 96/0/0 | 36/0/0 | 24/0/0 | 48/0/0 | 4/0/0 | 36/0/0 | 12/0/0 | – |
+| accordion-live | 12/0/0 | 12/0/0 | 12/0/0 | 12/0/0 | 72/0/0 | 157/0/0 | 12/0/0 | 96/0/0 | 84/0/0 | 12/0/0 | 96/0/0 | 4/0/0 | 36/0/0 | – | 24/0/0 |
+| accordion-scheduled | 12/0/0 | 12/0/0 | 12/0/0 | 12/0/0 | 72/0/0 | 169/0/0 | 12/0/0 | 96/0/0 | 84/0/0 | 12/0/0 | 96/0/0 | 4/0/0 | 36/0/0 | – | 24/0/0 |
+| accordion-deactivated | 12/0/0 | 12/0/0 | 12/0/0 | 12/0/0 | 72/0/0 | 168/0/0 | 12/0/0 | 96/0/0 | 84/0/0 | 12/0/0 | 96/0/0 | 4/0/0 | 36/0/0 | – | 24/0/0 |
+| accordion-draft | 12/0/0 | 12/0/0 | 12/0/0 | 12/0/0 | 48/0/0 | 176/0/0 | 12/0/0 | 96/0/0 | 60/0/0 | 12/0/0 | 72/0/0 | 4/0/0 | 36/0/0 | – | 24/0/0 |
+
+Totals: 5,617 rows, 0 fail, 0 unsure.
+
+Live regions (both browsers, three widths):
+- **open-loading**: the card's `role="status"` reads "Loading activity…" / "Aktivität wird geladen …".
+- **open-loading-more**: it reads "Loading earlier activity…" / "Frühere Aktivität wird geladen …".
+- **open-failed**: the `role="alert"` reads "Couldn’t load the activity" / "Die Aktivität konnte nicht geladen werden", then the 5xx sentence and "Error ID: T089-…-fake" / "Fehler-ID: T089-…-fake".
+- **Every other state**: the status is empty.
+
+`<html lang>` matched in all 144 cells. None of FR-076's texts appeared.
+
+Alert-title widths at 160 CSS px (T084 (5)): the only alert in these states is the failure's ("Couldn’t load the activity" / "Die Aktivität konnte nicht geladen werden"). Chromium: 87.0 of the alert's 103.0 px content width. Firefox: 102.0 of 118.0. All four cells pass, since the title wraps under the icon at the card's width.
+
+2. Defects: none.
+
+3. Unsure rows: none from the harness. Looked at by screenshot (3 opened):
+- `open-failed-de-160-chromium`: title, body, the error ID and "Erneut versuchen" all inside the card. **Verdict: pass.** The body words break mid-word ("schiefgela|ufen"), which is the narrow block's `wrap-anywhere` (spec 008 baseline, CLAUDE.md "Narrow windows").
+- `open-de-320-firefox` and `open-long-end-de-1440-firefox`: Firefox's full-page screenshot paints the sticky top bar at the scroll position, mid-page and over the cards. **Verdict: pass** (a screenshot artifact; the DOM measures saw no overlap or clipping).
+- `open-long-end-de-1440-firefox`: with the list at its end, its last entry ("Erstellt") sits partly behind the sticky footer at 1440 × 900, because `End` scrolls the list, not the page. The focused list stays mostly visible (WCAG 2.4.11 is met), and one more arrow or page key scrolls the page. **Verdict: pass, noted for T098** (no change asked).
+
+4. Cited rows (English, Chromium, three widths; layout and behaviour, not rerun as judgements):
+- design-notes §2.1 `#### T032 and T033` (line 577): the frames' rows at 1440 (lines 581–620) and the narrow rows at 320 and 160 for closed, loading, loaded, loading more, end and failed (lines 622–631: no horizontal scroll, nothing clipped or off-screen, entries stacked, list focus ring after Tab and none after a click, the no-answer fallback).
+- §2.1 `#### T034` (line 633): the accordion at 1440 (lines 646–664) and the narrow rows 676–695 (after publishing, after "Save", Activity opened, from the overview, deactivated, scheduled, draft; 320 and 160).
+- §2.2 `#### T036` (line 1641): walk V6 in en and de at 1440, the narrow 320 rows "card closed" and "card open", and V6.7, the oldest entry by wheel and by keyboard on 66 entries.
+
+This sweep's English Chromium cells agree with them.
+
+Rerun: `node <SP>/sweep/T089/sweep.mjs [state-id …]` (no ids: all twelve). It finds or makes its rows through `seed.mjs`. Output in `<SP>/sweep/T089/out/` (`T089.csv`, `T089-summary.md`, `shots/`).
+
+#### T090: sweep of US8's approval page (S21, `/approvals/<id>`; W14, no frame)
+
+Items: FR-072, SC-009, W14; copy.md §7 (and §2's deactivate sentence, FR-010's delete sentence, FR-060's example line). Harness: T085's `measure.mjs` (`playwright-core` 1.65), script `<SP>/sweep/T090/sweep.mjs`, output `<SP>/sweep/T090/out/` (`T090.csv`, `T090-summary.md`, `shots/`, `rows.json`). Browsers: Chromium 156 (`/usr/bin/chromium`) and Playwright's Firefox (`firefox-1572`), headless, side by side. Widths: 1440, 320 and 160 CSS px viewports (heights 900, 720, 450). Languages: English and German (the stored choice of `LanguageProvider`). The full matrix: 16 states × 12 cells = **192 cells, 10,095 rows**, 1,243 s (Chromium 9.5 s, Firefox 12.7 s per cell). Measures: the harness's ten (scope `main` for the element measures) plus two of the sweep's own: `text` (the `h1` and the state's sentences of copy.md §7 word for word in both languages; for an outcome the alert's title; no alert on a waiting page) and `alert_title_width` (at 160 CSS px, each visible `.kern-alert .kern-title`'s width against its alert's content width, under half a defect: T084 (5)). Controls (`focus_visible`, click and keyboard): waiting pages `main button` (ⓘ, "Copy link", "Approve", "Decline"); done pages `main button` and `main a` ("Copy link", "Open the connection"); cancelled pages have no control in `main`.
+
+Data on the main installation (backend 3016, Vite 5180, `template_db_010_p12`, `p10-alice`): the token `T090 manage` (level manage, made in setup, revoked in teardown; its bearer answered 401 afterwards); per state and per browser one connection named `T090 sweep <state> <ch|fi>1 <kind>` with its request made by the bearer through `POST /api/approval-requests` (each request younger than 10 minutes when its cells ran); the unchanged example as two own example drafts (`POST /api/form-connections/example`, one per browser, deleted in teardown); C1 and C2 cancelled by `PUT /api/form-connections/{id}/start-date` after the request (another day; `null`), C3 by `update approval_requests set start_date = current_date` on its own request; the done outcomes are T080's done requests D1 `ccdfcda5-…`, D2 `9b51e6ea-…`, D3 `9671d2bf-…`. The ids are in `out/rows.json`.
+
+States (T080's numbering): W1 publish at once; W2 publish on 01.12.2026; W3 publish of the unchanged example; W4 reactivate on 01.12.2026; W4b reactivate at once; W5 `set_start_date` scheduled → 15.12.2026; W6 `set_start_date` scheduled → now; W7 `set_start_date` live → 01.12.2026; W8 deactivate a scheduled connection; W9 delete a scheduled connection; D1 done publish on a date; D2 done reactivate on a date; D3 done `set_start_date`; C1 cancelled, date moved; C2 cancelled, became active; C3 cancelled, `start_date_passed`.
+
+**1. Counts per state × measure** (pass/fail/unsure; 12 cells each)
+
+| state | h_scroll | h1 | lang | clipped | label_width | contrast | live_region | forbidden | durations | text | focus_visible | alert_title_width |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| W1 publish now | 12/0/0 | 12/0/0 | 12/0/0 | 12/0/0 | 84/0/0 | 576/0/0 | 17/0/0 | 96/0/0 | 60/0/0 | 36/0/0 | 96/0/0 | |
+| W2 publish date | 12/0/0 | 12/0/0 | 12/0/0 | 12/0/0 | 84/0/0 | 576/0/0 | 17/0/0 | 96/0/0 | 60/0/0 | 36/0/0 | 96/0/0 | |
+| W3 example | 12/0/0 | 12/0/0 | 12/0/0 | 4/0/8 | 108/0/0 | 654/0/0 | 17/0/0 | 96/0/0 | 72/0/0 | 48/0/0 | 144/0/0 | |
+| W4 reactivate date | 12/0/0 | 12/0/0 | 12/0/0 | 4/0/24 | 96/0/0 | 204/0/0 | 12/0/0 | 96/0/0 | 24/0/0 | 36/0/0 | 124/0/0 | |
+| W4b reactivate now | 12/0/0 | 12/0/0 | 12/0/0 | 4/0/24 | 96/0/0 | 204/0/0 | 12/0/0 | 96/0/0 | 24/0/0 | 36/0/0 | 124/0/0 | |
+| W5 start, scheduled → date | 12/0/0 | 12/0/0 | 12/0/0 | 4/0/24 | 96/0/0 | 228/0/0 | 12/0/0 | 96/0/0 | 24/0/0 | 36/0/0 | 124/0/0 | |
+| W6 start, scheduled → now | 12/0/0 | 12/0/0 | 12/0/0 | 4/0/24 | 96/0/0 | 228/0/0 | 12/0/0 | 96/0/0 | 24/0/0 | 36/0/0 | 124/0/0 | |
+| W7 start, live → date | 12/0/0 | 12/0/0 | 12/0/0 | 4/0/22 | 96/0/0 | 240/0/0 | 12/0/0 | 96/0/0 | 24/0/0 | 48/0/0 | 124/0/0 | |
+| W8 deactivate scheduled | 12/0/0 | 12/0/0 | 12/0/0 | 4/0/24 | 96/0/0 | 240/0/0 | 12/0/0 | 96/0/0 | 24/0/0 | 36/0/0 | 120/0/0 | |
+| W9 delete scheduled | 12/0/0 | 12/0/0 | 12/0/0 | 4/0/24 | 96/0/0 | 252/0/0 | 12/0/0 | 96/0/0 | 24/0/0 | 48/0/0 | 122/0/0 | |
+| D1 done publish date | 12/0/0 | 12/0/0 | 12/0/0 | 4/0/16 | 48/0/0 | 192/0/0 | 24/0/0 | 96/0/0 | 24/0/0 | 12/0/0 | 97/0/0 | 4/0/0 |
+| D2 done reactivate date | 12/0/0 | 12/0/0 | 12/0/0 | 4/0/16 | 48/0/0 | 192/0/0 | 24/0/0 | 96/0/0 | 24/0/0 | 12/0/0 | 97/0/0 | 4/0/0 |
+| D3 done start date | 12/0/0 | 12/0/0 | 12/0/0 | 12/0/0 | 12/0/0 | 36/0/0 | 12/0/0 | 96/0/0 | 24/0/0 | 12/0/0 | 0/0/24 | 4/0/0 |
+| C1 cancelled, date moved | 12/0/0 | 12/0/0 | 12/0/0 | 12/0/0 | 12/0/0 | 36/0/0 | 12/0/0 | 96/0/0 | 24/0/0 | 12/0/0 | (none) | 4/0/0 |
+| C2 cancelled, became active | 12/0/0 | 12/0/0 | 12/0/0 | 12/0/0 | 12/0/0 | 36/0/0 | 12/0/0 | 96/0/0 | 24/0/0 | 12/0/0 | (none) | 4/0/0 |
+| C3 cancelled, date passed | 12/0/0 | 12/0/0 | 12/0/0 | 12/0/0 | 12/0/0 | 36/0/0 | 12/0/0 | 96/0/0 | 24/0/0 | 12/0/0 | (none) | 4/0/0 |
+| **total** | 192/0/0 | 192/0/0 | 192/0/0 | 112/0/206 | 1092/0/0 | 3930/0/0 | 231/0/0 | 1536/0/0 | 504/0/0 | 468/0/0 | 1392/0/24 | 24/0/0 |
+
+Alert titles at 160 CSS px (T084 (5)): all 24 pass, the page's title-only alerts (success D1–D3, warning C1–C3) at 113 of 129 px (88 %) in Chromium and 128 of 144 px (89 %) in Firefox, in both languages.
+
+Live regions (as a screen reader gets them): the outcome alerts are `role=alert` with the copy.md §7 sentence word for word (D1–D3, C1–C3, EN and DE); the publish pages' rule-check status reads "Checking the rules…" / "Die Regeln werden geprüft …" while the checks run, else empty; the actions' status under "Approve" is empty on a waiting page.
+
+**2. Defects**: none. No failing row in 192 cells.
+
+**3. The unsure rows and their verdicts** (230 rows in 27 groups; screenshots read: W9 de 160 Firefox, D1 de 160 Chromium, W7 de 320 Firefox)
+
+| state | measure | element | cells | verdict |
+|---|---|---|---|---|
+| W3, W4, W4b, W5–W9 | clipped | `p` the connection's description ("Licence to drive taxis…", "… connection of T090 sweep …") | 320 and 160, both languages and browsers (W7: 160 only in Firefox) | pass: `DescriptionLine` cuts with "…" on purpose (spec 006 R6; T080's rows "DescriptionLine truncates by design") |
+| W4, W4b, W5–W9, D1, D2 | clipped | `div` "http://localhost:3000/api/connect/…" (the Links card's URL fields, two per page) | 320 and 160, both languages and browsers | pass: the URL field of the details' `LinkCard` (T028's `CopyableUrl`) cuts with "…" on purpose; "Copy link" copies the whole URL |
+| D3 | focus_visible | `main button`, `main a`: no visible element matches | all 12 | pass: a done `set_start_date` shows only "Start date saved." (`doneShowsUrls('set_start_date')` is false, T080), so `main` holds no control |
+
+Observations, not defects (no row failed; for T097/T098 to know): at 160 CSS px the narrow block of `index.css` breaks German words without a hyphen ("Anfragel|ink", "Link kopier|en", "veröffen|tlichen", "Veröffentlic|ht"), as spec 008's narrow rule intends for every page (baseline); the subtitle of a done request still says "… · läuft um 12:23 Uhr ab" / "expires at 12:23" with the past expiry time (spec 007's `subtitleOf()`, baseline, outside FR-074's nine items).
+
+**4. Cited rows** (English in Chromium, layout): §2.1 `#### T080` (W1–W9, W4b, D1–D4, C1–C3: the texts in EN and DE at 1440; horizontal scroll, off-screen/clipped, `h1` count and the first control's ring at 320 and 160) and §2.2 `#### T082` (V12.5 publish, reactivate, setScheduled, setLive; V12.7; V12.7b; T080's done requests read again, EN and DE at 1440). This sweep also ran the English Chromium cells (48 of the 192) and found them the same.
+
+#### T091, sweep of US5's selection (S4 "Selection", "Selection bar", "Delete", "After a deletion", S5, C3; FR-038–FR-044, FR-072, FR-081, SC-009, W16, W17; report only)
+
+T085's harness (`<SP>/sweep/measure.mjs`, `playwright-core` 1.65): Chromium 156 (`/usr/bin/chromium`) and Firefox (build 1572), headless, side by side. Every state ran over the full matrix: en and de × 1440, 320 and 160 CSS px viewports (heights 900, 720, 450) × Chromium and Firefox: 144 cells, 10,616 CSV rows, 905 s of wall time (Chromium 10.3 s per cell, Firefox 12.3 s). The English Chromium cells were run too (they add contrast, label widths and focus, which T048–T051 didn't measure). The main installation (backend 3016 on `template_db_010_p12`, fake EUDIPLO, worker off, restore time 300 s; Vite 5180), signed in as `p10-alice`, zone Europe/Berlin. Script `<SP>/sweep/T091/sweep.mjs`; output `<SP>/sweep/T091/out/` (`T091.csv`, `T091-summary.md`, `shots/`).
+
+Measures: the harness's ten, scoped to the page (the overview states) or to the open dialog (the dialog states), plus the sweep's own rows:
+- `select_all` (the select-all's `checked`/`indeterminate`: mixed for one and some, checked for all), `bar_count` ("<n> selected" / "<n> ausgewählt"), `toolbar_hidden` (the search toolbar hidden while selecting, FR-039);
+- `bar_layout` (the bar's box; buttons beside the count at 1440, either at 320/160 per W16);
+- `dialog_lines`, `dialog_warnings` (one line per selected row; one warning per active and scheduled row);
+- `buttons_in_view` (W12; at 160 the dialog scrolls as a whole, T049 (3));
+- `no_retry`, `focus_after_409` (T084 (3): after `409 selection_changed` no confirm button, the focus on "Keep connections");
+- `retry_label` (another failure keeps "Try again"), `busy_disabled` (both buttons `aria-disabled` while deleting);
+- `after_delete` (focus on the h1, toolbar back), `toast_in_view`;
+- `banner_above_bar` (W17: the local-drafts banner 16 px above the bar), `device_only_row` (FR-081: no checkbox for the device-only connection);
+- `alert_title` (T084 (5), at 160 CSS px: each visible `.kern-alert .kern-title` against its alert's content width).
+
+Data (through the API, found again by name on a rerun; left standing for T098's rerun):
+
+| Rows | What |
+|---|---|
+| `T091 sweep base live` `b63931c0-a097-480a-a597-481843e90eb1`, `… base scheduled` `4a7eb4b7-0e47-4811-a93d-ac5628a2b12b`, `… base deactivated` `a003bd49-4293-47c1-bdd3-ff68365f62c8`, `… base draft` `f28469f1-934c-4ff0-b4b2-33218ef1da15` | the four statuses; the overview filtered by "T091 sweep base" |
+| `T091 sweep thirty 01 live` … `T091 sweep thirty 30 draft` (01–02 live, 03–04 scheduled, 05 deactivated, 06–30 drafts) | the 30-row dialog; filtered by "T091 sweep thirty" |
+| `T091 sweep <uid> live`, `… <uid> draft` (per cell, 24 rows) | the `409`: the live row deactivated through the page's own session while the dialog was open (T051's V8.5); deleted by the sweep's teardown |
+| `T091 sweep <uid> a draft`, `… <uid> b draft` (per cell, 24 rows) | the bulk toast: deleted through the dialog (restorable until the 300 s passed) |
+
+How each state was reached: the overview filtered by the prefix (`[role=search] input[type=text]`), then **select-one** the live row ticked; **select-some** the draft and the deactivated row; **select-all** the select-all; **selection-bar** as some, the bar alone in scope; **dialog-two** some, then the bar's "Delete"; **dialog-warnings** all four, "Delete" (4 lines, 2 warnings); **dialog-thirty** the 30 rows, "Delete", the region (and, at 160, the dialog) scrolled to its end; **dialog-changed** the real `409 selection_changed` and the quiet reload awaited; **dialog-failed** `POST /form-connections/deletions` answered 500 by `failNext` (error ID `T091-xxxxxxxx-fake`); **dialog-busy** that POST held by a waiting `page.route()`; **bulk-toast** two fresh drafts deleted, the toast's 6 s timer stretched so it stays while measured; **banner-bar** a device-only connection made in the create flow (name typed, 1.6 s, away with `beforeunload` accepted; T051's V8.7), then the overview with two rows ticked.
+
+1. Counts per state × measure (pass/fail/unsure; 12 cells each)
+
+| state | h_scroll | h1 | lang | clipped | label_width | contrast | live_region | forbidden | durations | focus_visible | alert_title | own rows |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| select-one | 12/0/0 | 12/0/0 | 12/0/0 | 4/0/24 | 288/0/0 | 644/0/0 | 48/0/0 | 120/0/0 | 72/0/0 | 120/0/0 | 4/0/0 | select_all, bar_count, toolbar_hidden 36/0/0 |
+| select-some | 12/0/0 | 12/0/0 | 12/0/0 | 4/0/24 | 288/0/0 | 644/0/0 | 48/0/0 | 120/0/0 | 72/0/0 | 120/0/0 | 4/0/0 | 36/0/0 |
+| select-all | 12/0/0 | 12/0/0 | 12/0/0 | 4/0/24 | 288/0/0 | 644/0/0 | 48/0/0 | 120/0/0 | 72/0/0 | 120/0/0 | 4/0/0 | 36/0/0 |
+| selection-bar | 12/0/0 | 12/0/0 | 12/0/0 | 12/0/0 | 48/0/0 | 48/0/0 | 48/0/0 | 120/0/0 | 24/0/0 | 48/0/0 | 4/0/0 | bar_layout 12/0/0 |
+| dialog-two | 12/0/0 | 12/0/0 | 12/0/0 | 12/0/0 | 60/0/0 | 132/0/0 | 36/0/0 | 120/0/0 | 36/0/0 | 72/0/0 | 4/0/0 | lines, warnings 24/0/0 |
+| dialog-warnings | 12/0/0 | 12/0/0 | 12/0/0 | 12/0/0 | 60/0/0 | 204/0/0 | 36/0/0 | 120/0/0 | 36/0/0 | 80/0/0 | 4/0/0 | 24/0/0 |
+| dialog-thirty | 12/0/0 | 12/0/0 | 12/0/0 | 12/0/0 | 60/0/0 | 540/0/0 | 36/0/0 | 120/0/0 | 36/0/0 | 88/0/0 | 4/0/0 | lines, warnings, buttons_in_view 36/0/0 |
+| dialog-changed | 12/0/0 | 12/0/0 | 12/0/0 | 12/0/0 | 60/0/0 | 168/0/0 | 60/0/0 | 120/0/0 | 36/0/0 | 72/0/0 | 2/**2**/0 | lines, warnings 24/0/0; no_retry 0/**12**/0; focus_after_409 0/**12**/0 |
+| dialog-failed | 12/0/0 | 12/0/0 | 12/0/0 | 12/0/0 | 60/0/0 | 180/0/0 | 60/0/0 | 120/0/0 | 36/0/0 | 72/0/0 | 2/**2**/0 | lines, warnings, retry_label 36/0/0 |
+| dialog-busy | 12/0/0 | 12/0/0 | 12/0/0 | 12/0/0 | 60/0/0 | 72/0/0 | 36/0/0 | 120/0/0 | 36/0/0 | 72/0/0 | 4/0/0 | lines, warnings, busy_disabled 36/0/0 |
+| bulk-toast | 12/0/0 | 12/0/0 | 12/0/0 | 12/0/0 | 120/0/0 | 260/0/0 | 48/0/0 | 120/0/0 | 72/0/0 | 24/0/0 | 4/0/0 | after_delete, toast_in_view 24/0/0 |
+| banner-bar | 12/0/0 | 12/0/0 | 12/0/0 | 4/0/24 | 336/0/0 | 716/0/0 | 48/0/0 | 120/0/0 | 72/0/0 | 96/0/0 | 4/0/0 | banner_above_bar, device_only_row 24/0/0 |
+
+Totals: 10,616 rows; 28 fail (4 groups below), 96 unsure (one group, verdict below).
+
+Live regions (both browsers, three widths): the bar's `p[role=status]` reads "1 / 2 / 4 / 30 selected" ("… ausgewählt") and stays in the page empty and `sr-only` while nothing is selected; the dialog's `role="alert"` reads "Couldn’t delete Nothing was deleted: “T091 sweep <uid> live” was deleted or changed in the meantime." / "Die Anbindungen konnten nicht gelöscht werden Nichts wurde gelöscht: „…“ wurde inzwischen gelöscht oder geändert." after the `409`, and "Couldn’t delete Something went wrong on our side. … Error ID: T091-…-fake" / "… Fehler-ID: …" after the 500; the toast region "2 connections deleted. Undo" / "2 Anbindungen gelöscht. Rückgängig". The busy state's "Deleting…" / "Wird gelöscht …" is the button's label, not a live region (as T049 built it). The FR-076 texts (the harness's list plus "PDF herunterladen", "Entwurfsänderungen") are absent in every cell.
+
+Alert titles at 160 CSS px (T084 (5)): only the bulk dialog's failure alert (`ConfirmDialog`'s `KernAlert`) shows one: Chromium 41.0 of 89.0 px (46 %), Firefox 56.0 of 104.0 px (54 %), the same for the `409` and the 500 and in both languages (Chromium's dialog loses 15 px to its classic scrollbar). No other state shows an alert.
+
+2. Defects
+
+| state | language | width | browser | measure | element | value | limit | suspected file |
+|---|---|---|---|---|---|---|---|---|
+| dialog-changed | en, de | 1440, 320, 160 | chromium, firefox | no_retry | dialog footer `.kern-btn--primary` | "Try again" / "Erneut versuchen" (12 cells) | hidden (T084 (3), S4 amended) | `frontend/src/pages/FormConnectionList/BulkDeleteDialog.tsx`, `frontend/src/components/ConfirmDialog/index.tsx` (a prop to hide the confirm button); known, T098 builds it |
+| dialog-changed | en, de | 1440, 320, 160 | chromium, firefox | focus_after_409 | `document.activeElement` | button "Try again" / "Erneut versuchen" (12 cells) | "Keep connections" / "Anbindungen behalten" (T084 (3)) | the same; known |
+| dialog-changed | en, de | 160 | chromium | alert_title | `.kern-alert .kern-title` "Couldn’t delete" / "Die Anbindungen konnten nicht gelöscht werden" | 41.0 of 89.0 px (46 %) | ≥ 50 % | `frontend/src/index.css` (T084 (5)'s narrow rule); the alert is `ConfirmDialog`'s |
+| dialog-failed | en, de | 160 | chromium | alert_title | the same | 41.0 of 89.0 px (46 %) | ≥ 50 % | the same |
+
+Beside the sweep's measures, for T097 (the German review), not T098: the bulk dialog's German after `409` reads "… wurde inzwischen gelöscht oder geändert." (`frontend/src/pages/FormConnectionList/constants.ts`, `BULK_DELETE_COPY.de.changed`), and the server's `selection_changed` German "Nichts wurde gelöscht: Eine Anbindung wurde inzwischen gelöscht oder geändert." (`backend/app/services/deletions.py`), where `contracts/copy.md` §4 and §8 say "in der Zwischenzeit". A third place of T086's "in the meantime written two ways".
+
+3. Unsure rows and verdicts
+
+| state | measure | element | cells | verdict |
+|---|---|---|---|---|
+| select-one, select-some, select-all, banner-bar | clipped | the rows' descriptions ("live / scheduled / deactivated connection of T091 sweep base"), `text-overflow: ellipsis` | en, de × 320, 160 × chromium, firefox (96 rows) | pass: the description cut to one line with "…" is spec 008's (`FormConnectionRow`, FR-029b), intended |
+
+4. Cited rows (English in Chromium, layout): §2.1 `#### T048` (the checkboxes, the select-all's three states, the bar at 1440/320/160, the banner with the bar, focus rings), `#### T050` (the local-drafts banner 1m and 1n at the three widths, in Firefox), `#### T049` (the bulk dialog: two rows, four statuses, 30 rows scrolled, busy, a 500 with its error ID, the `409`, the toasts; narrow rows at 320/160), and §2.2 `#### T051` (walk V8: V8.1–V8.7 at 1440, English and German). The sweep reran those cells too; its only finding in them is the known `409` retry (cited by T051 as built, decided by T084 (3)).
+
+Rerun (T098): `node <SP>/sweep/T091/sweep.mjs --states dialog-changed,dialog-failed --out rerun` (all cells), or with `--cells en-160-chromium,de-160-chromium` for the alert titles; the script finds the shared rows by name and makes the `409`'s rows per cell.
+
+#### T092: sweep of US6's documents list (S8, the documents' order; W13, F22)
+
+Items: FR-072, SC-009, W13, F22; S8 "The list's order", "Dragging", "Without dragging"; copy.md §5 (the ⋯'s name, "Move up"/"Move down", the announcement). Harness: T085's `measure.mjs` (`playwright-core` 1.65), script `<SP>/sweep/T092/sweep.mjs` with `lib.mjs`, output `<SP>/sweep/T092/out/` (`T092.csv`, `T092-summary.md`, `shots/`). Browsers: Chromium 156 (`/usr/bin/chromium`) and Playwright's Firefox (`firefox-1572`), headless, side by side. Widths: 1440, 320 and 160 CSS px viewports (heights 900, 720, 450). Languages: English and German (the stored choice of `LanguageProvider`). The full matrix: 8 states × 12 cells = **96 cells, 21,425 rows**, 456 s (Chromium 8.7 s, Firefox 9.3 s per cell); one cell (`moved` de 320 Firefox) stopped on a timeout and was rerun alone (`<SP>/sweep/T092/rerun-moved1/`: passes; a second rerun timed out again, see the unsure rows). Measures: the harness's ten (scope `body`) plus the sweep's own: `list` (the order, and the ⋯ buttons: one per row with two documents or more, none with one), `menu` (the open menu's entries; its box inside the viewport), `drag` (while the drag is held: the dragged row hidden, the drop line's box, colour and place inside the list's area, the faded copy inside the card, 8 px inside the rows' right edge (T059a), opacity 0.85, its name; after the drop: the focus on the moved row's ⋯ without a ring), `drop_durations` (the computed transitions and animations of the list's area and everything in it in the release's frame and the two frames after it, once without and once with reduced motion), `add_button` ("Add document"'s label lines inside its box, the coordinator's question from T093), `alert_title` (T084 (5), at 160 CSS px).
+
+Three rows (T084 (6)): `page.route()` answers `GET /api/document-types` with the catalog plus a copy of `pid` under the key `t092doc`, named "T092 document" / "T092-Dokument" by the request's `Accept-Language`, in a new connection's documents step (`/form-connections/new`, name "T092 sweep create flow", "Choose documents", then Personal ID, Driving licence, T092 document through "Add document"). Never saved: the autosave wrote only the local draft of the cell's context, which was thrown away with it. The edit flow: `T092 sweep base live` (`9fa233d1-899c-4b1d-9b5c-8266ad612d82`, published, made through the API from `P3 seed live`'s documents, stored Personal ID, Driving licence; its edit flow opened and left, never saved; kept for reruns). Main installation (backend 3016, Vite 5180, `template_db_010_p12`, `p10-alice`).
+
+States: `three` (pid, mdl, t092doc; T092 document open); `menu-first`, `menu-middle`, `menu-last` (the ⋯ of Personal ID, Driving licence, T092 document opened by keyboard: focus, Enter; the ⋯ scrolled to the viewport's middle first); `single` (Driving licence only); `dragging` (Personal ID pressed and moved over the gap between Driving licence and T092 document, the button held through every measure, so the harness's `durations` with and without reduced motion read the drag itself); `moved` (Personal ID dropped there without reduced motion, then, with reduced motion, Driving licence dropped below the last row: pid, t092doc, mdl, "“Driving licence” moved to position 3 of 3."); `edit-flow` (the documents step of `T092 sweep base live`).
+
+**1. Counts per state × measure** (pass/fail/unsure; 12 cells each, `moved` 11 in the full run plus the rerun cell)
+
+| state | h_scroll | h1 | lang | clipped | label_width | contrast | live_region | forbidden | durations | focus_visible | list | menu | drag | drop_durations | add_button | alert_title |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| three | 12/0/0 | 12/0/0 | 12/0/0 | 4/0/15 | 600/0/0 | 1148/0/0 | 36/0/0 | 120/0/0 | 528/0/0 | 216/0/0 | 24/0/0 | | | | 8/**4**/0 | 4/0/0 |
+| menu-first | 12/0/0 | 12/0/0 | 12/0/0 | 4/0/15 | 618/0/0 | 1177/0/0 | 36/0/0 | 120/0/0 | 546/0/0 | 24/0/0 | | 48/0/0 | | | 8/**4**/0 | 4/0/0 |
+| menu-middle | 12/0/0 | 12/0/0 | 12/0/0 | 4/0/15 | 630/0/0 | 1195/0/0 | 36/0/0 | 120/0/0 | 558/0/0 | 48/0/0 | | 48/0/0 | | | 8/**4**/0 | 4/0/0 |
+| menu-last | 12/0/0 | 12/0/0 | 12/0/0 | 4/0/15 | 612/0/0 | 1180/0/0 | 36/0/0 | 120/0/0 | 540/0/0 | 24/0/0 | | 48/0/0 | | | 8/**4**/0 | 4/0/0 |
+| single | 12/0/0 | 12/0/0 | 12/0/0 | 4/0/8 | 636/0/0 | 1260/0/0 | 36/0/0 | 120/0/0 | 588/0/0 | 48/0/0 | 24/0/0 | | | | 8/**4**/0 | 4/0/0 |
+| dragging | 12/0/0 | 12/0/0 | 12/0/0 | 4/0/16 | 576/0/0 | 1125/0/0 | 36/0/0 | 120/0/0 | 516/0/0 | (none: a click would end the drag) | | | 84/0/0 | | 8/**4**/0 | 4/0/0 |
+| moved | 11/0/0 | 11/0/0 | 11/0/0 | 4/0/14 | 550/0/0 | 1063/0/0 | 55/0/0 | 110/0/0 | 484/0/0 | 198/0/0 | 22/0/0 | | 11/0/0 | 77/0/0 | 7/**4**/0 | 4/0/0 |
+| moved, de 320 ff (rerun) | 1/0/0 | 1/0/0 | 1/0/0 | 0/0/1 | 50/0/0 | 97/0/0 | 5/0/0 | 10/0/0 | 44/0/0 | 18/0/0 | 2/0/0 | | 1/0/0 | 7/0/0 | 1/0/0 | |
+| edit-flow | 12/0/0 | 12/0/0 | 12/0/0 | 4/0/11 | 636/0/0 | 1184/0/0 | 36/0/0 | 120/0/0 | 552/0/0 | 144/0/0 | 24/0/0 | | | | 8/**4**/0 | 4/0/0 |
+
+`durations` while the drag is held: without reduced motion only the standing 0.15 s colour and opacity transitions of the trash, the ⋯ and the panel's checkboxes (≤ 0.5 s); with reduced motion "(reduce) (page): no transition or animation" in all 12 cells (F22). `drop_durations` in the release's frames: without reduced motion the same standing 0.15 s transitions of the rows' trash and ⋯ buttons (nothing on the rows, the line or the copy); with reduced motion "no transition or animation in the list area" in all 12 cells (F22: the drop just updates the list). Neither the drop line nor the copy carries a transition at any moment measured. The live region `#documents-move-status` read "“Driving licence” moved to position 3 of 3." / "„Führerschein“ auf Position 3 von 3 verschoben." in every `moved` cell (copy.md §5, word for word); the focus after the mouse drop was on "Move Driving licence" / "Führerschein verschieben" with `:focus-visible` false in every cell. The menus' entries: first row "Move down" / "Nach unten", middle row both, last row "Move up" / "Nach oben" (FR-047), each menu's box inside the viewport. The drag at every width: the line 8 px high with its 2 px rgb(29, 86, 240) bar across the rows' width at child 2 inside the list's area; the copy inside the card, its right edge 8 px inside the rows' (1440: 206 px; 320: 215 Chromium, 230 Firefox; 160: 87 Chromium, 102 Firefox), opacity 0.85, 32 px high. Alert titles at 160 CSS px: no `.kern-alert` is visible in any of the 8 states (32 cells "(none visible)").
+
+**2. Defects**
+
+| state | language | width | browser | measure | element | value | limit | suspected file |
+|---|---|---|---|---|---|---|---|---|
+| all 8 states | en, de | 160 | Chromium, Firefox | add_button | `button#add-document` ("Add document" / "Dokument hinzufügen", the dashed look once a document is added) | the label wraps to 2 lines (en, de Firefox) or 3 lines (de Chromium: "Dokument" / "hinzufüge" / "n") in the fixed 36 px box: text y 383–448 in the box 398–434 (de Chromium), 205–246 in 207–243 (Firefox); the words sit over the dashed border above and below it (T093's observation confirmed). The same with no document added (the filled look, measured outside the states: 2 lines, 42–50 px of text in 36 px). The harness's `clipped` and `label_width` don't see it (no clipping ancestor; only the width is compared) | the label inside its box | `frontend/src/pages/FormConnectionEditor/DocumentsStep/SearchCard.tsx` (`BUTTON`'s fixed `h-36` with `whitespace-nowrap`, which `index.css`'s narrow block turns into `white-space: normal` / `overflow-wrap: anywhere` below 320 CSS px; e.g. `min-h-36` / `narrow:h-auto`) |
+| menu-first, menu-middle, menu-last | de | 160 | Chromium | (screenshot, entry heights) | `[role=menu] [role=menuitem]` "Nach unten" | 3 lines, 88 px high, the word broken inside: "Nach" / "unte" / "n" (the menu 97 px wide in Chromium, whose page is 145 px wide beside its scrollbar; Firefox's 112 px menu keeps it on 2 lines, 64 px; English "Move down" 2 lines in both) | words whole (FR-072 "usable") | baseline: `frontend/src/components/ActionMenu/index.tsx` (the entry's text column at 160 CSS px) with `index.css`'s narrow block (`overflow-wrap: anywhere`) |
+| edit-flow | en, de | 320 | Chromium, Firefox | clipped (unsure → defect by T084 (4)) | `nav > span "T092 sweep base live"` (TopBar's "Where you are" name) | 27 px (en ch), 30 px (de ch), 42 px (en ff), 45 px (de ff) of 135 px, cut with "…" | ≥ min(own width, 96 px) (design-notes §4.2 T084 (4)) | `frontend/src/components/TopBar/index.tsx` (T084 (4), T098; T088 measures it) |
+
+**3. Unsure rows and verdicts**
+
+- `clipped`, the rows' names at 160 CSS px ("Personal ID", "Driving licence", "T092 document", "Personalausweis", "Führerschein", "T092-Dokument"; all states, both languages and browsers): ellipsis, `truncate` by design (T058's W16 rows) → pass.
+- `clipped`, `nav > span "T092 sweep create flow"` at 320 (create-flow states, 4 cells each): ellipsis, 108–123 px shown ≥ 96 px (T084 (4)) → pass.
+- `clipped`, `nav > span "T092 sweep base live"` at 320 (edit-flow) → defect (table 2).
+- `error`, `moved` de 320 Firefox (full run, and 1 of 2 reruns): the first drag's drop line didn't appear within 5 s (the order stayed pid, mdl, t092doc; screenshot `rerun-moved2/shots/moved-de-320-firefox-error.png`), while `dragging` passed in all 12 cells and the rerun `rerun-moved1` passed every row of the cell → pass as a scripted-press timing limit (UNCERTAIN: not shown to be the app's); T098 may rerun it.
+- First run (`<SP>/sweep/T092/out-run1/`, before `openMoveMenu` scrolled the ⋯ into view): `menu-middle` de 160 Chromium's menu at y 361–533 of 450, three times in a row: the bare `focus()` left the ⋯ at y ≈ 567, below the fold, and the menu opened up from it; with the ⋯ on screen (the final run, and `dbg-menu.mjs` at ⋯ y 320, 360, 400) the menu lies inside the viewport → pass (a script artefact; a keyboard user's Tab scrolls the ⋯ into view).
+
+**4. Cited rows** (English in Chromium at 1440, 320, 160, not judged anew; the sweep's English Chromium cells add contrast, label widths, focus and durations): design-notes §2.1 `#### T058` (the ⋯ and its menu at the three widths, the announcement, the one-document row, the edit flow), `#### T059` (the drag's line and copy at 1440 (R1–R3), the narrow drags, reduced motion while dragging, touch), §2.2 `#### T061` (walk V9: the order, the focus, the region, both flows, V9.8 reduced motion); T058's and T061's "no middle row" (V9.4) is now measured here with three rows (T084 (6)).
+
+#### T093, US9's grouped data item panel (T085's harness, report only)
+
+Items FR-072, SC-009, W18 (screen S8 "Data groups"; copy.md §5; the catalog's `FIELD_GROUPS` through `GET /api/document-types`). Measured 2026-11-12 on the main installation (backend 3016 against `template_db_010_p12` with the fake EUDIPLO and the worker off, Vite 5180), account `p10-alice`, by `<SP>/sweep/T093/sweep.mjs` on `<SP>/sweep/measure.mjs`. The browsers were Chromium 156 (`/usr/bin/chromium`) and Firefox (Playwright's build for `playwright-core` 1.65), in English and German (the stored language choice). The viewports were 1440 × 900, 320 × 720 and 160 × 450 CSS px, in the Europe/Berlin time zone. **The full matrix ran** (English in Chromium included, beside the cited rows): 6 states × 12 cells = 72 cells, 11,356 rows, 586 s (Chromium 12.2 s, Firefox 16.1 s per cell on average). The state `group-question` was then rerun alone with one more check, `dialog_title`: 12 cells, 472 rows, 79 s, in `<SP>/sweep/T093/out-question/`. Its row below is from that rerun, and its other measures equal the first run's.
+
+Measures: the harness's ten (horizontal_scroll, clipped, h1_count, focus_visible, contrast, durations, label_width, live_region, lang, forbidden_text; FORBIDDEN plus "PDF herunterladen" and "Entwurfsänderungen") and four checks of our own:
+- `group_split`: per group, its `li` is one box (`getClientRects()`), its heading's left edge equals its last data item's left edge minus the list's indent (24 px, 12 px at 160 CSS px) within 1 px, and no data item lies above its heading.
+- `columns`: the distinct left edges of the group headings, 3 at 1440 and 1 at 320 and 160.
+- `dialog_title`: the question's `h2` against copy.md §5.
+- `alert_title`: T084 (5). At 160 CSS px, each visible `.kern-alert .kern-title` against its alert's content width; a title under 50 % is a defect.
+
+The element measures were scoped to `#document-detail` (the panel) and, in the question, to the modal dialog. Output: `<SP>/sweep/T093/out/` and `<SP>/sweep/T093/out-question/` (`T093.csv`, `T093-summary.md`, `shots/`).
+
+Data made through the API from the content of `P3 seed live` (its documents: Personal ID family_name, given_name, birthdate, address_locality; Driving licence expiry_date, document_number, driving_privileges; its Standard rules, Rule 01 on `pid.birthdate` and Rule 02 on `mdl.driving_privileges`). Both rows are kept for reruns and found by name:
+- `T093 sweep draft` (`e0e9ce17-8f81-40f6-ac72-e5c72aa3a89b`): a stored draft at the documents step.
+- `T093 sweep live` (`b6a39565-b30f-4c30-a839-a70a629d727e`): a published connection.
+
+Nothing was saved: every click changed only the editor's state in the cell's own browser context, which was thrown away afterwards. The states:
+- `mdl-panel`: the draft with the Driving licence shown as stored (Document and Licence mixed, the other five groups clear).
+- `pid-panel`: the Personal ID shown as stored (Name, Birth and Address mixed).
+- `mixed-group`: the Driving licence with the first data item of the clear Appearance group ticked, so that the group is mixed.
+- `ticked-group`: the Driving licence with the mixed Licence ticked; all 3 of its data items are chosen and no question opens.
+- `group-question`: the ticked Licence cleared, which opens the question naming Rule 02.
+- `edit-panel`: the edit flow of the live connection ("Choose documents" / "Dokumente auswählen") with the Personal ID's grouped panel.
+
+Focus was measured on:
+- the panel states: "All data items", every group's box (7 or 5), two data items and the pager's two buttons;
+- `mixed-group` and `ticked-group`: the group's box and 3 of its data items;
+- the question: every focusable element (close, "Cancel", "Stop requesting").
+
+1. Counts per state × measure (pass/fail/unsure; every state 12 cells; horizontal_scroll, h1_count, lang and clipped 12/0/0 everywhere, left out)
+
+| state | label_width | contrast | live_region | forbidden_text | durations | focus_visible | group_split | columns | dialog_title | alert_title |
+|---|---|---|---|---|---|---|---|---|---|---|
+| mdl-panel | 492/0/0 | 972/0/0 | 36/0/0 | 120/0/0 | 480/0/0 | 120/0/0 | 84/0/0 | 12/0/0 | – | 4/0/0 |
+| pid-panel | 396/0/0 | 788/0/0 | 36/0/0 | 120/0/0 | 384/0/0 | 120/0/0 | 60/0/0 | 12/0/0 | – | 4/0/0 |
+| mixed-group | 492/0/0 | 972/0/0 | 36/0/0 | 120/0/0 | 480/0/0 | 48/0/0 | 84/0/0 | 12/0/0 | – | 4/0/0 |
+| ticked-group | 492/0/0 | 972/0/0 | 36/0/0 | 120/0/0 | 480/0/0 | 48/0/0 | 84/0/0 | 12/0/0 | – | 4/0/0 |
+| group-question | 60/0/0 | 84/0/0 | 36/0/0 | 120/0/0 | 36/0/0 | 72/0/0 | – | – | 6/**6**/0 | 4/0/0 |
+| edit-panel | 396/0/0 | 788/0/0 | 36/0/0 | 120/0/0 | 384/0/0 | 120/0/0 | 60/0/0 | 12/0/0 | – | 4/0/0 |
+
+The panel's flow:
+- **1440:** 3 columns in every panel cell. The Driving licence has Name and Birth, then Address and Document, then Licence, Appearance and Other details. The Personal ID has Name and Birth, then Address, then Document and Other details.
+- **320 and 160:** one column.
+- **Groups:** none split, in either language or browser.
+- **Headings:** no group heading clipped. The clipped measure saw every text of the panel, 42 on the Driving licence and 34 on the Personal ID, including the German "Weitere Angaben", "Fahrerlaubnis" and "Aussehen" at 160.
+
+Live regions: only the editor's empty `[status]` regions and the publish dialog's unrendered ones. None of these states announces anything.
+
+Alert titles at 160 CSS px: no `.kern-alert` is visible in any of the 24 cells at 160.
+
+2. Defects
+
+| state | language | width | browser | measure | element | value | limit | suspected file |
+|---|---|---|---|---|---|---|---|---|
+| group-question | de | 1440, 320, 160 | chromium, firefox | dialog_title | `dialog:modal h2` | „Felder der Gruppe „Fahrerlaubnis“ aus Führerschein nicht mehr anfordern?“ | „Daten der Gruppe „Fahrerlaubnis“ aus „Führerschein“ nicht mehr anfordern?“ (copy.md §5 as T097 amended it) | `frontend/src/pages/FormConnectionEditor/DocumentsStep/constants.ts` (`groupTitle`, German, line 173) and its test `DocumentsStep/utils.test.ts` line 770 |
+
+No other defect.
+
+3. Unsure rows: none. Observations after reading the screenshots (no measure failed):
+- At 160 CSS px, the narrow block (`index.css`, `overflow-wrap: anywhere`) breaks words of the panel's header and pager across lines: "Führerschei|n", and "Dok|ume|nt 2 von 2" in Firefox. Verdict: pass. The narrow block intends this, nothing is hidden, and the header and pager are spec 008's (baseline).
+- In the question at 160 × 450, the title fills the dialog, which scrolls to its buttons. Verdict: pass, as T074 found (the dialog is the scroller).
+
+4. Cited rows (English in Chromium at the three widths): §2.1 "T074 — the grouped data item panel" and §2.2 "T076: walk V11, data groups":
+- the 3 columns and the groups' order and placement at 1440;
+- one column, no scroll, nothing clipped or off-screen and the focus rings at 320 and 160 for the draft's and the edit flow's Personal ID, the Driving licence and the question;
+- V11.1 to V11.5, both languages at 1440.
+
+This sweep also ran those cells, with no defect.
+
+#### T094: the toasts' time (quickstart V13, FR-082)
+
+**Toasts measured** (4): the overview's deletion toast "“<name>” deleted." / "Undo" (a draft deleted from its row); the documents step's "<document> removed." / "Undo" ("Remove Personal ID?" answered "Remove document"); the rules step's "Rule 01 deleted." / "Undo" (a rule deleted through its menu); and the failed save's "Couldn’t save. Check your internet connection and try again." / "Try again" (the rules step's "Save and exit" sends `PUT /api/form-connections/<id>/draft` when clicked; every such request was aborted with the harness's `failNext(…, 'abort', {method: 'PUT', times: 'always'})`). **Conditions** (3): left alone (the pointer at (3, 3), the focus elsewhere); the pointer on the toast; the keyboard focus on its action (Shift, then `focus()`; `:focus-visible` true in every run). **Where:** Chromium 156 (`/usr/bin/chromium`) and Firefox (Playwright 1.65's firefox-1572), viewport 1440 × 900 CSS px, English; German once per toast (left alone) to check the same timer. The main installation (backend 3016, Vite 5180), user `p10-alice`. Each measurement ran twice in its cell.
+
+**How it was timed:** inside the page. A `MutationObserver` on the document stamped the toast's appearance and removal (`.shadow-toast`, `ToastMessage`'s root) with `performance.now()`. Capturing `pointerover`/`pointerout`/`focusin`/`focusout` listeners stamped the moment the pointer or the focus entered or left the toast. The stamps were read back afterwards: Node only waited. The limits: left alone, removal 6000 ± 300 ms after the toast appeared; held, still present 9000 ms after it appeared; after the hold, removal 6000 ± 300 ms after the pointer or the focus left.
+
+**Data:** drafts made through the API for each cell, named `T094 sweep <uid> del1|del2|docs|rules|retry` (with the documents of `P3 seed live`: Personal ID and Driving licence; the rules drafts with its Rule 01 and Rule 02). The deletion runs deleted their own drafts, and the sweep's teardown deleted the rest. None is left in the list (52 `T094 sweep` rows in all, every one deleted). Script: `<SP>/sweep/T094/sweep.mjs`; output: `<SP>/sweep/T094/out/` (CSV, summary, 2 screenshots); rerun: `<SP>/sweep/T094/out-rerun/`. Run time 651 s for 32 cells, with T091–T093 running at the same time.
+
+**1. Measured times** (ms; run 1 / run 2)
+
+| toast | condition | Chromium | Firefox | limit | result |
+|---|---|---|---|---|---|
+| deletion | alone (appear → gone) | 6087 / 6069 | 6124 / 6066 | 6000 ± 300 | pass |
+| deletion | alone, German | 6065 / 6013 | 6053 / 6067 | 6000 ± 300 | pass |
+| deletion | pointer: present at 9 s | 9045 / 9083 present | 9036 / 9056 present | present after 9000 | pass |
+| deletion | pointer: leave → gone | 6120 / 6096 | **6307** / 6099 (rerun: 6056 / 6096) | 6000 ± 300 | pass after the rerun (see 3) |
+| deletion | focus: present at 9 s | 9059 / 9008 present | 9060 / 9045 present | present after 9000 | pass |
+| deletion | focus: leave → gone | 6026 / 6037 | 6188 / 6052 | 6000 ± 300 | pass |
+| documents "Undo" | alone | 6229 / 6180 | 6127 / 6076 | 6000 ± 300 | pass |
+| documents "Undo" | alone, German | 6105 / 6054 | 6162 / 6058 | 6000 ± 300 | pass |
+| documents "Undo" | pointer: present at 9 s | 9032 / 9037 present | 9070 / 9019 present | present after 9000 | pass |
+| documents "Undo" | pointer: leave → gone | 6210 / 6140 | **6316** / 6241 (rerun: 6118 / 6036) | 6000 ± 300 | pass after the rerun (see 3) |
+| documents "Undo" | focus: present at 9 s | 9038 / 9066 present | 9067 / 9040 present | present after 9000 | pass |
+| documents "Undo" | focus: leave → gone | 6162 / 6133 | 6214 / 6061 | 6000 ± 300 | pass |
+| rules "Undo" | alone | 6078 / 6042 | 6130 / 6099 | 6000 ± 300 | pass |
+| rules "Undo" | alone, German | 6093 / 6099 | 6116 / 6023 | 6000 ± 300 | pass |
+| rules "Undo" | pointer: present at 9 s | 9032 / 9021 present | 9056 / 9060 present | present after 9000 | pass |
+| rules "Undo" | pointer: leave → gone | 6114 / 6159 | 6240 / 6137 | 6000 ± 300 | pass |
+| rules "Undo" | focus: present at 9 s | 9087 / 9017 present | 9071 / 9066 present | present after 9000 | pass |
+| rules "Undo" | focus: leave → gone | 6092 / 6117 | 6133 / 6089 | 6000 ± 300 | pass |
+| save "Try again" | alone | 6171 / 6094 | 6067 / 6105 | 6000 ± 300 | pass |
+| save "Try again" | alone, German | 6052 / 6056 | 6163 / 6130 | 6000 ± 300 | pass |
+| save "Try again" | pointer: present at 9 s | 9037 / 9020 present | 9058 / 9015 present | present after 9000 | pass |
+| save "Try again" | pointer: leave → gone | 6103 / 6078 | 6115 / 6040 | 6000 ± 300 | pass |
+| save "Try again" | focus: present at 9 s | 9019 / 9011 present | 9096 / 9068 present | present after 9000 | pass |
+| save "Try again" | focus: leave → gone | 6076 / 6066 | 6153 / 6084 | 6000 ± 300 | pass |
+| rules "Undo" | Ctrl+Z after the toast was gone (all 8 rules cells × 2 runs, both browsers, English and German) | Rule menus 2 → 1 → 2 every time, no toast | the same | the rule comes back | pass (16 / 16) |
+
+The pointer or the focus reached the toast 62–587 ms after it appeared, always before its 6 s ran out. No left-alone run saw the pointer or the focus enter the toast.
+
+Counts: 32 cells; 208 CSV rows; 64 time measurements (62 pass; 2 over the limit by 7 and 16 ms, both passing on a rerun of their two cells, with 4 more measurements); 48 "held" rows pass; 16 Ctrl+Z rows pass; 0 `error` rows; 0 `page_error` rows.
+
+**2. Defects:** none.
+
+**3. Unsure rows and the verdicts**
+
+| state | language | width | browser | measure | value | limit | verdict |
+|---|---|---|---|---|---|---|---|
+| deletion-pointer, run 1 | en | 1440 | Firefox | leave → gone | 6307 ms | 6000 ± 300 | pass: the rerun gave 6056 and 6096 ms. An in-page diagnostic (a wrapped `setTimeout`) splits each into leave → 6000 ms timer set (28 and 56 ms) and timer → gone (6028 and 6040 ms). The extra time is the page's main thread under four parallel sweeps, not the timer. |
+| documents-pointer, run 1 | en | 1440 | Firefox | leave → gone | 6316 ms | 6000 ± 300 | pass: the rerun gave 6118 ms (42 + 6076) and 6036 ms (5 + 6031) |
+
+Over the loaded run, the held conditions ended 26–316 ms after the 6 s and the left-alone ones 13–229 ms after it. The diagnostic shows that the toast's 6000 ms timer starts within 5–56 ms of the leave, as `ToastMessage`'s effect should.
+
+**4. Cited rows:** design-notes §2.1 `#### T005` (the documents step's "Undo" in Chromium: 6036 ms left alone; held 10 s by the pointer and by the focus; 6035 and 6029 ms after leaving; Escape; the focus held while the pointer leaves); phase 3's note in §2.2 ("Driving licence removed." closed after 6011 ms). This sweep reruns those English Chromium cells rather than citing them, and adds the three other toasts, Firefox, German and Ctrl+Z.
+
+Screenshots: `<SP>/sweep/T094/out/shots/deletion-pointer-held-en-1440-chromium.png`, `<SP>/sweep/T094/out/shots/rules-pointer-held-en-1440-chromium.png` (each toast held by the pointer, 9 s in).
+
+#### T095: sweep of US4's deletion states (S4 "After a deletion", "Undo", S3; C3; copy.md §4, §8; FR-072, SC-009, W11) — 2026-11-12
+
+Items: FR-072, SC-009, W11 (and FR-033, FR-034, FR-036, FR-037, FR-076 as rows). Harness: T085's `measure.mjs` (`playwright-core` 1.65), script `<scratchpad>/sweep/T095/sweep.mjs`, output `<scratchpad>/sweep/T095/out/` (`T095.csv`, `T095-summary.md`, `shots/`). Browsers: Chromium 156 (`/usr/bin/chromium`) and Playwright's Firefox, **one after the other** (`parallelBrowsers: false`, so that each cell controls the whole list). Widths 1440 × 900, 320 × 720 and 160 × 450 CSS px viewports; English and German (the stored language choice); the full matrix, 72 cells (6 states × 2 languages × 3 widths × 2 browsers), English in Chromium included; 5325 rows; 580 s wall time (7.6 s per cell in Chromium, 8.4 s in Firefox; `late-undo` 25–26 s). Installation: **the empty one**, backend on 3017 against `template_db_010_p12_empty` (fake EUDIPLO, `WORKER_ENABLED=false`, **`DELETION_UNDO_SECONDS=20`**), Vite on 5181, account `p10-alice`. Data: every cell first deleted every connection on the installation through the API (the previous cell's rows), then made its own empty drafts `T095 sweep <uid> keep` and `T095 sweep <uid> target` (`welcome-deleted`: `target` only) through `POST /api/form-connections/drafts`; the target was deleted through the UI (the overview row's "Delete <name>" → "Delete connection"; `arrival-details`: the draft's details "Delete draft" → "Delete connection"); the teardown deleted the last cell's row. The toast's 6 s timer was held by patching the page's `window.setTimeout` before the deletion click (a 6000 ms delay became 600000 ms, as T091's sweep did), so every toast stayed while it was measured. `late-undo` held the toast past the deletion's `restorable_until` (+1.5 s, 21.1–21.3 s) and then pressed "Undo"; `restore-failed` planted a 500 on `POST /form-connections/deletions/{id}/restore` (`failNext`, error ID `T095-xxxxxxxx-fake`). Own rows besides the harness's ten measures: `toast_text`, `toast_kind` (fill: danger `rgb(196, 39, 28)`, success `rgb(29, 122, 46)`, neutral `rgb(11, 18, 32)`), `toast_action`, `toast_in_view` (as reached, and scrolled to the page's end: inside the viewport and not over the footer bar), `toast_keyboard` (Tab from the focused h1 until "Undo" has the focus, `:focus-visible` true), `row_back`, `late_restore` (the restore's status), `alert_title` (T084 (5), at 160 CSS px).
+
+States: `deleted` (the overview with "“<name>” deleted." and "Undo"), `restored` (after "Undo": "“<name>” restored.", the row back), `late-undo` (after the restore time: "“<name>” can no longer be restored.", `409`), `restore-failed` ("Couldn’t restore. Try again." with its error ID and "Undo"), `welcome-deleted` (FR-037: the welcome page with the toast after the last connection was deleted), `arrival-details` (FR-033: a draft deleted on its details page, arriving on the overview with the toast).
+
+1. Counts per state × measure (pass/fail/unsure; 12 cells per state)
+
+| state | h_scroll | h1 | lang | clipped | label_width | contrast | live_region | forbidden | durations | focus_visible | toast_text / kind / action | toast_in_view | toast_keyboard | alert_title (160) | row_back | late_restore |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| deleted | 12/0/0 | 12/0/0 | 12/0/0 | 12/0/0 | 156/0/0 | 344/0/0 | 48/0/0 | 120/0/0 | 72/0/0 | 24/0/0 | 36/0/0 | 24/0/0 | 12/0/0 | 4/0/0 | | |
+| restored | 12/0/0 | 12/0/0 | 12/0/0 | 12/0/0 | 178/0/0 | 400/0/0 | 48/0/0 | 120/0/0 | 72/0/0 | 48/0/0 | 36/0/0 | 24/0/0 | | 4/0/0 | 12/0/0 | |
+| late-undo | 12/0/0 | 12/0/0 | 12/0/0 | 12/0/0 | 144/0/0 | 332/0/0 | 48/0/0 | 120/0/0 | 72/0/0 | 48/0/0 | 36/0/0 | 24/0/0 | | 4/0/0 | 12/0/0 | 12/0/0 |
+| restore-failed | 12/0/0 | 12/0/0 | 12/0/0 | 12/0/0 | 156/0/0 | 367/0/0 | 60/0/0 | 120/0/0 | 72/0/0 | 24/0/0 | 36/0/0 | 24/0/0 | 12/0/0 | 4/0/0 | | |
+| welcome-deleted | 12/0/0 | 12/0/0 | 12/0/0 | 12/0/0 | 96/0/0 | 228/0/0 | 24/0/0 | 120/0/0 | 72/0/0 | 72/0/0 | 36/0/0 | 24/0/0 | 12/0/0 | 4/0/0 | | |
+| arrival-details | 12/0/0 | 12/0/0 | 12/0/0 | 12/0/0 | 156/0/0 | 344/0/0 | 48/0/0 | 120/0/0 | 72/0/0 | 24/0/0 | 36/0/0 | 24/0/0 | 12/0/0 | 4/0/0 | | |
+
+Notes on the rows: the toast measured inside the viewport in all 144 rows (at 160 CSS px it sticks to the window's bottom, `x 16–129` beside Chromium's 15 px scrollbar and `x 16–144` in Firefox, its bottom at 442 of 450; at the page's end 0 px over the footer bar); "Undo" was reached by Tab from the h1 in all 48 cells that offer it (3–9 presses, `:focus-visible` true) and drew its 2 px white outline on keyboard focus and none after a click; `late_restore` answered `409` in all 12 cells after 21.1–21.3 s; the live regions read the toasts' texts word for word in both languages (copy.md §4), the failed restore with "Error ID: …" / "Fehler-ID: …" and "Undo" / "Rückgängig"; no toast is a `.kern-alert`, so `alert_title` at 160 CSS px found none visible in any state (24 rows "(none visible)"). Forbidden texts (FR-076, plus "PDF herunterladen" and "Entwurfsänderungen"): none found.
+
+2. Defects: **none**.
+
+3. Unsure rows: **none**. Looked at besides (2 screenshots): `restore-failed-de-160-firefox` (the toast's four lines and "Rückgängig" inside the window; the h1 "Ihre Anbindungen" breaks inside "Anbindungen" at 160 CSS px, the narrow block's existing word-wrapping rule of spec 008, not cut and not this feature's: `pass`, noted for T097/T098 only) and `welcome-deleted-de-320-chromium` (the red toast 24 px above the window's edge over the steps illustration, as FR-037 and T043's 1b row draw it: `pass`).
+
+4. Cited, not judged anew: English in Chromium at 1440, 320 and 160 CSS px for the layout rows is in §2.1 `#### T043` (the toast's fill, radius, padding, shadow, icon, type, position; restored, not restorable, failed with and without an answer, the error ID; the arrival from a draft's and a live connection's details; the welcome page with the toast; the 6 s timer, the pointer and keyboard holds, Escape; German at 1440; 320 and 160 rows without overlap) and §2.2 `#### T044` (walk V7: Undo after a deletion from the overview and the details, the last connection, the late Undo at `restorable_until` + 1.5 s, the replayed restore, `DELETION_UNDO_SECONDS=20`). This sweep also ran those cells: no defect in them either.
+
+#### T096: sweep of US7's example (S3, C4, S7–S13, S14; copy.md §6; FR-072, SC-009, W15) — 2026-11-12
+
+Items: FR-072, SC-009, W15 (and FR-053–FR-058, FR-076 as rows). Harness: T085's `measure.mjs` (`playwright-core` 1.65), script `<scratchpad>/sweep/T096/sweep.mjs`, output `<scratchpad>/sweep/T096/out/` (`T096.csv`, `T096-summary.md`, `shots/`) and, for the two rules states rerun with two measures added after the first run, `<scratchpad>/sweep/T096/out-rulecol/`. Browsers: Chromium 156 (`/usr/bin/chromium`) and Playwright's Firefox, **one after the other** (`parallelBrowsers: false`). Widths 1440 × 900, 320 × 720 and 160 × 450 CSS px viewports; English and German (the stored language choice); the full matrix, 120 cells (10 states × 2 languages × 3 widths × 2 browsers), English in Chromium included; 10583 rows; 697 s wall time (5.3 s per cell in Chromium, 6.1 s in Firefox); the rerun of `rules-standard` and `rules-variant` 24 cells, 180 s. Installation: **the empty one**, backend on 3017 against `template_db_010_p12_empty` (fake EUDIPLO, `WORKER_ENABLED=false`, `DELETION_UNDO_SECONDS=20`), Vite on 5181, account `p10-alice`; run after T095. Data: every cell first deleted every connection on the installation through the API (the previous cell's example), so the four welcome states started from an empty list; the six editor states then made a fresh example with `POST /api/form-connections/example` (the cell's own browser session, `Accept-Language` the cell's language, body `{}`: "Passenger transport licence (example)" / "Personenbeförderungsschein (Beispiel)", `example: 'unchanged'`) and walked to the step with the footer's buttons ("Choose documents", "Set rules", "Test rules", "Publish" and their German); the teardown deleted the last cell's example. `dialog-busy` held the `POST …/example` forever (`page.route`, never sent); `dialog-failed` planted a 500 (`failNext`, error ID `T096-xxxxxxxx-fake`). Own rows besides the harness's ten measures: `welcome_buttons`, `welcome_layout`, `dialog_text`, `busy_disabled`, `retry_label`, `banner_count`, `banner_text`, `banner_quiet` (no control, no role, no live region), `banner_in_view`, `tabs`, `tabs_plain` (no icon, no digit on the variant tabs), `example_line` (shown, alone in its list, after "Active from"), `summary_values` (`dd > span`), `alert_title` (T084 (5), at 160 CSS px), and in the rerun `rule_text_width` (spec 008's `RuleRow` text column, the narrowest row) and `link_strip_text` (the variant's `LinkStrip` sentence).
+
+States: `welcome` (the welcome page with its two buttons), `dialog-idle`, `dialog-busy` ("Creating…"), `dialog-failed` (the alert with its error ID, "Try again"), `step1` (the banner on step 1), `documents`, `rules-standard`, `rules-variant` (the example's variant "Ambulance" / "Krankentransport"), `test`, `publish-dialog` (the dialog with the example's line).
+
+1. Counts per state × measure (pass/fail/unsure; 12 cells per state; own rows: `banner_*` = count, text, quiet, in view; the rules states' `rule_text_width` and `link_strip_text` from the rerun)
+
+| state | h_scroll | h1 | lang | clipped | label_width | contrast | live_region | forbidden | durations | focus_visible | alert_title (160) | own rows |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| welcome | 12/0/0 | 12/0/0 | 12/0/0 | 12/0/0 | 84/0/0 | 204/0/0 | 12/0/0 | 120/0/0 | 72/0/0 | 48/0/0 | 4/0/0 | buttons 12/0/0, layout 12/0/0 |
+| dialog-idle | 12/0/0 | 12/0/0 | 12/0/0 | 12/0/0 | 60/0/0 | 84/0/0 | 12/0/0 | 120/0/0 | 36/0/0 | 72/0/0 | 4/0/0 | text 12/0/0 |
+| dialog-busy | 12/0/0 | 12/0/0 | 12/0/0 | 12/0/0 | 60/0/0 | 24/0/0 | 12/0/0 | 120/0/0 | 36/0/0 | 72/0/0 | 4/0/0 | busy_disabled 12/0/0 |
+| dialog-failed | 12/0/0 | 12/0/0 | 12/0/0 | 12/0/0 | 60/0/0 | 132/0/0 | 48/0/0 | 120/0/0 | 36/0/0 | 72/0/0 | 2/**2**/0 | retry_label 12/0/0 |
+| step1 | 12/0/0 | 12/0/0 | 12/0/0 | 8/0/**4** | 132/0/0 | 372/0/0 | 36/0/0 | 120/0/0 | 84/0/0 | 72/0/0 | 4/0/0 | banner 48/0/0 |
+| documents | 12/0/0 | 12/0/0 | 12/0/0 | 4/0/**11** | 576/0/0 | 1150/0/0 | 36/0/0 | 120/0/0 | 504/0/0 | 72/0/0 | 4/0/0 | banner 48/0/0 |
+| rules-standard | 12/0/0 | 12/0/0 | 12/0/0 | 8/0/**4** | 276/0/0 | 594/0/0 | 36/0/0 | 120/0/0 | 192/0/0 | 120/0/0 | 4/0/0 | banner 48/0/0, tabs 24/0/0, rule_text_width 12/0/0 |
+| rules-variant | 12/0/0 | 12/0/0 | 12/0/0 | 8/0/**4** | 252/0/0 | 633/0/0 | 36/0/0 | 120/0/0 | 192/0/0 | 120/0/0 | 4/0/0 | banner 48/0/0, tabs 24/0/0, rule_text_width 8/**4**/0, link_strip_text 8/**4**/0 |
+| test | 12/0/0 | 12/0/0 | 12/0/0 | 8/0/**4** | 252/0/0 | 723/0/0 | 36/0/0 | 117/**3**/0 | 108/0/0 | 168/0/0 | 4/0/0 | banner 48/0/0 |
+| publish-dialog | 12/0/0 | 12/0/0 | 12/0/0 | 12/0/0 | 84/0/0 | 228/0/0 | 36/0/0 | 118/**2**/0 | 36/0/0 | 96/0/0 | 4/0/0 | example_line 12/0/0, summary_values 12/0/0 |
+
+Notes on the rows: every banner had the copy.md §6 sentence word for word in both languages, one per page, no control, no role and no live region, inside the viewport at every width (`x 8–152 of 160` at 160 CSS px); the rules step's tabs read "Standard | Ambulance" / "Standard | Krankentransport" with the right selection and no icon or digit; the publish dialog showed the line alone under "Active from" and the summary `Personal ID · 7 data items | Driving licence · 2 data items | Standard · 2 rules | Ambulance · 2 rules` / `Personalausweis · 7 Felder | Führerschein · 2 Felder | Standard · 2 Regeln | Krankentransport · 2 Regeln`; the busy dialog's three buttons were all `aria-disabled` ("Creating…" / "Wird erstellt …"); after the planted 500 the alert (`role=alert`) read "Couldn’t create the example" / "Das Beispiel konnte nicht erstellt werden", the server's internal-error sentence and "Error ID: …" / "Fehler-ID: …", the primary button "Try again" / "Erneut versuchen"; the welcome page's two buttons sat in one row 16 px apart at 1440 and wrapped under each other at 320 and 160. The alert titles at 160 CSS px: `dialog-failed` 41.0 of 89.0 px (46 %) in Chromium (both languages), 56.0 of 104.0 px (54 %) in Firefox; no other state shows a `.kern-alert`.
+
+2. Defects (state | language | width | browser | measure | element | value | limit | suspected file)
+
+| state | language | width | browser | measure | element | value | limit | suspected file |
+|---|---|---|---|---|---|---|---|---|
+| dialog-failed | en | 160 | chromium | alert_title | `.kern-alert .kern-title` "Couldn’t create the example" | 41.0 of 89.0 px (46 %) | ≥ 50 % of the alert | `frontend/src/index.css` narrow block (T084 (5)'s rule; `ConfirmDialog`'s `KernAlert`, as T091's) |
+| dialog-failed | de | 160 | chromium | alert_title | `.kern-alert .kern-title` "Das Beispiel konnte nicht erstellt werden" | 41.0 of 89.0 px (46 %) | ≥ 50 % of the alert | same |
+| step1, documents, rules-standard, rules-variant, test (20 rows: 5 states × 4 cells) | en | 320 | chromium | clipped (header name) | `nav > span` "Passenger transport licence (example)" | 34 px shown (165–199) of 245 | ≥ min(own width, 96 px) (T084 (4)) | `frontend/src/components/TopBar/index.tsx` (T084 (4); T087 (b), T088, T092 (b)) |
+| same 5 states | en | 320 | firefox | clipped (header name) | same | 49 px shown (165–214) | ≥ 96 px | same |
+| same 5 states | de | 320 | chromium | clipped (header name) | `nav > span` "Personenbeförderungsschein (Beispiel)" | 13 px shown (169–182) of 251, "P." | ≥ 96 px | same |
+| same 5 states | de | 320 | firefox | clipped (header name) | same | 28 px shown (169–197) | ≥ 96 px | same |
+| rules-variant | en | 320 | chromium | rule_text_width | `RuleRow` text column, "Rule 01" (the "Changed here" mark and ⋯ beside it) | 55 of 255 px: "Message for citizens:" breaks a word a line | ≥ 120 px (UNCERTAIN limit) | **baseline**: `frontend/src/components/RuleRow/index.tsx` (spec 008; the row's mark and actions stay beside the text at ≥ 320 CSS px) |
+| rules-variant | de | 320 | chromium | rule_text_width | same | 55 of 255 px ("Nachric/ht für/Bürgeri/nnen") | ≥ 120 px | **baseline**: same |
+| rules-variant | en | 320 | firefox | rule_text_width | same | 70 of 270 px | ≥ 120 px | **baseline**: same |
+| rules-variant | de | 320 | firefox | rule_text_width | same | 70 of 270 px | ≥ 120 px | **baseline**: same |
+| rules-variant | en | 320 | chromium | link_strip_text | `LinkStrip` sentence beside "Linked to Standard" | 81 of 271 px | ≥ 120 px (UNCERTAIN limit) | **baseline**: `frontend/src/pages/FormConnectionEditor/RulesStep/LinkStrip.tsx` (spec 008/009; `min-w-0 flex-1` keeps the sentence beside the label instead of wrapping under it) |
+| rules-variant | de | 320 | chromium | link_strip_text | same ("Unverän/derte/Regeln/überneh/men …") | 54 of 271 px | ≥ 120 px | **baseline**: same |
+| rules-variant | en | 320 | firefox | link_strip_text | same | 96 of 286 px | ≥ 120 px | **baseline**: same |
+| rules-variant | de | 320 | firefox | link_strip_text | same | 69 of 286 px | ≥ 120 px | **baseline**: same |
+
+The last eight rows show in any based variant with changed rules at 320 CSS px, not only the example's; at 160 CSS px both elements take their row's whole width (the narrow rules) and pass. Counted as rows: 2 + 20 + 4 + 4 = **30 defect rows** (4 defects: the alert title, the header name, the rule row, the link strip; 8 rows baseline).
+
+3. Unsure and failing rows looked at, with the verdicts
+
+- `clipped`, `nav > span` (the header's name) at 320 CSS px, 20 cells (step1 … test): ellipsis, 13–49 px shown, under T084 (4)'s minimum → **defect** (section 2). At 1440 and 160 CSS px the name isn't cut.
+- `clipped`, the document rows' names at 160 CSS px (documents: "Personal ID", "Driving licence", "Personalausweis", "Führerschein"; 7 cells): ellipsis, `truncate` by design (T058's W16 rows; T092's verdict) → pass.
+- `forbidden_text` "Message … reads" on `test` (en 1440 ch "Message Hannah reads", en 160 ch "Message Jonas reads", en 320 ff "Message Elena reads") and on `publish-dialog` (the test step behind the dialog: en 1440 ch "Message Stefan reads", en 320 ff "Message Piotr reads"): the column head of `TestStep/ResultTable.tsx` for a persona who doesn't meet a variant (spec 004 F3/F14); FR-076 excludes only the box for a persona who meets every rule (Clarification #8; carried from T087) → **pass**. It shows only where the random persona fails a rule, hence 5 of 24 cells.
+- `alert_title` in `dialog-failed`, 160 CSS px Chromium → defect (section 2); Firefox 54 % → pass.
+- Screenshots opened (4): `dialog-failed-de-160-chromium` (the alert title a column of syllables beside its icon; the page behind breaks "Willkom/men" and "Anbindun/g", the narrow block's word wrapping of spec 008: noted, not this sweep's defect), `rules-variant-de-320-chromium` and `rules-variant-en-320-chromium` (the variant's rule rows and link strip in a 55 px column: the baseline rows of section 2; the header's "P."), `rules-standard-en-320-firefox` (Standard's rows read well at 320: pass).
+
+4. Cited, not judged anew: English in Chromium at 1440, 320 and 160 CSS px for the layout rows is in §2.1 `#### T066` (the banner against 1h, 1i, 1i-c), `#### T067` (the welcome page's "Start from an example" and the dialog against 1b and 1g), `#### T068` (the banners in the steps and the publish dialog's line) and §2.2 `#### T070` (walk V10 at 1440: the welcome page, the dialog, step 1 to the test step, the publish dialog, the overview, German read in English). This sweep also ran those cells; its English Chromium rows found the alert title (160), the header name (320) and the variant's rule row and link strip (320) above, none of which those tables measured.
+
+#### T098: the sweeps' narrow-layout fixes, rerun (T084 (4), (5); T087, T088, T091, T092, T096; FR-072, SC-009) — 2026-11-12
+
+**Fixes** (three; the dialogs' no-retry and the date field's contrast are T106's): (1) the header's
+name in `TopBar`'s "Where you are" pill (`frontend/src/components/TopBar/index.tsx`): the pill's
+parts wrap at every width (`flex-wrap`, no longer `narrow:` only), the name has a 96 px basis
+capped at its own width (`grow basis-96 max-w-max min-w-0 truncate`), so it keeps min(own, 96) on
+its row, the status pill wraps under it where both don't fit, and the name itself goes under
+"Your connections /" where even 96 px don't fit; the pill is `min-h-48 py-8` instead of `h-48`
+(48 high on one row, taller on two). (2) `frontend/src/index.css`'s narrow block:
+`.kern-alert__header > .kern-title { flex-basis: 100% }` (beats kern.css's `.kern-dialog
+.kern-title { flex: 1 0 0 }` by order); T024's local `narrow:[&_.kern-title]:basis-full!` removed
+from `PublishDialog.tsx` and `FormConnectionDetail/constants.ts` (`w-full` kept). (3) the document
+row's ⋯ wrapper (`DocumentsStep/constants.ts` `ROW_ACTIONS_CLASSES`, used in
+`DocumentListItem.tsx`): `narrow:[&_[role=menu]]:px-4 narrow:[&_[role=menuitem]]:px-4`, the menu's
+and its entries' side paddings 4 px instead of 8 below 320 CSS px; `ActionMenu` unchanged.
+
+**Reruns** (T085's harness, `playwright-core` 1.65, Chromium 156 `/usr/bin/chromium`, Firefox build
+1572; main installation 3016/5180 on `template_db_010_p12` as `p10-alice`, T096 on the empty one
+3017/5181; the sweeps' own rows, found by name; no new rows except T090's two "T090 sweep C1 …"
+requests' connections, its token revoked):
+
+| rerun | command | cells | rows | fail | unsure | output |
+|---|---|---|---|---|---|---|
+| T088 names | `node <SP>/sweep/T088/sweep.mjs names --out=<SP>/sweep/T088/out-rerun-names` | 144 | 720 | 0 | 102 (ellipsis ≥ 96 px: pass) | `<SP>/sweep/T088/out-rerun-names/` |
+| T088 main | `… main --only=band-*,header-edit-* (8 states) --out=<SP>/sweep/T088/out-rerun-main` | 96 | 3092 | 0 | clipped 320 (pass), band-draft gradient contrast (pass, T088's verdict) | `<SP>/sweep/T088/out-rerun-main/` |
+| T087 edit-step1 | `node sweep.mjs --states edit-step1 --out rerun` (in `<SP>/sweep/T087/`) | 12 | 1228 | 0 | 4 (the name at 320: 108 px Chromium, 123 px Firefox: pass) | `<SP>/sweep/T087/rerun/` |
+| T087 alerts (T024's local fixes gone) | `--states publish-failed,publish-no-answer,start-failed --cells en/de-160-chromium/firefox --out rerun-alert` | 12 | 680 | 6 (known, not T098's) | 0 | `<SP>/sweep/T087/rerun-alert/` |
+| T092 | `--states three,single,edit-flow,menu-middle,menu-first,menu-last --cells de-160-chromium,de-160-firefox,en-160-chromium,en-160-firefox,en-320-chromium,de-320-firefox --out <SP>/sweep/T092/rerun-fix` | 36 | – | 24 (baseline `add_button`) | names at 160 (pass), header name at 320 ≥ 108 px (pass) | `<SP>/sweep/T092/rerun-fix/` |
+| T091 | `--states dialog-failed --cells en-160-chromium,de-160-chromium,en-160-firefox --out rerun-alert` | 3 | – | 0 | 0 | `<SP>/sweep/T091/rerun-alert/` |
+| T096 (empty installation) | `--states dialog-failed,step1,documents,rules-standard,rules-variant,test --cells en-160-chromium,de-160-chromium,en-320-chromium,en-320-firefox,de-320-chromium,de-320-firefox --out <SP>/sweep/T096/rerun` | 36 | 4252 | 10 (8 baseline, 2 known pass) | header name at 320 (pass), document names at 160 (pass) | `<SP>/sweep/T096/rerun/` |
+| T089 alert | `T089_OUT=<SP>/sweep/T089/rerun-alert node sweep.mjs open-failed` | 12 | – | 0 | 0 | `<SP>/sweep/T089/rerun-alert/` |
+| T090 alerts | `node <SP>/sweep/T090/sweep-rerun-T098.mjs --states=D1,C1 --cells=en:160:chromium,…` (a copy writing to `rerun-alert-T098/`, since T090's script has a fixed `out/`) | 8 | – | 0 | 0 | `<SP>/sweep/T090/rerun-alert-T098/` |
+
+**The header name's visible width, before → after** (CSS px, Chromium; Firefox in the second
+table; limit min(own, 96) = 96; own 249 live, 292 scheduled, 302 deactivated, 257 draft; **bold**
+failed before; at 1440 every value is unchanged)
+
+| page | state | lang | 160 | 320 | 400 | 768 | 900 | 1440 |
+|---|---|---|---|---|---|---|---|---|
+| details | live | en | 113 → 97.7 | **27** → 107.9 | 107 → 107 | **69.9** → 150.8 | 201.9 → 201.9 | 248.7 → 248.7 |
+| details | live | de | 113 → 97.7 | **30.2** → 104.4 | 110.2 → 110.2 | **73.1** → 147.3 | 205.1 → 205.1 | 248.7 → 248.7 |
+| details | scheduled | en | 113 → 97.7 | **0** → 107.9 | **72.1** → 187.9 | **0** → 150.8 | **94.1** → 282.8 | 291.7 → 291.7 |
+| details | scheduled | de | 113 → 97.7 | **0** → 104.4 | **72.9** → 184.4 | **0** → 147.3 | 107.3 → 107.3 | 291.7 → 291.7 |
+| details | deactivated | en | 113 → 97.7 | **0** → 107.9 | **69.3** → 187.9 | **32.2** → 150.8 | 164.2 → 164.2 | 301.7 → 301.7 |
+| details | deactivated | de | 113 → 97.7 | **0** → 104.4 | **71.1** → 184.4 | **34** → 147.3 | 166 → 166 | 301.7 → 301.7 |
+| details | draft | en | 113 → 97.7 | **33.6** → 107.9 | 113.6 → 113.6 | 171.5 → 171.5 | 257 → 257 | 257 → 257 |
+| details | draft | de | 113 → 97.7 | **12.7** → 104.4 | **92.7** → 184.4 | 150.5 → 150.5 | 257 → 257 | 257 → 257 |
+| edit | live | en | 113 → 97.7 | **27** → 107.9 | 107 → 107 | 164.9 → 164.9 | 248.7 → 248.7 | 248.7 → 248.7 |
+| edit | live | de | 113 → 97.7 | **30.2** → 104.4 | 110.2 → 110.2 | 168.1 → 168.1 | 248.7 → 248.7 | 248.7 → 248.7 |
+| edit | scheduled | en | 113 → 97.7 | **0** → 107.9 | **72.1** → 187.9 | **57.1** → 245.8 | 189.1 → 189.1 | 291.7 → 291.7 |
+| edit | scheduled | de | 113 → 97.7 | **0** → 104.4 | **72.9** → 184.4 | **70.3** → 242.3 | 202.3 → 202.3 | 291.7 → 291.7 |
+| edit | deactivated | en | 113 → 97.7 | **0** → 107.9 | **69.3** → 187.9 | 127.2 → 127.2 | 259.2 → 259.2 | 301.7 → 301.7 |
+| edit | deactivated | de | 113 → 97.7 | **0** → 104.4 | **71.1** → 184.4 | 129 → 129 | 261 → 261 | 301.7 → 301.7 |
+| edit | draft | en | 113 → 97.7 | **33.6** → 107.9 | 113.6 → 113.6 | 171.5 → 171.5 | 257 → 257 | 257 → 257 |
+| edit | draft | de | 113 → 97.7 | **12.7** → 104.4 | **92.7** → 184.4 | 150.5 → 150.5 | 257 → 257 | 257 → 257 |
+
+(600, 767 and 1024 px: unchanged or wider, all ≥ 96; at 600 a scheduled name is 199.2 / 212.4
+beside its one-line pill instead of 234.6 / 241 beside the pill's two lines. At 160 the name
+wraps whole on its lines, now beside "/" in Chromium, 97.7 px wide; the whole name shows.)
+
+Firefox (320 and 768 from the names run, 160 and 1440 from the main run):
+
+| page | state | en 160 | en 320 | en 768 | en 1440 | de 160 | de 320 | de 768 | de 1440 |
+|---|---|---|---|---|---|---|---|---|---|
+| details | live | 128 → 128 | **42** → 122.9 | **84.9** → 165.7 | 248.7 | 128 → 112.7 | **45.2** → 119.4 | **88.1** → 162.3 | 248.7 |
+| details | scheduled | 128 → 128 | **7.1** → 122.9 | **0** → 165.7 | 291.7 | 128 → 112.7 | **8** → 119.4 | **0** → 162.3 | 291.6 |
+| details | deactivated | 128 → 128 | **4.3** → 122.9 | **47.2** → 165.7 | 301.7 | 128 → 112.7 | **6.1** → 119.4 | **49** → 162.3 | 301.7 |
+| details | draft | 128 → 128 | **48.6** → 122.9 | 186.5 → 186.5 | 257 | 128 → 112.7 | **27.7** → 119.4 | 165.6 → 165.6 | 257 |
+| edit | live | 128 → 128 | **42** → 122.9 | 179.9 → 179.9 | 248.7 | 128 → 112.7 | **45.2** → 119.4 | 183.1 → 183.1 | 248.7 |
+| edit | scheduled | 128 → 128 | **7.1** → 122.9 | **72.1** → 260.7 | 291.7 | 128 → 112.7 | **8** → 119.4 | **85.4** → 257.3 | 291.6 |
+| edit | deactivated | 128 → 128 | **4.3** → 122.9 | 142.2 → 142.2 | 301.7 | 128 → 112.7 | **6.1** → 119.4 | 144 → 144 | 301.7 |
+| edit | draft | 128 → 128 | **48.6** → 122.9 | 186.5 → 186.5 | 257 | 128 → 112.7 | **27.7** → 119.4 | 165.6 → 165.6 | 257 |
+
+The "Where you are" pill's height (nav box, from `pill_in_nav`): 1440 unchanged (48); 320 48 → 72
+(64 → 72 for a scheduled connection: the status pill on its own row, its label on one line); 160
+152–224 (before 184–232: "/" now shares the name's row); 768 on the details page 48 → 72 where the
+status pill wraps (and in the edit flow for a scheduled connection up to about 880 px), so the
+header is 88 px there instead of 64. `pill_in_nav` passes in every cell, 768 included (before:
+the scheduled pill 7–22 px past the nav over the description).
+
+**Alert titles at 160 CSS px, before → after** (title width of the alert's content width)
+
+| state | Chromium | Firefox | how |
+|---|---|---|---|
+| T091 dialog-failed (bulk dialog, `ConfirmDialog`'s `KernAlert`), en, de | 41.0 → 73.0 of 89.0 (46 % → 82 %) | 56.0 → 88.0 of 104.0 (54 % → 85 %) | the new rule |
+| T096 dialog-failed (example dialog), en, de | 41.0 → 73.0 of 89.0 (46 % → 82 %) | (not rerun; 54 % before) | the new rule |
+| T087 publish-failed, publish-no-answer, start-failed, en, de | 73.0 → 73.0 of 89.0 | 88.0 → 88.0 of 104.0 | T024's local classes before, the rule after (they were removed) |
+| T089 open-failed (Activity card), en, de | 87.0 → 87.0 of 103.0 | 102.0 → 102.0 of 118.0 | unchanged (not in a dialog) |
+| T090 D1, C1 (approval page), en, de | 113 → 113 of 129 | 128 → 128 of 144 | unchanged |
+
+(73 of 89: the header's own 8 px side paddings of the narrow block; the title spans the header.)
+
+**Rows now passing** (each before → after):
+
+| from | state | language | width | browser | measure | element | before | after |
+|---|---|---|---|---|---|---|---|---|
+| T088 (17 rows, 59 cells) | band-*, header-edit-*, name-* (4 states, details and edit) | en, de | 320, 400, 768, 900 | Chromium, Firefox | name_width | the header's name | 0–94.1 px | 104.4–282.8 px (≥ 96) |
+| T088 | name-details-scheduled | en, de (ch), en (ff) | 768 | Chromium, Firefox | pill_in_nav | the status pill "Scheduled · 12.12.2026" | 7–22 px past the nav | inside the nav (second row) |
+| T087 | edit-step1 | en, de | 320 | Chromium, Firefox | clipped (name) | "T087 sweep base scheduled" | 0 / 7–8 px | 108 / 123 px, "…" (pass, T084 (4)) |
+| T092 | edit-flow | en, de | 320 | Chromium, Firefox | clipped (name) | "T092 sweep base live" | 27–45 px | 108 / 119 px (pass) |
+| T092 | menu-first, menu-middle, menu-last | de | 160 | Chromium | entry lines (screenshot, heights) | "Nach unten" | "Nach / unte / n", 88 px | "Nach / unten", 64 px (menu 249–331 and 249–397: two-line entries; screenshot `menu-middle-de-160-chromium.png`) |
+| T091 | dialog-failed (and dialog-changed, same alert) | en, de | 160 | Chromium | alert_title | "Couldn’t delete" | 46 % | 82 % |
+| T096 | dialog-failed | en, de | 160 | Chromium | alert_title | "Couldn’t create the example" | 46 % | 82 % |
+| T096 | step1, documents, rules-standard, rules-variant, test (20 rows) | en, de | 320 | Chromium, Firefox | clipped (name) | "Passenger transport licence (example)" / "Personenbeförderungsschein (Beispiel)" | 13–49 px | 108 / 104 (ch), 123 / 119 (ff), "…" (pass) |
+
+**Open rows** (not T098's, unchanged by these fixes):
+
+| from | state | language | width | browser | measure | element | value | limit | owner |
+|---|---|---|---|---|---|---|---|---|---|
+| T092 | all 6 states rerun | en, de | 160 | Chromium, Firefox | add_button | "Add document" / "Dokument hinzufügen" | 2–3 lines in the 36 px box | inside its box | baseline, not fixed (FR-074; `DocumentsStep/SearchCard.tsx`) |
+| T096 | rules-variant | en, de | 320 | Chromium, Firefox | rule_text_width | `RuleRow` text | 55 / 70 px | ≥ 120 | baseline, not fixed (`components/RuleRow/`) |
+| T096 | rules-variant | en, de | 320 | Chromium, Firefox | link_strip_text | `LinkStrip` sentence | 54–96 px | ≥ 120 | baseline, not fixed (`RulesStep/LinkStrip.tsx`) |
+| T087 | start-failed | en, de | 160 | Chromium, Firefox | contrast | the date field's border | 1.25 | 3 | T106 |
+| T091 | dialog-changed | en, de | all | both | no_retry, focus_after_409 | the bulk dialog after `409` | "Try again" | hidden, focus on "Keep connections" | T106 (not rerun here) |
+
+Pass verdicts kept: `forbidden_text` "Message … reads" (T087 publish-no-answer en 160, T096 test en
+160 / 320; the test step's column head, T087's verdict); the names cut with "…" at ≥ 96 px
+(T084 (4)); the document names at 160 (`truncate`, T058).
+
+**Cited rows**: English in Chromium as in T087's, T088's, T091's, T092's and T096's tables (design-notes
+§2.1 `#### T014`, `#### T015`, `#### T024`, `#### T028`, `#### T049`, `#### T058`, `#### T068`;
+§2.2 `#### T017`, `#### T030`, `#### T061`, `#### T070`); at 1440 the header's per-node values of
+`#### T014` and `#### T015` are unchanged (the name's 248.7–301.7 px, the pill 48 high).
+
+#### T106: the sweeps' dialog and field defects, fixed and rerun (T084 (3); T087, T091; FR-043, FR-072, SC-009) — 2026-11-12
+
+**Fixes** (two): (1) **the bulk dialog after `409 selection_changed`** offers no retry
+(design-notes §4.2 T084 (3), `contracts/ui-screens.md` S4 amended): `ConfirmDialog` gained the
+prop `hideConfirm` (default `false`, so every other caller, the single delete dialog among them,
+is unchanged); hidden, the footer has one button fewer (`dialogButtonCountOf()`, the one-button
+layout of P33 dialog-actions: "Keep connections" across the footer) and the cancel button takes
+the focus (an effect on `open` and `hideConfirm`). `BulkDeleteDialog` reads its notice from
+`bulkDeleteNoticeOf(state, language)`: after `selection_changed` (`stale`, now kept in
+`BulkDeleteState`) the sentence "Nothing was deleted: “<name>” was deleted or changed in the
+meantime." (the server's sentence where the changed id isn't among the dialog's rows) under
+"Couldn’t delete", `retry: false` → `hideConfirm`; another failure (a 5xx with its error ID,
+no answer, any other 4xx) `retry: true`, so spec 008's "Try again" stays. Escape, × and the scrim
+behave as before (the scrim never closes it; nothing closes it while busy). (2) **the start date
+field's boundary** (`components/ActiveFromChoice/constants.ts`, `DATE_FIELD_CLASSES.valid`): 1 px
+`decorative-border-default` #e1e6f0 (1.25:1 on white) → 1 px `layout-border` #6b7488 (4.69:1 on
+white, 4.29:1 on #f2f5fb), the overlay's nearest KERN token that passes AA's 3:1, the one the
+radios beside it and the checkboxes use; white fill, radius 8, 128 × 40, the error's
+`feedback-danger` line and the 4 px focus ring unchanged (the field has no hover look).
+
+**Reruns** (T085's harness, `playwright-core` from `<SP>/sweep/`, Chromium 156
+`/usr/bin/chromium`, Firefox build 1572; main installation 3016/5180 on `template_db_010_p12` as
+`p10-alice`; English and German × 1440, 320, 160 CSS px × Chromium, Firefox; data: T087's and
+T091's own rows, found by name, and the `409`'s per-cell rows `T091 sweep <uid> live/draft` made
+and removed by T091's script; no rows of T106's own):
+
+| rerun | command (in the sweep's folder) | cells | rows | fail | unsure | output |
+|---|---|---|---|---|---|---|
+| T091 | `node sweep.mjs --states dialog-changed,dialog-failed --out rerun-T106` | 24 | 1164 | 0 | 0 | `<SP>/sweep/T091/rerun-T106/` (145 s) |
+| T087 | `node sweep.mjs --states start-scheduled-date,start-failed,publish-date,activate-date,delete-details,delete-row --out rerun-T106` | 72 | 3479 | 3 (known, pass) | 0 | `<SP>/sweep/T087/rerun-T106/` (241 s) |
+
+1. Counts per state × measure (pass/fail/unsure; horizontal_scroll, h1_count, lang, clipped
+   12/0/0 in every state, left out)
+
+| state | label_width | contrast | live_region | forbidden_text | durations | focus_visible | alert_title | own checks |
+|---|---|---|---|---|---|---|---|---|
+| T091 dialog-changed | 36/0/0 | 144/0/0 | 60/0/0 | 120/0/0 | 36/0/0 | 52/0/0 | 4/0/0 | no_retry 12/0/0 (was 0/**12**/0); focus_after_409 12/0/0 (was 0/**12**/0); dialog_lines, dialog_warnings 24/0/0 |
+| T091 dialog-failed | 60/0/0 | 180/0/0 | 60/0/0 | 120/0/0 | 36/0/0 | 72/0/0 | 4/0/0 | retry_label 12/0/0; dialog_lines, dialog_warnings 24/0/0 |
+| T087 start-scheduled-date | 84/0/0 | 168/0/0 (was 156/**12**/0) | 12/0/0 | 120/0/0 | 36/0/0 | 120/0/0 | 4/0/0 | |
+| T087 start-failed | 84/0/0 | 204/0/0 (was 192/**12**/0) | 48/0/0 | 120/0/0 | 36/0/0 | 120/0/0 | 4/0/0 | |
+| T087 publish-date | 84/0/0 | 227/0/0 | 36/0/0 | 117/3/0 | 36/0/0 | 120/0/0 | 4/0/0 | |
+| T087 activate-date | 84/0/0 | 240/0/0 | 12/0/0 | 120/0/0 | 36/0/0 | 120/0/0 | 4/0/0 | |
+| T087 delete-details | 60/0/0 | 84/0/0 | 12/0/0 | 120/0/0 | 36/0/0 | 72/0/0 | 4/0/0 | |
+| T087 delete-row | 60/0/0 | 84/0/0 | 24/0/0 | 120/0/0 | 36/0/0 | 72/0/0 | 4/0/0 | |
+
+Rows rerun, before → after:
+
+| state | language | width | browser | measure | element | before | after | result |
+|---|---|---|---|---|---|---|---|---|
+| T091 dialog-changed | en, de | 1440, 320, 160 | Chromium, Firefox | no_retry | dialog footer `.kern-btn--primary` | "Try again" / "Erneut versuchen" (12 cells) | (none) | pass |
+| T091 dialog-changed | en, de | 1440, 320, 160 | Chromium, Firefox | focus_after_409 | `document.activeElement` | button "Try again" / "Erneut versuchen" | button "Keep connections" / "Anbindungen behalten" | pass |
+| T091 dialog-changed | en, de | all | Chromium, Firefox | live_region | `dialog:modal [role=alert]` | "Couldn’t delete" + "Nothing was deleted: “T091 sweep … live” was deleted or changed in the meantime." | the same (German "Nichts wurde gelöscht: „…“ …") | pass |
+| T091 dialog-failed | en, de | 1440, 320, 160 | Chromium, Firefox | retry_label | dialog footer `.kern-btn--primary` | "Try again" / "Erneut versuchen" | the same (spec 008 kept) | pass |
+| T091 dialog-changed, dialog-failed | en, de | 160 | Chromium / Firefox | alert_title | `.kern-alert .kern-title` | 41.0 of 89.0 px (46 %) before T098 | 73.0 of 89.0 (82 %) / 88.0 of 104.0 (85 %) | pass (T098's rule) |
+| T087 start-scheduled-date | en, de | 1440, 320, 160 | Chromium, Firefox | contrast | dialog > input "Start date (DD.MM.YYYY)" / "Startdatum (TT.MM.JJJJ)" (boundary), unfocused | border 1.25 (#e1e6f0 on #ffffff) | border 4.69 (#6b7488 on #ffffff) | pass |
+| T087 start-failed | en, de | 1440, 320, 160 | Chromium, Firefox | contrast | the same field after the failure, unfocused | border 1.25 | border 4.69 | pass |
+| T087 publish-date, activate-date | en, de | all | Chromium, Firefox | contrast | the same field, focused while measured | outline 18.72 | outline 18.72 (unchanged) | pass |
+| T087 delete-details, delete-row | en, de | all | Chromium, Firefox | all | the single delete dialog ("Keep connection" / "Delete connection") | 0 fail | 0 fail, both buttons shown (`delete-row-en-1440-chromium.png`) | pass (unchanged) |
+
+2. Defects: none left. The three failing rows are known (below).
+
+3. Failing and unsure rows looked at, with the verdict
+
+| state | measure | element | cells | verdict |
+|---|---|---|---|---|
+| T087 publish-date | forbidden_text "Message … reads" | th "Message Emma reads" / "Sophie" / "Mia" | en 1440 ch, en 160 ch, en 160 ff | pass: T087's verdict (the test step's column head behind the modal publish dialog, `TestStep/ResultTable.tsx`, a generated persona's name) |
+
+Screenshots opened: `T091/rerun-T106/shots/dialog-changed-en-1440-chromium.png` (the alert with
+the sentence, "Keep connections" alone across the footer), `dialog-changed-de-160-firefox.png`
+("Anbindungen behalten" alone, scrolled into view), `T087/rerun-T106/shots/start-scheduled-date-en-1440-chromium.png`
+(the field's grey-blue line beside the radios' identical line), `delete-row-en-1440-chromium.png`
+(the single delete dialog unchanged).
+
+4. Cited rows: English in Chromium from §2.1 `#### T023` (P1b, the field's box: its row "1 px
+#e1e6f0" now reads 1 px #6b7488, see design-notes §1 below), `#### T049` (the bulk dialog; its
+UNCERTAIN 2 decided by T084 (3)), §2.2 `#### T051` (V8.5's `409`, now without "Try again"), and
+§2.3 `#### T087`, `#### T091` (the rows above).
+
+**Row for design-notes §1** (deviations from Figma, for the designer's list):
+| frame | element | Figma | build | why |
+|---|---|---|---|---|
+| P1b 6380:26675 (U75; "Rules/Number field" 6194:42241), also S15, S17 | the start date field's 1 px line, unfocused | `decorative-border` #e1e6f0 (1.25:1 on white) | `layout-border` #6b7488 (4.69:1 on white) | WCAG 1.4.11 (AA 3:1 for a field's boundary; SC-009, T087's sweep); the nearest KERN token in the overlay that passes, the one the radios beside it and the checkboxes draw |
+
+Open rows: none.
+
+#### T099, the German corrections of T097 applied (design-notes §3)
+
+Items FR-071. Language de (en unchanged). Browsers for the reruns: Chromium 156 and Firefox (playwright-core), widths 1440 / 320 / 160 CSS px. Data made: the sweeps' own rows (T093 sweep's `T093 sweep draft` / `T093 sweep live`, reused; T091 sweep's per-cell `T091 sweep <uid> …` rows, torn down by the script, every teardown 200).
+
+Applied rows (the "german after" column of §3, copied exactly):
+
+| §3 row | file : key | test files changed |
+|---|---|---|
+| 1 scheduled text | `frontend/src/pages/FormConnectionDetail/constants.ts` `CONNECTION_DETAIL_COPY.scheduledText` | none pinned it |
+| 2 save scheduled intro | `frontend/src/pages/FormConnectionEditor/constants.ts` `PUBLISH_DIALOG_COPY.saveScheduledIntro` | none pinned it |
+| 3 group title | `frontend/src/pages/FormConnectionEditor/DocumentsStep/constants.ts` `REMOVAL_DIALOG_COPY.groupTitle` | `frontend/src/pages/FormConnectionEditor/DocumentsStep/utils.test.ts` (line 770) |
+| 4 became active | `frontend/src/pages/Approval/constants.ts` `APPROVAL_COPY.connectionBecameActive`; `backend/app/services/approvals.py` `BECAME_ACTIVE_TEXT` | `frontend/src/pages/Approval/utils.test.ts`; `backend/tests/api/test_approval_requests.py` |
+| 5 start date changed | `frontend/src/pages/Approval/constants.ts` `APPROVAL_COPY.connectionStartDateChanged`; `backend/app/services/approvals.py` `START_DATE_CHANGED_TEXT` | `frontend/src/pages/Approval/utils.test.ts`; `backend/tests/api/test_approval_requests.py` |
+| 6 bulk dialog changed | `frontend/src/pages/FormConnectionList/constants.ts` `BULK_DELETE_COPY.changed` | none pinned it in the repository (T091's sweep script did: run as a copy, below) |
+| 7 selection_changed | `backend/app/services/deletions.py` `SELECTION_CHANGED_MESSAGE` (split over two literals for Ruff's 88 columns) | `backend/tests/api/test_deletions.py` (`SELECTION_CHANGED_DE`) |
+
+After the change, `grep -rn` of `inzwischen`, `Felder der Gruppe`, `am geplanten Datum unten`, `sie nicht nutzen` over `frontend/src`, `rules/src`, `backend/app`, `backend/tests`, `mcp/src`, `mcp/plugin`, `api-types/src`: no hit. No other text used "inzwischen"; `mcp/` had no German hit.
+
+1. Counts per state × measure
+
+| run | rows | pass | fail | unsure |
+|---|---|---|---|---|
+| T086's text check (copy in `<SP>/pairs-T099/`, collectors rerun on the working tree) | 156 pairs × 8 checks | as T086 except copy_md 85 pass (was 81 + 4 flags, fixed by copy.md §2's ’) | glossary 5 flags (the same 5 keys, all T086's false positives) | 8 (the same rows) |
+| T093 `group-question`, de × 1440/320/160 × Chromium/Firefox (`out-rerun-T099`) | 192 | 192 | 0 | 0 |
+| T091 `dialog-changed`, de × 1440/320/160 Chromium, 320/160 Firefox (`rerun-T099`, run with `sweep-T099.mjs`) | 232 | 232 | 0 | 0 |
+
+T093: `dialog_title` 6/6 pass with copy.md §5's new title "Daten der Gruppe „Fahrerlaubnis“ aus „Führerschein“ nicht mehr anfordern?"; `label_width` 30/30, `clipped` 6/6, `horizontal_scroll` 6/6 pass (the title is an `h2` that wraps; no label_width row measures it). T091: `live_region` 25/25 with "… wurde in der Zwischenzeit gelöscht oder geändert.", `label_width` 15/15, `clipped` 5/5, `dialog_lines` 5/5 pass.
+
+2. Defects: none.
+
+3. Unsure rows / notes read:
+- T086 check, `CONNECTION_DETAIL_COPY.scheduledText` glossary flag: before "missing G§2 add" (false positive), now also "missing copy§1 scheduled → geplant". Verdict pass: §3's corrected sentence deliberately says "an dem unten angegebenen Datum" (the date shown below), no new flagged row.
+- The first T091 run with the unchanged `sweep.mjs` timed out in all 5 cells (its reach waits for the old German "inzwischen" sentence, line 41 and 339); not a defect of the page. `sweep-T099.mjs` is that script with the two strings changed to "in der Zwischenzeit".
+- Not rerun: the server's German (`BECAME_ACTIVE_TEXT`, `START_DATE_CHANGED_TEXT`, `selection_changed`) needs the 3016 backend restarted; T090's approval page script skipped for that reason.
+
+4. Cited rows: English unchanged (no English text changed); T091's and T093's tables in §2.1 cover English in Chromium.
+
+#### T100: nothing else changed (quickstart V15; FR-073–FR-076, SC-011) — 2026-11-12
+
+Report only; no repository file changed. Checked on the tree of phases 1–11 (commit `60a3c56`)
+plus phase 12's uncommitted work (T098, T106, T099). Main installation: backend 3016 on
+`template_db_010_p12` (fake EUDIPLO, `WORKER_ENABLED=false`), MCP server 3102. No browser, no
+screenshot. Scripts and outputs in `<SP>/T100/` (`run.mjs`, `search.py`, `cleanup.mjs`,
+`taskfiles.py`, `hunks.py`, `v152.txt`, `search-out.txt`, `backend-slice.log`, `mcp-slice.log`,
+`root-gate.log`, `backend-gate.log`, `test-diffs.patch`).
+
+Data made (all deleted at the end; the token revoked): `p10-alice`: `T100 run 20261112T1… Anwohnerparkausweis`
+(`fb8b231d-f4ad-4470-9f9a-6151138ebf92`), `T100 run … Agent Anwohnerparkausweis`
+(`da3e4b4a-b489-4c60-8d19-b458f744a866`), token `T100 manage`; `p10-bob`: `T100 run …
+Personenbeförderungsschein A` / `B` (`92f49c1e-…`, `941a4a04-…`, bulk deleted), the example draft.
+Exact names and ids: `<SP>/T100/state.json`.
+
+| check | rows | result |
+|---|---|---|
+| V15.1 gates and test counts | 7 | pass |
+| V15.1 existing test files traced | 26 | 10 file × phase changes named by no task line or plan change (mechanical; see below) |
+| V15.2 `/api/connect/` | 3 | pass (one note: two assertions folded into a loop, expectation unchanged) |
+| V15.3 logs of a scripted run | 6 | pass: 0 hits |
+| V15.4 forbidden texts | 9 | pass (the "Message … reads" rows are the test step's column head, judged pass) |
+
+## V15.1 Gates and counts (SC-011)
+
+| gate | result | counts (baseline T001 → now) |
+|---|---|---|
+| `npm run lint` | pass | |
+| `npm test` rules | pass | 2642 → 2664 (46 files) |
+| `npm test` frontend | pass | 1267 → 1573 (36 files) |
+| `npm test` mcp | pass | 408 → 510 (15 files) |
+| `npm run build` | pass (the known > 500 kB chunk warning) | |
+| Ruff check + format, mypy | pass (109 files unchanged; mypy 95 source files) | |
+| `export_check_fixtures --check` | pass | |
+| pytest (full, `template_db_test`) | pass, 0 failed, 0 skipped (855 s) | 2161 → 2557 |
+
+## V15.1 Existing test files changed since `main` (26; `TestStep/PersonaData.tsx` and `TestStep/index.tsx` match "test" but are components)
+
+Kind: **add** = cases or fixture fields added only; **exp** = an expectation changed (named with its requirement); **sig** = a call gained an argument a service now takes (`actor=`).
+
+| file | phases | task(s) | requirement | kind of change |
+|---|---|---|---|---|
+| backend/tests/api/test_agent_principal.py | 11 | T079 (plan change, §5 phase 4 note) | FR-065–FR-068 | add (new endpoints in ENDPOINTS; docstring) |
+| backend/tests/api/test_approval_requests.py | 2, 6, 11, 12 | T011 (p2), T040–T042 (p6, plan changes), T079 (p11), T099 (p12) | FR-018/FR-025–FR-029 (dates move on deactivate/reactivate, carried from T008), FR-034–FR-036 (restore by the endpoint, STEPS), FR-065–FR-067, FR-071 | add; exp: `is_active` comparisons → dates (FR-018, T011); `_restore_by_hand()` → endpoint (T041); `STEPS[-1]` (T042); German cancel texts "inzwischen" → "in der Zwischenzeit" (FR-071, T099) |
+| backend/tests/api/test_connect.py | 4, 6, 8 | T019, T040, T054 | FR-075, FR-033 | add; two asserts of the deleted draft's pull folded into a loop with the branch URL (same 404 `REQUEST_NOT_FOUND`, T040) |
+| backend/tests/api/test_form_connection_drafts.py | 2, 6, 9 | T011, T040, T041 (plan change), T063 | FR-033/R5 (deleted rows stay marked), R4 | exp: deleting a draft answers the deletion and keeps the row marked deleted (FR-033, R5); `published_shape()` leaves out the new dates and `last_activity` (T011); sig |
+| backend/tests/api/test_form_connection_maintenance.py | 2, 6 | T011, T040 (plan change) | FR-033 | exp: delete answers `{id, restorable_until}` (FR-033); the failed-commit hook finds revision 2 (T011 note); sig |
+| backend/tests/api/test_form_connection_rules.py | 2 | **none** (T011's signature change) | R4 | sig (3 lines) |
+| backend/tests/api/test_form_connection_search.py | 2, 4, 9 | **p2 none** (T008's summary keys), T022 (p4), T063 (p9, plan change) | FR-062 | exp: the status filter takes `scheduled`; `deactivated` no longer matches a scheduled row (FR-062, T022); add: summary keys |
+| backend/tests/api/test_form_connections.py | 2, 8, 9, 10 | T008, T054 (plan change), T063 (plan change), T072 (plan change) | FR-045, FR-077/FR-078 | exp: documents stored in the chosen order, not catalog order (FR-045, T054); `_field()` gains `group` (FR-078, T072) |
+| backend/tests/api/test_language.py | 10 | T072 | FR-077, FR-078 | add |
+| backend/tests/api/test_oauth.py | 6 | T042 (plan change) | FR-036, R5 | exp: `STEPS` slice shifted by the new last step |
+| backend/tests/api/test_worker_requests.py | 4, 6 | T021 (p4, plan change); **p6 none** | FR-005; FR-036 | add (`STEPS` gains the activation step, then `finish_deletions`) |
+| backend/tests/unit/test_catalog.py | 10 | T072 | FR-077, FR-078 | add; the label comparison excludes `group` |
+| backend/tests/unit/test_check_fixtures.py | 9 | T065 | FR-056 | add (docstring) |
+| frontend/src/pages/Approval/utils.test.ts | 2, 9, 11, 12 | **p2 none** (T008/T010 fields), T063 batch (p9, plan change), T080 (p11), T099 (p12) | FR-065–FR-067, FR-071 | add; exp: `connection_changed` texts split by what changed (FR-065/FR-066, T080); German "in der Zwischenzeit" (FR-071, T099) |
+| frontend/src/pages/FormConnectionDetail/utils.test.ts | 2, 3, 4, 5, 6 | **p2 none**, T015, T025–T027, T032–T034, T043 | FR-022 | add; exp: `initialAccordionOf('saved')` → links (FR-022, Clarification #34, T034) |
+| frontend/src/pages/FormConnectionEdit/utils.test.ts | 2, 4, 9 | **p2 none**, T028 (p4), T063 batch (p9, plan change) | FR-009, FR-013 | add |
+| frontend/src/pages/FormConnectionEditor/DocumentsStep/reducer.test.ts | 8 | T056, T058 | FR-045, FR-048, FR-049 | exp: undoing a removal puts the document back at its place in the stored order, not the catalog's (FR-045/FR-049) |
+| frontend/src/pages/FormConnectionEditor/DocumentsStep/utils.test.ts | 8, 10, 12 | T056–T058, T073, T099 | FR-045, FR-047, FR-071, FR-077 | exp: `indexAfterAdding` by catalog order removed (FR-045); German "Daten der Gruppe … aus „Führerschein“" (FR-071, T099); add |
+| frontend/src/pages/FormConnectionEditor/leaveFlow.test.ts | 4 | T028 | FR-013 | add (imports) |
+| frontend/src/pages/FormConnectionEditor/utils.test.ts | 2, 4, 8, 9, 10 | **p2 none**, T024, T056, T068, T074 | FR-001–FR-004, FR-045 | add |
+| frontend/src/pages/FormConnectionList/utils.test.ts | 2, 3, 4, 6, 7, 9, 12 | **p2 none**, T013, T027, T043, T047, T049, T067, T063 batch (p9), T106 (p12) | FR-017, FR-019–FR-021, FR-043 | exp: `rowMetaOf` "Edited <date>" → the state's date (FR-017/FR-019, T013); bulk dialog state gains `stale` (FR-043, T106); add |
+| mcp/src/draftEdit.test.ts | 2, 9 | **p2 none**, T063 batch (p9, plan change) | — | add (fixture fields) |
+| mcp/src/guidance.test.ts | 11 | T081 | FR-065, FR-066 | exp: `APPROVAL_ACTIONS` gains the date actions |
+| mcp/src/views.test.ts | 2, 3, 4, 5, 9 | T008, T016, T029, T035, T069 | FR-062 | exp: a deactivated connection is read from `state` (FR-062, T008) |
+| mcp/test/fakeBackend.ts | 2, 4, 8, 9, 10, 11 | T008, T010, T029, T060, T063, T069, T072, T078, T081 | FR-062 ff. | add (fixtures; 37 lines replaced by the state's fields) |
+| mcp/test/server.test.ts | 3, 4, 5, 8, 9, 10, 11 | T016, T029, T035, T060, T069, T075, T081 | FR-062, FR-065 | exp: the search's second page holds 4 items (T029's scheduled fixture); the `connection_changed` sentence split (FR-065, T081) |
+| rules/src/edits.test.ts | 8 | T055 | FR-045 ff. | add |
+
+Changes no task line or plan change names (all mechanical, no expectation of earlier behaviour changed):
+phase 2's fixture fields (`state`, the dates, `last_activity`, `step`) in
+`frontend/src/pages/{Approval,FormConnectionDetail,FormConnectionEdit,FormConnectionEditor,FormConnectionList}/utils.test.ts`
+and `mcp/src/draftEdit.test.ts` (required by T008's and T010's type mirrors);
+`backend/tests/api/test_form_connection_rules.py` (`actor=`, T011's signature) and
+`test_form_connection_search.py`'s summary keys (T008); phase 6's `finish_deletions` line in
+`test_worker_requests.py` (T042).
+
+## V15.2 `/api/connect/` (FR-075)
+
+| row | result |
+|---|---|
+| `test_connect_branches.py` vs `main` | no change |
+| `test_connect.py` vs `main` | +158 / −4: two import lines extended (`FormConnection`, `start_dates` added to existing `from … import` lines), and in `test_a_deleted_drafts_urls_are_not_found` (phase 6) two asserts folded into `for response in (pull_response, branch_response)` with the same `404` / `REQUEST_NOT_FOUND` |
+| the pinning test | `test_connect.py::test_a_scheduled_connections_urls_answer_as_a_deactivated_ones` (status 409 and `content` and content-type equal, `UNAVAILABLE`, nothing started) |
+| live, `P3 seed scheduled` vs `P3 seed deactivated` | `POST …/requests` and `GET …/requests/made-up-reference`: both 409, `content-type: application/json`, `content-length: 82`, `{"error":"unavailable","message":"This form connection is deactivated or deleted"}`; byte for byte identical but for the id (`<SP>/T100/v152.txt`) |
+
+## V15.3 Logs of a scripted run (FR-073)
+
+Run between `=== T100 start … ===` and `=== T100 end … ===` in `<SP>/backend-3016.log` (25 lines)
+and `<SP>/mcp-3102.log` (3 lines): sign-in of both accounts; alice: draft with a rule message
+"T100 rule text Sonnenblume", publish scheduled 2026-12-14, start date moved to 2026-12-21,
+deactivate, delete, restore by the deletion id; bob: two live connections, bulk delete, the
+example; alice: token level manage; MCP `move_document` on a draft, `request_approval` publish on
+2026-12-28, approved by alice through the API. Afterwards the agent's draft is scheduled for
+2026-12-28 with `documents_changed` in its activity, and the first one's activity lists
+`restored, deleted, deactivated, start_date_changed, scheduled, published, …`.
+
+| search | hits |
+|---|---|
+| the four names, the stamp, the example's name, "Anwohnerparkausweis", "Personenbeförderungsschein" | 0 |
+| `p10-alice`, `p10-bob` (also "alice", "bob") | 0 |
+| 2026-12-14 / 14.12.2026, 2026-12-21 / 21.12.2026, 2026-12-28 / 28.12.2026 | 0 |
+| "Documents changed", "Dokumente geändert", "Start date changed", "Published", "Veröffentlicht", "Deactivated", "Restored" | 0 |
+| "T100 rule text Sonnenblume", "Sonnenblume", the token's name | 0 |
+| query strings in the backend slice | 0 (no search or activity read was made) |
+| MCP lines with keys other than `method`, `tool`, `status`, `durationMs` | 0 of 3 |
+
+Token revoked (`DELETE /api/agent-access/<id>` 200, no longer listed); rows deleted (200 each).
+
+## V15.4 FR-076's texts
+
+Sweeps' `forbidden_text` rows: T087 3221 pass / 19 fail, T088 1440/0, T089 1152/0, T090 1536/0,
+T091 1440/0, T092 950/0, T093 720/0, T095 720/0, T096 1195/5 (T094 measures toast times only, no
+`forbidden_text`). Reruns: T087 `rerun` 120/0, `rerun-alert` 118/2, `rerun-T106` 717/3; T088
+`out-rerun-main` 768/0; T089 `rerun-alert` 96/0; T090 `rerun-alert-T098` 64/0; T091 `rerun-alert`
+30/0, `rerun-thirty` 40/0, `rerun-T099` 50/0, `rerun-T106` 240/0; T092 `rerun-fix` 360/0,
+`rerun-moved1` 10/0; T093 `out-rerun-T099` 60/0; T096 `rerun` 358/2. Every one of the 31 fails is
+"Message … reads" found as a `th` "Message <first name> reads": the test step's column head
+(`TestStep/ResultTable.tsx`, `rules/src/personas/messages.ts` `messageColumn`) for a persona who
+does not meet a variant; FR-076 excludes the box only for a persona who meets every rule
+(Clarification 2026-11-10 #8). Judged pass by T087 (tables/T087.md, publish states), T096
+(tables/T096.md, test and publish-dialog), kept by T098 and T106. No other FR-076 text was found
+by any sweep.
+
+`grep` of the built `frontend/dist` (after the root gate's build) and `frontend/src`:
+
+| text | dist | src | why allowed |
+|---|---|---|---|
+| Draft changes | — | comment in `FormConnectionEditor/index.tsx:1613` ("never 'Draft changes'") | a comment |
+| Keep draft and exit | — | — | |
+| Changes not published | — | — | |
+| Download PDF | — | comments in `FormConnectionDetail/RulesSummary.tsx:18`, `ConnectionDetails.tsx:81` ("isn't built") | comments |
+| Draft kept. | — | — | |
+| coming soon | — | comment in `DocumentsStep/SearchCard.tsx:43` ("no 'Coming soon'") | a comment |
+| Group with other rules | 1 (the rule menu's entry) | `RulesStep/constants.ts:282` `groupWithOthers`, used only by `RuleMenu.tsx:30` | FR-076 forbids it on a group's ⋯ menu; `GroupMenu.tsx` doesn't offer it (its comment: not built, CLAR #64); the rule's own menu keeps it (spec 008) |
+| Message … reads | 1 (`Message ${e} reads`) | `rules/src/personas/messages.ts:102` `messageColumn`; German "Nachricht für ${e}" | the test step's column head for a persona who doesn't meet a variant (spec 004), Clarification #8 |
+
+Open rows: none.
+
 ## 3. The German review
+
+T097 (phase 12, 2026-11-12). **Who reviewed**: the coordinator, by the user's choice ("Claude's
+pass now, person later"); a German-speaking team member's read of the nine items' German screens
+is still open (tasks.md, phase 12 "Needs a person"), so T097 stays unchecked until then. **What was
+read**: all 156 new pairs of T086 (`<SP>/pairs/T086.csv`: 135 new keys, 13 renamed, 8 from
+`example.py`; 0 with changed English), its 4 flags, 5 false positives, 8 unsure rows and its 13
+"Carried to the review" items, with spec 009's glossary and `contracts/copy.md` at hand. **Kept
+after reading** (no correction): the scheduled pill's no-break space (T014); "TT.MM.JJJJ" (T023);
+the leave dialog's "Wenn Sie jetzt gehen, gehen Ihre Änderungen verloren." (spec 009's own
+sentence for the active version, word for word); "erneut fragen" for an agent (spec 009's
+"Der Agent kann erneut fragen."); "auf Position" in the move texts; "Rule 01 und Rule 02" in the
+example's banner (the example's rules are named `Rule 01`, `Rule 02` in both languages,
+`example.py`); "von Standard" (the main variant's name); the server's straight apostrophe in
+`START_DATE_CHANGED_TEXT` (§4.2 T080). **Records changed by T097**: `contracts/copy.md` §2's four
+English sentences now write ’ in "can’t", "don’t", "won’t" as the code and the frames do (T086's
+four flags; the code was right), and the German rows below; spec 009's glossary's stray cell moved
+back from the row "connection URLs" to the row "the rule editor's field error “Enter a whole number
+greater than 0.”" (§4.3, T002's finding). The glossary's terms are unchanged: the corrections make
+this feature's German follow its "in the meantime" → "in der Zwischenzeit" (row 101), which
+copy.md §4, §7 and §8 had written as "inzwischen". T099 applies the rows.
+
+| where | english | german before | german after | glossary changed? |
+|---|---|---|---|---|
+| `frontend/src/pages/FormConnectionDetail/constants.ts` `CONNECTION_DETAIL_COPY.scheduledText` | "The links are ready to be added to your service. They become active on the scheduled date below." | "Die Links können bereits in Ihren Dienst eingefügt werden. Sie werden am geplanten Datum unten aktiv." | "Die Links können bereits in Ihren Dienst eingefügt werden. Sie werden an dem unten angegebenen Datum aktiv." | no |
+| `frontend/src/pages/FormConnectionEditor/constants.ts` `PUBLISH_DIALOG_COPY.saveScheduledIntro`; copy.md §2 | "Your changes become active with the connection on <date>. Citizens can’t use it before then." | "Ihre Änderungen werden mit der Anbindung am <date> aktiv. Vorher können Bürgerinnen und Bürger sie nicht nutzen." | "Ihre Änderungen werden mit der Anbindung am <date> aktiv. Vorher können Bürgerinnen und Bürger die Anbindung nicht nutzen." ("sie" read as the changes) | no |
+| `frontend/src/pages/FormConnectionEditor/DocumentsStep/constants.ts` `REMOVAL_DIALOG_COPY.groupTitle`; copy.md §5 | "Stop requesting “<group>” data from <document>?" | "Felder der Gruppe „<group>“ aus <document> nicht mehr anfordern?" | "Daten der Gruppe „<group>“ aus „<document>“ nicht mehr anfordern?" ("data" is "Daten", and the document quoted as spec 009's "Alle Daten aus „<document>“ nicht mehr anfordern?"; §4.3's point) | no |
+| `frontend/src/pages/Approval/constants.ts` `APPROVAL_COPY.connectionBecameActive`; `backend/app/services/approvals.py` `BECAME_ACTIVE_TEXT`; copy.md §7 | "The connection became active in the meantime." | "Die Anbindung ist inzwischen aktiv geworden." | "Die Anbindung ist in der Zwischenzeit aktiv geworden." | no (follows row 101) |
+| `frontend/src/pages/Approval/constants.ts` `APPROVAL_COPY.connectionStartDateChanged`; `backend/app/services/approvals.py` `START_DATE_CHANGED_TEXT`; copy.md §7 | "The connection’s start date changed in the meantime." | "Das Startdatum der Anbindung wurde inzwischen geändert." | "Das Startdatum der Anbindung wurde in der Zwischenzeit geändert." | no (follows row 101) |
+| `frontend/src/pages/FormConnectionList/constants.ts` `BULK_DELETE_COPY.changed`; copy.md §4 | "Nothing was deleted: “<name>” was deleted or changed in the meantime." | "Nichts wurde gelöscht: „<name>“ wurde inzwischen gelöscht oder geändert." | "Nichts wurde gelöscht: „<name>“ wurde in der Zwischenzeit gelöscht oder geändert." | no (follows row 101) |
+| `backend/app/services/deletions.py` `SELECTION_CHANGED_MESSAGE`; copy.md §8 | "Nothing was deleted: a connection was deleted or changed in the meantime." | "Nichts wurde gelöscht: Eine Anbindung wurde inzwischen gelöscht oder geändert." | "Nichts wurde gelöscht: Eine Anbindung wurde in der Zwischenzeit gelöscht oder geändert." | no (follows row 101) |
 
 ## 4. Decisions
 
@@ -3102,82 +4246,144 @@ reversed.
   (4) The walk added V12.7b (`start_date_passed`, reached by setting its own request's
   `start_date` to today in the database), a reread of T080's done requests, and log and cleanup
   rows to V12's nine steps; they count in its 241 measures. Kept.
+- **T084, the open points of phases 2–11** (the coordinator, phase 12, 2026-11-12; §4.3 as it
+  stood after phase 11): (1) **A publish's configuration after a delete, a restore and a second
+  publish** (T041's UNCERTAIN 3): the user's answer: leave it and document it. The two windows
+  ((a) a second publish reserving the same revision between the first one's rollback and its
+  `delete_config`, (b) the configuration holding whichever body came last) stay; T102 writes them
+  into ARCHITECTURE's "Form connections" beside `_check_reservation()`. No code change. (2) **The
+  activity's cursor in the access log** (T036's UNCERTAIN 5): the user's answer: keep it as the
+  search's. The encoded keyset cursor (`<occurred_at>|<position>|<id>`, base64) in uvicorn's
+  access line is within FR-073 ("beyond what the middleware logs today"), as spec 007's search
+  cursor is; T100's V15.3 counts such a query string as the middleware's, not as a finding. (3)
+  **The bulk dialog after `409 selection_changed`** (T049's UNCERTAIN 2): the user's answer: no
+  retry. After `selection_changed` the dialog keeps its sentence "Nothing was deleted: “<name>”
+  was deleted or changed in the meantime." under "Couldn’t delete", hides the confirm button and
+  puts the focus on "Keep connections"; the person reopens the dialog from the bar and sees the
+  current statuses. Another failure keeps spec 008's "Try again". `contracts/ui-screens.md` S4
+  amended; the fix is T098's (`BulkDeleteDialog.tsx`, and `ConfirmDialog` if it needs a prop to
+  hide its confirm button); T091's sweep expects it. (4) **The connection's name in the header at
+  narrow widths** (T014's follow-up UNCERTAIN 2): the header's name (a `span` in `TopBar`'s
+  "Where you are" pill; the page's `h1` is the status band's title, so the name is the only place
+  on the details page and in the edit flow that says which connection is open; T088's UNCERTAIN 2
+  corrected this point's first wording) cut to one letter ("P…" at 320 CSS px) or to nothing (0 px
+  at exactly 768 px for a scheduled connection) isn't "usable at 320 px" (FR-072), so it is a
+  defect, for every status:
+  the header's name shows at least min(its own width, 96 px) at every width from 160 to 1440 CSS
+  px, in both languages; where it can't beside the status pill, the status pill wraps under the
+  name inside the "Where you are" pill. A cut with "…" beyond that stays (spec 008's `truncate`).
+  The fix is T098's (`components/TopBar/index.tsx`); T088's sweep measures the name's width in
+  the four states at 320, 400, 600, 767, 768, 900 and 1024 CSS px besides its matrix. (5)
+  **`KernAlert` titles below 320 CSS px** (T024's note): decided as a fix: T098 adds one rule to
+  index.css's narrow block that gives an alert's `.kern-title` the alert's full width under its
+  icon (T024's suggestion, `.kern-alert__header > .kern-title { flex-basis: 100% }`, or what
+  kern.css's markup needs), so every dialog's alert reads at 160 CSS px; T024's three local fixes
+  may then go if the rule covers them. Every sweep (T087–T096) reports each visible `.kern-alert
+  .kern-title`'s width against its alert's content width at 160 CSS px, a title under half of it
+  as a defect. (6) **No list has three documents** (T058's UNCERTAIN 6): T092 reaches three rows
+  through a `page.route()` answer to `GET /api/document-types` that adds a third type (a copy of
+  `pid` under the key `t092doc`, named "T092 document" / "T092-Dokument"), in a new connection's
+  documents step: the editor's autosave writes only the local draft and nothing is sent to the
+  server before "Save draft and exit" or publishing, so nothing with the third type is stored; the
+  sweep removes its local drafts afterwards. The ⋯ menu on the middle row and a three-row drag are
+  measured there; the edit flow's list stays two stored rows. (7) **Spec 009's glossary's two
+  malformed rows** (T002's finding): T097 moves the stray cell back (its files name the glossary).
+  (8) **The group question's German title** stays for T097 (the German review), as §4.3 said.
+  (9) **T072's `"group": null` in a connection's documents** (§4.2 T072 (1)): kept; it doesn't
+  read as wrong, since the panel and `get_catalog` read the groups from the catalog.
+- **T087–T096, the sweeps' findings outside this feature, and T098's split** (the coordinator,
+  phase 12, after wave 4): the sweeps marked `baseline` what lies in a part that specs 001–009 built
+  and this feature didn't change. FR-074 keeps those as they are, so T098 doesn't fix them; they
+  are listed for the user as candidates for a follow-up: (a) "Add document"'s label wraps out of its
+  fixed 36 px box below 320 CSS px, over the dashed border (`DocumentsStep/SearchCard.tsx`'s `h-36`
+  with `whitespace-nowrap` turned into `normal` by index.css's narrow block; T092, T093); (b) a based
+  variant's rule text is 55–70 px wide beside "Changed here" and the ⋯ at 320 CSS px, breaking
+  nearly every word (`components/RuleRow/`; T096, shown by the example's variant but true of any
+  based variant with changed rules); (c) the variant's link strip sentence stays 54–96 px wide
+  beside "Linked to Standard" at 320 CSS px (`RulesStep/LinkStrip.tsx`'s `min-w-0 flex-1`; T096);
+  (d) below 320 CSS px the narrow block's `overflow-wrap: anywhere` breaks German words without a
+  hyphen in spec 008's chrome and headings ("Anbindun/gen", "Willkom/men", "Link kopier/en";
+  T090, T093, T096; spec 008's narrow rule, by design); (e) a done approval request's sub-line still
+  reads its passed expiry time ("läuft um 12:23 Uhr ab"; spec 007's `subtitleOf()`; T090); (f) the
+  overview's icon-only delete button keeps `kern-sr-only` inside a `kern-btn` on purpose (KERN's
+  40 px square, spec 008's comment in `FormConnectionRow.tsx`), so its `scrollWidth` 44 against
+  `clientWidth` 40 is no defect (T085). This feature's own controls are fixed: the "Nach unten"
+  entry (T092) is T098's. **Plan change**: T098's defects and T084's three decided fixes span six
+  folders, so the coordinator split it by folder into consecutive tasks of the same level (tasks.md
+  rule "Before delegating, check the task's `size:`" and T098's own line): T098 keeps the narrow
+  layout (`index.css`, `TopBar`, the documents' ⋯ menu), the new T106 (wave 5b) the bulk dialog's
+  no-retry and the date field's boundary (`ConfirmDialog`, `BulkDeleteDialog`, `ActiveFromChoice`);
+  T099 depends on both. T093's one defect, the group question's German title, is T099's (§3). Wave 4
+  ran on a second installation (`template_db_010_p12_empty`, backend 3017 with
+  `DELETION_UNDO_SECONDS=20`, Vite 5181), so the development database wasn't emptied (phase 12's
+  "Needs a person": that step is no longer needed).
+- **T106, the bulk dialog's no-retry and the date field** (T106's UNCERTAIN 1–4; the coordinator,
+  phase 12): `ConfirmDialog` takes `hideConfirm?: boolean` (default `false`, so its other 31 uses
+  render as before); `BulkDeleteDialog` sets it after any `409 selection_changed` (also when the
+  changed id isn't among the dialog's rows and the server's sentence shows), through the pure
+  `bulkDeleteNoticeOf()` and the reducer's `stale`; the confirm button unmounts, the focus moves to
+  "Keep connections", and the footer takes P33's one-button layout (the button across the footer);
+  another failure keeps "Try again" and the focus where it was; on close the focus returns as
+  §4.2 T049 says. The date field keeps P1b's white fill and outline with a passing line (§1), not
+  KERN's own field look (a `#22293a` bottom border on a `#f2f5fb` fill), the smaller departure.
+  **Plan change**: T106 also edited `pages/FormConnectionList/constants.ts` (`stale: false` in
+  `INITIAL_BULK_DELETE_STATE`, required by the state's new field). **Baseline, not fixed (FR-074;
+  added to the list of the entry above for the user)**: (g) spec 002's rule editor fields draw the
+  same 1 px `decorative-border` line, 1.25:1 (`RuleEditor/ValueInput.tsx`, `RulesStep/ItemName.tsx`,
+  `RuleEditor/MessageField.tsx` dashed, `components/MenuSearchField`); the sweeps measured only
+  this feature's fields. Kept.
+- **T100, the test files no task line names** (T100's V15.1 finding and UNCERTAIN 1–3; the
+  coordinator, phase 12): of the 26 existing test files that changed against `main`, 10 changes
+  are named by no task line's `files:` or plan change: the phase 2 fixture fields (`state`, the
+  status dates, `last_activity`, `step`) in `frontend/src/pages/{Approval,FormConnectionDetail,
+  FormConnectionEdit,FormConnectionEditor,FormConnectionList}/utils.test.ts` and
+  `mcp/src/draftEdit.test.ts` (T008's and T010's mirrors), `actor=` in three lines of
+  `backend/tests/api/test_form_connection_rules.py` (T011's signature), the summary keys in
+  `test_form_connection_search.py` (T008), and the `worker.finish_deletions` line in
+  `test_worker_requests.py` (T042's step). Each adds what a changed shape or signature needs and
+  changes no earlier expectation, so tasks.md's rule "a task that changes `schemas.py` changes
+  whatever reads the shape in the same task" accounts for them; recorded here as the plan changes
+  they were, not reopened. `test_connect.py`'s two folded asserts (T040: the pull URL's two
+  asserts became a loop that also checks the branch URL, the same `404` and code) count as
+  additions. `mcp/test/fakeBackend.ts` was counted as a test file. Kept.
+- **T101, the convergence** (`/speckit-converge`, the coordinator, phase 12, 2026-11-12): four
+  read-only checks of the code against spec.md (82 FRs, 12 SCs, 54 acceptance scenarios, the
+  edge cases), plan.md and the constitution found 9 gaps, appended as Phase 13 (T107–T114, its
+  own Delegation): MEDIUM, `search_connections` doesn't say that a scheduled item's URLs answer
+  "unavailable" (FR-062, US8-AS1; T107); the overview row's edit entry for a scheduled connection
+  keeps the active body (FR-013, Clarification #24; T108); a stored example draft's local draft
+  resumed through `?local=draft-<id>` shows no example banners (FR-058; it contradicts T068 (3);
+  T109); LOW, "Change start date" plans from a details page loaded before the start day (FR-009,
+  US1-AS11; T111); a bulk deletion's rows get increasing `deleted_at`, so a draft finished first
+  lets "Undo" restore part of it, and a deletion an approval ran waits the restore time though it
+  can't be taken back (FR-044, SC-005, FR-030 against T041 (6); T110); a single document can be
+  dragged (the edge case "Only one document", FR-046; T112); the router of `GET
+  /api/document-types` builds the grouped view (CLAUDE.md "Routers stay thin"; T113); the data
+  groups are missing from ARCHITECTURE (constitution IV; T114). The constitution's documentation
+  MUST (`DELETION_UNDO_SECONDS` in `README.md` and ARCHITECTURE) was already T102's. **Not built,
+  by the user's decision** (2026-11-12, after the wave C1 agents stopped on the account's usage
+  limit before changing any file): "skip the check on the UI with playwright, just write the final
+  docs and the commit message". T114 went into T102's batch (documentation); T107–T113 stay open in
+  tasks.md for a follow-up, T101 with them, and ARCHITECTURE describes today's behaviour.
+- **T102 and T114, the documentation** (T102's UNCERTAIN 1–8; the coordinator, phase 12): the
+  worker's steps are numbered 1–16 (T042's `finish_deletions` is step 16; the carried note said
+  1–15 before it), "Steps 12 to 14" kept for the three agent-access steps; the spec 010 backend
+  rules went into a new CLAUDE.md section "Scheduling, activity and deletions (spec 010)" (four
+  lines; the `restore_cutoff()` rule folded into the deletion line); README lists the 26 MCP tools
+  and the actions only a person takes; ARCHITECTURE describes today's behaviour where T107–T113
+  were not built. **Plan change**: spec 008's toast rule ("an action toast stays") is stated in its
+  `research.md` (R8) and `data-model.md` ("Toasts"), not in its `spec.md`, so T102 added one
+  "superseded by spec 010's FR-082" sentence to each (two files outside its line); spec 008's #52
+  is marked superseded in its Clarification, the Q37 (c) item and FR-048. **For a follow-up**:
+  `docker-compose.prod.yml` doesn't pass `DELETION_UNDO_SECONDS`, so a deployment always uses 300
+  (a code change, outside T102).
 
 ### 4.3 Open points
 
-- **A publish's configuration after a delete, a restore and a second publish** (T041's UNCERTAIN
-  3; for the user): a draft's publish A reserves revision N and calls EUDIPLO; meanwhile the same
-  account deletes the draft and takes it back with "Undo", so A's reservation is gone and A
-  answers `404` under its last lock (`_check_reservation()`, pinned). A leaves the configuration
-  `fc-<id>-rN` alone when a later publish B has reserved N by then (pinned). Two windows stay: (a)
-  B reserves N in the milliseconds between A's rollback and A's `delete_config`, so A deletes the
-  configuration B's published connection uses (its URLs then fail until a new revision; the
-  worker's re-sync compares hashes only and would not re-create it); (b) if A's and B's bodies
-  differ, the configuration holds whichever upsert came last. Both need a deletion and its "Undo"
-  inside one publish's EUDIPLO call, plus a second publish of the same draft. Closing (a): A
-  re-inserts its reservation before deleting the configuration, so that B cannot take N meanwhile
-  (one backend task with a race test). The coordinator's suggestion: leave it, or close (a) in
-  phase 12. The user decides.
-
-- **The activity's cursor in the access log** (T036's UNCERTAIN 5; for T084): uvicorn's access
-  line for `GET /api/form-connections/{id}/activity?cursor=…` carries the cursor, which is
-  `urlsafe_b64encode('<occurred_at ISO>|<position>|<id>')` (`activity._encode_cursor()`), so an
-  activity entry's instant reaches the log, encoded (27 lines in T036's run; no name, person or
-  kind). The design chose "the search's keyset cursor" (research, "Reading"; data-model §2.4), and
-  the search's cursor already puts a connection's `updated_at` into the same access lines the same
-  way (`form_connections._encode_cursor()`), so it stays within FR-073's "beyond what the
-  middleware logs today"; tasks.md's rule "the activity, the names and the dates never reach a
-  log line" reads stricter. The coordinator's suggestion: keep it as the search's (FR-073), and
-  if the user wants no instant in any access line, make both cursors opaque (e.g. the last
-  entry's id alone, its time and position read under the query) in one backend task, with the
-  tests of the search and the activity paging. The user decides.
-
-- **The group question's German title doesn't quote the document** (T074's note; for T097's
-  German review, then T099): copy.md §5's "Felder der Gruppe „<group>“ aus <document> nicht mehr
-  anfordern?" leaves the document unquoted, where the "All data items" question built in spec 009
-  quotes it ("Alle Daten aus „<document>“ nicht mehr anfordern?"); T074 built copy.md's words. The
-  English titles agree (neither quotes the document). T074 would write "… aus „<document>“ …";
-  the reviewer may also weigh "Felder" against "Daten" there.
-- **Spec 009's glossary has two malformed rows** (found by T002; not changed, since T002 changes
-  no existing row): the row "the rule editor's field error “Enter a whole number greater than
-  0.”" has no third cell, and the row "connection URLs" (spec 009's T042) has a fourth cell that
-  holds what reads as the first row's note ("the server's field errors … (added 2026-11-10,
-  T038)"). Moving the cell back is a fix to spec 009's record, for the documentation task (T102)
-  or the user.
-- **The connection's name in the header at narrow widths** (T014's follow-up UNCERTAIN 2 and its
-  note; for T084 before T088): at 320 CSS px the two-line "Scheduled · <date>" pill leaves the
-  name of "P3 seed scheduled" about 7 px wide (only "P" shows), as the name was already cut for
-  long statuses before this feature ("P3 seed deactivated" 4.3 px); at exactly 768 px (`md`) the
-  header's name is 0 px wide for a scheduled connection (T014's classes apply only below `md`;
-  not caused by this feature, not changed). Whether a name cut to one letter meets FR-072
-  ("nothing clipped") is T084's to decide, and T088's sweep then expects it.
-- **`KernAlert` titles below 320 CSS px** (T024's note; for the phase 12 sweeps): kern.css gives
-  an alert's `.kern-title` `flex: 1 0 0`, which keeps index.css's narrow rule from putting it under
-  the icon, so at 160 CSS px a title can be a few letters wide and very tall (T024 measured up to
-  1696 px in the publish dialog and fixed its own three alerts). Other dialogs' alerts likely do
-  the same; T024 suggests one rule in index.css's narrow block (`.kern-alert__header >
-  .kern-title { flex-basis: 100% }`). For the sweep to measure and the task that owns its fixes
-  to decide.
-
-- **The bulk dialog's "Try again" after `409 selection_changed`** (T049's UNCERTAIN 2; for
-  T084): the sentence "Nothing was deleted: “<name>” was deleted or changed in the meantime." sits
-  in spec 008's failure alert under "Couldn’t delete", and the confirm button turns into "Try
-  again", as in the single delete dialog. A retry sends the same states, so it answers `409` again
-  and nothing is deleted: safe (FR-043 holds), but a retry that can't succeed. The person's way
-  out is "Keep connections", then "Delete" again from the bar, which opens a dialog with the
-  current states. T049 did not refresh the dialog's rows from the reloaded list, so that nothing
-  is deleted whose new status the person hasn't seen. The coordinator's suggestion: after
-  `selection_changed`, offer no retry (the confirm button hidden or disabled, "Keep connections"
-  focused), a small change in `BulkDeleteDialog.tsx` for T098; or refresh the dialog's lines and
-  warnings from the reloaded list and let "Delete connections" send the new states. T084 decides,
-  asking the user if the documents don't settle it.
-- **No list has three documents** (T058's UNCERTAIN 6; for T084 before T092): the catalog has two
-  document types (`pid`, `mdl`), so a documents list holds at most two rows and no row is a middle
-  one; T058 covered the middle row's "Move up" and "Move down" by `moveTargetsOf`'s tests only, and
-  T059's and T061's drags run on two rows. T092's line asks for "the list with three documents"
-  and the ⋯ menu "on a middle" row: T084 decides whether T092 reaches a third document through a
-  `page.route()` catalog with a third type (the editor's view only; nothing saved), or measures
-  the two-row list and cites the tests for the middle row.
+None. T084 (phase 12) decided the points that phases 2–11 left (§4.2 "T084"); T097 settled the
+last two (§3): the group question's German title now quotes the document ("Daten der Gruppe
+„<group>“ aus „<document>“ nicht mehr anfordern?"), and spec 009's glossary's stray cell is back
+in its row.
 
 ## 5. History
 
@@ -3646,4 +4852,167 @@ reversed.
   through the API and a client without URL elicitation, so the elicitation prompt "Approve
   changing the start date of '…' in Konnekt." wasn't seen in a real client).
 
+- 2026-11-12: phase 12, verify and close (T084–T106, T114). The environment: a scratch copy of
+  phase 11's database, `template_db_010_p12` (dumped through the PostgreSQL container), with its
+  backend on 3016 (the fake EUDIPLO, `WORKER_ENABLED=false`, `PORTAL_URL` set to its Vite) and Vite
+  on 5180; a second, empty installation for wave 4, `template_db_010_p12_empty` (Alembic head
+  `1f5e81861348`, the accounts only), backend on 3017 with `DELETION_UNDO_SECONDS=20` and Vite on
+  5181, so the development database wasn't emptied; the MCP server on 3102 for T100. Earlier
+  chats' servers (3011–3015, 5173–5179, 3101) were left alone; this phase's were stopped at the
+  end. Waves 1–7 ran as planned, but for the plan changes below: T084 (the coordinator, with the
+  user's four answers, §4.2 "T084"), T085's harness, T086's text pairs; the sweeps T087–T096
+  (16,000–21,000 rows each, both browsers, both languages, three widths, English Chromium
+  included); T097 (the coordinator's pass, the user's choice; a German-speaking person's read
+  stays open, so T097 stays unticked); T098 and T106 (the fixes), T099 (the German corrections),
+  T100 (V15). T101's convergence appended Phase 13 (T107–T114); its wave C1 stopped on the
+  account's usage limit before any file changed, and the user then chose to skip the remaining
+  checks and write the documentation and the commit message, so T107–T113 and T101 stay open
+  (§4.2 "T101"); T114 ran in T102's batch; T103 wrote §6 and `pr.md`. **Plan changes** (§4.2):
+  T098 split by folder into T098 and the new T106 (wave 5b); T099 depends on T106 and ran on
+  T097's recorded pass while T097 stays open for a person; T106 also edited
+  `FormConnectionList/constants.ts`; T102 also edited spec 008's `research.md` and
+  `data-model.md`; T114 joined T102's batch; T107–T113 not run. **The checkpoint (T104, the
+  coordinator)**: the gates are green on the final tree: Ruff, `ruff format --check` (109 files),
+  mypy over 95 files and the fixtures' `--check` rerun by the coordinator after T102 and T103,
+  which changed Markdown only; the root gates (lint; `npm test`: `rules/` 46 files, 2664 tests,
+  `frontend/` 36 files, 1573 tests, `mcp/` 15 files, 510 tests; build) rerun likewise; pytest
+  2557 passed, run by T100 after the last backend edit (T099's) and not rerun by the coordinator
+  (the user's standing rule; no backend file changed after it). Against T001's baseline: rules
+  2642 → 2664, frontend 1267 → 1573, mcp 408 → 510, pytest 2161 → 2557. Design-notes §2 holds no
+  open row (the sweeps' defects fixed and rerun by T098, T106 and T099; the baseline findings
+  outside the feature listed in §6.3 (c)); §4.3 holds no undecided point. **T104 stays open**:
+  the tasks T031, T037, T045, T052, T062, T071, T083, T097, T101 and T107–T113 are not ticked,
+  and 16 person steps remain (§6.3 (a), (b)).
+
 ## 6. Closing report
+
+T103 (phase 12, 2026-11-12). It cites §2–§5, `tasks.md` and `figma-audit/report.md`; nothing here
+is re-decided. The pull request's text is [pr.md](pr.md).
+
+### 6.1 The success criteria
+
+"pass" means the criterion's measured part holds in every row cited; a person step or a
+convergence gap that touches the criterion is named in the last column and listed in §6.3.
+
+| SC | what it asks | proved by (task, table, row or walk step) | result |
+|---|---|---|---|
+| SC-001 | Scheduled with one choice and one date; active within a minute of the day's start in Germany, nobody signed in | T030 walk (§2.2 `#### T030`) V1.1–V1.3 (the publish dialog's "On a date", the details), V3.3 (the worker's start: links working 0.5–1.3 s and details active 1.7–2.7 s after the `UPDATE`, one worker cycle, 4 cells); T021's pytest (the activation step); T023/T024 tables (§2.1) | pass; a publish on a date against the hosted EUDIPLO and the minute timed by hand are person steps (T031) |
+| SC-002 | Before the start date the links answer as a deactivated connection's, from it as an active one's | T030 V1.4 (409 `unavailable`, 4 cells), V3.3 (links work from the start); T019's pytest `test_connect.py::test_a_scheduled_connections_urls_answer_as_a_deactivated_ones`; T100 V15.2 (§2.3 `#### T100`: `P3 seed scheduled` and `P3 seed deactivated` byte for byte equal but for the id) | pass |
+| SC-003 | Status and its date, and a draft's step, readable on the overview and the details; dates match what happened | T017 walk V5.1–V5.5 (480 of 480 measures; publish, deactivate, reactivate, rename, save, a pre-feature row, another time zone); T013 (37 rows), T014 (59), T015 (58) tables; T088 sweep (both languages, both browsers, three widths) | pass |
+| SC-004 | Every FR-025 action by a person, an agent or an approval shows with time, event and person; nothing FR-029 excludes is stored | T036 walk V6.1–V6.8 (423 of 423; V6.1 eight actions by two people and an agent, V6.4 an approved publish, V6.8 the stored table holds kinds only, no rule content, message or value); T082 V12.3–V12.4 (an agent's `move_document` in the card, `get_activity` against the card); T100 V15.3 (no name, date or activity text in the logs) | pass; "<name> with <agent>" for a real MCP client signed in through OAuth is a person step (T037) |
+| SC-005 | "Undo" within the restore time brings back all of FR-034 for each status and a bulk deletion; afterwards nothing restores | T044 walk V7.1–V7.8 (714 of 714; each status, the last connection, a late and a replayed "Undo", V7.8 after the restore time); T051 V8.4 (bulk "Undo"); T041/T042's pytest; T095 sweep | pass for every walked case; **gap open**: T110 (a bulk deletion's rows get increasing `deleted_at`, so a draft finished first can leave a partial restore; §4.2 T101) |
+| SC-006 | Ten deleted with one confirmation in under 30 s; never only some of the selection | T051 V8.6 (first checkbox to toast 1.45 s, confirmation to toast 0.32–0.35 s, en and de), V8.5 (`409 selection_changed`: nothing deleted); T046's pytest (three races with real sessions); T091 sweep, T106 (no retry after `409`) | pass; the 30 s by hand is a person step (T052) |
+| SC-007 | Reorder by mouse, touch and keyboard; the same order after save, reload and publish everywhere; serviceBW's answers unchanged | T061 walk V9.2 (mouse), V9.3 (touch), V9.4 (keyboard), V9.6–V9.7 (the order everywhere, a published connection) (376 measures: 372 pass, 4 "Needs a person"); T058 (33 rows), T059 (55) tables; T092 sweep; T100 V15.2 (`/api/connect/` unchanged) | pass by script; a real touch screen is a person step (T062); **gap open**: T112 (a single document can be dragged) |
+| SC-008 | Welcome page to a complete example draft in two activations and under 10 s; publishable unchanged | T070 walk V10.1 (548 ms en, 481 ms de, two activations), V10.3 (published unchanged); T066–T068 tables; T096 sweep | pass by script; the 10 s by hand is a person step (T071) |
+| SC-009 | Every frame of the nine items passes spec 008's visual verification; every new screen and state passes the keyboard walkthrough, 320 px at 200 % zoom and AA contrast, in both languages | the per-node tables of §2.1 (T005–T080); the sweeps T087–T093, T095, T096 (§2.3: German at 320 and 160 CSS px, Firefox at the three widths, contrast, focus-visible, label widths, live regions, `<html lang>`), T094 (V13, the toasts' 6 s); the fixes T098 and T106, rerun, "Open rows: none" for this feature (T098's open rows are baseline or T106's, T106's none); T086 and the German review (§3), applied by T099 | pass by script; open person steps: the screen reader pass of V14, 200 % with a browser's own zoom in a 320 px window, a German-speaking person's read (T097) |
+| SC-010 | An agent reads the scheduled status, the dates, the step, the order, the example mark and the activity, moves a document, and its work shows in the card; the guidance describes each | T082 walk V12.1–V12.9 (241 of 241, three access levels, 26 tools; V12.9 `guidance.test.ts` 24/24); the MCP tasks' tests (T016, T029, T035, T060, T069, T075, T081; `mcp` 510 tests) | pass; **gap open**: T107 (`search_connections` doesn't say that a scheduled item's URLs answer "unavailable"); a real MCP client through OAuth is a person step (T083) |
+| SC-011 | Every existing check still passes; behaviour the feature doesn't name is unchanged | T100 V15.1 (all gates; rules 2642 → 2664, frontend 1267 → 1573, mcp 408 → 510, pytest 2161 → 2557; the 26 changed existing test files traced, §4.2 T100), V15.2 (`/api/connect/`), V15.3 (logs), V15.4 (FR-076's texts) | pass; the convergence's T113 (the router builds the grouped view) is a structure finding, not a behaviour change |
+| SC-012 | A group chosen or cleared with one activation equals ticking each item; an agent reads each item's group | T076 walk "SC-012 by group" and "SC-012 one by one" rows (the two drafts saved equal), V11.2 (tick, clear, mixed); T074 table (48 rows); T075's tests (`get_catalog`'s `group`, `groups`); T093 sweep | pass |
+
+Every criterion is proved by script for what it measures. Three carry a convergence gap that was not
+built (SC-005 T110, SC-007 T112, SC-010 T107); seven carry a person step (SC-001, SC-004,
+SC-006, SC-007, SC-008, SC-009, SC-010).
+
+### 6.2 For the designer
+
+Every item below is built as the spec says, with Figma's layout and styling kept where the spec
+allows it. The details are in §1, §4.2 and the audit's "Figma must change (decided)" table; the
+audit's W1–W18 (built without frames) need frames too.
+
+**The build's deviations** (§1, and one from §4.2):
+
+- A5 `7290:61214`: the Personal ID's nationality stands under "Birth" (Birth 4, Other details 4).
+- P12 `6396:48860`, P16b `7173:52959`: "Change start date" and "Activate again" use C2's "Active
+  from" group as P1 draws it (legend, 16 px indent, field under the radios); the dialog is 432 px
+  high against 392. A compact C2 variant is the designer's call.
+- R2 `7298:63736`: the dragged copy keeps R1's opacity 0.85 (R2 draws 0.75).
+- U27 `7301:63418`, `7301:63416`: the drag's values without a KERN name became tokens
+  (`--shadow-drag-copy`, `--radius-drag-copy`, `--radius-drop-line`).
+- U03 #39: between `md` and about 900 px the status pill wraps under the name inside the "Where you
+  are" pill (72 px pill, 88 px header); no frame draws 768–1023 px.
+- P1b `6380:26675` (the field in S15 and S17 too): the start date field's unfocused line is
+  `layout-border` `#6b7488` (4.69:1), not `decorative-border` `#e1e6f0` (1.25:1, under WCAG
+  1.4.11's 3:1).
+- §4.2 T038: this feature's deletion toasts are the new `danger` kind as "Rules/Toast"
+  type=danger `6718:40958` draws it; spec 008's variant and rule deletion toasts in the rules step
+  (U61 `6523:37991`, U35 `6113:29469`) stay neutral.
+
+**The audit's "Figma must change" items F1–F43**, grouped (frames as the audit cites them):
+
+- *Wording and layer names*: F3 (U02 note 8, P1b, P1c): "Active from", not "Becomes active". F10
+  (P12): the hint says requests in progress are cancelled. F23 (P18): an active row reads
+  "Published <date>". F24 (1b): "Start from an example". F25 (U21–U28, U98): the added list's
+  layer "in the order staff set". F26 (U12, U16, U17): each checkbox and delete layer named after
+  its own row. F27 (U93): the draft band's and Links card's sentences. F42 (1j): the new example's
+  row reads "Edited <date> · Connection step". F43 (note 34, U16): the banner's button is
+  "Discard" ("Verwerfen").
+- *Not built (FR-076)*: F4 (no row reads "Changes not published"), F5 (E2, E5a, E5b, E7: the edit
+  header shows only the status pill), F6 (no "Keep draft and exit", no "Draft kept" toast; footer
+  "Back · Discard changes · <next> · Save"), F7 (E5a: leaving opens E5b "Save your changes?"), F12
+  (no "Download PDF" in any Summary card), F13 (P16: "Connection deactivated." has no "Undo"), F14
+  ("Unlink from Standard"), F15 and F16 (U21, U22: no "coming soon" documents or hint), F17 (no
+  findings in the details' Summary), F18 (U65: no "Message <name> reads" box for a persona who
+  meets the rules), F19 (U58: no "Group with other rules" on a group's menu), F20 (U13: no e-mail
+  line in the user menu), F31 (U93: no view-only draft details; S2 stays out of scope).
+- *Spec 008's behaviour and bodies kept*: F8 and F9 (E3: spec 008's "Save changes?" body, no
+  "Active from"), F11 (P15: spec 008's deactivate body), F32 a–n (menus, shell, overview, create and
+  documents steps, removal, rules, test, publish dialog, edit flow, leaving, details, dialogs, toast
+  types, scope: as specs 001–009 built them), F33 (no "x of y"), F34 (A10, A11: the remove dialog
+  before every removal), F35 (note 17: the active delete sentence of frames 4 and P17), F36 (note
+  23: only the nine items' frames are ported), F37 (note 26: the findings banner as built), F38
+  (note 37 #2: the description tooltip's hover, focus and tap rule), F39 (6a: "Leave this
+  connection?" in the create flow; 6a not built).
+- *Frames to redraw*: F1 (note 1: `<html lang>` follows the language), F2 (note 7: the failure
+  alert may wrap for its error ID), F21 (notes 30, A12: toasts close after 6 s, paused under the
+  pointer or the focus), F22 (note 31: reduced motion drops the drag's transitions), F28 (note 16,
+  1b: the welcome page's two buttons), F29 (1i, 1i-c: no "1" beside a variant tab; T068 built the
+  two rules frames that had changed since the audit, §4.2 T068 (1)), F30 (16b: the unchanged
+  example's background from 1i, and "Ambulance · 2 rules" in the summary), F40 (P9, P10: Links,
+  Summary and Activity as one accordion, Links closed), F41 (A7–A12, R1–R3: the data groups' order
+  and membership from the catalog).
+
+### 6.3 What stays open
+
+**(a) Tasks not ticked in `tasks.md`** (17 besides this one):
+
+| task | why it is open |
+|---|---|
+| T031 (US1 checkpoint) | person steps: a screen reader over the publish dialog's date error; a publish on a date against the hosted EUDIPLO (every browser publish ran against the fake); optionally SC-001's minute by hand (§5) |
+| T037 (US3 checkpoint) | person step: a real MCP client through OAuth, whose name shows as "<name> with <agent>" (§5) |
+| T045 (US4 checkpoint) | person step: a screen reader for "“<name>” restored." (§5) |
+| T052 (US5 checkpoint) | person steps: SC-006's 30 s by hand; a screen reader for "<n> selected" (§5) |
+| T062 (US6 checkpoint) | person steps: a real touch screen for press-and-hold and scroll (T061's 4 "Needs a person" rows); a screen reader for the move's announcement (§5) |
+| T071 (US7 checkpoint) | person step: SC-008's 10 s by hand (§5) |
+| T083 (US8 checkpoint) | person step: a real MCP client (Claude Code or Claude Desktop) at each access level through OAuth, once through V12.3 and V12.5, with the elicitation prompt (§5) |
+| T097 (German review) | the coordinator's pass is done and applied (§3, T099); a German-speaking person's read of the nine items' German screens is open |
+| T101 (convergence) | its appended tasks T107–T113 were not built, by the user's decision (§4.2 "T101") |
+| T107–T113 | not built (§4.2 "T101"): T107 `search_connections`' scheduled note (FR-062, SC-010); T108 the overview row's scheduled edit entry body (FR-013); T109 the example's banners after "Resume editing" (FR-058, FR-060; amends §4.2 T068 (3)); T110 one `deleted_at` per deletion and an approval's deletion finished at once (FR-030, FR-044, SC-005; amends §4.2 T041 (6)); T111 "Change start date" from a stale page (FR-009); T112 no drag of a single document (FR-046); T113 the grouped view out of the router (CLAUDE.md) |
+| T104 (close checkpoint) | its own condition "every task above is ticked" can't hold while the rows above stay open; it hands the user this list |
+
+**(b) Person steps still open** (tasks.md "Needs a person", §5): phase 4: the hosted EUDIPLO
+publish on a date, a screen reader over the date error, SC-001's minute by hand (optional); phase
+5: a real MCP client's name in the card; phase 6: a screen reader for the restore; phase 7: SC-006's
+30 s by hand, a screen reader for the count; phase 8: a real touch screen, a screen reader for the
+move; phase 9: SC-008's 10 s by hand; phase 11: a real MCP client at each level through OAuth;
+phase 12: quickstart V14's screen reader pass (Orca or NVDA) over the publish dialog, the selection
+bar and the Activity card, 200 % zoom with a browser's own zoom in a 320 px window, T097's
+German-speaking reviewer, telling the designer §6.2, and the user's commit and pull request. Done
+or no longer needed: phases 1, 2 and 10 (§5), phase 6's backend restart (T044 ran its own), the
+emptied database of phases 9 and 12 (second installations, §5 and §4.2 "T087–T096"). Open: 16
+steps.
+
+**(c) Baseline findings outside the feature, for a follow-up** (FR-074 kept them; §4.2
+"T087–T096" (a)–(f) and "T106" (g)): (a) "Add document"'s label wraps out of its 36 px box below
+320 CSS px (`DocumentsStep/SearchCard.tsx`); (b) a based variant's rule text is 55–70 px wide at
+320 CSS px (`components/RuleRow/`); (c) the link strip sentence is 54–96 px wide at 320 CSS px
+(`RulesStep/LinkStrip.tsx`); (d) below 320 CSS px German words break without a hyphen in spec
+008's chrome (its narrow rule, by design); (e) a done approval request's sub-line still reads its
+passed expiry time (spec 007's `subtitleOf()`); (f) the overview's icon-only delete button's
+`kern-sr-only` (no defect, recorded); (g) spec 002's rule editor fields draw the 1.25:1
+`decorative-border` line (`RuleEditor/ValueInput.tsx`, `RulesStep/ItemName.tsx`,
+`RuleEditor/MessageField.tsx`, `components/MenuSearchField`).
+
+**(d) Deployment**: `docker-compose.prod.yml` doesn't pass `DELETION_UNDO_SECONDS`, so a deployment
+always uses 300 s (§4.2 "T102 and T114"; a code change, outside T102).
+
+**Open points** (§4.3): none.

@@ -767,7 +767,7 @@ describe('removalDialogCopyOf (the removal question’s words; U23, U24, U26)', 
         'de'
       )
     ).toEqual({
-      title: 'Felder der Gruppe „Fahrerlaubnis“ aus Führerschein nicht mehr anfordern?',
+      title: 'Daten der Gruppe „Fahrerlaubnis“ aus „Führerschein“ nicht mehr anfordern?',
       text:
         '2 Regeln prüfen diese Daten: Rule 02 und Rule 03 in Standard. Bearbeiten oder löschen ' +
         'Sie die Regeln vor dem Speichern.',

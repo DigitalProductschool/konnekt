@@ -43,12 +43,12 @@ FR-043, FR-044, FR-047, FR-055, FR-058, FR-060, FR-061, FR-065, FR-066, FR-071, 
 
 | Where | English | German |
 |---|---|---|
-| "Change start date" on an active connection, "On a date": the hint (FR-009) | "Until that date, citizens can't start a new request. Requests in progress are cancelled." | "Bis zu diesem Datum können Bürgerinnen und Bürger keine neue Anfrage starten. Laufende Anfragen werden abgebrochen." |
-| "Activate this connection again?", "On a date": the hint (FR-011) | "The connection becomes active again on the date you choose. Until then, its links don't work." | "Die Anbindung wird am gewählten Datum wieder aktiv. Bis dahin funktionieren ihre Links nicht." |
+| "Change start date" on an active connection, "On a date": the hint (FR-009) | "Until that date, citizens can’t start a new request. Requests in progress are cancelled." | "Bis zu diesem Datum können Bürgerinnen und Bürger keine neue Anfrage starten. Laufende Anfragen werden abgebrochen." |
+| "Activate this connection again?", "On a date": the hint (FR-011) | "The connection becomes active again on the date you choose. Until then, its links don’t work." | "Die Anbindung wird am gewählten Datum wieder aktiv. Bis dahin funktionieren ihre Links nicht." |
 | The same dialog's busy label with a date | "Scheduling…" | "Wird geplant …" |
-| The deactivate dialog for a scheduled connection: the sentence (FR-012) | "This connection will be active from <date>. If you deactivate it, it won't become active and its links won't work. You can activate it again later." | "Diese Anbindung ist ab <date> aktiv. Wenn Sie sie deaktivieren, wird sie nicht aktiv und ihre Links funktionieren nicht. Sie können sie später wieder aktivieren." |
+| The deactivate dialog for a scheduled connection: the sentence (FR-012) | "This connection will be active from <date>. If you deactivate it, it won’t become active and its links won’t work. You can activate it again later." | "Diese Anbindung ist ab <date> aktiv. Wenn Sie sie deaktivieren, wird sie nicht aktiv und ihre Links funktionieren nicht. Sie können sie später wieder aktivieren." |
 | The same dialog's cancel button | "Keep scheduled" | "Geplant lassen" |
-| "Save changes?" for a scheduled connection: the sentence (FR-013) | "Your changes become active with the connection on <date>. Citizens can't use it before then." | "Ihre Änderungen werden mit der Anbindung am <date> aktiv. Vorher können Bürgerinnen und Bürger sie nicht nutzen." |
+| "Save changes?" for a scheduled connection: the sentence (FR-013) | "Your changes become active with the connection on <date>. Citizens can’t use it before then." | "Ihre Änderungen werden mit der Anbindung am <date> aktiv. Vorher können Bürgerinnen und Bürger die Anbindung nicht nutzen." |
 | The toast after "Activate again" on a date | "Connection scheduled for <date>." | "Anbindung für den <date> geplant." |
 | "Change start date": the failure's title | "Couldn’t save the start date" | "Das Startdatum konnte nicht gespeichert werden" |
 | "Change start date": the sentence when no answer came (FR-014) | "Couldn’t save the start date, so nothing has changed. Check your internet connection and try again." | "Das Startdatum konnte nicht gespeichert werden, daher hat sich nichts geändert. Prüfen Sie Ihre Internetverbindung und versuchen Sie es erneut." (changed 2026-11-11, T026: "daher" as the glossary's "Couldn’t publish, so nothing has changed.") |
@@ -107,7 +107,7 @@ One row is "date and time · event · person". The events, by `kind` (data-model
 | A row's checkbox, for screen readers (FR-038) | "Select “<name>”" | "„<name>“ auswählen" |
 | The select-all checkbox, for screen readers | "Select all connections" | "Alle Anbindungen auswählen" |
 | The bulk dialog's warning line for a scheduled connection (FR-041) | "<name> is scheduled for <date>. It won’t become active." | "<name> ist für den <date> geplant. Sie wird nicht aktiv." |
-| The bulk dialog when a connection changed (FR-043, the spec's) | "Nothing was deleted: “<name>” was deleted or changed in the meantime." | "Nichts wurde gelöscht: „<name>“ wurde inzwischen gelöscht oder geändert." |
+| The bulk dialog when a connection changed (FR-043, the spec's) | "Nothing was deleted: “<name>” was deleted or changed in the meantime." | "Nichts wurde gelöscht: „<name>“ wurde in der Zwischenzeit gelöscht oder geändert." |
 
 Several active connections get one drawn line each ("<name> is active. Citizens won’t be able to
 use it."), in the list's order; there is no combined line.
@@ -119,7 +119,7 @@ use it."), in the list's order; there is no combined line.
 | The row's ⋯ button, for screen readers | "Move <document>" | "<document> verschieben" |
 | Its entries (FR-047) | "Move up", "Move down" | "Nach oben", "Nach unten" |
 | The announcement after a move, by menu or by drag (the spec's) | "“<document>” moved to position <n> of <m>." | "„<document>“ auf Position <n> von <m> verschoben." |
-| The question before a group's data that a rule checks is cleared: the title (FR-079) | "Stop requesting “<group>” data from <document>?" | "Felder der Gruppe „<group>“ aus <document> nicht mehr anfordern?" |
+| The question before a group's data that a rule checks is cleared: the title (FR-079) | "Stop requesting “<group>” data from <document>?" | "Daten der Gruppe „<group>“ aus „<document>“ nicht mehr anfordern?" |
 
 The rest of that question (the rules it names, "Cancel", "Stop requesting") is the "All data
 items" question's, unchanged. A group's checkbox is named by its heading.
@@ -167,8 +167,8 @@ T066's UNCERTAIN 2; design-notes §4.2).
 | Done: `publish` with a date | "Published and scheduled for <date>." | "Veröffentlicht und für den <date> geplant." |
 | Done: `reactivate` with a date | "Connection scheduled for <date>." | "Anbindung für den <date> geplant." |
 | Done: `set_start_date` | "Start date saved." | "Startdatum gespeichert." |
-| Cancelled: the connection became active (FR-066) | "The connection became active in the meantime." | "Die Anbindung ist inzwischen aktiv geworden." |
-| Cancelled: its date moved (FR-066) | "The connection's start date changed in the meantime." | "Das Startdatum der Anbindung wurde inzwischen geändert." |
+| Cancelled: the connection became active (FR-066) | "The connection became active in the meantime." | "Die Anbindung ist in der Zwischenzeit aktiv geworden." |
+| Cancelled: its date moved (FR-066) | "The connection's start date changed in the meantime." | "Das Startdatum der Anbindung wurde in der Zwischenzeit geändert." |
 | Cancelled: `start_date_passed` (FR-065) | "The start date is no longer after today. The agent can ask again with a new date." | "Das Startdatum liegt nicht mehr nach dem heutigen Tag. Der Agent kann mit einem neuen Datum erneut fragen." |
 
 Deactivating and deleting a scheduled connection use §2's deactivate sentence and FR-010's delete
@@ -179,7 +179,7 @@ sentence; the example's line is FR-060's.
 | Code | English | German |
 |---|---|---|
 | `invalid_start_date` (`400`; the spec's) | "Enter a date after today." | "Geben Sie ein Datum nach dem heutigen Tag ein." |
-| `selection_changed` (`409`) | "Nothing was deleted: a connection was deleted or changed in the meantime." | "Nichts wurde gelöscht: Eine Anbindung wurde inzwischen gelöscht oder geändert." |
+| `selection_changed` (`409`) | "Nothing was deleted: a connection was deleted or changed in the meantime." | "Nichts wurde gelöscht: Eine Anbindung wurde in der Zwischenzeit gelöscht oder geändert." |
 | `not_restorable` (`409`) | "This can no longer be restored." | "Das kann nicht mehr wiederhergestellt werden." |
 | `not_allowed`, `reactivate` on a scheduled connection | "This connection is scheduled. Change its start date instead." | "Diese Anbindung ist geplant. Ändern Sie stattdessen das Startdatum." |
 | `not_allowed`, `set_start_date` on a deactivated connection | "This connection is deactivated. Reactivate it instead." | "Diese Anbindung ist deaktiviert. Reaktivieren Sie sie stattdessen." |

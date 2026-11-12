@@ -2061,11 +2061,11 @@ REFUSALS: dict[str, tuple[str, str, str]] = {
 STALE_TEXTS: dict[str, tuple[str, str]] = {
     'became active': (
         'The connection became active in the meantime.',
-        'Die Anbindung ist inzwischen aktiv geworden.',
+        'Die Anbindung ist in der Zwischenzeit aktiv geworden.',
     ),
     'date changed': (
         "The connection's start date changed in the meantime.",
-        'Das Startdatum der Anbindung wurde inzwischen geändert.',
+        'Das Startdatum der Anbindung wurde in der Zwischenzeit geändert.',
     ),
     'deactivated': (
         'The connection was deactivated in the meantime.',

@@ -172,7 +172,7 @@ export const CONNECTION_DETAIL_COPY = defineTexts(
       'Bürgerinnen und Bürger können keine neue Anfrage starten. Ihre Einstellungen sind gespeichert.',
     scheduledTitle: 'Ihre Anbindung ist geplant',
     scheduledText:
-      'Die Links können bereits in Ihren Dienst eingefügt werden. Sie werden am geplanten Datum unten aktiv.',
+      'Die Links können bereits in Ihren Dienst eingefügt werden. Sie werden an dem unten angegebenen Datum aktiv.',
     activeSince: (dateTime: string) => `Aktiv seit ${dateTime}`,
     activeFrom: (dateTime: string) => `Aktiv ab ${dateTime}`,
     deactivatedSince: (dateTime: string) => `Deaktiviert seit ${dateTime}`,
@@ -382,11 +382,10 @@ export const INITIAL_ACTIONS_STATE: ActionsState = {
 
 /**
  * The failure's alert in "Change start date" and "Activate this connection again?", as the publish
- * dialog's (T024): below 320 CSS px (`narrow:`) its title takes the whole width under the icon;
- * kern.css's `flex: 1 0 0` on the title (unlayered, hence the `!`) would keep it beside the icon,
- * a few letters wide
+ * dialog's (T024): the dialog's width (below 320 CSS px its title takes the whole width under the
+ * icon by index.css's narrow block, T098)
  */
-export const START_DATE_FAILURE_ALERT_CLASSES = 'w-full narrow:[&_.kern-title]:basis-full!';
+export const START_DATE_FAILURE_ALERT_CLASSES = 'w-full';
 
 export const INITIAL_DRAFT_DELETE_STATE: DraftDeleteState = {
   dialogOpen: false,

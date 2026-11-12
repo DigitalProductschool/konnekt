@@ -24,6 +24,7 @@ import {
 import type {
   BulkDeleteAction,
   BulkDeleteFailure,
+  BulkDeleteNotice,
   BulkDeleteState,
   DeletionAction,
   DeletionState,
@@ -413,7 +414,7 @@ export function selectAllStateOf(
  * The bulk delete dialog's state (spec 010, S4 "Delete"; FR-041 to FR-043): it opens with the
  * selected rows in the list's order and keeps them while it closes; nothing closes it while the
  * deletion runs (FR-042); a retry takes the last failure away, so that a new one is announced
- * again; a failure keeps it open (FR-043)
+ * again; a failure keeps it open (FR-043), and `selection_changed` marks it stale (no retry)
  */
 export function bulkDeleteReducer(
   state: BulkDeleteState,
@@ -421,21 +422,59 @@ export function bulkDeleteReducer(
 ): BulkDeleteState {
   switch (action.type) {
     case 'open':
-      return { rows: action.rows, open: true, deleting: false, error: null, changedName: null };
+      return {
+        rows: action.rows,
+        open: true,
+        deleting: false,
+        error: null,
+        changedName: null,
+        stale: false,
+      };
     case 'close':
-      return state.deleting ? state : { ...state, open: false, error: null, changedName: null };
+      return state.deleting
+        ? state
+        : { ...state, open: false, error: null, changedName: null, stale: false };
     case 'start':
-      return { ...state, deleting: true, error: null, changedName: null };
+      return { ...state, deleting: true, error: null, changedName: null, stale: false };
     case 'failed':
       return {
         ...state,
         deleting: false,
         error: action.failure.error,
         changedName: action.failure.changedName,
+        stale: action.failure.stale,
       };
     case 'done':
-      return { ...state, open: false, deleting: false, error: null, changedName: null };
+      return {
+        ...state,
+        open: false,
+        deleting: false,
+        error: null,
+        changedName: null,
+        stale: false,
+      };
   }
+}
+
+/**
+ * What the bulk delete dialog shows of its last failure (FR-043; design-notes §4.2 T084 (3)):
+ * after `selection_changed` the sentence "Nothing was deleted: “<name>” was deleted or changed in
+ * the meantime." in the given language (the server's sentence where the changed connection isn't
+ * among the dialog's), without "Try again", since the selection is out of date; another failure
+ * shows its notice (a 5xx's error ID, "Nothing changed. …" without an answer) with "Try again"
+ * (spec 008); no failure, no notice
+ */
+export function bulkDeleteNoticeOf(
+  state: Pick<BulkDeleteState, 'error' | 'changedName' | 'stale'>,
+  language: Language
+): BulkDeleteNotice {
+  if (state.stale) {
+    const error = state.changedName
+      ? { message: BULK_DELETE_COPY[language].changed(state.changedName) }
+      : state.error;
+    return { error, retry: false };
+  }
+  return { error: state.error, retry: state.error !== null };
 }
 
 /**

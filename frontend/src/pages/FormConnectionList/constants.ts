@@ -305,7 +305,7 @@ export const BULK_DELETE_COPY = defineTexts(
     scheduled: (name: string, date: string) =>
       `${name} ist für den ${date} geplant. Sie wird nicht aktiv.`,
     changed: (name: string) =>
-      `Nichts wurde gelöscht: „${name}“ wurde inzwischen gelöscht oder geändert.`,
+      `Nichts wurde gelöscht: „${name}“ wurde in der Zwischenzeit gelöscht oder geändert.`,
     confirm: 'Anbindungen löschen',
     cancel: 'Anbindungen behalten',
     busy: 'Wird gelöscht …',
@@ -355,6 +355,7 @@ export const INITIAL_BULK_DELETE_STATE: BulkDeleteState = {
   deleting: false,
   error: null,
   changedName: null,
+  stale: false,
 };
 
 /**

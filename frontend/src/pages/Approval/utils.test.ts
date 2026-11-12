@@ -334,7 +334,7 @@ describe('connectionChangedTextOf', () => {
       'The connection’s start date changed in the meantime.'
     );
     expect(connectionChangedTextOf('scheduled', 'reactivate', 'de')).toBe(
-      'Das Startdatum der Anbindung wurde inzwischen geändert.'
+      'Das Startdatum der Anbindung wurde in der Zwischenzeit geändert.'
     );
     expect(connectionChangedTextOf('deactivated', 'delete', 'en')).toBe(
       'The connection was deactivated in the meantime.'
@@ -353,7 +353,7 @@ describe('connectionChangedTextOf', () => {
         'The connection became active in the meantime.'
       );
       expect(connectionChangedTextOf('live', action, 'de')).toBe(
-        'Die Anbindung ist inzwischen aktiv geworden.'
+        'Die Anbindung ist in der Zwischenzeit aktiv geworden.'
       );
     }
   });

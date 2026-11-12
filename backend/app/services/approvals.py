@@ -294,11 +294,11 @@ CONNECTION_CHANGES: dict[bool, Text] = {
 # is scheduled now (its start date moved or came)
 BECAME_ACTIVE_TEXT = Text(
     en='The connection became active in the meantime.',
-    de='Die Anbindung ist inzwischen aktiv geworden.',
+    de='Die Anbindung ist in der Zwischenzeit aktiv geworden.',
 )
 START_DATE_CHANGED_TEXT = Text(
     en="The connection's start date changed in the meantime.",
-    de='Das Startdatum der Anbindung wurde inzwischen geändert.',
+    de='Das Startdatum der Anbindung wurde in der Zwischenzeit geändert.',
 )
 
 

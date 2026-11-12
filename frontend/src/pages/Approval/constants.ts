@@ -119,8 +119,8 @@ export const APPROVAL_COPY = defineTexts(
     reactivatedScheduled: (date: string) => `Anbindung für den ${date} geplant.`,
     connectionDeactivated: 'Die Anbindung wurde in der Zwischenzeit deaktiviert.',
     connectionReactivated: 'Die Anbindung wurde in der Zwischenzeit reaktiviert.',
-    connectionBecameActive: 'Die Anbindung ist inzwischen aktiv geworden.',
-    connectionStartDateChanged: 'Das Startdatum der Anbindung wurde inzwischen geändert.',
+    connectionBecameActive: 'Die Anbindung ist in der Zwischenzeit aktiv geworden.',
+    connectionStartDateChanged: 'Das Startdatum der Anbindung wurde in der Zwischenzeit geändert.',
   }
 );
 

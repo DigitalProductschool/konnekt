@@ -25,11 +25,10 @@ import { findingLinesOf, warningsFirst } from './utils';
 
 /** The intro's look in the summary (U73 6374:25448: body/default, muted) */
 /**
- * The failure's alert: below 320 CSS px (`narrow:`) its title takes the whole width under the
- * icon, as index.css's narrow block means it to; kern.css's `flex: 1 0 0` on the title (unlayered,
- * hence the `!`) kept it beside the icon, a few letters wide
+ * The failure's alert: the dialog's width (below 320 CSS px its title takes the whole width under
+ * the icon by index.css's narrow block, T098)
  */
-const FAILURE_ALERT_CLASSES = 'w-full narrow:[&_.kern-title]:basis-full!';
+const FAILURE_ALERT_CLASSES = 'w-full';
 
 /** The example's line among the findings' lines, whose keys are branch keys (UUIDs) */
 const EXAMPLE_LINE_KEY = 'example';

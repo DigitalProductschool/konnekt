@@ -309,7 +309,7 @@ export const PUBLISH_DIALOG_COPY = defineTexts(
     saveIntro:
       'Bis Sie speichern, gilt für Bürgerinnen und Bürger weiter die aktuelle Version. Bereits laufende Anfragen behalten die Daten und Regeln, mit denen sie begonnen haben.',
     saveScheduledIntro: (date: string) =>
-      `Ihre Änderungen werden mit der Anbindung am ${date} aktiv. Vorher können Bürgerinnen und Bürger sie nicht nutzen.`,
+      `Ihre Änderungen werden mit der Anbindung am ${date} aktiv. Vorher können Bürgerinnen und Bürger die Anbindung nicht nutzen.`,
     withoutRulesIntro: 'Ohne Regeln können alle, die diese Dokumente teilen, einen Antrag stellen.',
     documents: 'Dokumente',
     rules: 'Regeln',

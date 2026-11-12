@@ -70,14 +70,17 @@ export const ACTIVE_FROM_RADIO_CLASSES = {
 
 /**
  * The date field ("Rules/Number field" 6194:42241 in U75 6380:26675): 128 × 40, white, a 1 px
- * `decorative-border` line, radius 8, 16 at the sides, body/default with the placeholder muted;
- * with the error the line is `feedback-danger` (U76). Keyboard focus: KERN's 4 px ring, 2 off.
+ * line, radius 8, 16 at the sides, body/default with the placeholder muted; with the error the
+ * line is `feedback-danger` (U76). The frame's line is `decorative-border` (#e1e6f0, 1.25:1 on
+ * white), short of AA's 3:1 for a field's boundary (SC-009, T106): the build draws it in
+ * `layout-border` (#6b7488, 4.7:1), the overlay's nearest token that passes, which the radios
+ * beside it and the checkboxes already use (design-notes §1). Keyboard focus: KERN's 4 px ring, 2 off.
  * Below 320 CSS px (`narrow:`) it may narrow to its column, with 4 at the sides and body/small,
  * so that "DD.MM.YYYY" (87 px at 16) still shows whole in 89 px
  */
 export const DATE_FIELD_CLASSES = {
   base: 'rounded-kern-default bg-kern-layout-background-default text-kern-static-medium text-kern-layout-text-default placeholder:text-kern-layout-text-muted focus-visible:outline-kern-action-focus-default h-40 w-128 max-w-full min-w-0 border px-16 leading-(--kern-typography-line-height-medium-static) focus-visible:outline-4 focus-visible:outline-offset-2 narrow:text-kern-static-small narrow:px-4! disabled:opacity-(--kern-color-action-state-opacity-disabled)',
-  valid: 'border-(--kern-color-decorative-border-default)',
+  valid: 'border-kern-layout-border',
   invalid: 'border-kern-feedback-danger',
 };
 
