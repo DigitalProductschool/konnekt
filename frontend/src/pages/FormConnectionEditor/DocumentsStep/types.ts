@@ -1,8 +1,8 @@
-import type { DocumentType } from '@connection-portal/api-types/document-types';
+import type { DocumentField, DocumentType } from '@connection-portal/api-types/document-types';
 import type { RequestedDocument } from '@connection-portal/api-types/form-connections';
 import type { Dispatch, KeyboardEvent, PointerEvent, Ref } from 'react';
 
-import type { DroppedData, RemovedDataRule } from '../types';
+import type { DroppedData, PendingRemoval, RemovedDataRule } from '../types';
 
 /**
  * The documents step's view (FR-031, research R8, data-model "The documents step"). The editor's
@@ -142,6 +142,23 @@ export interface DataCount {
 }
 
 /**
+ * A data group of a document with more than 10 data items (S8 "Data groups"; FR-077, R8): the
+ * catalog's group (its key and its label in the language of the moment) with its data items, in
+ * the catalog's order (`groupedFieldsOf()`)
+ */
+export interface GroupedFields {
+  key: string;
+  label: string;
+  fields: DocumentField[];
+}
+
+/**
+ * A group heading's checkbox (FR-079): `all` ticked, `some` mixed, `none` clear
+ * (`groupCheckStateOf()`)
+ */
+export type GroupCheckState = 'none' | 'some' | 'all';
+
+/**
  * The removal question's dialog (F72): `confirm` is "Remove <Document>?" with "Keep document" /
  * "Remove document"; `rules` is 002-S1.1's dialog naming the rules that check the document
  */
@@ -200,6 +217,11 @@ export interface DocumentsStepProps {
   onMove: (documentType: string, toIndex: number) => void;
   onSetField: (documentType: string, field: string, selected: boolean) => void;
   onSetAllFields: (documentType: string, fields: string[]) => void;
+  /**
+   * A data group's checkbox cleared (FR-079): the editor clears the group's data items, or first
+   * asks the question naming the rules that check them, as for "All data items"
+   */
+  onClearGroup: (removal: PendingRemoval) => void;
 }
 
 export interface DocumentsListProps {
@@ -291,6 +313,19 @@ export interface DocumentDetailProps {
   onSelect: (index: number) => void;
   onSetField: (field: string, selected: boolean) => void;
   onSetAllFields: (fields: string[]) => void;
+  /** A data group's checkbox cleared (FR-079; `groupRemovalOf()`) */
+  onClearGroup: (removal: PendingRemoval) => void;
+}
+
+export interface FieldGroupProps {
+  /** The shown document type's key, for the checkboxes' ids */
+  documentType: string;
+  group: GroupedFields;
+  /** The document's chosen data items that the catalog offers */
+  chosen: readonly string[];
+  onSetField: (field: string, selected: boolean) => void;
+  /** The group's checkbox: ticked chooses all of its data items, cleared clears them */
+  onToggle: () => void;
 }
 
 export interface FieldRowProps {

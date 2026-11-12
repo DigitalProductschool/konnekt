@@ -409,6 +409,8 @@ export const ELEMENT_IDS = {
   allData: (documentType: string) => `document-${documentType}-all`,
   fieldsError: (documentType: string) => `document-${documentType}-error`,
   field: (documentType: string, field: string) => `document-${documentType}-${field}`,
+  // A data group's checkbox (FR-079); field keys have no hyphen, so it meets no field's id
+  group: (documentType: string, group: string) => `document-${documentType}-group-${group}`,
   title: (documentType: string) => `document-${documentType}-title`,
   // The test step (S8): a variant's tab and its panel, a persona's chip, its panel with the
   // heading "Mia’s data", and a field of its data

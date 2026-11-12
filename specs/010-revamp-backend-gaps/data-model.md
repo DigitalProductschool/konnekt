@@ -319,7 +319,7 @@ the order the panel shows them (FR-077):
 | `birth` | Birth | Geburt |
 | `address` | Address | Adresse |
 | `document` | Document | Dokument |
-| `licence` | Licence | Führerschein |
+| `licence` | Licence | Fahrerlaubnis |
 | `appearance` | Appearance | Aussehen |
 | `other` | Other details | Weitere Angaben |
 

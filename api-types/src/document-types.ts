@@ -1,4 +1,4 @@
-// Mirrors FieldPart, DocumentField and DocumentType in backend/app/schemas.py, with the kinds of
+// Mirrors FieldPart, DocumentField, FieldGroup and DocumentType in backend/app/schemas.py, with the kinds of
 // FieldKind and PartKind in backend/app/catalog.py
 
 /** A field's kind of value, which decides what a rule can check on it. Images can't be checked */
@@ -34,6 +34,18 @@ export interface DocumentField {
    * only. A field made of parts declares it on its parts (the driving licence's classes)
    */
   multiple_values: boolean;
+  /**
+   * The key of its data group (FR-078): GET /api/document-types gives it for a document with
+   * groups; null there for one without, and in every other answer. Optional, as the backend's
+   * default, so that a field built elsewhere needs none
+   */
+  group?: string | null;
+}
+
+/** A data group of the documents step's panel, such as "Address" (FR-077) */
+export interface FieldGroup {
+  key: string;
+  label: string;
 }
 
 /** A catalog entry: a kind of document and its fields, in catalog order */
@@ -41,4 +53,9 @@ export interface DocumentType {
   key: string;
   label: string;
   fields: DocumentField[];
+  /**
+   * Its data groups in the panel's order; empty for a document with 10 fields or fewer (FR-077,
+   * FR-078). Optional, as the backend's default: GET /api/document-types always gives it
+   */
+  field_groups?: FieldGroup[];
 }

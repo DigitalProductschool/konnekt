@@ -18,7 +18,9 @@ field's `key`, `label`, `kind`, its `option_set` for a value list, whether it ho
 (`multiple_values`), its `parts` for a field made of parts (with `per_licence_class` for the dates
 kept per licence class), and the `conditions` a rule can set on it: the `operator`, its `words` as
 the editor shows them, and the `input` it takes (`number`, `text`, `values`, `date`, `years` or
-`amount`). An unknown document type is refused with the known keys.
+`amount`). Each field also carries its data `group` (below), and the answer's `groups` lists the
+document's data groups in Konnekt's order. An unknown document type is refused with the known
+keys.
 
 `search_values` searches a value set by its key (`option_set`, as `get_catalog` names it), with a
 `query` matched on the label and the code, ignoring letter case. It answers 25 values per page
@@ -50,8 +52,16 @@ are stored in catalog order). A document type not yet requested is added at the 
 documents; `fields: []` adds it without fields, to choose them later; `fields: null` removes the
 document. A document whose fields change keeps its place, and removing one leaves the others in
 their order. An unknown document type or field is refused with the known keys. The answer lists
-the draft's documents with their fields, in their order. Fields are chosen one by one: no tool
-takes a whole group of fields.
+the draft's documents with their fields, in their order.
+
+Konnekt shows a document's fields in **data groups**, such as Name, Birth, Address, Document and
+Other details (and Licence and Appearance for the driving licence), where a person can select a
+whole group at once. `get_catalog` gives each field its `group`, the group's English name, and
+the document's `groups` in the order Konnekt shows them; the `fields` stay in catalog order. A
+document with ten fields or fewer has no groups: its fields carry no `group` and `groups` is
+empty. Use the groups to find related fields and to talk with the team member in Konnekt's words
+("the fields under Address"), but choose the fields one by one: no tool takes a group, so list
+every field you want in `set_document`'s `fields`, and only the fields the form needs.
 
 ## The documents' order
 

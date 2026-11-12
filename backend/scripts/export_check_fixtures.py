@@ -63,6 +63,7 @@ from app.schemas import (
     DeliveredField,
     DocumentField,
     DocumentType,
+    FieldGroup,
     FieldPart,
     GroupItem,
     Mark,
@@ -1879,7 +1880,22 @@ def _example_language_json(language: Language) -> dict[str, object]:
             DocumentType(
                 key=document_type.key,
                 label=catalog_label_of(document_type),
-                fields=[_field_view(field) for field in document_type.fields],
+                # Only GET /api/document-types gives the fields their data groups
+                # (spec 010, FR-078); the draft's documents carry none
+                fields=[
+                    _field_view(field).model_copy(
+                        update={
+                            'group': field.group
+                            if document_type.field_groups()
+                            else None
+                        }
+                    )
+                    for field in document_type.fields
+                ],
+                field_groups=[
+                    FieldGroup(key=group.key, label=catalog_label_of(group))
+                    for group in document_type.field_groups()
+                ],
             )
             for document_type in DOCUMENT_TYPES
             if any(
@@ -1893,7 +1909,7 @@ def _example_language_json(language: Language) -> dict[str, object]:
                 document_type=document.document_type,
                 label=views[document.document_type].label,
                 fields=[
-                    field
+                    field.model_copy(update={'group': None})
                     for key in document.fields
                     for field in views[document.document_type].fields
                     if field.key == key

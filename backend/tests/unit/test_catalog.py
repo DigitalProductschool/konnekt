@@ -5,6 +5,7 @@ import pytest
 
 from app.catalog import (
     DOCUMENT_TYPES,
+    FIELD_GROUPS,
     MDL,
     MDL_NAMESPACE,
     MDOC_FORMAT,
@@ -12,6 +13,7 @@ from app.catalog import (
     SD_JWT_VC_FORMAT,
     CatalogDocumentType,
     CatalogField,
+    CatalogFieldGroup,
     CatalogPart,
     get_document_type,
     label_of,
@@ -425,7 +427,7 @@ def _labelled() -> list[CatalogDocumentType | CatalogField | CatalogPart]:
     return items
 
 
-Labelled = CatalogDocumentType | CatalogField | CatalogPart
+Labelled = CatalogDocumentType | CatalogField | CatalogPart | CatalogFieldGroup
 
 
 def _in(language: Language, item: Labelled) -> str:
@@ -481,8 +483,9 @@ def test_label_of_follows_the_request_language() -> None:
 
 
 def _without_labels(view: DocumentField) -> dict[str, object]:
-    # A field view's values apart from its labels and its parts' labels
-    values = view.model_dump(exclude={'label', 'parts'})
+    # A field view's values apart from its labels and its parts' labels. The group
+    # is left out too: only GET /api/document-types adds it (FR-078)
+    values = view.model_dump(exclude={'label', 'parts', 'group'})
     values['parts'] = view.parts and [
         part.model_dump(exclude={'label'}) for part in view.parts
     ]
@@ -505,6 +508,191 @@ def test_a_field_view_changes_only_its_labels(language: Language) -> None:
         assert [part.label for part in view.parts or ()] == [
             part.label_de if german else part.label for part in field.parts or ()
         ]
+
+
+# The data groups (spec 010, FR-077, FR-078, data-model §6)
+
+# The groups' keys and labels, in the panel's order
+GROUP_LABELS = [
+    ('name', 'Name', 'Name'),
+    ('birth', 'Birth', 'Geburt'),
+    ('address', 'Address', 'Adresse'),
+    ('document', 'Document', 'Dokument'),
+    ('licence', 'Licence', 'Fahrerlaubnis'),
+    ('appearance', 'Appearance', 'Aussehen'),
+    ('other', 'Other details', 'Weitere Angaben'),
+]
+
+# data-model §6: each document's groups, in the panel's order, with their fields in
+# catalog order
+PID_GROUPS = {
+    'name': ['family_name', 'given_name', 'birth_family_name', 'birth_given_name'],
+    'birth': ['birthdate', 'place_of_birth', 'nationalities', 'sex'],
+    'address': [
+        'address_formatted',
+        'address_street_address',
+        'address_house_number',
+        'address_postal_code',
+        'address_locality',
+        'address_region',
+        'address_country',
+    ],
+    'document': [
+        'document_number',
+        'date_of_issuance',
+        'date_of_expiry',
+        'issuing_authority',
+        'issuing_country',
+        'issuing_jurisdiction',
+    ],
+    'other': ['personal_administrative_number', 'picture', 'email', 'phone_number'],
+}
+MDL_GROUPS = {
+    'name': [
+        'family_name',
+        'given_name',
+        'family_name_national_character',
+        'given_name_national_character',
+    ],
+    'birth': [
+        'birth_date',
+        'sex',
+        'birth_place',
+        'age_in_years',
+        'age_birth_year',
+        'nationality',
+    ],
+    'address': [
+        'resident_address',
+        'resident_city',
+        'resident_state',
+        'resident_postal_code',
+        'resident_country',
+    ],
+    'document': [
+        'issue_date',
+        'expiry_date',
+        'issuing_country',
+        'issuing_authority',
+        'document_number',
+        'issuing_jurisdiction',
+    ],
+    'licence': [
+        'driving_privileges',
+        'un_distinguishing_sign',
+        'administrative_number',
+    ],
+    'appearance': [
+        'portrait',
+        'height',
+        'weight',
+        'eye_colour',
+        'hair_colour',
+        'portrait_capture_date',
+    ],
+    'other': ['signature_usual_mark'],
+}
+
+
+def _members(document_type: CatalogDocumentType) -> dict[str, list[str]]:
+    # The document's groups in the panel's order, each with its fields' keys
+    return {
+        group.key: [
+            field.key for field in document_type.fields if field.group == group.key
+        ]
+        for group in document_type.field_groups()
+    }
+
+
+def test_the_groups_stand_in_the_panels_order_with_their_labels() -> None:
+    assert [
+        (group.key, group.label, group.label_de) for group in FIELD_GROUPS
+    ] == GROUP_LABELS
+    # The group of the driving licence's classes isn't the document's own name
+    assert MDL.label_de == 'Führerschein'
+    assert [group.label_de for group in FIELD_GROUPS if group.key == 'licence'] == [
+        'Fahrerlaubnis'
+    ]
+
+
+def test_the_group_labels_follow_the_request_language() -> None:
+    assert [_in('en', group) for group in FIELD_GROUPS] == [
+        en for _, en, _ in GROUP_LABELS
+    ]
+    assert [_in('de', group) for group in FIELD_GROUPS] == [
+        de for _, _, de in GROUP_LABELS
+    ]
+
+
+def test_the_documents_hold_the_groups_of_data_model_section_6() -> None:
+    assert _members(PID) == PID_GROUPS
+    assert _members(MDL) == MDL_GROUPS
+    assert {key: len(keys) for key, keys in _members(MDL).items()} == {
+        'name': 4,
+        'birth': 6,
+        'address': 5,
+        'document': 6,
+        'licence': 3,
+        'appearance': 6,
+        'other': 1,
+    }
+    assert {key: len(keys) for key, keys in _members(PID).items()} == {
+        'name': 4,
+        'birth': 4,
+        'address': 7,
+        'document': 6,
+        'other': 4,
+    }
+
+
+@pytest.mark.parametrize('document_type', DOCUMENT_TYPES, ids=lambda type_: type_.key)
+def test_a_grouped_document_follows_the_rules_of_fr_078(
+    document_type: CatalogDocumentType,
+) -> None:
+    # Both of today's documents have more than 10 fields, so both have groups
+    assert len(document_type.fields) > 10
+    groups = document_type.field_groups()
+    group_keys = [group.key for group in groups]
+    assert groups
+    # Every field has exactly one group, and one the document names
+    for field in document_type.fields:
+        assert field.group in group_keys, field.key
+    # The groups stand in the panel's order
+    assert group_keys == [
+        group.key for group in FIELD_GROUPS if group.key in set(group_keys)
+    ]
+    # A group other than "Other details" holds at least 2 fields
+    for key, keys in _members(document_type).items():
+        assert len(keys) >= (1 if key == 'other' else 2), key
+
+
+def test_a_group_keeps_its_name_across_documents() -> None:
+    # Groups are the catalog's, by key: the same key is the same group everywhere
+    for document_type in DOCUMENT_TYPES:
+        for group in document_type.field_groups():
+            assert group in FIELD_GROUPS
+    assert len({group.key for group in FIELD_GROUPS}) == len(FIELD_GROUPS)
+    assert len({group.label for group in FIELD_GROUPS}) == len(FIELD_GROUPS)
+    assert len({group.label_de for group in FIELD_GROUPS}) == len(FIELD_GROUPS)
+    # The fields the two documents share sit in the same group in both
+    shared = {field.key for field in PID.fields} & {field.key for field in MDL.fields}
+    assert shared
+    for key in shared:
+        pid_field, mdl_field = PID.field(key), MDL.field(key)
+        assert pid_field is not None and mdl_field is not None
+        assert pid_field.group == mdl_field.group, key
+
+
+def test_a_document_with_10_fields_or_fewer_has_no_groups() -> None:
+    short = CatalogDocumentType(
+        key='short',
+        label='Short',
+        label_de='Kurz',
+        format=SD_JWT_VC_FORMAT,
+        fields=PID.fields[:10],
+    )
+
+    assert short.field_groups() == ()
 
 
 # The option sets' German (spec 009, T014, glossary §4)

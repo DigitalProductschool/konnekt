@@ -1265,6 +1265,59 @@ Browser: the `playwright-firefox` MCP, viewport 1440 × 900 (body 1440 wide; Fir
 | narrow | all six steps and the dialog, D, DE | 320 / 160 | page, banner, line | h-scroll, h1 | none, 1 | every state 320 = 320 / 160 = 160, 1 h1; the dialog 288 = 288 / 128 = 128 | match |
 | narrow | every banner and the line, EN and DE | 1440 / 320 / 160 | banner, line | focus ring after keyboard / after click | no focusable element | 0 focusable elements in the banner and in the line; no role, no live region (C4, T066) | match |
 
+#### T074 — the grouped data item panel (S8 "Data groups"; FR-077, FR-079, US9-AS1–AS4; F41, W18, R15 V8). Chromium (`playwright-chrome` MCP), 1455 px window (body 1440), 320 and 160 CSS px. Data: `T074 draft` (`ebaea848-da54-42ba-8040-03c5d98dd6dd`) and `T074 live` (`39394df3-6dd6-4747-b7bd-e8a96cfac843`), both made by p10-alice from `P3 seed live`'s documents and rules (Personal ID: family_name, given_name, birthdate, address_locality; Driving licence: expiry_date, document_number, driving_privileges; Rule 01 on pid birthdate, Rule 02 on mdl driving_privileges). Frames: A5 `7290:61214` (U21), A6 `7290:61956` (U21), A8 `7290:62357` (U22), E1b `7296:52340` (U98). Screenshots: `.playwright-mcp/T074/`.
+
+| frame | state | width | element | property | Figma | actual | result |
+|---|---|---|---|---|---|---|---|
+| 7290:61214 | draft, Personal ID shown, groups mixed | 1440 | font check | `document.fonts.check` 600 16px / 400 14px "Fira Sans" | Fira Sans SemiBold 16, Regular 14 | true / true | match |
+| 7290:61214 | draft, Personal ID | 1440 | panel body (`#document-detail [role=group]`) | padding | 16 24 | 16 24 16 24 | match |
+| 7296:52340 | draft, Personal ID | 1440 | columns (`[role=group] > ul`) | count / gap | 3 columns of 245, gap 24 | `column-count` 3, `column-gap` 24px, columns 244.7 wide | match (±0.3 px: CSS columns share 782 px equally; F41) |
+| 7290:61214 | draft, Personal ID | 1440 | group heading (`#document-pid-group-name` + label) | row height / box / gap | 32 (py 4 + 24), box 20, gap 8 | 32, 20 × 20, 8px | match |
+| 7290:61214 | draft, Personal ID | 1440 | group heading label | font | label/default 16/24 600, `#0b1220` | 16px / 24px / 600 / rgb(11,18,32) | match |
+| 7290:61214 | draft, Personal ID | 1440 | group's items (`li > ul`) | indent | pl 24 | padding-left 24px, first box at x+24 | match |
+| 7290:61214 | draft, Personal ID | 1440 | data item row | height / label font | 32, body/small 14/24 400 | 32, 14px/24px/400 | match |
+| 7296:52340 | draft, Personal ID | 1440 | space between groups in a column | gap | 16 | Name ends y+160, Birth starts y+176 (16); Document → Other details 16 | match |
+| 7296:52340 | draft, Personal ID | 1440 | last group in the panel | margin-bottom | — | 0 (`last:mb-0`) | match |
+| 7290:61214 | draft, Personal ID | 1440 | group order and placement | groups per column | Name+Birth / Address / Document+Other details | Name+Birth / Address / Document+Other details (x 473, 742, 1010) | match |
+| 7290:61214 | draft, Personal ID | 1440 | Birth | data items | 3 (Date of birth, Place of birth, Sex) | 4 (Date of birth, Place of birth, Nationality, Sex) | Clarification 2026-11-11; design-notes §4.1 call 2 (§1) |
+| 7290:61214 | draft, Personal ID | 1440 | Other details | data items | 5 (Nationality first) | 4 (Personal administrative number, Photo, Email address, Mobile phone number) | Clarification 2026-11-11; design-notes §4.1 call 2 (§1) |
+| 7290:61214 | draft, Personal ID | 1440 | item with a two-line label ("Street (may include the house number)", "Personal administrative number") | box position | box centred on both lines | box on the first line (56 high row) | spec 008 T016 (box on the label's first line) |
+| 7290:61956 | draft, Personal ID, Address 1 of 7 | 1440 | mixed group box (`#document-pid-group-name`, `indeterminate`) | fill / border / dash | `#1d56f0`, 10 × 2 white dash, radius 4 | rgb(29,86,240), border rgb(29,86,240) 1px, dash SVG 10 × 2 rx 1, radius 4px | match |
+| 7290:61956 | draft, Personal ID | 1440 | clear group box (`#document-pid-group-document`) | fill / border | white, 1 px `#6b7488` | white, rgb(107,116,136) 1px | match |
+| 7290:61956 | draft, Personal ID | 1440 | group state | `checked` / `indeterminate` | Address mixed with City or town, State or region | Name, Birth, Address `indeterminate`, Document and Other details clear | match (US9-AS3) |
+| 7290:62357 | draft, Driving licence shown | 1440 | groups | order and counts | Name, Birth 5, Address, Licence, Other details (Nationality …), Document, Appearance | Name 4, Birth 6, Address 5, Document 6, Licence 3, Appearance 6, Other details 1 | F41 (CLAR 2026-11-10 #35; US9-AS1) |
+| 7290:62357 | draft, Driving licence | 1440 | flow down the columns | groups per column | frame's placement | Name+Birth / Address+Document / Licence+Appearance+Other details, each group whole (`break-inside: avoid`, heights 208, 224, 192, 224, 128, 224, 64) | F41; R15 V8 |
+| 7290:62357 | draft, Driving licence | 1440 | items inside a group | order | Birth: Date of birth, Place of birth, Sex, Year of birth, Age in years | catalog order: Date of birth, Sex, Place of birth, Age in years, Year of birth, Nationality | F41 (membership and order from the catalog; FR-050) |
+| 7290:62357 | draft, Driving licence | 1440 | count line and "All data items" | text / state | "… data items chosen", mixed | "3 of 31 data items chosen", `#document-mdl-all` mixed | match |
+| — | draft, tick a clear group (Name) | 1440 | `#document-mdl-group-name` click | items / count / "All data items" | not drawn (US9-AS2) | 4 items ticked, box ticked, "7 of 31 data items chosen", "All data items" mixed | W18 (US9-AS2) |
+| — | draft, tick a mixed group (Licence) | 1440 | `#document-mdl-group-licence` click | items / count | not drawn | all 3 ticked, "9 of 31 …" | W18 (FR-079) |
+| — | draft, clear a ticked group a rule checks (Licence) | 1440 | question (`dialog[open]`) | text | not drawn (W18) | "Stop requesting “Licence” data from Driving licence?" / "1 rule checks this data: Rule 02 in Standard. Edit or delete it before you publish." / "Cancel" / "Stop requesting"; nothing changed until answered | W18; copy.md §5 (US9-AS4) |
+| — | the question, "Cancel" | 1440 | group / focus | — | — | group stays ticked, "9 of 31", focus back on `#document-mdl-group-licence` | W18 |
+| — | the question, "Stop requesting" | 1440 | group / count / focus | — | — | Licence cleared, "6 of 31", focus on `#document-mdl-group-licence` | W18 |
+| — | draft, clear a ticked group no rule checks (Name) | 1440 | `#document-mdl-group-name` | question | — | no question, cleared at once, "2 of 31" | W18 (as "All data items") |
+| — | draft, "All data items" ticked | 1440 | group boxes | state | — | all 7 ticked, "31 of 31 data items chosen" | match (FR-079: the boxes follow) |
+| — | draft, German | 1440 | group labels | text | not drawn (FR-078e) | Name, Geburt, Adresse, Dokument, Fahrerlaubnis, Aussehen, Weitere Angaben; Personalausweis: Name, Geburt, Adresse, Dokument, Weitere Angaben | design-notes §4.2 T105; copy.md §5 via the catalog |
+| — | draft, German, the question | 1440 | dialog text | text | not drawn | "Felder der Gruppe „Fahrerlaubnis“ aus Führerschein nicht mehr anfordern?" / "1 Regel prüft diese Daten: Rule 02 in Standard. Bearbeiten oder löschen Sie die Regel vor dem Veröffentlichen." / "Abbrechen" / "Nicht mehr anfordern" | copy.md §5 |
+| — | a document with 10 data items or fewer | — | flat list | — | not drawn (FR-077d) | no such document in today's catalog: `groupedFieldsOf()` answers null and `DocumentDetail` keeps the flat `FieldRow` list (unit tests `utils.test.ts` "answers null for a document with 10 data items") | W18 (FR-077d) |
+| 7296:52340 | edit flow of `T074 live`, Personal ID in the frame's state (Name 2, Birth 2, Address 2) | 1440 | groups' boxes (x, y, w, h from the body) | position | Name 24,16,245,160; Birth 24,192; Address 293,16; Document 562,16; Other details 562,256 | Name 24,16,245,160; Birth 24,192,245,160; Address 293,16,245,280; Document 561,16,245,224; Other details 561,256,245,184 | match (±1 px: equal CSS columns) |
+| 7296:52340 | edit flow | 1440 | screenshot comparison | groups, mixed boxes, ticks | Name, Birth, Address mixed; Document, Other details clear | same (`edit-pid-frame-state-1440.png`) but Nationality under Birth | match; Clarification 2026-11-11 for Birth / Other details |
+| 7296:52340 | edit flow | 1440 | count / "All data items" | text / state | "6 of 25 data items chosen", mixed | "6 of 25 data items chosen", `#document-pid-all` mixed | match |
+| — | edit flow, clear a ticked group a rule checks (Birth) | 1440 | question | text | not drawn | "Stop requesting “Birth” data from Personal ID?" / "1 rule checks this data: Rule 01 in Standard. Edit or delete it before you save." / "Cancel" / "Stop requesting"; after "Stop requesting" "4 of 25", Birth clear | W18 (FR-079; 002-S1.7 "before you save") |
+| — | draft, Personal ID | 320 | page | horizontal scroll / clipped / off-screen / h1 | — | scrollWidth 305 ≤ clientWidth 320; nothing off-screen or clipped in the panel; 1 h1; one column (groups at x 41) | match |
+| — | draft, Personal ID | 320 | `#document-pid-group-document` | focus ring after click / after Tab | none / 3 px | `outline: none` / `solid 3px` | match |
+| — | draft, Driving licence | 320 | page | horizontal scroll / clipped / off-screen / h1 | — | 305 ≤ 320; none; 1 h1; one column | match |
+| — | draft, the question (Licence) | 320 | page and dialog | horizontal scroll / off-screen / h1 | — | 305 ≤ 320; none; 1 h1 | match |
+| — | draft, Personal ID | 160 | page | horizontal scroll / clipped / off-screen / h1 | — | 160 ≤ 160; none; 1 h1; one column (groups at x 21) | match |
+| — | draft, Personal ID | 160 | `#document-pid-group-document` | focus ring after click / after Tab | none / 3 px | `outline: none` / `solid 3px` | match |
+| — | draft, Driving licence | 160 | page | horizontal scroll / clipped / off-screen / h1 | — | 160 ≤ 160; none; 1 h1 | match |
+| — | draft, the question (Licence) | 160 | dialog | horizontal scroll / off-screen / h1 | — | 160 ≤ 160; none horizontally; 1 h1; the title wraps by word-break (narrow block) and the dialog scrolls (`dialog.kern-dialog` is the scroller) to "Stop requesting" (y 731–819 in an 800 high window) | match (ConfirmDialog as for "All data items") |
+| — | edit flow, Personal ID | 320 | page | horizontal scroll / off-screen / h1 | — | 305 ≤ 320; none; 1 h1 | match |
+| — | edit flow, `#document-pid-group-birth` | 320 | focus ring after click / after Tab | none / 3 px | `none` / `solid 3px` | match |
+| — | edit flow, the question (Birth) | 320 | page and dialog | horizontal scroll / off-screen / h1 | — | 305 ≤ 320; none; 1 h1 | match |
+| — | edit flow, Personal ID | 160 | page | horizontal scroll / off-screen / h1 | — | 160 ≤ 160; none; 1 h1 | match |
+| — | edit flow, `#document-pid-group-birth` | 160 | focus ring after click / after Tab | none / 3 px | `none` / `solid 3px` | match |
+| — | edit flow, the question (Birth) | 160 | page and dialog | horizontal scroll / off-screen / h1 | — | 160 ≤ 160; none; 1 h1 | match |
+
 ### 2.2 The walks (quickstart V1–V12)
 
 #### T017: walk V5, dates and the draft's step (US2; FR-015–FR-021, SC-003, US2-AS1–AS6; scripted `playwright-core` 1.65: Chromium `/usr/bin/chromium` and Firefox 159 (build 1572), 1440 × 900, browser zone Europe/Berlin unless named; English and German through the stored language choice; backend with the fake EUDIPLO; every text compared with the one the script composed from the API's dates (data-model §1.4, the glossary's words), the publish/deactivate/reactivate/save instants checked to fall inside the action; connections `T017 <browser> <lang> <stamp>` made in the UI, one document and one rule seeded through the API between the connection and documents saves so that the rules and test steps open; CSV `<scratchpad>/T017/walk.csv`, summary `<scratchpad>/T017/summary.md`)
@@ -1681,6 +1734,210 @@ The rows that remain are the reruns' 20 connections (`T061 {en,de} {c4nu5, csrj8
 SC-008 (from the click on "Start from an example" to step 1 with its h1, banner and name, two activations): 548 ms in English, 481 ms in German (click → dialog 126 / 95 ms; "Create the example" → step 1 263 / 228 ms), the script's clicks without a person's reading time; the 10 seconds by hand remain the phase's "Needs a person".
 
 Before the counted run, two English runs (markers `=== T070 en start 2026-11-12T00:10:11.128Z ===` to `… end 2026-11-12T00:11:17.601Z ===` and `… 00:11:31.793Z` to `… 00:12:38.707Z`) failed only on the script's own selectors: the test step's persona chips are `role="tab"` too, the rules step's tablist is an empty element that owns its tabs by `aria-owns` (so its box isn't the tab row's), and the publish dialog's summary values are `dd > span`, not `dd p` (T068's labels note). Fixed in the script, no app change; their rows were discarded. The connections of those runs and of the exploration (`8690c532…` published, `995f829f…`, `45259251…`, `1f490c79…`, `2b7c9003…`, `2b7535ac…`, `81393e96…`) were deleted with the app's own delete as well; `template_db_010_p9_empty` holds no connection without `deleted_at`.
+
+#### T076: walk V11, data groups (US9; FR-077–FR-079, SC-012, US9-AS1–AS4; scripted `playwright-core` 1.65: Chromium 156 (`/usr/bin/chromium`), 1440 × 900 viewport, browser zone Europe/Berlin; English and German through the stored language choice, one fresh browser context per language and per flow (the draft's V11.1–V11.3 and V11.5, the edit flow's V11.4, each of SC-012's two drafts); backend on 3014 with the fake EUDIPLO, `WORKER_ENABLED=false`, database `template_db_010_p10` (Alembic head `1b6d7a28c6b2`; T072's catalog groups in the running code); Vite on 5178; account `p10-alice` (browser and API). Connections made through the API by p10-alice, none deleted: per language a draft `T076 <lang> rules` (step "documents") and a published `T076 <lang> live`, both with `P3 seed live`'s documents (Personal ID: family_name, given_name, birthdate, address_locality; Driving licence: expiry_date, document_number, driving_privileges) and its Standard rules (Rule 01 on `pid.birthdate`, Rule 02 on `mdl.driving_privileges`), and two drafts `T076 <lang> by group` and `T076 <lang> one by one` (Personal ID and Driving licence without data, Standard empty): en `5b896c10-373c-4926-93f1-568ccfac4692`, `50f95cc3-74a3-4521-801f-365ee3603c44`, `33566776-fddd-4df3-a6e8-3436c0d42e01`, `28972093-ecf2-4878-b49f-5085ab9b1cd1`; de `86e2cb59-75d4-4bf7-b840-3e5fe8a3fd97`, `b292a293-1749-4eb9-8f88-749ea53fb19c`, `bb4baa27-429e-40df-89f9-efe6500ca0aa`, `97f8345c-8297-4ea8-b0f6-dd0534e47468`. Measured, from the DOM of `#document-detail`: V11.1 for both documents the shown document's title, `column-count` of the group list and the count of distinct group lefts (3), the group boxes' keys (`#document-<doc>-group-<key>`) and `label[for]` names in order, each group's count of data items, the order read down the columns (groups sorted by left, then top) against the catalog's, no group split (`getClientRects()` one box, one item left per group), the items' list named after the group (`ul[aria-label]`), "All data items" above the first group, the whole panel (groups, labels, data items in catalog order) against `GET /api/document-types` with the language's `Accept-Language`, every data item in one group, the Personal ID's Birth (`birthdate`, `place_of_birth`, `nationalities`, `sex`; Clarification 2026-11-11), the stored data shown ticked; V11.2 on the Driving licence: a clear group (Name) ticked, an item of Appearance ticked (mixed), the stored mixed groups (Document, Licence), the mixed Appearance and Licence ticked (all chosen, no question even for Licence, which Rule 02 checks, the earlier choice kept), every group ticked ("All data items" ticked, "31 of 31"), Appearance cleared (no question, "25 of 31"), and Space on its box (all ticked, focus and `:focus-visible` on the box); after every action each group box's ticked/mixed/clear state against its data items, "All data items"' state and the count line against copy.md §5's "<n> of <m> data items chosen" / "<n> von <m> Feldern ausgewählt"; V11.3 Licence (Driving licence, Rule 02) and Birth (Personal ID, Rule 01) ticked, then cleared: `dialog[open]` first with nothing cleared, its title (copy.md §5), its text "1 rule checks this data: Rule 0n in Standard. Edit or delete it before you publish." / "1 Regel prüft diese Daten: Rule 0n in Standard. Bearbeiten oder löschen Sie die Regel vor dem Veröffentlichen.", no other rule named, "Cancel"/"Stop requesting" ("Abbrechen"/"Nicht mehr anfordern"); "Cancel" keeps the group with the focus back on its box; "Stop requesting" clears only that group, the focus on its box; V11.4 the same in the edit flow of `T076 <lang> live` (connection step → "Choose documents"/"Dokumente auswählen"): both panels' columns, groups, counts and order, Name and the mixed Licence ticked without a question, clearing Licence asks "… before you save." ("… vor dem Speichern."), "Cancel" and "Stop requesting", the Personal ID's Birth naming Rule 01; V11.5 the group names in the run's language (V11.1's rows) and, on the page, the header's language switch to the other language and back (`[data-language-switch] button[lang]`): both documents' group names, "All data items" and the count line re-rendered without a reload, the choice kept; SC-012 per language: in `by group` the Personal ID's Birth ticked, one Address item then Address (mixed first), Document ticked and cleared, Other details ticked; the Driving licence's Name, Licence, Appearance ticked, Appearance cleared and ticked again, Other details ticked, each a single activation; in `one by one` the same by ticking (and clearing) each data item in the panel's order; both saved with "Save and exit"; compared: the two drafts' `GET /form-connections/{id}` documents (JSON, fields with labels) equal, the two `PUT …/draft` bodies' data items equal (sorted), the stored data equal to the planned groups' data items in catalog order, each version moved by one save, no question opened, no local draft left. Every step also measured exactly one h1 and no horizontal scroll (`scrollWidth`, element boxes past either edge). Leaving: edited editors left by navigating (`beforeunload` accepted), then the `connection-portal:local-draft:v1:*` keys found (2 after the draft, 1 after the edit flow) removed and none left; the stored draft and the published connection (documents, `current_revision`, `updated_at`) unchanged afterwards. Backend log lines between `=== T076 en start 2026-11-12T09:27:28.307Z ===` and `=== T076 de end 2026-11-12T09:29:02.734Z ===` in `<scratchpad>/backend-3014.log`, none other than 2xx. CSV `/tmp/claude-1000/-home-debian-batch27-faro-010-revamp-backend-gaps/fa08a6b3-dcef-4055-9940-7baa1ff969a7/scratchpad/T076/walk.csv`, summary `/tmp/claude-1000/-home-debian-batch27-faro-010-revamp-backend-gaps/fa08a6b3-dcef-4055-9940-7baa1ff969a7/scratchpad/T076/summary.md`)
+
+| step | measure | measures | pass | fail | unsure |
+|---|---|---|---|---|---|
+| V11.1 Driving licence panel | the document shown | 2 | 2 | 0 | 0 |
+| V11.1 Driving licence panel | three columns | 2 | 2 | 0 | 0 |
+| V11.1 Driving licence panel | the groups in order (keys) | 2 | 2 | 0 | 0 |
+| V11.1 Driving licence panel | the groups in order (names) | 2 | 2 | 0 | 0 |
+| V11.1 Driving licence panel | the groups' counts | 2 | 2 | 0 | 0 |
+| V11.1 Driving licence panel | the groups flow down the columns in order | 2 | 2 | 0 | 0 |
+| V11.1 Driving licence panel | no group split across columns | 2 | 2 | 0 | 0 |
+| V11.1 Driving licence panel | each heading has a checkbox; its items named after it | 2 | 2 | 0 | 0 |
+| V11.1 Driving licence panel | the groups under "All data items" | 2 | 2 | 0 | 0 |
+| V11.1 Driving licence panel | the panel equals GET /api/document-types (groups, labels, data items in catalog order) | 2 | 2 | 0 | 0 |
+| V11.1 Driving licence panel | every data item in exactly one group | 2 | 2 | 0 | 0 |
+| V11.1 Driving licence panel | as stored: every group's box follows its data items (ticked/mixed/clear) | 2 | 2 | 0 | 0 |
+| V11.1 Driving licence panel | as stored: "All data items" follows | 2 | 2 | 0 | 0 |
+| V11.1 Driving licence panel | as stored: the count line follows | 2 | 2 | 0 | 0 |
+| V11.1 Driving licence panel | the stored data shows chosen | 2 | 2 | 0 | 0 |
+| V11.1 Driving licence panel | exactly one h1 | 2 | 2 | 0 | 0 |
+| V11.1 Driving licence panel | no horizontal scroll | 2 | 2 | 0 | 0 |
+| V11.1 Personal ID panel | the document shown | 2 | 2 | 0 | 0 |
+| V11.1 Personal ID panel | three columns | 2 | 2 | 0 | 0 |
+| V11.1 Personal ID panel | the groups in order (keys) | 2 | 2 | 0 | 0 |
+| V11.1 Personal ID panel | the groups in order (names) | 2 | 2 | 0 | 0 |
+| V11.1 Personal ID panel | the groups' counts | 2 | 2 | 0 | 0 |
+| V11.1 Personal ID panel | the groups flow down the columns in order | 2 | 2 | 0 | 0 |
+| V11.1 Personal ID panel | no group split across columns | 2 | 2 | 0 | 0 |
+| V11.1 Personal ID panel | each heading has a checkbox; its items named after it | 2 | 2 | 0 | 0 |
+| V11.1 Personal ID panel | the groups under "All data items" | 2 | 2 | 0 | 0 |
+| V11.1 Personal ID panel | the panel equals GET /api/document-types (groups, labels, data items in catalog order) | 2 | 2 | 0 | 0 |
+| V11.1 Personal ID panel | every data item in exactly one group | 2 | 2 | 0 | 0 |
+| V11.1 Personal ID panel | the nationality under Birth (Clarification 2026-11-11) | 2 | 2 | 0 | 0 |
+| V11.1 Personal ID panel | as stored: every group's box follows its data items (ticked/mixed/clear) | 2 | 2 | 0 | 0 |
+| V11.1 Personal ID panel | as stored: "All data items" follows | 2 | 2 | 0 | 0 |
+| V11.1 Personal ID panel | as stored: the count line follows | 2 | 2 | 0 | 0 |
+| V11.1 Personal ID panel | the stored data shows chosen | 2 | 2 | 0 | 0 |
+| V11.1 Personal ID panel | exactly one h1 | 2 | 2 | 0 | 0 |
+| V11.1 Personal ID panel | no horizontal scroll | 2 | 2 | 0 | 0 |
+| V11.2 tick a group | Name starts clear | 2 | 2 | 0 | 0 |
+| V11.2 tick a group | ticking a clear group: no question | 2 | 2 | 0 | 0 |
+| V11.2 tick a group | ticking a clear group chooses all of its data items | 2 | 2 | 0 | 0 |
+| V11.2 tick a group | the other groups unchanged | 2 | 2 | 0 | 0 |
+| V11.2 tick a group | the group box ticked, not mixed | 2 | 2 | 0 | 0 |
+| V11.2 tick a group | after Name: every group's box follows its data items (ticked/mixed/clear) | 2 | 2 | 0 | 0 |
+| V11.2 tick a group | after Name: "All data items" follows | 2 | 2 | 0 | 0 |
+| V11.2 tick a group | after Name: the count line follows | 2 | 2 | 0 | 0 |
+| V11.2 tick a group | the count line: 3 + 4 of 31 | 2 | 2 | 0 | 0 |
+| V11.2 tick a group | exactly one h1 | 2 | 2 | 0 | 0 |
+| V11.2 tick a group | no horizontal scroll | 2 | 2 | 0 | 0 |
+| V11.2 some chosen: mixed | one data item of Appearance ticked: the group mixed | 2 | 2 | 0 | 0 |
+| V11.2 some chosen: mixed | the stored mixed groups show mixed (Document, Licence) | 2 | 2 | 0 | 0 |
+| V11.2 some chosen: mixed | after one item: every group's box follows its data items (ticked/mixed/clear) | 2 | 2 | 0 | 0 |
+| V11.2 some chosen: mixed | after one item: "All data items" follows | 2 | 2 | 0 | 0 |
+| V11.2 some chosen: mixed | after one item: the count line follows | 2 | 2 | 0 | 0 |
+| V11.2 some chosen: mixed | exactly one h1 | 2 | 2 | 0 | 0 |
+| V11.2 some chosen: mixed | no horizontal scroll | 2 | 2 | 0 | 0 |
+| V11.2 tick a mixed group | appearance: ticking a mixed group asks nothing (even one a rule checks) | 2 | 2 | 0 | 0 |
+| V11.2 tick a mixed group | appearance: all of its data items chosen, the box ticked | 2 | 2 | 0 | 0 |
+| V11.2 tick a mixed group | appearance: the data items chosen before stay | 2 | 2 | 0 | 0 |
+| V11.2 tick a mixed group | licence: ticking a mixed group asks nothing (even one a rule checks) | 2 | 2 | 0 | 0 |
+| V11.2 tick a mixed group | licence: all of its data items chosen, the box ticked | 2 | 2 | 0 | 0 |
+| V11.2 tick a mixed group | licence: the data items chosen before stay | 2 | 2 | 0 | 0 |
+| V11.2 tick a mixed group | after the mixed groups: every group's box follows its data items (ticked/mixed/clear) | 2 | 2 | 0 | 0 |
+| V11.2 tick a mixed group | after the mixed groups: "All data items" follows | 2 | 2 | 0 | 0 |
+| V11.2 tick a mixed group | after the mixed groups: the count line follows | 2 | 2 | 0 | 0 |
+| V11.2 tick a mixed group | exactly one h1 | 2 | 2 | 0 | 0 |
+| V11.2 tick a mixed group | no horizontal scroll | 2 | 2 | 0 | 0 |
+| V11.2 every group ticked | no question | 2 | 2 | 0 | 0 |
+| V11.2 every group ticked | all groups ticked | 2 | 2 | 0 | 0 |
+| V11.2 every group ticked | "All data items" ticked, the count line 31 of 31 | 2 | 2 | 0 | 0 |
+| V11.2 every group ticked | exactly one h1 | 2 | 2 | 0 | 0 |
+| V11.2 every group ticked | no horizontal scroll | 2 | 2 | 0 | 0 |
+| V11.2 clear a group no rule checks | clearing a group no rule checks: no question | 2 | 2 | 0 | 0 |
+| V11.2 clear a group no rule checks | all of its data items cleared, the box clear | 2 | 2 | 0 | 0 |
+| V11.2 clear a group no rule checks | after clearing Appearance: every group's box follows its data items (ticked/mixed/clear) | 2 | 2 | 0 | 0 |
+| V11.2 clear a group no rule checks | after clearing Appearance: "All data items" follows | 2 | 2 | 0 | 0 |
+| V11.2 clear a group no rule checks | after clearing Appearance: the count line follows | 2 | 2 | 0 | 0 |
+| V11.2 clear a group no rule checks | the count line: 31 − 6 | 2 | 2 | 0 | 0 |
+| V11.2 clear a group no rule checks | Space on a clear group's box ticks all; the focus stays, ring shown | 2 | 2 | 0 | 0 |
+| V11.2 clear a group no rule checks | exactly one h1 | 2 | 2 | 0 | 0 |
+| V11.2 clear a group no rule checks | no horizontal scroll | 2 | 2 | 0 | 0 |
+| V11.3 clear Licence (Rule 02) | the group ticked first (a mixed one ticked without a question) | 2 | 2 | 0 | 0 |
+| V11.3 clear Licence (Rule 02) | the question comes first | 2 | 2 | 0 | 0 |
+| V11.3 clear Licence (Rule 02) | nothing cleared while it asks | 2 | 2 | 0 | 0 |
+| V11.3 clear Licence (Rule 02) | its title (copy.md §5) | 2 | 2 | 0 | 0 |
+| V11.3 clear Licence (Rule 02) | it names the rule that checks the group's data | 2 | 2 | 0 | 0 |
+| V11.3 clear Licence (Rule 02) | it names no other rule | 2 | 2 | 0 | 0 |
+| V11.3 clear Licence (Rule 02) | its buttons | 2 | 2 | 0 | 0 |
+| V11.3 clear Licence (Rule 02) | exactly one h1 | 4 | 4 | 0 | 0 |
+| V11.3 clear Licence (Rule 02) | no horizontal scroll | 4 | 4 | 0 | 0 |
+| V11.3 clear Licence (Rule 02) | Cancel: the group stays ticked, the focus back on its box | 2 | 2 | 0 | 0 |
+| V11.3 clear Licence (Rule 02) | Stop requesting: the group cleared, the other groups kept | 2 | 2 | 0 | 0 |
+| V11.3 clear Licence (Rule 02) | Stop requesting: the box clear, no dialog, the focus on its box | 2 | 2 | 0 | 0 |
+| V11.3 clear Licence (Rule 02) | after Stop requesting: every group's box follows its data items (ticked/mixed/clear) | 2 | 2 | 0 | 0 |
+| V11.3 clear Licence (Rule 02) | after Stop requesting: "All data items" follows | 2 | 2 | 0 | 0 |
+| V11.3 clear Licence (Rule 02) | after Stop requesting: the count line follows | 2 | 2 | 0 | 0 |
+| V11.3 clear Birth (Rule 01) | the group ticked first (a mixed one ticked without a question) | 2 | 2 | 0 | 0 |
+| V11.3 clear Birth (Rule 01) | the question comes first | 2 | 2 | 0 | 0 |
+| V11.3 clear Birth (Rule 01) | nothing cleared while it asks | 2 | 2 | 0 | 0 |
+| V11.3 clear Birth (Rule 01) | its title (copy.md §5) | 2 | 2 | 0 | 0 |
+| V11.3 clear Birth (Rule 01) | it names the rule that checks the group's data | 2 | 2 | 0 | 0 |
+| V11.3 clear Birth (Rule 01) | it names no other rule | 2 | 2 | 0 | 0 |
+| V11.3 clear Birth (Rule 01) | its buttons | 2 | 2 | 0 | 0 |
+| V11.3 clear Birth (Rule 01) | exactly one h1 | 4 | 4 | 0 | 0 |
+| V11.3 clear Birth (Rule 01) | no horizontal scroll | 4 | 4 | 0 | 0 |
+| V11.3 clear Birth (Rule 01) | Cancel: the group stays ticked, the focus back on its box | 2 | 2 | 0 | 0 |
+| V11.3 clear Birth (Rule 01) | Stop requesting: the group cleared, the other groups kept | 2 | 2 | 0 | 0 |
+| V11.3 clear Birth (Rule 01) | Stop requesting: the box clear, no dialog, the focus on its box | 2 | 2 | 0 | 0 |
+| V11.3 clear Birth (Rule 01) | after Stop requesting: every group's box follows its data items (ticked/mixed/clear) | 2 | 2 | 0 | 0 |
+| V11.3 clear Birth (Rule 01) | after Stop requesting: "All data items" follows | 2 | 2 | 0 | 0 |
+| V11.3 clear Birth (Rule 01) | after Stop requesting: the count line follows | 2 | 2 | 0 | 0 |
+| V11.5 group names follow the language | switched to the other language: the Driving licence's groups | 2 | 2 | 0 | 0 |
+| V11.5 group names follow the language | switched to the other language: the choice kept | 2 | 2 | 0 | 0 |
+| V11.5 group names follow the language | switched to the other language: the Personal ID's groups | 2 | 2 | 0 | 0 |
+| V11.5 group names follow the language | switched to the other language: "All data items" and the count line | 2 | 2 | 0 | 0 |
+| V11.5 group names follow the language | exactly one h1 | 4 | 4 | 0 | 0 |
+| V11.5 group names follow the language | no horizontal scroll | 4 | 4 | 0 | 0 |
+| V11.5 group names follow the language | back to the run's language: the groups | 2 | 2 | 0 | 0 |
+| V11.3 leaving the draft | left by navigating: local drafts removed, none left | 2 | 2 | 0 | 0 |
+| V11.3 leaving the draft | nothing saved: the stored draft unchanged | 2 | 2 | 0 | 0 |
+| V11.4 edit flow | the connection is published | 2 | 2 | 0 | 0 |
+| V11.4 edit flow | pid: three columns, the groups and counts in order | 2 | 2 | 0 | 0 |
+| V11.4 edit flow | pid: flow down the columns, none split | 2 | 2 | 0 | 0 |
+| V11.4 edit flow | pid as published: every group's box follows its data items (ticked/mixed/clear) | 2 | 2 | 0 | 0 |
+| V11.4 edit flow | pid as published: "All data items" follows | 2 | 2 | 0 | 0 |
+| V11.4 edit flow | pid as published: the count line follows | 2 | 2 | 0 | 0 |
+| V11.4 edit flow | mdl: three columns, the groups and counts in order | 2 | 2 | 0 | 0 |
+| V11.4 edit flow | mdl: flow down the columns, none split | 2 | 2 | 0 | 0 |
+| V11.4 edit flow | mdl as published: every group's box follows its data items (ticked/mixed/clear) | 2 | 2 | 0 | 0 |
+| V11.4 edit flow | mdl as published: "All data items" follows | 2 | 2 | 0 | 0 |
+| V11.4 edit flow | mdl as published: the count line follows | 2 | 2 | 0 | 0 |
+| V11.4 edit flow | exactly one h1 | 6 | 6 | 0 | 0 |
+| V11.4 edit flow | no horizontal scroll | 6 | 6 | 0 | 0 |
+| V11.4 edit flow | name: ticking chooses all, no question | 2 | 2 | 0 | 0 |
+| V11.4 edit flow | licence: ticking chooses all, no question | 2 | 2 | 0 | 0 |
+| V11.4 edit flow | after ticking: every group's box follows its data items (ticked/mixed/clear) | 2 | 2 | 0 | 0 |
+| V11.4 edit flow | after ticking: "All data items" follows | 2 | 2 | 0 | 0 |
+| V11.4 edit flow | after ticking: the count line follows | 2 | 2 | 0 | 0 |
+| V11.4 edit flow | clearing Licence: the question first | 2 | 2 | 0 | 0 |
+| V11.4 edit flow | its title and text, "before you save" | 2 | 2 | 0 | 0 |
+| V11.4 edit flow | its buttons | 2 | 2 | 0 | 0 |
+| V11.4 edit flow | Cancel keeps the group, the focus on its box | 2 | 2 | 0 | 0 |
+| V11.4 edit flow | Stop requesting clears the group | 2 | 2 | 0 | 0 |
+| V11.4 edit flow | after Stop requesting: every group's box follows its data items (ticked/mixed/clear) | 2 | 2 | 0 | 0 |
+| V11.4 edit flow | after Stop requesting: "All data items" follows | 2 | 2 | 0 | 0 |
+| V11.4 edit flow | after Stop requesting: the count line follows | 2 | 2 | 0 | 0 |
+| V11.4 edit flow | Personal ID's Birth: the question names Rule 01 | 2 | 2 | 0 | 0 |
+| V11.4 edit flow | left by navigating: local drafts removed, none left | 2 | 2 | 0 | 0 |
+| V11.4 edit flow | nothing saved: the published connection unchanged | 2 | 2 | 0 | 0 |
+| SC-012 by group | the draft starts with no data chosen | 2 | 2 | 0 | 0 |
+| SC-012 one by one | the draft starts with no data chosen | 2 | 2 | 0 | 0 |
+| SC-012 by group | pid tick birth: one activation, the same as each data item | 2 | 2 | 0 | 0 |
+| SC-012 by group | pid address: one item, then the group: mixed first | 2 | 2 | 0 | 0 |
+| SC-012 by group | pid item+group address: one activation, the same as each data item | 2 | 2 | 0 | 0 |
+| SC-012 by group | pid tick document: one activation, the same as each data item | 2 | 2 | 0 | 0 |
+| SC-012 by group | pid clear document: one activation, the same as each data item | 2 | 2 | 0 | 0 |
+| SC-012 by group | pid tick other: one activation, the same as each data item | 2 | 2 | 0 | 0 |
+| SC-012 by group | pid at the end: every group's box follows its data items (ticked/mixed/clear) | 2 | 2 | 0 | 0 |
+| SC-012 by group | pid at the end: "All data items" follows | 2 | 2 | 0 | 0 |
+| SC-012 by group | pid at the end: the count line follows | 2 | 2 | 0 | 0 |
+| SC-012 by group | mdl tick name: one activation, the same as each data item | 2 | 2 | 0 | 0 |
+| SC-012 by group | mdl tick licence: one activation, the same as each data item | 2 | 2 | 0 | 0 |
+| SC-012 by group | mdl tick appearance: one activation, the same as each data item | 4 | 4 | 0 | 0 |
+| SC-012 by group | mdl clear appearance: one activation, the same as each data item | 2 | 2 | 0 | 0 |
+| SC-012 by group | mdl tick other: one activation, the same as each data item | 2 | 2 | 0 | 0 |
+| SC-012 by group | mdl at the end: every group's box follows its data items (ticked/mixed/clear) | 2 | 2 | 0 | 0 |
+| SC-012 by group | mdl at the end: "All data items" follows | 2 | 2 | 0 | 0 |
+| SC-012 by group | mdl at the end: the count line follows | 2 | 2 | 0 | 0 |
+| SC-012 by group | no question (no rule) | 2 | 2 | 0 | 0 |
+| SC-012 by group | exactly one h1 | 2 | 2 | 0 | 0 |
+| SC-012 by group | no horizontal scroll | 2 | 2 | 0 | 0 |
+| SC-012 by group | "Save and exit" saved the draft | 2 | 2 | 0 | 0 |
+| SC-012 by group | no local draft left after saving | 2 | 2 | 0 | 0 |
+| SC-012 one by one | pid tick birth: each data item (4 clicks), the box follows | 2 | 2 | 0 | 0 |
+| SC-012 one by one | pid item+group address: each data item (7 clicks), the box follows | 2 | 2 | 0 | 0 |
+| SC-012 one by one | pid tick document: each data item (6 clicks), the box follows | 2 | 2 | 0 | 0 |
+| SC-012 one by one | pid clear document: each data item (6 clicks), the box follows | 2 | 2 | 0 | 0 |
+| SC-012 one by one | pid tick other: each data item (4 clicks), the box follows | 2 | 2 | 0 | 0 |
+| SC-012 one by one | pid at the end: every group's box follows its data items (ticked/mixed/clear) | 2 | 2 | 0 | 0 |
+| SC-012 one by one | pid at the end: "All data items" follows | 2 | 2 | 0 | 0 |
+| SC-012 one by one | pid at the end: the count line follows | 2 | 2 | 0 | 0 |
+| SC-012 one by one | mdl tick name: each data item (4 clicks), the box follows | 2 | 2 | 0 | 0 |
+| SC-012 one by one | mdl tick licence: each data item (3 clicks), the box follows | 2 | 2 | 0 | 0 |
+| SC-012 one by one | mdl tick appearance: each data item (6 clicks), the box follows | 4 | 4 | 0 | 0 |
+| SC-012 one by one | mdl clear appearance: each data item (6 clicks), the box follows | 2 | 2 | 0 | 0 |
+| SC-012 one by one | mdl tick other: each data item (1 clicks), the box follows | 2 | 2 | 0 | 0 |
+| SC-012 one by one | mdl at the end: every group's box follows its data items (ticked/mixed/clear) | 2 | 2 | 0 | 0 |
+| SC-012 one by one | mdl at the end: "All data items" follows | 2 | 2 | 0 | 0 |
+| SC-012 one by one | mdl at the end: the count line follows | 2 | 2 | 0 | 0 |
+| SC-012 one by one | no question (no rule) | 2 | 2 | 0 | 0 |
+| SC-012 one by one | exactly one h1 | 2 | 2 | 0 | 0 |
+| SC-012 one by one | no horizontal scroll | 2 | 2 | 0 | 0 |
+| SC-012 one by one | "Save and exit" saved the draft | 2 | 2 | 0 | 0 |
+| SC-012 one by one | no local draft left after saving | 2 | 2 | 0 | 0 |
+| SC-012 compare | the two saved drafts' documents JSON equal (GET, fields with labels) | 2 | 2 | 0 | 0 |
+| SC-012 compare | the two PUT bodies choose the same data items (sorted) | 2 | 2 | 0 | 0 |
+| SC-012 compare | the saved data: exactly the planned groups' data items, in catalog order | 2 | 2 | 0 | 0 |
+| SC-012 compare | stored versions moved by one save each | 2 | 2 | 0 | 0 |
+
+195 rows; 414 measures: 414 pass, 0 fail, 0 unsure.
+
+No app change: every row passed on the counted run, so no file of T073 or T074 was touched and the root gates were not run. Before the counted run, an English run of V11 (markers `=== T076 en start 2026-11-12T09:25:51.029Z ===` to `… end 2026-11-12T09:26:14.653Z ===`) failed one row on the script's own expectation (a published connection's `state` is `live`, not `active`), and a run at `09:26:23.320Z` stopped on the script's catalog call without a cookie after saving the English SC-012 drafts; the counted run first put both English drafts back to no data with one API save each (so their versions read 4, the German ones 2). Earlier exploration runs (`09:24:32`, `09:24:56`) stopped on the script's selectors. Their rows were discarded. The dialog names the seeded rules by their stored names ("Rule 01", "Rule 02") in German too: the names are the connection's data, copied from `P3 seed live`, not copy.
 
 ### 2.3 The measured sweeps
 
@@ -2467,6 +2724,71 @@ reversed.
   change was unsaved. The walk's selector notes (the dialog's summary values are `dd > span`; the
   rules step's `[role=tablist]` owns its tabs through `aria-owns`) are for the phase 12 sweep of
   these screens (T096). Kept.
+- **T105, the data group "Licence" in German** (T002's UNCERTAIN 4; the user, phase 10, 2026-11-12):
+  **"Fahrerlaubnis"**. "Führerschein" (data-model §6 until now) is the German name of the document
+  the group sits in, so the driving licence's panel would have shown a group "Führerschein" inside
+  "Führerschein" and the clear-group question "Felder der Gruppe „Führerschein“ aus Führerschein
+  nicht mehr anfordern?"; "Führerscheinklassen" is the label of the field `driving_privileges`
+  inside the group, and the group also holds `un_distinguishing_sign` and
+  `administrative_number`. "Fahrerlaubnis" is the legal term for the permission the licence
+  documents and covers the three fields. Amended: data-model §6, T072's line, spec 009's glossary
+  §4 row (the one row of T002's that T105 may change); the key `licence` and the English "Licence"
+  stay.
+- **T072, the catalog's data groups** (T072's UNCERTAIN 1–4; the coordinator, phase 10): (1) only
+  `GET /api/document-types` fills a field's `group` (`routers/document_types.py`,
+  `_document_type_view()`); every other `DocumentField` answer (a connection's or a draft's
+  documents, the approval previews) carries `"group": null`, since `document_field_view()` in
+  `services/form_connections.py` is not T072's and FR-077 groups the panel by the catalog. The
+  panel (T073, T074) and `get_catalog` (T075) read the groups from the catalog, never from a
+  connection's documents. `test_catalog.py::test_a_field_view_changes_only_its_labels` leaves
+  `group` out of its comparison. Kept; filling `group` in `document_field_view()` too would make
+  every view carry it and drop the router's and the fixture script's special case, a choice for
+  T084 if the null reads as wrong. (2) The TS mirrors are optional (`DocumentField.group?: string |
+  null`, `DocumentType.field_groups?: FieldGroup[]`), matching the backend's defaults, so the
+  hand-written `DocumentField` literals in `rules/`, `frontend/` and `mcp/` tests stay valid;
+  readers use `field_groups ?? []` and `group ?? null`. Kept. (3) **Plan change**: T072 also edited
+  `backend/tests/api/test_form_connections.py` (`_field()` expects `'group': None`, the catalog
+  test each field's group) and `backend/scripts/export_check_fixtures.py` (the example's
+  `document_types` carry `field_groups` and `group` as the endpoint does, else
+  `test_check_fixtures` fails), and regenerated `rules/src/fixtures/example-connection.json` with
+  the script. (4) `mcp/test/fakeBackend.ts`'s small test catalog groups its 11-field PID (Name 1,
+  Other 1: test data, no FR-078 claim) and leaves its 10-field MDL ungrouped (`field_groups: []`),
+  a ready-made ungrouped case. Kept. Handoff: `<SP>/T072-notes.md` of phase 10's chat.
+- **T075, `get_catalog`'s groups** (T075's UNCERTAIN 1–5; the coordinator, phase 10): (1) a
+  document's detail always carries `groups`, `[]` for an ungrouped one (the contract types it
+  `groups: string[]`); (2) a field without a group leaves the `group` key out, as `option_set` is
+  handled (the contract's `group?: string`); (3) the text block adds `group <Name>` in each field
+  line's brackets and one closing line "Its data groups, in Konnekt's order: …" when there are
+  groups, the fields kept in catalog order; (4) the test "no tool takes a group" checks
+  `get_catalog`, `set_document` and `move_document` only, since the rule tools' input `group`
+  (`items.ts`) means a rule group; (5) `documents-and-catalog/SKILL.md` names the groups and the
+  "more than ten data items" threshold (`MAX_FIELDS_WITHOUT_GROUPS = 10`), and says "in Konnekt's
+  order" for the panel's order. The labels are English (no language from `mcp/src/`). Kept.
+- **T073 and T074, the grouped data item panel** (T074's UNCERTAIN 1–8; the coordinator, phase
+  10): (1) **Plan change**: clearing a group reaches the existing question through three files
+  outside T074's line: `FormConnectionEditor/types.ts` (the removal gains the kind `'group'`),
+  `FormConnectionEditor/index.tsx` (the editor's ask-before-removing step reads a group through
+  `dataRemovalOf()`, and the documents step gets `onClearGroup`) and `DocumentsStep/index.tsx`
+  (passes `onClearGroup` through); `DocumentsStep/reducer.ts` and `reducer.test.ts`, named in the
+  line, stay unchanged, since the question reuses the editor's removal state. (2) A group goes to
+  the rules package as the list of its chosen data items, through the existing "dropped data"
+  removal (`dataRemovalOf()`), so `rules/src/` and `mcp/` don't change and each rule is named
+  once. (3) `groupedFieldsOf()` answers null, and the flat list shows, when `field_groups` is
+  empty or a data item has no known group, so that no item is hidden; a group with no field is
+  left out. (4) Ticking a clear or a mixed group chooses all of its data items at once, without a
+  question, keeping dropped data; only clearing a fully ticked group can ask (FR-079, "ticking
+  chooses all, clearing clears all"). (5) Clearing takes the group's chosen data items away and
+  keeps the document's other fields, dropped data included, which still goes only through the
+  note's "Remove it". (6) Each group is a list item holding its heading checkbox and its data
+  items as a list named after the group; no `h3`, since the checkbox is named by its heading. (7)
+  The heading label's 16 px semibold uses an `!important` arbitrary variant on a wrapper in
+  `FieldGroup.tsx`, because the shared checkbox override in `index.css` sits outside Tailwind's
+  layers. (8) The flat list of a document with 10 data items or fewer can't be shown in the browser
+  (today's catalog has none); `groupedFieldsOf`'s tests cover it and the table's row cites W18.
+  Kept. Four nodes read (`7290:61214`, `7290:61956`, `7290:62357`, `7296:52340`), none changed
+  since the audit. Notes for T076: `<SP>/T074-notes.md` of phase 10's chat; rows `T074 draft`
+  (`ebaea848-da54-42ba-8040-03c5d98dd6dd`) and `T074 live` (`39394df3-6dd6-4747-b7bd-e8a96cfac843`)
+  in `template_db_010_p10`.
 
 ### 4.3 Open points
 
@@ -2497,9 +2819,12 @@ reversed.
   entry's id alone, its time and position read under the query) in one backend task, with the
   tests of the search and the activity paging. The user decides.
 
-- **The data group "Licence" in German** (T002's UNCERTAIN 4; for T105, before T072): "Führerschein"
-  (data-model §6, the glossary's §4 row) is also the name of the document the group sits in;
-  T002 proposes "Fahrerlaubnis" or "Führerscheinklassen". Open until T105 asks the user.
+- **The group question's German title doesn't quote the document** (T074's note; for T097's
+  German review, then T099): copy.md §5's "Felder der Gruppe „<group>“ aus <document> nicht mehr
+  anfordern?" leaves the document unquoted, where the "All data items" question built in spec 009
+  quotes it ("Alle Daten aus „<document>“ nicht mehr anfordern?"); T074 built copy.md's words. The
+  English titles agree (neither quotes the document). T074 would write "… aus „<document>“ …";
+  the reviewer may also weigh "Felder" against "Daten" there.
 - **Spec 009's glossary has two malformed rows** (found by T002; not changed, since T002 changes
   no existing row): the row "the rule editor's field error “Enter a whole number greater than
   0.”" has no third cell, and the row "connection URLs" (spec 009's T042) has a fourth cell that
@@ -2907,5 +3232,45 @@ reversed.
   `console.*`, no inline style, no `any`, no `dark:` and no `focus:`. **Left for a person**
   (tasks.md, phase 9 "Needs a person"), so T071 stays open: SC-008's 10 seconds timed once by
   hand, from the welcome page to the example's step 1 (the script measured the same span).
+- 2026-11-12: phase 10, US9 (T105, T072–T076), each wave's gates green on the combined tree. T105
+  asked the user: the data group `licence` is "Fahrerlaubnis" in German (§4.2 T105; data-model §6,
+  T072's line and spec 009's glossary row amended before T072 ran). The environment: a scratch
+  copy of phase 9's database, `template_db_010_p10` (`pg_dump` of `template_db_010_p9` into a new
+  database, Alembic head `1b6d7a28c6b2`; no migration in this phase), backend on 3014 with the fake
+  EUDIPLO (the launcher copied into this chat's scratchpad), `WORKER_ENABLED=false`, started after
+  wave 1 so that waves 2 and 3 ran T072's catalog, and Vite on 5178. Test counts after the phase:
+  pytest 2457 passed (2449 after phase 9, +8: the catalog's groups and their German labels), run
+  by T072 after its last backend edit and not rerun by the coordinator (the user's standing rule;
+  no backend file changed after it); Ruff, mypy over 95 files and the fixtures' `--check` rerun
+  green after wave 1 and at the checkpoint; `rules/` 46 files, 2664 tests (unchanged);
+  `frontend/` 35 files, 1552 tests (+16: the grouping helpers and the group's removal);
+  `mcp/` 15 files, 477 tests (+4: `get_catalog`'s groups). The generated
+  `rules/src/fixtures/example-connection.json` was regenerated by the script (its `document_types`
+  carry `field_groups` and `group`); the other three generated files left byte for byte. Waves ran
+  as planned, with no change of level or batch. **Plan changes** (§4.2): T072's files gained
+  `backend/tests/api/test_form_connections.py` and `backend/scripts/export_check_fixtures.py`;
+  T074's gained `FormConnectionEditor/{types.ts,index.tsx}` and `DocumentsStep/index.tsx`, and
+  left `DocumentsStep/{reducer.ts,reducer.test.ts}` unchanged. One open point added to §4.3 (the
+  group question's German title, for T097). The tasks left in `template_db_010_p10` the rows
+  `T074 draft`, `T074 live` and T076's eight (`T076 {en,de} {rules,live,by group,one by one}`,
+  ids in §2.2 T076's run); screenshots in the git-ignored `.playwright-mcp/T074/`; no local draft
+  is left in any browser profile. The documentation checklist's entries are for T102:
+  ARCHITECTURE's catalog (`FIELD_GROUPS`, `CatalogDocumentType.field_groups()`, more than 10 data
+  items, only `GET /api/document-types` fills a field's `group`), the frontend's documents step
+  (the grouped panel, `groupedFieldsOf()`, the group's removal through the "All data items"
+  question) and the MCP server's `get_catalog` (`group`, `groups`, English); no new environment
+  variable or dependency.
+- 2026-11-12: US9's checkpoint (T077, the coordinator). The gates are green on both sides: the
+  backend's Ruff, mypy and the fixtures' `--check` and the root gates (lint, `npm test` with the
+  counts above, build) rerun at the checkpoint, after T076, which changed no repository file;
+  pytest as above. T076's walk V11 (§2.2): 414 measures, 414 pass, 0 fail, 0 unsure, over
+  V11.1–V11.5 and SC-012 × English and German in Chromium; SC-012's two drafts (by group, one by
+  one) saved equal. T074's table in §2.1 (48 rows) has no open row. The backend's log of the walk
+  (`backend-3014.log`, 146 lines between T076's markers) holds uvicorn's access lines only:
+  methods, paths with ids, statuses (all 2xx, four of them CORS preflights); no name, person,
+  date, group or rule. The phase's diff adds no log call in `backend/app`; the frontend's, rules',
+  MCP's and api-types' diffs (with the new `FieldGroup.tsx`) add no `console.*`, no inline style,
+  no `any`, no `dark:` and no `focus:`. Phase 10's "Needs a person" lists nothing, so T077 is
+  ticked.
 
 ## 6. Closing report

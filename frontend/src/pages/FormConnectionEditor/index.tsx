@@ -112,6 +112,7 @@ import {
   conflictOf,
   connectionErrorsOf,
   createPayload,
+  dataRemovalOf,
   documentIndexOfListIndex,
   documentLines,
   documentsToastOf,
@@ -1360,7 +1361,7 @@ function ConnectionWizard({
    * a dialog that names them (FR-029; F18).
    */
   function removeOrAsk(removal: PendingRemoval): boolean {
-    if (rulesCheckingRemoval(rules.branches, removal, state.documents).length > 0) {
+    if (rulesCheckingRemoval(rules.branches, dataRemovalOf(removal), state.documents).length > 0) {
       dispatch({ type: 'askRemoval', removal });
       return false;
     }
@@ -1553,6 +1554,7 @@ function ConnectionWizard({
             onMove={handleMoveDocument}
             onSetField={handleSetField}
             onSetAllFields={handleSetAllFields}
+            onClearGroup={removeOrAsk}
             isExample={isExample}
           />
         );

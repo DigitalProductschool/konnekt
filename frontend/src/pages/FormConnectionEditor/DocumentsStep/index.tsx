@@ -84,6 +84,7 @@ export default function DocumentsStep({
   onMove,
   onSetField,
   onSetAllFields,
+  onClearGroup,
   isExample = false,
 }: DocumentsStepProps & ExampleStepProps) {
   const { language } = useLanguage();
@@ -173,6 +174,7 @@ export default function DocumentsStep({
               const kept = document.fields.filter((field) => !offered.includes(field));
               onSetAllFields(documentType.key, fields.length > 0 ? [...fields, ...kept] : fields);
             }}
+            onClearGroup={onClearGroup}
           />
         ) : (
           <EmptyPanel />

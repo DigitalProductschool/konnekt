@@ -58,6 +58,8 @@ def _field(key: str, label: str, kind: str, **details: Any) -> dict[str, Any]:
         'date_of_birth': False,
         'parts': None,
         'multiple_values': False,
+        # Only GET /api/document-types gives a field its data group (spec 010, FR-078)
+        'group': None,
     } | details
 
 
@@ -166,9 +168,11 @@ def test_the_catalog_returns_each_fields_kind_and_parts(
         for document_type in response.json()['data']
         for field in document_type['fields']
     }
-    assert fields['pid', 'family_name'] == _field('family_name', 'Family name', 'text')
+    assert fields['pid', 'family_name'] == _field(
+        'family_name', 'Family name', 'text', group='name'
+    )
     assert fields['pid', 'birthdate'] == _field(
-        'birthdate', 'Date of birth', 'date', date_of_birth=True
+        'birthdate', 'Date of birth', 'date', date_of_birth=True, group='birth'
     )
     assert fields['pid', 'nationalities'] == _field(
         'nationalities',
@@ -176,11 +180,13 @@ def test_the_catalog_returns_each_fields_kind_and_parts(
         'enum',
         option_set='countries',
         multiple_values=True,
+        group='birth',
     )
     assert fields['pid', 'place_of_birth'] == _field(
         'place_of_birth',
         'Place of birth',
         'parts',
+        group='birth',
         parts=[
             {
                 'key': 'country',
@@ -208,11 +214,21 @@ def test_the_catalog_returns_each_fields_kind_and_parts(
             },
         ],
     )
-    assert fields['pid', 'picture'] == _field('picture', 'Photo', 'image')
-    assert fields['mdl', 'height'] == _field('height', 'Height (cm)', 'number')
-    assert fields['mdl', 'sex'] == _field('sex', 'Sex', 'enum', option_set='sex')
+    assert fields['pid', 'picture'] == _field(
+        'picture', 'Photo', 'image', group='other'
+    )
+    assert fields['mdl', 'height'] == _field(
+        'height', 'Height (cm)', 'number', group='appearance'
+    )
+    assert fields['mdl', 'sex'] == _field(
+        'sex', 'Sex', 'enum', option_set='sex', group='birth'
+    )
     assert fields['mdl', 'driving_privileges'] == _field(
-        'driving_privileges', 'Licence classes', 'parts', parts=LICENCE_CLASS_PARTS
+        'driving_privileges',
+        'Licence classes',
+        'parts',
+        parts=LICENCE_CLASS_PARTS,
+        group='licence',
     )
     # Every field and part says whether a document can give several values for it:
     # only the Personal ID's nationalities and the driving licence's classes can

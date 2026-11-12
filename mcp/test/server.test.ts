@@ -1131,6 +1131,7 @@ describe('the catalog tools', () => {
       key: 'family_name',
       label: 'Family name',
       kind: 'text',
+      group: 'Name',
       multiple_values: false,
       conditions: [
         { operator: 'equal_to', words: 'is equal to', input: 'text' },
@@ -1172,6 +1173,59 @@ describe('the catalog tools', () => {
       ],
     });
     expect(text).toContain('place_of_birth.country');
+  });
+
+  it("get_catalog gives each of pid's fields its data group and the groups in Konnekt's order", async () => {
+    const { structured, text } = await callTool('get_catalog', { document_type: 'pid' });
+    expect(structured.groups).toEqual(['Name', 'Birth', 'Address', 'Document', 'Other details']);
+    const fields = structured.fields as { key: string; group?: string }[];
+    // The fields stay in catalog order; each carries its group's English name
+    expect(fields.map((field) => field.key)).toEqual(
+      fake.store.documentTypes[0].fields.map((field) => field.key)
+    );
+    const groupOf = (key: string) => fields.find((each) => each.key === key)?.group;
+    expect(groupOf('family_name')).toBe('Name');
+    expect(groupOf('nationalities')).toBe('Birth');
+    expect(groupOf('address_country')).toBe('Address');
+    expect(groupOf('date_of_expiry')).toBe('Document');
+    expect(groupOf('picture')).toBe('Other details');
+    expect(fields.every((field) => typeof field.group === 'string')).toBe(true);
+    expect(text).toContain('- family_name: Family name (text, group Name)');
+    expect(text).toContain(
+      "Its data groups, in Konnekt's order: Name, Birth, Address, Document, Other details."
+    );
+  });
+
+  it('get_catalog gives a document without data groups no group and an empty groups', async () => {
+    const { structured, text } = await callTool('get_catalog', { document_type: 'mdl' });
+    expect(structured.groups).toEqual([]);
+    const fields = structured.fields as Record<string, unknown>[];
+    expect(fields.length).toBe(10);
+    expect(fields.every((field) => !('group' in field))).toBe(true);
+    expect(text).not.toContain('data groups');
+    expect(text).not.toContain('group ');
+  });
+
+  it('get_catalog lists the document types without their groups', async () => {
+    const { structured } = await callTool('get_catalog', {});
+    const types = structured.document_types as Record<string, unknown>[];
+    expect(types.every((type) => !('groups' in type))).toBe(true);
+  });
+
+  it('no document tool takes a data group: set_document still takes the fields one by one', async () => {
+    const { client } = await connect('modern');
+    const { tools } = await client.listTools();
+    const propertiesOf = (name: string) =>
+      tools.find((tool) => tool.name === name)?.inputSchema.properties ?? {};
+    for (const name of ['get_catalog', 'set_document', 'move_document']) {
+      expect(Object.keys(propertiesOf(name)).filter((key) => key.includes('group'))).toEqual([]);
+    }
+    expect(Object.keys(propertiesOf('set_document')).sort()).toEqual([
+      'also_remove_rules',
+      'connection',
+      'document_type',
+      'fields',
+    ]);
   });
 
   it('get_catalog refuses an unknown document type with the known keys', async () => {

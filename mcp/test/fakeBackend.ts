@@ -16,7 +16,7 @@ import type {
   ApprovalPreview,
   ApprovalRequest,
 } from '@connection-portal/api-types/approvals';
-import type { DocumentType } from '@connection-portal/api-types/document-types';
+import type { DocumentField, DocumentType } from '@connection-portal/api-types/document-types';
 import type {
   ActivityEntry,
   ActivityPage,
@@ -201,6 +201,64 @@ function meOf(level: AccessLevel): AgentMe {
   };
 }
 
+/**
+ * The data groups in the panel's order, in English, as backend/app/catalog.py's FIELD_GROUPS
+ * (spec 010, FR-077, FR-078)
+ */
+const FIELD_GROUPS = [
+  { key: 'name', label: 'Name' },
+  { key: 'birth', label: 'Birth' },
+  { key: 'address', label: 'Address' },
+  { key: 'document', label: 'Document' },
+  { key: 'licence', label: 'Licence' },
+  { key: 'appearance', label: 'Appearance' },
+  { key: 'other', label: 'Other details' },
+];
+
+/** The groups of the test catalog's fields, as data-model §6 places them in both documents */
+const GROUP_OF: Record<string, string> = {
+  family_name: 'name',
+  birthdate: 'birth',
+  birth_date: 'birth',
+  place_of_birth: 'birth',
+  nationalities: 'birth',
+  nationality: 'birth',
+  sex: 'birth',
+  address_locality: 'address',
+  address_country: 'address',
+  resident_city: 'address',
+  date_of_issuance: 'document',
+  date_of_expiry: 'document',
+  issue_date: 'document',
+  expiry_date: 'document',
+  issuing_country: 'document',
+  driving_privileges: 'licence',
+  un_distinguishing_sign: 'licence',
+  portrait: 'appearance',
+  height: 'appearance',
+  eye_colour: 'appearance',
+  picture: 'other',
+};
+
+/**
+ * A catalog entry as GET /api/document-types answers it: a document with more than 10 fields
+ * gives each field its group and names its groups in the panel's order; one with 10 or fewer
+ * neither. In the test catalog the Personal ID (11 fields) has groups, the licence (10) none
+ */
+function withGroups(document: { key: string; label: string; fields: DocumentField[] }) {
+  const grouped = document.fields.length > 10;
+  const fields = document.fields.map((field) => ({
+    ...field,
+    group: grouped ? (GROUP_OF[field.key] ?? 'other') : null,
+  }));
+  const used = new Set(fields.map((field) => field.group));
+  return {
+    ...document,
+    fields,
+    field_groups: grouped ? FIELD_GROUPS.filter((group) => used.has(group.key)) : [],
+  } satisfies DocumentType;
+}
+
 function documentViewOf(
   catalog: DocumentType[],
   requested: RequestedDocument
@@ -210,18 +268,22 @@ function documentViewOf(
     document_type: requested.document_type,
     // A type or field the catalog dropped keeps its key as its label (spec 005)
     label: type?.label ?? requested.document_type,
-    fields: requested.fields.map(
-      (key) =>
-        type?.fields.find((field) => field.key === key) ?? {
-          key,
-          label: key,
-          kind: 'text',
-          option_set: null,
-          date_of_birth: false,
-          parts: null,
-          multiple_values: false,
-        }
-    ),
+    // Only GET /api/document-types gives a field its group (FR-078)
+    fields: requested.fields.map((key) => {
+      const field = type?.fields.find((each) => each.key === key);
+      return field
+        ? { ...field, group: null }
+        : {
+            key,
+            label: key,
+            kind: 'text',
+            option_set: null,
+            date_of_birth: false,
+            parts: null,
+            multiple_values: false,
+            group: null,
+          };
+    }),
   };
 }
 
@@ -297,7 +359,7 @@ export function fixtureStore(): FakeStore {
   const documents = (catalog: DocumentType[]) => [
     documentViewOf(catalog, { document_type: 'pid', fields: ['birthdate', 'address_locality'] }),
   ];
-  const catalog: DocumentType[] = [PID, MDL];
+  const catalog: DocumentType[] = [PID, MDL].map(withGroups);
   // Newest first: the draft an agent created, the others as the migration backfilled them, the
   // deactivated one deactivated by its team member since
   const activity = new Map<string, ActivityEntry[]>([

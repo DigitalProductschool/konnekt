@@ -8,7 +8,9 @@ import type { RemoveDataDialogProps } from './types';
  * licence?" for a list item's trash, asked always (U23 7298:62322 "Keep document" / "Remove
  * document"), and naming the rules that check the document when there are any (U24 7298:62500);
  * "Stop requesting Date of birth?" before a data item, "All data items" or the note's "Remove it"
- * takes away data that rules check (U26 6324:40396, "Cancel" / "Stop requesting"). One paragraph
+ * takes away data that rules check (U26 6324:40396, "Cancel" / "Stop requesting"), and "Stop
+ * requesting “Licence” data from Driving licence?" before a data group's checkbox does (spec 010,
+ * FR-079; copy.md §5), with the rest of the "All data items" question. One paragraph
  * names the rules with their variants (`ruleListText()`), so that it also describes the dialog.
  * Confirming applies the change and keeps the rules, which refuse publishing and saving while
  * they remain (002-S1.3). The ×, Escape and the scrim answer as the cancel button: nothing goes,

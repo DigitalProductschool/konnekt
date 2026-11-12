@@ -195,6 +195,20 @@ export type PendingRemoval =
   /** Deselecting every field through "All data"; `label` is the document's */
   | { type: 'allFields'; documentType: string; label: string }
   /**
+   * Clearing a data group's checkbox (FR-079; `groupRemovalOf()`): `fields` are the group's chosen
+   * data items, which go; `kept` the document's other fields, which stay; `label` is the group's
+   * and `documentLabel` the document's, both from the catalog
+   */
+  | {
+      type: 'group';
+      documentType: string;
+      group: string;
+      fields: string[];
+      kept: string[];
+      label: string;
+      documentLabel: string;
+    }
+  /**
    * "Remove it" on the note of data the catalog dropped (S8; W10): every item at once; `label`
    * names them all, from `droppedRemovalOf()`
    */

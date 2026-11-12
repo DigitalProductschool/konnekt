@@ -4,8 +4,15 @@ import { US1_RULES } from '@connection-portal/rules/testData';
 import { describe, expect, it } from 'vitest';
 
 import type { RulesBranch } from '../RulesStep/types';
+import type { PendingRemoval } from '../types';
 import { DOCUMENT_GLYPHS, DOCUMENTS_COPY, GENERIC_DOCUMENT_GLYPHS } from './constants';
-import type { DragPointerType, DragRowBox, RowDragEvent, RowDragState } from './types';
+import type {
+  DragPointerType,
+  DragRowBox,
+  GroupedFields,
+  RowDragEvent,
+  RowDragState,
+} from './types';
 import {
   dataCountOf,
   dataCountText,
@@ -15,6 +22,9 @@ import {
   dragPointerTypeOf,
   dropLineOf,
   dropTargetOf,
+  fieldsAfterGroupToggle,
+  groupCheckStateOf,
+  groupedFieldsOf,
   indexAfterAdding,
   indexAfterRemoval,
   inSentence,
@@ -271,6 +281,241 @@ describe('dataCountOf and dataCountText (FR-051 (37))', () => {
   });
 });
 
+/** A catalog document type with groups, as `GET /api/document-types` answers it (T072) */
+function grouped(
+  key: string,
+  label: string,
+  groups: [string, string][],
+  fields: [string, string][]
+): DocumentType {
+  return {
+    key,
+    label,
+    field_groups: groups.map(([groupKey, groupLabel]) => ({ key: groupKey, label: groupLabel })),
+    fields: fields.map(([fieldKey, group]) => ({ ...field(fieldKey), group })),
+  };
+}
+
+const GROUPS: [string, string][] = [
+  ['name', 'Name'],
+  ['birth', 'Birth'],
+  ['address', 'Address'],
+  ['document', 'Document'],
+  ['licence', 'Licence'],
+  ['appearance', 'Appearance'],
+  ['other', 'Other details'],
+];
+
+/** Today's catalog, in its order (data-model §6; the nationality under Birth in both) */
+const CATALOG_PID = grouped(
+  'pid',
+  'Personal ID',
+  GROUPS.filter(([key]) => key !== 'licence' && key !== 'appearance'),
+  [
+    ['family_name', 'name'],
+    ['given_name', 'name'],
+    ['birthdate', 'birth'],
+    ['place_of_birth', 'birth'],
+    ['nationalities', 'birth'],
+    ['address_formatted', 'address'],
+    ['address_street_address', 'address'],
+    ['address_house_number', 'address'],
+    ['address_postal_code', 'address'],
+    ['address_locality', 'address'],
+    ['address_region', 'address'],
+    ['address_country', 'address'],
+    ['personal_administrative_number', 'other'],
+    ['picture', 'other'],
+    ['birth_family_name', 'name'],
+    ['birth_given_name', 'name'],
+    ['sex', 'birth'],
+    ['email', 'other'],
+    ['phone_number', 'other'],
+    ['document_number', 'document'],
+    ['date_of_issuance', 'document'],
+    ['date_of_expiry', 'document'],
+    ['issuing_authority', 'document'],
+    ['issuing_country', 'document'],
+    ['issuing_jurisdiction', 'document'],
+  ]
+);
+const CATALOG_MDL = grouped('mdl', 'Driving licence', GROUPS, [
+  ['family_name', 'name'],
+  ['given_name', 'name'],
+  ['birth_date', 'birth'],
+  ['issue_date', 'document'],
+  ['expiry_date', 'document'],
+  ['issuing_country', 'document'],
+  ['issuing_authority', 'document'],
+  ['document_number', 'document'],
+  ['portrait', 'appearance'],
+  ['driving_privileges', 'licence'],
+  ['un_distinguishing_sign', 'licence'],
+  ['administrative_number', 'licence'],
+  ['sex', 'birth'],
+  ['height', 'appearance'],
+  ['weight', 'appearance'],
+  ['eye_colour', 'appearance'],
+  ['hair_colour', 'appearance'],
+  ['birth_place', 'birth'],
+  ['resident_address', 'address'],
+  ['portrait_capture_date', 'appearance'],
+  ['age_in_years', 'birth'],
+  ['age_birth_year', 'birth'],
+  ['issuing_jurisdiction', 'document'],
+  ['nationality', 'birth'],
+  ['resident_city', 'address'],
+  ['resident_state', 'address'],
+  ['resident_postal_code', 'address'],
+  ['resident_country', 'address'],
+  ['family_name_national_character', 'name'],
+  ['given_name_national_character', 'name'],
+  ['signature_usual_mark', 'other'],
+]);
+
+describe('groupedFieldsOf (the data groups; S8, FR-077, R8)', () => {
+  const counts = (documentType: DocumentType) =>
+    groupedFieldsOf(documentType)?.map(({ label, fields }) => [label, fields.length]);
+
+  it('answers the driving licence’s seven groups in the catalog’s order, with their counts', () => {
+    expect(counts(CATALOG_MDL)).toEqual([
+      ['Name', 4],
+      ['Birth', 6],
+      ['Address', 5],
+      ['Document', 6],
+      ['Licence', 3],
+      ['Appearance', 6],
+      ['Other details', 1],
+    ]);
+  });
+
+  it('answers the Personal ID’s five, the nationality under Birth (Clarification 2026-11-11)', () => {
+    expect(counts(CATALOG_PID)).toEqual([
+      ['Name', 4],
+      ['Birth', 4],
+      ['Address', 7],
+      ['Document', 6],
+      ['Other details', 4],
+    ]);
+    const birth = groupedFieldsOf(CATALOG_PID)?.find((group) => group.key === 'birth');
+    expect(birth?.fields.map((item) => item.key)).toEqual([
+      'birthdate',
+      'place_of_birth',
+      'nationalities',
+      'sex',
+    ]);
+  });
+
+  it('keeps the catalog’s order inside a group and every data item once', () => {
+    const groups = groupedFieldsOf(CATALOG_MDL) ?? [];
+    expect(groups.find((group) => group.key === 'name')?.fields.map((item) => item.key)).toEqual([
+      'family_name',
+      'given_name',
+      'family_name_national_character',
+      'given_name_national_character',
+    ]);
+    const keys = groups.flatMap((group) => group.fields.map((item) => item.key));
+    expect([...keys].sort()).toEqual(CATALOG_MDL.fields.map((item) => item.key).sort());
+  });
+
+  it('answers null for a document with 10 data items, which keeps the flat list', () => {
+    const ten: DocumentType = {
+      key: 'ten',
+      label: 'Ten',
+      field_groups: [],
+      fields: Array.from({ length: 10 }, (_, index) => ({ ...field(`f${index}`), group: null })),
+    };
+    expect(groupedFieldsOf(ten)).toBeNull();
+    // A document type without the catalog's groups at all (a connection's or an older answer)
+    expect(groupedFieldsOf(PID)).toBeNull();
+  });
+
+  it('answers null when a data item lies outside the groups, so that none is hidden', () => {
+    const stray: DocumentType = {
+      ...CATALOG_PID,
+      fields: [...CATALOG_PID.fields, { ...field('extra'), group: null }],
+    };
+    expect(groupedFieldsOf(stray)).toBeNull();
+  });
+
+  it('leaves out a group without data items', () => {
+    const sparse: DocumentType = {
+      ...CATALOG_PID,
+      field_groups: GROUPS.map(([key, label]) => ({ key, label })),
+    };
+    expect(groupedFieldsOf(sparse)?.map((group) => group.key)).toEqual([
+      'name',
+      'birth',
+      'address',
+      'document',
+      'other',
+    ]);
+  });
+});
+
+describe('groupCheckStateOf and fieldsAfterGroupToggle (a group’s checkbox; FR-079)', () => {
+  const groupOf = (key: string): GroupedFields => {
+    const found = groupedFieldsOf(CATALOG_MDL)?.find((group) => group.key === key);
+    if (!found) {
+      throw new Error(`no group ${key}`);
+    }
+    return found;
+  };
+  const licence = groupOf('licence');
+  const other = groupOf('other');
+
+  it('answers none, some or all', () => {
+    expect(groupCheckStateOf(licence, [])).toBe('none');
+    expect(groupCheckStateOf(licence, ['family_name'])).toBe('none');
+    expect(groupCheckStateOf(licence, ['un_distinguishing_sign', 'family_name'])).toBe('some');
+    expect(
+      groupCheckStateOf(licence, [
+        'administrative_number',
+        'driving_privileges',
+        'un_distinguishing_sign',
+      ])
+    ).toBe('all');
+    expect(groupCheckStateOf(other, ['signature_usual_mark'])).toBe('all');
+  });
+
+  it('chooses all of a clear group, at the end in the catalog’s order', () => {
+    expect(fieldsAfterGroupToggle(licence, ['family_name'])).toEqual([
+      'family_name',
+      'driving_privileges',
+      'un_distinguishing_sign',
+      'administrative_number',
+    ]);
+  });
+
+  it('chooses all of a mixed group, keeping what was chosen', () => {
+    expect(fieldsAfterGroupToggle(licence, ['administrative_number', 'family_name'])).toEqual([
+      'administrative_number',
+      'family_name',
+      'driving_privileges',
+      'un_distinguishing_sign',
+    ]);
+  });
+
+  it('clears a ticked group and leaves the others in their order', () => {
+    expect(
+      fieldsAfterGroupToggle(licence, [
+        'family_name',
+        'un_distinguishing_sign',
+        'driving_privileges',
+        'height',
+        'administrative_number',
+      ])
+    ).toEqual(['family_name', 'height']);
+    expect(fieldsAfterGroupToggle(other, ['signature_usual_mark'])).toEqual([]);
+  });
+
+  it('toggles back and forth', () => {
+    const chosen = fieldsAfterGroupToggle(licence, []);
+    expect(groupCheckStateOf(licence, chosen)).toBe('all');
+    expect(fieldsAfterGroupToggle(licence, chosen)).toEqual([]);
+  });
+});
+
 describe('needsDataOf and documentsNeedingData (F67)', () => {
   const documents: RequestedDocument[] = [
     { document_type: 'pid', fields: ['birthdate'] },
@@ -496,6 +741,39 @@ describe('removalDialogCopyOf (the removal question’s words; U23, U24, U26)', 
         'de'
       ).title
     ).toBe('Alle Daten aus „Personalausweis“ nicht mehr anfordern?');
+  });
+
+  it('asks about a data group with its own title and "All data items"’ words (copy.md §5)', () => {
+    const group: PendingRemoval = {
+      type: 'group',
+      documentType: 'mdl',
+      group: 'licence',
+      fields: ['driving_privileges'],
+      kept: [],
+      label: 'Licence',
+      documentLabel: 'Driving licence',
+    };
+    expect(removalDialogCopyOf(group, [rule('Rule 02', 'Standard')], false, 'en')).toEqual({
+      title: 'Stop requesting “Licence” data from Driving licence?',
+      text: '1 rule checks this data: Rule 02 in Standard. Edit or delete it before you publish.',
+      cancelLabel: 'Cancel',
+      confirmLabel: 'Stop requesting',
+    });
+    expect(
+      removalDialogCopyOf(
+        { ...group, label: 'Fahrerlaubnis', documentLabel: 'Führerschein' },
+        [rule('Rule 02', 'Standard'), rule('Rule 03', 'Standard')],
+        true,
+        'de'
+      )
+    ).toEqual({
+      title: 'Felder der Gruppe „Fahrerlaubnis“ aus Führerschein nicht mehr anfordern?',
+      text:
+        '2 Regeln prüfen diese Daten: Rule 02 und Rule 03 in Standard. Bearbeiten oder löschen ' +
+        'Sie die Regeln vor dem Speichern.',
+      cancelLabel: 'Abbrechen',
+      confirmLabel: 'Nicht mehr anfordern',
+    });
   });
 
   it('is empty while nothing is asked', () => {

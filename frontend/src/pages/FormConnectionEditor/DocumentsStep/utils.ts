@@ -22,6 +22,8 @@ import type {
   DragPointerType,
   DragRowBox,
   DropLine,
+  GroupCheckState,
+  GroupedFields,
   ListedDocument,
   RemovalDialogCopy,
   RemovalDialogKind,
@@ -160,6 +162,60 @@ export function dataCountText({ chosen, total }: DataCount, language: Language):
 }
 
 /**
+ * A document's data items under its group headings (S8 "Data groups"; FR-077, R8): the groups in
+ * the order of the catalog's `field_groups`, each with its data items in the catalog's order, a
+ * group without any left out. Null for a document without groups (10 data items or fewer), which
+ * keeps the flat list, and for one with a data item outside its groups, so that no item is hidden.
+ * The groups come from the catalog's document type, never from a connection's documents, whose
+ * fields carry no group.
+ */
+export function groupedFieldsOf(documentType: DocumentType): GroupedFields[] | null {
+  const groups = documentType.field_groups ?? [];
+  const keys = new Set(groups.map((group) => group.key));
+  if (groups.length === 0 || documentType.fields.some((field) => !keys.has(field.group ?? ''))) {
+    return null;
+  }
+  return groups
+    .map(({ key, label }) => ({
+      key,
+      label,
+      fields: documentType.fields.filter((field) => field.group === key),
+    }))
+    .filter((group) => group.fields.length > 0);
+}
+
+/**
+ * A group heading's checkbox (FR-079): `all` while each of its data items is chosen, `some`
+ * (mixed) while only some are, `none` while none is.
+ */
+export function groupCheckStateOf(
+  group: GroupedFields,
+  chosenFields: readonly string[]
+): GroupCheckState {
+  const chosen = group.fields.filter((field) => chosenFields.includes(field.key)).length;
+  if (chosen === 0) {
+    return 'none';
+  }
+  return chosen === group.fields.length ? 'all' : 'some';
+}
+
+/**
+ * The chosen data items after a group heading's checkbox is used (FR-079), as "All data items"
+ * does for the document: a ticked group is cleared, its items leaving the others in their order;
+ * a clear or mixed one gets all its items, those missing added at the end in the catalog's order.
+ */
+export function fieldsAfterGroupToggle(
+  group: GroupedFields,
+  chosenFields: readonly string[]
+): string[] {
+  const keys = group.fields.map((field) => field.key);
+  if (groupCheckStateOf(group, chosenFields) === 'all') {
+    return chosenFields.filter((field) => !keys.includes(field));
+  }
+  return [...chosenFields, ...keys.filter((key) => !chosenFields.includes(key))];
+}
+
+/**
  * The listed documents with no data chosen, in list order (F67, FR-031): what "Set rules →"
  * flags. As the count shows it, only the data the catalog offers counts as chosen.
  */
@@ -261,7 +317,8 @@ export function inSentence(label: string, language: Language): string {
  * The question before data stops being requested (F72, 002-S1.1; FR-029): removing a document,
  * asked always ("Citizens won’t be asked for this document any more.", U23 A10), with the rules
  * that check its data when there are any (U24 A11); deselecting a data item, "All data items" or
- * the note's "Remove it" when rules check it (U26). The rules follow in one sentence, then that
+ * the note's "Remove it" when rules check it (U26), and a data group's checkbox (FR-079, with
+ * "All data items"' words under its own title). The rules follow in one sentence, then that
  * they need editing "before you publish" ("before you save" when editing, 002-S1.7). Empty while
  * nothing is asked.
  */
@@ -300,6 +357,12 @@ export function removalDialogCopyOf(
     case 'allFields':
       return {
         title: copy.allFieldsTitle(removal.label),
+        text: named(copy.dataRules(count)).join(' '),
+        ...stop,
+      };
+    case 'group':
+      return {
+        title: copy.groupTitle(removal.label, removal.documentLabel),
         text: named(copy.dataRules(count)).join(' '),
         ...stop,
       };

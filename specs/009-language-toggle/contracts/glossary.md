@@ -328,7 +328,7 @@ templates themselves are in the code, one per language, with their tests.
 | Birth (a data group) | Geburt (added 2026-11-11, spec 010, T002) |
 | Address (a data group) | Adresse (added 2026-11-11, spec 010, T002) |
 | Document (a data group) | Dokument (added 2026-11-11, spec 010, T002) |
-| Licence (a data group) | Führerschein (added 2026-11-11, spec 010, T002) |
+| Licence (a data group) | Fahrerlaubnis (added 2026-11-11, spec 010, T002; changed 2026-11-12 from "Führerschein", the document's own name, by the user's answer to spec 010's T105) |
 | Appearance (a data group) | Aussehen (added 2026-11-11, spec 010, T002) |
 | Other details (a data group) | Weitere Angaben (added 2026-11-11, spec 010, T002) |
 

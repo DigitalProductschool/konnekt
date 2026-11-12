@@ -17,7 +17,8 @@
               "option_set": null,
               "date_of_birth": false,
               "parts": null,
-              "multiple_values": false
+              "multiple_values": false,
+              "group": null
             },
             {
               "key": "given_name",
@@ -26,7 +27,8 @@
               "option_set": null,
               "date_of_birth": false,
               "parts": null,
-              "multiple_values": false
+              "multiple_values": false,
+              "group": null
             },
             {
               "key": "birthdate",
@@ -35,7 +37,8 @@
               "option_set": null,
               "date_of_birth": true,
               "parts": null,
-              "multiple_values": false
+              "multiple_values": false,
+              "group": null
             },
             {
               "key": "address_street_address",
@@ -44,7 +47,8 @@
               "option_set": null,
               "date_of_birth": false,
               "parts": null,
-              "multiple_values": false
+              "multiple_values": false,
+              "group": null
             },
             {
               "key": "address_house_number",
@@ -53,7 +57,8 @@
               "option_set": null,
               "date_of_birth": false,
               "parts": null,
-              "multiple_values": false
+              "multiple_values": false,
+              "group": null
             },
             {
               "key": "address_postal_code",
@@ -62,7 +67,8 @@
               "option_set": null,
               "date_of_birth": false,
               "parts": null,
-              "multiple_values": false
+              "multiple_values": false,
+              "group": null
             },
             {
               "key": "address_locality",
@@ -71,7 +77,8 @@
               "option_set": null,
               "date_of_birth": false,
               "parts": null,
-              "multiple_values": false
+              "multiple_values": false,
+              "group": null
             }
           ]
         },
@@ -86,7 +93,8 @@
               "option_set": null,
               "date_of_birth": false,
               "parts": null,
-              "multiple_values": false
+              "multiple_values": false,
+              "group": null
             },
             {
               "key": "driving_privileges",
@@ -120,7 +128,8 @@
                   "multiple_values": false
                 }
               ],
-              "multiple_values": false
+              "multiple_values": false,
+              "group": null
             }
           ]
         }
@@ -232,7 +241,8 @@
             "option_set": null,
             "date_of_birth": false,
             "parts": null,
-            "multiple_values": false
+            "multiple_values": false,
+            "group": "name"
           },
           {
             "key": "given_name",
@@ -241,7 +251,8 @@
             "option_set": null,
             "date_of_birth": false,
             "parts": null,
-            "multiple_values": false
+            "multiple_values": false,
+            "group": "name"
           },
           {
             "key": "birthdate",
@@ -250,7 +261,8 @@
             "option_set": null,
             "date_of_birth": true,
             "parts": null,
-            "multiple_values": false
+            "multiple_values": false,
+            "group": "birth"
           },
           {
             "key": "place_of_birth",
@@ -284,7 +296,8 @@
                 "multiple_values": false
               }
             ],
-            "multiple_values": false
+            "multiple_values": false,
+            "group": "birth"
           },
           {
             "key": "nationalities",
@@ -293,7 +306,8 @@
             "option_set": "countries",
             "date_of_birth": false,
             "parts": null,
-            "multiple_values": true
+            "multiple_values": true,
+            "group": "birth"
           },
           {
             "key": "address_formatted",
@@ -302,7 +316,8 @@
             "option_set": null,
             "date_of_birth": false,
             "parts": null,
-            "multiple_values": false
+            "multiple_values": false,
+            "group": "address"
           },
           {
             "key": "address_street_address",
@@ -311,7 +326,8 @@
             "option_set": null,
             "date_of_birth": false,
             "parts": null,
-            "multiple_values": false
+            "multiple_values": false,
+            "group": "address"
           },
           {
             "key": "address_house_number",
@@ -320,7 +336,8 @@
             "option_set": null,
             "date_of_birth": false,
             "parts": null,
-            "multiple_values": false
+            "multiple_values": false,
+            "group": "address"
           },
           {
             "key": "address_postal_code",
@@ -329,7 +346,8 @@
             "option_set": null,
             "date_of_birth": false,
             "parts": null,
-            "multiple_values": false
+            "multiple_values": false,
+            "group": "address"
           },
           {
             "key": "address_locality",
@@ -338,7 +356,8 @@
             "option_set": null,
             "date_of_birth": false,
             "parts": null,
-            "multiple_values": false
+            "multiple_values": false,
+            "group": "address"
           },
           {
             "key": "address_region",
@@ -347,7 +366,8 @@
             "option_set": null,
             "date_of_birth": false,
             "parts": null,
-            "multiple_values": false
+            "multiple_values": false,
+            "group": "address"
           },
           {
             "key": "address_country",
@@ -356,7 +376,8 @@
             "option_set": "countries",
             "date_of_birth": false,
             "parts": null,
-            "multiple_values": false
+            "multiple_values": false,
+            "group": "address"
           },
           {
             "key": "personal_administrative_number",
@@ -365,7 +386,8 @@
             "option_set": null,
             "date_of_birth": false,
             "parts": null,
-            "multiple_values": false
+            "multiple_values": false,
+            "group": "other"
           },
           {
             "key": "picture",
@@ -374,7 +396,8 @@
             "option_set": null,
             "date_of_birth": false,
             "parts": null,
-            "multiple_values": false
+            "multiple_values": false,
+            "group": "other"
           },
           {
             "key": "birth_family_name",
@@ -383,7 +406,8 @@
             "option_set": null,
             "date_of_birth": false,
             "parts": null,
-            "multiple_values": false
+            "multiple_values": false,
+            "group": "name"
           },
           {
             "key": "birth_given_name",
@@ -392,7 +416,8 @@
             "option_set": null,
             "date_of_birth": false,
             "parts": null,
-            "multiple_values": false
+            "multiple_values": false,
+            "group": "name"
           },
           {
             "key": "sex",
@@ -401,7 +426,8 @@
             "option_set": "sex",
             "date_of_birth": false,
             "parts": null,
-            "multiple_values": false
+            "multiple_values": false,
+            "group": "birth"
           },
           {
             "key": "email",
@@ -410,7 +436,8 @@
             "option_set": null,
             "date_of_birth": false,
             "parts": null,
-            "multiple_values": false
+            "multiple_values": false,
+            "group": "other"
           },
           {
             "key": "phone_number",
@@ -419,7 +446,8 @@
             "option_set": null,
             "date_of_birth": false,
             "parts": null,
-            "multiple_values": false
+            "multiple_values": false,
+            "group": "other"
           },
           {
             "key": "document_number",
@@ -428,7 +456,8 @@
             "option_set": null,
             "date_of_birth": false,
             "parts": null,
-            "multiple_values": false
+            "multiple_values": false,
+            "group": "document"
           },
           {
             "key": "date_of_issuance",
@@ -437,7 +466,8 @@
             "option_set": null,
             "date_of_birth": false,
             "parts": null,
-            "multiple_values": false
+            "multiple_values": false,
+            "group": "document"
           },
           {
             "key": "date_of_expiry",
@@ -446,7 +476,8 @@
             "option_set": null,
             "date_of_birth": false,
             "parts": null,
-            "multiple_values": false
+            "multiple_values": false,
+            "group": "document"
           },
           {
             "key": "issuing_authority",
@@ -455,7 +486,8 @@
             "option_set": null,
             "date_of_birth": false,
             "parts": null,
-            "multiple_values": false
+            "multiple_values": false,
+            "group": "document"
           },
           {
             "key": "issuing_country",
@@ -464,7 +496,8 @@
             "option_set": "countries",
             "date_of_birth": false,
             "parts": null,
-            "multiple_values": false
+            "multiple_values": false,
+            "group": "document"
           },
           {
             "key": "issuing_jurisdiction",
@@ -473,7 +506,30 @@
             "option_set": null,
             "date_of_birth": false,
             "parts": null,
-            "multiple_values": false
+            "multiple_values": false,
+            "group": "document"
+          }
+        ],
+        "field_groups": [
+          {
+            "key": "name",
+            "label": "Name"
+          },
+          {
+            "key": "birth",
+            "label": "Birth"
+          },
+          {
+            "key": "address",
+            "label": "Address"
+          },
+          {
+            "key": "document",
+            "label": "Document"
+          },
+          {
+            "key": "other",
+            "label": "Other details"
           }
         ]
       },
@@ -488,7 +544,8 @@
             "option_set": null,
             "date_of_birth": false,
             "parts": null,
-            "multiple_values": false
+            "multiple_values": false,
+            "group": "name"
           },
           {
             "key": "given_name",
@@ -497,7 +554,8 @@
             "option_set": null,
             "date_of_birth": false,
             "parts": null,
-            "multiple_values": false
+            "multiple_values": false,
+            "group": "name"
           },
           {
             "key": "birth_date",
@@ -506,7 +564,8 @@
             "option_set": null,
             "date_of_birth": true,
             "parts": null,
-            "multiple_values": false
+            "multiple_values": false,
+            "group": "birth"
           },
           {
             "key": "issue_date",
@@ -515,7 +574,8 @@
             "option_set": null,
             "date_of_birth": false,
             "parts": null,
-            "multiple_values": false
+            "multiple_values": false,
+            "group": "document"
           },
           {
             "key": "expiry_date",
@@ -524,7 +584,8 @@
             "option_set": null,
             "date_of_birth": false,
             "parts": null,
-            "multiple_values": false
+            "multiple_values": false,
+            "group": "document"
           },
           {
             "key": "issuing_country",
@@ -533,7 +594,8 @@
             "option_set": "countries",
             "date_of_birth": false,
             "parts": null,
-            "multiple_values": false
+            "multiple_values": false,
+            "group": "document"
           },
           {
             "key": "issuing_authority",
@@ -542,7 +604,8 @@
             "option_set": null,
             "date_of_birth": false,
             "parts": null,
-            "multiple_values": false
+            "multiple_values": false,
+            "group": "document"
           },
           {
             "key": "document_number",
@@ -551,7 +614,8 @@
             "option_set": null,
             "date_of_birth": false,
             "parts": null,
-            "multiple_values": false
+            "multiple_values": false,
+            "group": "document"
           },
           {
             "key": "portrait",
@@ -560,7 +624,8 @@
             "option_set": null,
             "date_of_birth": false,
             "parts": null,
-            "multiple_values": false
+            "multiple_values": false,
+            "group": "appearance"
           },
           {
             "key": "driving_privileges",
@@ -594,7 +659,8 @@
                 "multiple_values": false
               }
             ],
-            "multiple_values": false
+            "multiple_values": false,
+            "group": "licence"
           },
           {
             "key": "un_distinguishing_sign",
@@ -603,7 +669,8 @@
             "option_set": null,
             "date_of_birth": false,
             "parts": null,
-            "multiple_values": false
+            "multiple_values": false,
+            "group": "licence"
           },
           {
             "key": "administrative_number",
@@ -612,7 +679,8 @@
             "option_set": null,
             "date_of_birth": false,
             "parts": null,
-            "multiple_values": false
+            "multiple_values": false,
+            "group": "licence"
           },
           {
             "key": "sex",
@@ -621,7 +689,8 @@
             "option_set": "sex",
             "date_of_birth": false,
             "parts": null,
-            "multiple_values": false
+            "multiple_values": false,
+            "group": "birth"
           },
           {
             "key": "height",
@@ -630,7 +699,8 @@
             "option_set": null,
             "date_of_birth": false,
             "parts": null,
-            "multiple_values": false
+            "multiple_values": false,
+            "group": "appearance"
           },
           {
             "key": "weight",
@@ -639,7 +709,8 @@
             "option_set": null,
             "date_of_birth": false,
             "parts": null,
-            "multiple_values": false
+            "multiple_values": false,
+            "group": "appearance"
           },
           {
             "key": "eye_colour",
@@ -648,7 +719,8 @@
             "option_set": "eye_colours",
             "date_of_birth": false,
             "parts": null,
-            "multiple_values": false
+            "multiple_values": false,
+            "group": "appearance"
           },
           {
             "key": "hair_colour",
@@ -657,7 +729,8 @@
             "option_set": "hair_colours",
             "date_of_birth": false,
             "parts": null,
-            "multiple_values": false
+            "multiple_values": false,
+            "group": "appearance"
           },
           {
             "key": "birth_place",
@@ -666,7 +739,8 @@
             "option_set": null,
             "date_of_birth": false,
             "parts": null,
-            "multiple_values": false
+            "multiple_values": false,
+            "group": "birth"
           },
           {
             "key": "resident_address",
@@ -675,7 +749,8 @@
             "option_set": null,
             "date_of_birth": false,
             "parts": null,
-            "multiple_values": false
+            "multiple_values": false,
+            "group": "address"
           },
           {
             "key": "portrait_capture_date",
@@ -684,7 +759,8 @@
             "option_set": null,
             "date_of_birth": false,
             "parts": null,
-            "multiple_values": false
+            "multiple_values": false,
+            "group": "appearance"
           },
           {
             "key": "age_in_years",
@@ -693,7 +769,8 @@
             "option_set": null,
             "date_of_birth": false,
             "parts": null,
-            "multiple_values": false
+            "multiple_values": false,
+            "group": "birth"
           },
           {
             "key": "age_birth_year",
@@ -702,7 +779,8 @@
             "option_set": null,
             "date_of_birth": false,
             "parts": null,
-            "multiple_values": false
+            "multiple_values": false,
+            "group": "birth"
           },
           {
             "key": "issuing_jurisdiction",
@@ -711,7 +789,8 @@
             "option_set": null,
             "date_of_birth": false,
             "parts": null,
-            "multiple_values": false
+            "multiple_values": false,
+            "group": "document"
           },
           {
             "key": "nationality",
@@ -720,7 +799,8 @@
             "option_set": "countries",
             "date_of_birth": false,
             "parts": null,
-            "multiple_values": false
+            "multiple_values": false,
+            "group": "birth"
           },
           {
             "key": "resident_city",
@@ -729,7 +809,8 @@
             "option_set": null,
             "date_of_birth": false,
             "parts": null,
-            "multiple_values": false
+            "multiple_values": false,
+            "group": "address"
           },
           {
             "key": "resident_state",
@@ -738,7 +819,8 @@
             "option_set": null,
             "date_of_birth": false,
             "parts": null,
-            "multiple_values": false
+            "multiple_values": false,
+            "group": "address"
           },
           {
             "key": "resident_postal_code",
@@ -747,7 +829,8 @@
             "option_set": null,
             "date_of_birth": false,
             "parts": null,
-            "multiple_values": false
+            "multiple_values": false,
+            "group": "address"
           },
           {
             "key": "resident_country",
@@ -756,7 +839,8 @@
             "option_set": "countries",
             "date_of_birth": false,
             "parts": null,
-            "multiple_values": false
+            "multiple_values": false,
+            "group": "address"
           },
           {
             "key": "family_name_national_character",
@@ -765,7 +849,8 @@
             "option_set": null,
             "date_of_birth": false,
             "parts": null,
-            "multiple_values": false
+            "multiple_values": false,
+            "group": "name"
           },
           {
             "key": "given_name_national_character",
@@ -774,7 +859,8 @@
             "option_set": null,
             "date_of_birth": false,
             "parts": null,
-            "multiple_values": false
+            "multiple_values": false,
+            "group": "name"
           },
           {
             "key": "signature_usual_mark",
@@ -783,7 +869,38 @@
             "option_set": null,
             "date_of_birth": false,
             "parts": null,
-            "multiple_values": false
+            "multiple_values": false,
+            "group": "other"
+          }
+        ],
+        "field_groups": [
+          {
+            "key": "name",
+            "label": "Name"
+          },
+          {
+            "key": "birth",
+            "label": "Birth"
+          },
+          {
+            "key": "address",
+            "label": "Address"
+          },
+          {
+            "key": "document",
+            "label": "Document"
+          },
+          {
+            "key": "licence",
+            "label": "Licence"
+          },
+          {
+            "key": "appearance",
+            "label": "Appearance"
+          },
+          {
+            "key": "other",
+            "label": "Other details"
           }
         ]
       }
@@ -897,7 +1014,8 @@
               "option_set": null,
               "date_of_birth": false,
               "parts": null,
-              "multiple_values": false
+              "multiple_values": false,
+              "group": null
             },
             {
               "key": "given_name",
@@ -906,7 +1024,8 @@
               "option_set": null,
               "date_of_birth": false,
               "parts": null,
-              "multiple_values": false
+              "multiple_values": false,
+              "group": null
             },
             {
               "key": "birthdate",
@@ -915,7 +1034,8 @@
               "option_set": null,
               "date_of_birth": true,
               "parts": null,
-              "multiple_values": false
+              "multiple_values": false,
+              "group": null
             },
             {
               "key": "address_street_address",
@@ -924,7 +1044,8 @@
               "option_set": null,
               "date_of_birth": false,
               "parts": null,
-              "multiple_values": false
+              "multiple_values": false,
+              "group": null
             },
             {
               "key": "address_house_number",
@@ -933,7 +1054,8 @@
               "option_set": null,
               "date_of_birth": false,
               "parts": null,
-              "multiple_values": false
+              "multiple_values": false,
+              "group": null
             },
             {
               "key": "address_postal_code",
@@ -942,7 +1064,8 @@
               "option_set": null,
               "date_of_birth": false,
               "parts": null,
-              "multiple_values": false
+              "multiple_values": false,
+              "group": null
             },
             {
               "key": "address_locality",
@@ -951,7 +1074,8 @@
               "option_set": null,
               "date_of_birth": false,
               "parts": null,
-              "multiple_values": false
+              "multiple_values": false,
+              "group": null
             }
           ]
         },
@@ -966,7 +1090,8 @@
               "option_set": null,
               "date_of_birth": false,
               "parts": null,
-              "multiple_values": false
+              "multiple_values": false,
+              "group": null
             },
             {
               "key": "driving_privileges",
@@ -1000,7 +1125,8 @@
                   "multiple_values": false
                 }
               ],
-              "multiple_values": false
+              "multiple_values": false,
+              "group": null
             }
           ]
         }
@@ -1112,7 +1238,8 @@
             "option_set": null,
             "date_of_birth": false,
             "parts": null,
-            "multiple_values": false
+            "multiple_values": false,
+            "group": "name"
           },
           {
             "key": "given_name",
@@ -1121,7 +1248,8 @@
             "option_set": null,
             "date_of_birth": false,
             "parts": null,
-            "multiple_values": false
+            "multiple_values": false,
+            "group": "name"
           },
           {
             "key": "birthdate",
@@ -1130,7 +1258,8 @@
             "option_set": null,
             "date_of_birth": true,
             "parts": null,
-            "multiple_values": false
+            "multiple_values": false,
+            "group": "birth"
           },
           {
             "key": "place_of_birth",
@@ -1164,7 +1293,8 @@
                 "multiple_values": false
               }
             ],
-            "multiple_values": false
+            "multiple_values": false,
+            "group": "birth"
           },
           {
             "key": "nationalities",
@@ -1173,7 +1303,8 @@
             "option_set": "countries",
             "date_of_birth": false,
             "parts": null,
-            "multiple_values": true
+            "multiple_values": true,
+            "group": "birth"
           },
           {
             "key": "address_formatted",
@@ -1182,7 +1313,8 @@
             "option_set": null,
             "date_of_birth": false,
             "parts": null,
-            "multiple_values": false
+            "multiple_values": false,
+            "group": "address"
           },
           {
             "key": "address_street_address",
@@ -1191,7 +1323,8 @@
             "option_set": null,
             "date_of_birth": false,
             "parts": null,
-            "multiple_values": false
+            "multiple_values": false,
+            "group": "address"
           },
           {
             "key": "address_house_number",
@@ -1200,7 +1333,8 @@
             "option_set": null,
             "date_of_birth": false,
             "parts": null,
-            "multiple_values": false
+            "multiple_values": false,
+            "group": "address"
           },
           {
             "key": "address_postal_code",
@@ -1209,7 +1343,8 @@
             "option_set": null,
             "date_of_birth": false,
             "parts": null,
-            "multiple_values": false
+            "multiple_values": false,
+            "group": "address"
           },
           {
             "key": "address_locality",
@@ -1218,7 +1353,8 @@
             "option_set": null,
             "date_of_birth": false,
             "parts": null,
-            "multiple_values": false
+            "multiple_values": false,
+            "group": "address"
           },
           {
             "key": "address_region",
@@ -1227,7 +1363,8 @@
             "option_set": null,
             "date_of_birth": false,
             "parts": null,
-            "multiple_values": false
+            "multiple_values": false,
+            "group": "address"
           },
           {
             "key": "address_country",
@@ -1236,7 +1373,8 @@
             "option_set": "countries",
             "date_of_birth": false,
             "parts": null,
-            "multiple_values": false
+            "multiple_values": false,
+            "group": "address"
           },
           {
             "key": "personal_administrative_number",
@@ -1245,7 +1383,8 @@
             "option_set": null,
             "date_of_birth": false,
             "parts": null,
-            "multiple_values": false
+            "multiple_values": false,
+            "group": "other"
           },
           {
             "key": "picture",
@@ -1254,7 +1393,8 @@
             "option_set": null,
             "date_of_birth": false,
             "parts": null,
-            "multiple_values": false
+            "multiple_values": false,
+            "group": "other"
           },
           {
             "key": "birth_family_name",
@@ -1263,7 +1403,8 @@
             "option_set": null,
             "date_of_birth": false,
             "parts": null,
-            "multiple_values": false
+            "multiple_values": false,
+            "group": "name"
           },
           {
             "key": "birth_given_name",
@@ -1272,7 +1413,8 @@
             "option_set": null,
             "date_of_birth": false,
             "parts": null,
-            "multiple_values": false
+            "multiple_values": false,
+            "group": "name"
           },
           {
             "key": "sex",
@@ -1281,7 +1423,8 @@
             "option_set": "sex",
             "date_of_birth": false,
             "parts": null,
-            "multiple_values": false
+            "multiple_values": false,
+            "group": "birth"
           },
           {
             "key": "email",
@@ -1290,7 +1433,8 @@
             "option_set": null,
             "date_of_birth": false,
             "parts": null,
-            "multiple_values": false
+            "multiple_values": false,
+            "group": "other"
           },
           {
             "key": "phone_number",
@@ -1299,7 +1443,8 @@
             "option_set": null,
             "date_of_birth": false,
             "parts": null,
-            "multiple_values": false
+            "multiple_values": false,
+            "group": "other"
           },
           {
             "key": "document_number",
@@ -1308,7 +1453,8 @@
             "option_set": null,
             "date_of_birth": false,
             "parts": null,
-            "multiple_values": false
+            "multiple_values": false,
+            "group": "document"
           },
           {
             "key": "date_of_issuance",
@@ -1317,7 +1463,8 @@
             "option_set": null,
             "date_of_birth": false,
             "parts": null,
-            "multiple_values": false
+            "multiple_values": false,
+            "group": "document"
           },
           {
             "key": "date_of_expiry",
@@ -1326,7 +1473,8 @@
             "option_set": null,
             "date_of_birth": false,
             "parts": null,
-            "multiple_values": false
+            "multiple_values": false,
+            "group": "document"
           },
           {
             "key": "issuing_authority",
@@ -1335,7 +1483,8 @@
             "option_set": null,
             "date_of_birth": false,
             "parts": null,
-            "multiple_values": false
+            "multiple_values": false,
+            "group": "document"
           },
           {
             "key": "issuing_country",
@@ -1344,7 +1493,8 @@
             "option_set": "countries",
             "date_of_birth": false,
             "parts": null,
-            "multiple_values": false
+            "multiple_values": false,
+            "group": "document"
           },
           {
             "key": "issuing_jurisdiction",
@@ -1353,7 +1503,30 @@
             "option_set": null,
             "date_of_birth": false,
             "parts": null,
-            "multiple_values": false
+            "multiple_values": false,
+            "group": "document"
+          }
+        ],
+        "field_groups": [
+          {
+            "key": "name",
+            "label": "Name"
+          },
+          {
+            "key": "birth",
+            "label": "Geburt"
+          },
+          {
+            "key": "address",
+            "label": "Adresse"
+          },
+          {
+            "key": "document",
+            "label": "Dokument"
+          },
+          {
+            "key": "other",
+            "label": "Weitere Angaben"
           }
         ]
       },
@@ -1368,7 +1541,8 @@
             "option_set": null,
             "date_of_birth": false,
             "parts": null,
-            "multiple_values": false
+            "multiple_values": false,
+            "group": "name"
           },
           {
             "key": "given_name",
@@ -1377,7 +1551,8 @@
             "option_set": null,
             "date_of_birth": false,
             "parts": null,
-            "multiple_values": false
+            "multiple_values": false,
+            "group": "name"
           },
           {
             "key": "birth_date",
@@ -1386,7 +1561,8 @@
             "option_set": null,
             "date_of_birth": true,
             "parts": null,
-            "multiple_values": false
+            "multiple_values": false,
+            "group": "birth"
           },
           {
             "key": "issue_date",
@@ -1395,7 +1571,8 @@
             "option_set": null,
             "date_of_birth": false,
             "parts": null,
-            "multiple_values": false
+            "multiple_values": false,
+            "group": "document"
           },
           {
             "key": "expiry_date",
@@ -1404,7 +1581,8 @@
             "option_set": null,
             "date_of_birth": false,
             "parts": null,
-            "multiple_values": false
+            "multiple_values": false,
+            "group": "document"
           },
           {
             "key": "issuing_country",
@@ -1413,7 +1591,8 @@
             "option_set": "countries",
             "date_of_birth": false,
             "parts": null,
-            "multiple_values": false
+            "multiple_values": false,
+            "group": "document"
           },
           {
             "key": "issuing_authority",
@@ -1422,7 +1601,8 @@
             "option_set": null,
             "date_of_birth": false,
             "parts": null,
-            "multiple_values": false
+            "multiple_values": false,
+            "group": "document"
           },
           {
             "key": "document_number",
@@ -1431,7 +1611,8 @@
             "option_set": null,
             "date_of_birth": false,
             "parts": null,
-            "multiple_values": false
+            "multiple_values": false,
+            "group": "document"
           },
           {
             "key": "portrait",
@@ -1440,7 +1621,8 @@
             "option_set": null,
             "date_of_birth": false,
             "parts": null,
-            "multiple_values": false
+            "multiple_values": false,
+            "group": "appearance"
           },
           {
             "key": "driving_privileges",
@@ -1474,7 +1656,8 @@
                 "multiple_values": false
               }
             ],
-            "multiple_values": false
+            "multiple_values": false,
+            "group": "licence"
           },
           {
             "key": "un_distinguishing_sign",
@@ -1483,7 +1666,8 @@
             "option_set": null,
             "date_of_birth": false,
             "parts": null,
-            "multiple_values": false
+            "multiple_values": false,
+            "group": "licence"
           },
           {
             "key": "administrative_number",
@@ -1492,7 +1676,8 @@
             "option_set": null,
             "date_of_birth": false,
             "parts": null,
-            "multiple_values": false
+            "multiple_values": false,
+            "group": "licence"
           },
           {
             "key": "sex",
@@ -1501,7 +1686,8 @@
             "option_set": "sex",
             "date_of_birth": false,
             "parts": null,
-            "multiple_values": false
+            "multiple_values": false,
+            "group": "birth"
           },
           {
             "key": "height",
@@ -1510,7 +1696,8 @@
             "option_set": null,
             "date_of_birth": false,
             "parts": null,
-            "multiple_values": false
+            "multiple_values": false,
+            "group": "appearance"
           },
           {
             "key": "weight",
@@ -1519,7 +1706,8 @@
             "option_set": null,
             "date_of_birth": false,
             "parts": null,
-            "multiple_values": false
+            "multiple_values": false,
+            "group": "appearance"
           },
           {
             "key": "eye_colour",
@@ -1528,7 +1716,8 @@
             "option_set": "eye_colours",
             "date_of_birth": false,
             "parts": null,
-            "multiple_values": false
+            "multiple_values": false,
+            "group": "appearance"
           },
           {
             "key": "hair_colour",
@@ -1537,7 +1726,8 @@
             "option_set": "hair_colours",
             "date_of_birth": false,
             "parts": null,
-            "multiple_values": false
+            "multiple_values": false,
+            "group": "appearance"
           },
           {
             "key": "birth_place",
@@ -1546,7 +1736,8 @@
             "option_set": null,
             "date_of_birth": false,
             "parts": null,
-            "multiple_values": false
+            "multiple_values": false,
+            "group": "birth"
           },
           {
             "key": "resident_address",
@@ -1555,7 +1746,8 @@
             "option_set": null,
             "date_of_birth": false,
             "parts": null,
-            "multiple_values": false
+            "multiple_values": false,
+            "group": "address"
           },
           {
             "key": "portrait_capture_date",
@@ -1564,7 +1756,8 @@
             "option_set": null,
             "date_of_birth": false,
             "parts": null,
-            "multiple_values": false
+            "multiple_values": false,
+            "group": "appearance"
           },
           {
             "key": "age_in_years",
@@ -1573,7 +1766,8 @@
             "option_set": null,
             "date_of_birth": false,
             "parts": null,
-            "multiple_values": false
+            "multiple_values": false,
+            "group": "birth"
           },
           {
             "key": "age_birth_year",
@@ -1582,7 +1776,8 @@
             "option_set": null,
             "date_of_birth": false,
             "parts": null,
-            "multiple_values": false
+            "multiple_values": false,
+            "group": "birth"
           },
           {
             "key": "issuing_jurisdiction",
@@ -1591,7 +1786,8 @@
             "option_set": null,
             "date_of_birth": false,
             "parts": null,
-            "multiple_values": false
+            "multiple_values": false,
+            "group": "document"
           },
           {
             "key": "nationality",
@@ -1600,7 +1796,8 @@
             "option_set": "countries",
             "date_of_birth": false,
             "parts": null,
-            "multiple_values": false
+            "multiple_values": false,
+            "group": "birth"
           },
           {
             "key": "resident_city",
@@ -1609,7 +1806,8 @@
             "option_set": null,
             "date_of_birth": false,
             "parts": null,
-            "multiple_values": false
+            "multiple_values": false,
+            "group": "address"
           },
           {
             "key": "resident_state",
@@ -1618,7 +1816,8 @@
             "option_set": null,
             "date_of_birth": false,
             "parts": null,
-            "multiple_values": false
+            "multiple_values": false,
+            "group": "address"
           },
           {
             "key": "resident_postal_code",
@@ -1627,7 +1826,8 @@
             "option_set": null,
             "date_of_birth": false,
             "parts": null,
-            "multiple_values": false
+            "multiple_values": false,
+            "group": "address"
           },
           {
             "key": "resident_country",
@@ -1636,7 +1836,8 @@
             "option_set": "countries",
             "date_of_birth": false,
             "parts": null,
-            "multiple_values": false
+            "multiple_values": false,
+            "group": "address"
           },
           {
             "key": "family_name_national_character",
@@ -1645,7 +1846,8 @@
             "option_set": null,
             "date_of_birth": false,
             "parts": null,
-            "multiple_values": false
+            "multiple_values": false,
+            "group": "name"
           },
           {
             "key": "given_name_national_character",
@@ -1654,7 +1856,8 @@
             "option_set": null,
             "date_of_birth": false,
             "parts": null,
-            "multiple_values": false
+            "multiple_values": false,
+            "group": "name"
           },
           {
             "key": "signature_usual_mark",
@@ -1663,7 +1866,38 @@
             "option_set": null,
             "date_of_birth": false,
             "parts": null,
-            "multiple_values": false
+            "multiple_values": false,
+            "group": "other"
+          }
+        ],
+        "field_groups": [
+          {
+            "key": "name",
+            "label": "Name"
+          },
+          {
+            "key": "birth",
+            "label": "Geburt"
+          },
+          {
+            "key": "address",
+            "label": "Adresse"
+          },
+          {
+            "key": "document",
+            "label": "Dokument"
+          },
+          {
+            "key": "licence",
+            "label": "Fahrerlaubnis"
+          },
+          {
+            "key": "appearance",
+            "label": "Aussehen"
+          },
+          {
+            "key": "other",
+            "label": "Weitere Angaben"
           }
         ]
       }

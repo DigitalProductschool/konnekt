@@ -24,7 +24,7 @@ import {
 } from '@connection-portal/rules/edits';
 import { DEFAULT_LANGUAGE, type Language } from '@connection-portal/rules/language';
 import { countRules, hasAnyRule } from '@connection-portal/rules/tree';
-import type { RuleDocument, RulesProblem } from '@connection-portal/rules/types';
+import type { DataRemoval, RuleDocument, RulesProblem } from '@connection-portal/rules/types';
 
 import { ApiError, errorNoticeOf } from '../../api/client';
 import { startDateOf } from '../../components/ActiveFromChoice/utils';
@@ -232,9 +232,47 @@ export function removalAction(removal: PendingRemoval): EditorAction {
       };
     case 'allFields':
       return { type: 'setAllFields', documentType: removal.documentType, fields: [] };
+    case 'group':
+      return { type: 'setAllFields', documentType: removal.documentType, fields: removal.kept };
     case 'dropped':
       return { type: 'removeDropped', items: removal.items };
   }
+}
+
+/**
+ * The data a removal takes away, as the rules package judges it (`rulesCheckingRemoval()`): a
+ * group's chosen data items are judged one by one, as a list of data items, each rule named once.
+ */
+export function dataRemovalOf(removal: PendingRemoval): DataRemoval {
+  if (removal.type !== 'group') {
+    return removal;
+  }
+  return {
+    type: 'dropped',
+    items: removal.fields.map((field) => ({ documentType: removal.documentType, field })),
+  };
+}
+
+/**
+ * Clearing a group heading's checkbox (FR-079): the group's chosen data items go, the document's
+ * other fields stay (a data item the catalog dropped among them, for the note's "Remove it"),
+ * named by the catalog's group and document.
+ */
+export function groupRemovalOf(
+  document: RequestedDocument,
+  documentType: DocumentType,
+  group: { key: string; label: string; fields: readonly { key: string }[] }
+): PendingRemoval {
+  const keys = group.fields.map((field) => field.key);
+  return {
+    type: 'group',
+    documentType: documentType.key,
+    group: group.key,
+    fields: document.fields.filter((field) => keys.includes(field)),
+    kept: document.fields.filter((field) => !keys.includes(field)),
+    label: group.label,
+    documentLabel: documentType.label,
+  };
 }
 
 /**
@@ -247,11 +285,13 @@ export function removedDataRulesOf(
   branches: RulesBranch[],
   documents: RequestedDocument[]
 ): RemovedDataRule[] {
-  return rulesCheckingRemoval(branches, removal, documents).map(({ branchIndex, rule }) => ({
-    key: `${branches[branchIndex].key}-${rule.id}`,
-    ruleName: rule.name.trim(),
-    branchName: branches[branchIndex].name.trim(),
-  }));
+  return rulesCheckingRemoval(branches, dataRemovalOf(removal), documents).map(
+    ({ branchIndex, rule }) => ({
+      key: `${branches[branchIndex].key}-${rule.id}`,
+      ruleName: rule.name.trim(),
+      branchName: branches[branchIndex].name.trim(),
+    })
+  );
 }
 
 export function editorReducer(state: EditorState, action: EditorAction): EditorState {
@@ -496,6 +536,14 @@ export function removalInLanguage(
     case 'document':
     case 'allFields':
       return { ...removal, label: labelOf(removal.documentType, documentTypes) };
+    case 'group': {
+      const groups = documentTypes.find((type) => type.key === removal.documentType)?.field_groups;
+      return {
+        ...removal,
+        label: groups?.find((group) => group.key === removal.group)?.label ?? removal.label,
+        documentLabel: labelOf(removal.documentType, documentTypes),
+      };
+    }
     case 'field':
       return {
         ...removal,

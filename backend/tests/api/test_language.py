@@ -395,6 +395,66 @@ def test_the_document_types_have_german_labels_and_the_same_values(
     assert shared == ['Region']
 
 
+def test_the_data_groups_have_german_labels_and_the_same_keys(
+    signed_in_client: TestClient,
+) -> None:
+    """The groups' labels follow the header; their keys and members stay (FR-078)."""
+    english = signed_in_client.get('/api/document-types').json()['data']
+    german = signed_in_client.get('/api/document-types', headers=GERMAN).json()['data']
+
+    def keys(document_types: list[dict[str, Any]]) -> list[list[str]]:
+        return [
+            [group['key'] for group in document_type['field_groups']]
+            for document_type in document_types
+        ]
+
+    def labels(document_type: dict[str, Any]) -> list[str]:
+        return [group['label'] for group in document_type['field_groups']]
+
+    assert keys(german) == keys(english)
+    assert keys(english) == [
+        ['name', 'birth', 'address', 'document', 'other'],
+        ['name', 'birth', 'address', 'document', 'licence', 'appearance', 'other'],
+    ]
+    assert labels(english[1]) == [
+        'Name',
+        'Birth',
+        'Address',
+        'Document',
+        'Licence',
+        'Appearance',
+        'Other details',
+    ]
+    assert labels(german[1]) == [
+        'Name',
+        'Geburt',
+        'Adresse',
+        'Dokument',
+        'Fahrerlaubnis',
+        'Aussehen',
+        'Weitere Angaben',
+    ]
+    assert labels(german[0]) == [
+        'Name',
+        'Geburt',
+        'Adresse',
+        'Dokument',
+        'Weitere Angaben',
+    ]
+
+    # Each field's group is a key, the same in both languages
+    def groups(document_types: list[dict[str, Any]]) -> list[list[str]]:
+        return [
+            [field['group'] for field in document_type['fields']]
+            for document_type in document_types
+        ]
+
+    assert groups(german) == groups(english)
+    mdl_fields = {field['key']: field for field in german[1]['fields']}
+    assert mdl_fields['driving_privileges']['group'] == 'licence'
+    assert mdl_fields['nationality']['group'] == 'birth'
+
+
 def test_a_connections_documents_have_german_labels(
     signed_in_client: TestClient, fake_eudiplo: FakeEudiplo
 ) -> None:

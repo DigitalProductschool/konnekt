@@ -3,6 +3,7 @@
 // value set, searched rather than listed whole
 import type {
   DocumentField,
+  DocumentType,
   FieldKind,
   FieldPart,
 } from '@connection-portal/api-types/document-types';
@@ -57,11 +58,26 @@ function partViewOf(part: FieldPart) {
   };
 }
 
-function fieldViewOf(field: DocumentField) {
+/**
+ * The names of a document's data groups by their keys, in the panel's order (FR-080): English,
+ * since the server never passes a language; none for a document without groups.
+ */
+function groupNamesOf(documentType: DocumentType): Map<string, string> {
+  return new Map((documentType.field_groups ?? []).map((group) => [group.key, group.label]));
+}
+
+/** A field's `group`: the English name of its data group, left out when it has none. */
+function groupOf(field: DocumentField, groupNames: Map<string, string>): { group?: string } {
+  const name = groupNames.get(field.group ?? '');
+  return name === undefined ? {} : { group: name };
+}
+
+function fieldViewOf(field: DocumentField, groupNames: Map<string, string>) {
   return {
     key: field.key,
     label: field.label,
     kind: field.kind,
+    ...groupOf(field, groupNames),
     ...optionSetOf(field.option_set),
     multiple_values: field.multiple_values,
     ...(field.parts === null ? {} : { parts: field.parts.map(partViewOf) }),
@@ -77,6 +93,7 @@ function fieldLineOf(field: FieldView): string {
     field.kind,
     field.option_set && `values from ${field.option_set}`,
     field.multiple_values && 'several values',
+    field.group && `group ${field.group}`,
   ].filter(Boolean);
   const parts = field.parts
     ? `; parts: ${field.parts
@@ -95,7 +112,8 @@ registerTool({
     'Reads the catalog of what the EUDI Wallet can share. Without document_type: the document ' +
     'types with their number of fields. With one: its fields with their kind, value set, parts ' +
     '(named as field.part, a licence class date as field.part#B) and the conditions a rule can ' +
-    'set on each.',
+    "set on each, and each field's data group (group) with the groups in Konnekt's order " +
+    '(groups). Fields are still chosen one by one.',
   input: z.object({
     document_type: z
       .string()
@@ -128,12 +146,15 @@ registerTool({
         )
       );
     }
-    const fields = documentType.fields.map(fieldViewOf);
+    const groupNames = groupNamesOf(documentType);
+    const groups = [...groupNames.values()];
+    const fields = documentType.fields.map((field) => fieldViewOf(field, groupNames));
     return toolResult(
-      { key: documentType.key, label: documentType.label, fields },
+      { key: documentType.key, label: documentType.label, groups, fields },
       summaryTextOf(
         `${documentType.label} (${documentType.key}), its fields:`,
-        ...fields.map(fieldLineOf)
+        ...fields.map(fieldLineOf),
+        groups.length > 0 && `Its data groups, in Konnekt's order: ${groups.join(', ')}.`
       )
     );
   },

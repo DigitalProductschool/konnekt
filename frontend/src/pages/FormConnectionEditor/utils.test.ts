@@ -37,6 +37,7 @@ import {
   conflictOf,
   connectionErrorsOf,
   createPayload,
+  dataRemovalOf,
   documentIndexOfListIndex,
   documentLines,
   documentsToastOf,
@@ -49,6 +50,7 @@ import {
   findingLinesOf,
   firstBranchWithFindings,
   firstInvalidElementId,
+  groupRemovalOf,
   headerTitleOf,
   initialEditorState,
   initialStatesFromDraft,
@@ -666,6 +668,99 @@ describe('removing data that rules check (FR-029, F18)', () => {
       type: 'confirmRemoval',
     });
     expect(cleared.documents[0].fields).toEqual([]);
+  });
+
+  describe('a data group’s checkbox cleared (FR-079, US9-AS4)', () => {
+    const field = (key: string, label: string): DocumentField => ({
+      key,
+      label,
+      kind: 'text',
+      option_set: null,
+      date_of_birth: false,
+      parts: null,
+      multiple_values: false,
+    });
+    const PID_TYPE: DocumentType = {
+      key: 'pid',
+      label: 'Personal ID',
+      field_groups: [
+        { key: 'birth', label: 'Birth' },
+        { key: 'other', label: 'Other details' },
+      ],
+      fields: [
+        { ...field('birthdate', 'Date of birth'), group: 'birth' },
+        { ...field('nationalities', 'Nationality'), group: 'birth' },
+        { ...field('sex', 'Sex'), group: 'birth' },
+        { ...field('email', 'Email address'), group: 'other' },
+      ],
+    };
+    const birth = {
+      key: 'birth',
+      label: 'Birth',
+      fields: PID_TYPE.fields.filter((item) => item.group === 'birth'),
+    };
+    // A dropped data item (eye_colour) and another group's stay chosen
+    const pid = { document_type: 'pid', fields: ['email', 'birthdate', 'eye_colour', 'sex'] };
+    const GROUP = groupRemovalOf(pid, PID_TYPE, birth);
+
+    it('takes the group’s chosen data items and keeps the rest, named by the catalog', () => {
+      expect(GROUP).toEqual({
+        type: 'group',
+        documentType: 'pid',
+        group: 'birth',
+        fields: ['birthdate', 'sex'],
+        kept: ['email', 'eye_colour'],
+        label: 'Birth',
+        documentLabel: 'Personal ID',
+      });
+    });
+
+    it('is judged as its data items, so that the rules checking them are named', () => {
+      expect(dataRemovalOf(GROUP)).toEqual({
+        type: 'dropped',
+        items: [
+          { documentType: 'pid', field: 'birthdate' },
+          { documentType: 'pid', field: 'sex' },
+        ],
+      });
+      expect(dataRemovalOf(ALL)).toBe(ALL);
+      const named = removedDataRulesOf(GROUP, rules.branches, [pid]).map(
+        ({ ruleName, branchName }) => `${ruleName} in ${branchName}`
+      );
+      expect(named).toEqual(['Rule 01 in Standard']);
+      const other = groupRemovalOf(pid, PID_TYPE, { ...birth, key: 'other', fields: [] });
+      expect(removedDataRulesOf(other, rules.branches, [pid])).toEqual([]);
+    });
+
+    it('clears the group once confirmed and keeps the document’s other fields', () => {
+      const state = { ...INITIAL_EDITOR_STATE, documents: [pid] };
+      const asked = editorReducer(state, { type: 'askRemoval', removal: GROUP });
+      expect(asked.documents).toEqual([pid]);
+      const confirmed = editorReducer(asked, { type: 'confirmRemoval' });
+      expect(confirmed.pendingRemoval).toBeNull();
+      expect(confirmed.documents[0].fields).toEqual(['email', 'eye_colour']);
+      expect(confirmed).toEqual(editorReducer(state, removalAction(GROUP)));
+    });
+
+    it('names the group and the document from the catalog of the moment', () => {
+      const german: DocumentType[] = [
+        {
+          ...PID_TYPE,
+          label: 'Personalausweis',
+          field_groups: [
+            { key: 'birth', label: 'Geburt' },
+            { key: 'other', label: 'Weitere Angaben' },
+          ],
+        },
+      ];
+      expect(removalInLanguage(GROUP, german, 'de')).toEqual({
+        ...GROUP,
+        label: 'Geburt',
+        documentLabel: 'Personalausweis',
+      });
+      // A catalog without the group keeps the stored name
+      expect(removalInLanguage(GROUP, [{ ...PID_TYPE, field_groups: [] }], 'en')).toEqual(GROUP);
+    });
   });
 });
 

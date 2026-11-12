@@ -98,8 +98,18 @@ class DocumentField(BaseModel):
     parts: list[FieldPart] | None
     # Whether a document can give several values for it, such as the nationalities
     multiple_values: bool
+    # The key of its data group (FR-078): GET /api/document-types fills it for a
+    # document with groups; None there for one without, and in every other answer
+    group: str | None = None
 
     model_config = ConfigDict(from_attributes=True)
+
+
+class FieldGroup(BaseModel):
+    """A data group of the documents step's panel, such as "Address" (FR-077)."""
+
+    key: str
+    label: str
 
 
 class DocumentType(BaseModel):
@@ -108,6 +118,9 @@ class DocumentType(BaseModel):
     key: str
     label: str
     fields: list[DocumentField]
+    # Its data groups in the panel's order; empty for a document with 10 fields or
+    # fewer (FR-077, FR-078)
+    field_groups: list[FieldGroup] = Field(default_factory=list)
 
 
 class RequestedDocument(BaseModel):

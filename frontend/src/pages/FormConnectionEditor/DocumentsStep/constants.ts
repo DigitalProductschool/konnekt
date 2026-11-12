@@ -131,7 +131,8 @@ export const DOCUMENTS_COPY = defineTexts(
  * item's "Stop requesting Date of birth?" (U26 6324:40396). The frames name the rules in one
  * sentence, grouped by variant ("Rule 02 and Rule 03 in Standard", `ruleListText()`); in the edit
  * flow they need changing "before you save" (002-S1.7). "All data items" and the note's "Remove
- * it" aren't drawn: they keep the baseline's title and "this data", without a first sentence.
+ * it" aren't drawn: they keep the baseline's title and "this data", without a first sentence;
+ * a data group's (FR-079) has its own title (copy.md §5) and the rest of "All data items".
  * The German names a data item in quotes („Geburtsdatum“), so that no article has to agree with
  * it (G§1 "Quotes"), and keeps its capital (`inSentence()`)
  */
@@ -145,6 +146,9 @@ export const REMOVAL_DIALOG_COPY = defineTexts(
     fieldLead: (field: string) => `Citizens won’t share their ${field} any more.`,
     fieldRules: (count: number) => `${rulesCheck(count)} it:`,
     allFieldsTitle: (document: string) => `Stop requesting all data from ${document}?`,
+    // A data group's checkbox cleared (FR-079; copy.md §5): the rest is "All data items"'
+    groupTitle: (group: string, document: string) =>
+      `Stop requesting “${group}” data from ${document}?`,
     dataRules: (count: number) => `${rulesCheck(count)} this data:`,
     after: (count: number, editing: boolean) =>
       `Edit or delete ${count === 1 ? 'it' : 'them'} before you ${editing ? 'save' : 'publish'}.`,
@@ -165,6 +169,8 @@ export const REMOVAL_DIALOG_COPY = defineTexts(
     fieldLead: (field) => `Bürgerinnen und Bürger werden nicht mehr nach „${field}“ gefragt.`,
     fieldRules: (count) => `${rulesCheckDe(count)} dieses Feld:`,
     allFieldsTitle: (document) => `Alle Daten aus „${document}“ nicht mehr anfordern?`,
+    groupTitle: (group, document) =>
+      `Felder der Gruppe „${group}“ aus ${document} nicht mehr anfordern?`,
     dataRules: (count) => `${rulesCheckDe(count)} diese Daten:`,
     after: (count, editing) =>
       `Bearbeiten oder löschen Sie ${count === 1 ? 'die Regel' : 'die Regeln'} vor dem ${editing ? 'Speichern' : 'Veröffentlichen'}.`,
