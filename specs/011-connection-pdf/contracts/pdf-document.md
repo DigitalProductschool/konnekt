@@ -149,47 +149,58 @@ there first. The proposal:
 
 | Key | English (the prototype's, adjusted by the spec) | German (proposal, to review) |
 |---|---|---|
-| eyebrow | Connection details | Anbindungsdetails |
-| eyebrowDraft | Connection details · Draft for review | Anbindungsdetails · Entwurf zur Prüfung |
+| eyebrow | Connection details | Details der Anbindung |
+| eyebrowDraft | Connection details · Draft for review | Details der Anbindung · Entwurf zur Prüfung |
 | statusActive / statusDeactivated / statusScheduled / statusDraft | Active / Deactivated / Scheduled / Draft | Aktiv / Deaktiviert / Geplant / Entwurf |
 | asOf(date) | as of {date} | Stand: {date} |
 | startsOn(date) | starts on {date} | Start am {date} |
-| notLiveYet | Not live yet | Noch nicht veröffentlicht |
+| notLiveYet | Not live yet | Noch nicht aktiv |
 | connectionId | Connection ID | Anbindungs-ID |
 | version | Version | Version |
 | lastSaved / lastSavedValue(date, n) | Last saved / {date} (draft save {n}) | Zuletzt gespeichert / {date} ({n}. Speicherung) |
 | generated / generatedValue(date) | Generated / {date} (Germany) | Erstellt / {date} (deutsche Zeit) |
-| contents(d, i, v, r) | {d} documents · {i} data items · {v} variants · {r} rules | {d} Dokumente · {i} Datenfelder · {v} Varianten · {r} Regeln |
+| contents(d, i, v, r) | {d} documents · {i} data items · {v} variants · {r} rules | {d} Dokumente · {i} Felder · {v} Varianten · {r} Regeln |
 | checkNote | Every page of this document names the connection and this version. The connection’s details page shows its current version: if they differ, this copy is out of date. | Jede Seite dieses Dokuments nennt die Anbindung und diese Version. Die Detailseite der Anbindung zeigt ihre aktuelle Version. Weichen beide voneinander ab, ist dieses Exemplar veraltet. |
-| checkNoteDraft | This draft is for review: it isn’t live, and its links are created only when it’s published. Its details page shows its current version: if they differ, this copy is out of date. Published unchanged, the connection keeps this version, so you can check that what goes live is what was reviewed. | Dieser Entwurf dient zur Prüfung. Er ist nicht veröffentlicht, und seine Links entstehen erst beim Veröffentlichen. Seine Detailseite zeigt seine aktuelle Version. Weichen beide voneinander ab, ist dieses Exemplar veraltet. Wird die Anbindung unverändert veröffentlicht, behält sie diese Version. So können Sie prüfen, ob veröffentlicht wird, was geprüft wurde. |
+| checkNoteDraft | This draft is for review: it isn’t live, and its links are created only when it’s published. Its details page shows its current version: if they differ, this copy is out of date. Published unchanged, the connection keeps this version, so you can check that what goes live is what was reviewed. | Dieser Entwurf dient zur Prüfung. Er ist nicht aktiv, und seine Links entstehen erst beim Veröffentlichen. Seine Detailseite zeigt seine aktuelle Version. Weichen beide voneinander ab, ist dieses Exemplar veraltet. Wird die Anbindung unverändert veröffentlicht, behält sie diese Version. So können Sie prüfen, ob veröffentlicht wird, was geprüft wurde. |
 | gapsTitle(n) | To finish before publishing ({n}) | Vor dem Veröffentlichen zu erledigen ({n}) |
 | gapsLead | These parts aren’t finished yet. The draft can be reviewed as it is, but it can only be published once they are. | Diese Teile sind noch nicht fertig. Sie können den Entwurf so prüfen, veröffentlichen lässt er sich aber erst, wenn sie fertig sind. |
 | section1 | Links for your service | Links für Ihren Dienst |
-| resultLinks | Result links | Ergebnis-Links (spec 009's term for the details' "Result link", plural) |
-| referenceNote | Your service replaces {reference} with the reference the request link returned. | Ihr Dienst ersetzt {reference} durch die Referenz, die der Anfrage-Link zurückgegeben hat. |
+| resultLinks | Result links | Ergebnislinks (spec 009's "Ergebnislink", plural) |
+| referenceNote | Your service replaces {reference} with the reference the request link returned. | Ihr Dienst ersetzt {reference} durch die Referenz, die der Anfragelink zurückgegeben hat. |
 | variantLink(name) | Variant · {name} | Variante · {name} |
 | deactivatedLinks | The connection is deactivated: its links answer “unavailable” until it is activated again. | Die Anbindung ist deaktiviert: Ihre Links antworten mit „unavailable“, bis sie wieder aktiviert wird. |
 | scheduledLinks(date) | The connection is scheduled: its links can already be added to your service and answer “unavailable” until it starts on {date}. | Die Anbindung ist geplant: Ihre Links können bereits in Ihren Dienst eingefügt werden und antworten mit „unavailable“, bis sie am {date} startet. |
-| linksToCreate(list) | There will be one request link for all variants, and a result link for each variant: {list}. | Es wird einen Anfrage-Link für alle Varianten geben und einen Ergebnis-Link für jede Variante: {list}. |
-| section2 / section2Lead | Documents and data items / The wallet asks the citizen for these documents and shares only these data items with your service. | Dokumente und Datenfelder / Die Wallet fragt die Bürgerin oder den Bürger nach diesen Dokumenten und teilt nur diese Datenfelder mit Ihrem Dienst. |
-| dataItems(n) | {n} data items (1 data item) | {n} Datenfelder (1 Datenfeld) |
-| section3 / section3Lead | Rules per variant / A citizen’s data meets a variant when its rules are met. Each variant has its own result link. In a variant based on Standard, marks show where it differs from Standard. | Regeln je Variante / Die Daten einer Person erfüllen eine Variante, wenn deren Regeln erfüllt sind. Jede Variante hat ihren eigenen Ergebnis-Link. In einer Variante auf Basis von Standard zeigen Markierungen, wo sie von Standard abweicht. |
+| linksToCreate(list) | There will be one request link for all variants, and a result link for each variant: {list}. | Es wird einen Anfragelink für alle Varianten geben und einen Ergebnislink für jede Variante: {list}. |
+| section2 / section2Lead | Documents and data items / The wallet asks the citizen for these documents and shares only these data items with your service. | Dokumente und Felder / Die Wallet fragt die Bürgerin oder den Bürger nach diesen Dokumenten und teilt nur diese Felder mit Ihrem Dienst. |
+| dataItems(n) | {n} data items (1 data item) | {n} Felder (1 Feld) |
+| section3 / section3Lead | Rules per variant / A citizen’s data meets a variant when its rules are met. Each variant has its own result link. In a variant based on Standard, marks show where it differs from Standard. | Regeln je Variante / Die Daten einer Person erfüllen eine Variante, wenn deren Regeln erfüllt sind. Jede Variante hat ihren eigenen Ergebnislink. In einer Variante auf Basis von Standard zeigen Markierungen, wo sie von Standard abweicht. |
 | variant(name) | Variant {name} | Variante {name} |
 | originMain / originBased / originEmpty | Main variant / Based on Standard / Own rules | Hauptvariante / Basiert auf Standard / Eigene Regeln |
 | combinesAnd / combinesOr | All rules must be met (AND) / At least one rule must be met (OR) | Alle Regeln müssen erfüllt sein (UND) / Mindestens eine Regel muss erfüllt sein (ODER) |
 | chipAnd / chipOr | AND / OR | UND / ODER |
 | group(combines) | Group · {combines} | Gruppe · {combines} |
-| messageLabel | Message for citizens: | Nachricht an Bürgerinnen und Bürger: |
+| messageLabel | Message for citizens: | Nachricht für Bürgerinnen und Bürger: |
 | notComplete(what) | Not complete: {what} | Nicht vollständig: {what} |
-| writeMessage | Write the message for citizens. | Schreiben Sie die Nachricht an Bürgerinnen und Bürger. |
-| draftNotLive | Draft · Not live | Entwurf · Nicht veröffentlicht |
+| writeMessage | Write the message for citizens. | Schreiben Sie die Nachricht für Bürgerinnen und Bürger. |
+| draftNotLive | Draft · Not live | Entwurf · Nicht aktiv |
 | idLine(id) / versionLine(v) / generatedLine(date) | Connection ID {id} / Version {v} / Generated {date} | Anbindungs-ID {id} / Version {v} / Erstellt {date} |
 | page(n, total) | Page {n} of {total} | Seite {n} von {total} |
 | continued | (continued) | (Fortsetzung) |
 | watermark | DRAFT | ENTWURF |
-| title(name) / titleDraft(name) | {name} – Connection details / Draft – {name} – Connection details | {name} – Anbindungsdetails / Entwurf – {name} – Anbindungsdetails |
+| title(name) / titleDraft(name) | {name} – Connection details / Draft – {name} – Connection details | {name} – Details der Anbindung / Entwurf – {name} – Details der Anbindung |
 
-Glossary additions this feature proposes (spec 009, `contracts/glossary.md` §2): "data item" →
-"Datenfeld" (unless spec 009's implementation of the Documents step chose otherwise, which then
-wins), "Added here" → "Hier hinzugefügt", "Removed here" → "Hier entfernt", "version (the
-content's fingerprint)" → "Version", "Not live" → "Nicht veröffentlicht".
+Glossary terms, settled by decision D2 (design-notes §8.2) against what spec 009's code says for
+the same English, which wins: "data item" → "Feld" (the glossary had it; the proposal
+"Datenfeld" is dropped), "Added here" → "Hier hinzugefügt" and "Removed here" → "Hier entfernt"
+(the glossary had them; `BRANCH_MARK_COPY`), "version (the content's fingerprint)" → "Version"
+and "Not live" → "Nicht aktiv" (added to spec 009's `contracts/glossary.md` §2; "live" is
+"aktiv" there). The same comparison corrected "Connection details" ("Details der Anbindung"),
+"result link" and "request link" ("Ergebnislink", "Anfragelink") and "Message for citizens:"
+("Nachricht für …") in the table above.
+
+Rows the table lists that existing copy tables already hold are reused from them, not added to
+`PDF_TEXTS` (design-notes §8.1): the statuses (`STATUS_PILL_COPY`), `chipAnd` / `chipOr` and
+`combinesAnd` / `combinesOr` (`CONNECTOR_COPY`'s labels and descriptions), `messageLabel`
+(`RULE_ROW_COPY`), `section1` (`CONNECTION_DETAIL_COPY.linksTitle`), `dataItems`
+(`CONNECTION_DETAIL_COPY.items`) and `contents` (`CONNECTION_DETAIL_COPY.summaryCounts` with
+`rulesCounts`).

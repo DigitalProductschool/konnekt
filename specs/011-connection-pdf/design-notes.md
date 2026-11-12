@@ -69,13 +69,16 @@ before the button, never inside the code.
 | Failed | a KERN danger alert inside the Summary card, under the header row, full width, open or closed: title "Couldn’t create the PDF", the text `ErrorNoticeText` gives (the server's message with a 5xx's error id, or "Check your connection and try again."), and a secondary "Try again" button that starts a new run (FR-004); it disappears when a run starts | the alert's `role="alert"` |
 | Gone (404 at activation) | the details' not-found state, as `FormConnectionLoadState` shows it | as today |
 
-The live region is the one the details page uses for "Link copied" (no second region). Copy goes
-into `DETAIL_COPY` in `pages/FormConnectionDetail/constants.ts` as `defineTexts(en, de)` (spec
-009): `downloadPdf`, `creatingPdf`, `creatingPdfAnnouncement`, `pdfSaved`, `pdfFailedTitle`,
-`pdfFailedText`, `version(code)`; "Try again" reuses `DETAIL_COPY.retry`. German proposals:
-"PDF herunterladen", "PDF wird erstellt …", "Das PDF wird erstellt …", "PDF gespeichert.",
-"Das PDF konnte nicht erstellt werden", "Prüfen Sie Ihre Verbindung und versuchen Sie es
-erneut.", "Version {code}".
+The announcements go to a polite `role="status"` region of the button's own, present from mount,
+as each `CopyableUrl` has one for "Link copied": the details page has no shared region (§8.1).
+Copy goes into `CONNECTION_DETAIL_COPY` (plan.md's `DETAIL_COPY`, §8.1) in
+`pages/FormConnectionDetail/constants.ts` as `defineTexts(en, de)` (spec 009): `downloadPdf`,
+`creatingPdf`, `creatingPdfAnnouncement`, `pdfSaved`, `pdfFailedTitle`, `pdfFailedText`,
+`version(code)`; "Try again" reuses `CONNECTION_DETAIL_COPY.retry` ("Erneut versuchen"). German
+proposals: "PDF herunterladen", "PDF wird erstellt …", "Das PDF wird erstellt …", "PDF
+gespeichert.", "Das PDF konnte nicht erstellt werden", "Prüfen Sie Ihre Internetverbindung und
+versuchen Sie es erneut." (the code's German for the same English, `rulesErrorText`; D2),
+"Version {code}".
 
 ## 4. The PDF's colours: KERN's tokens and contrast (FR-039)
 
@@ -143,3 +146,188 @@ token's name beside each, since the worker can't read CSS.
 - The PDF: compared page by page with the prototype's PDFs for the same sample (layout and
   English wording), in a PDF reader at 100 % and printed in black and white (marks, statuses,
   AND/OR and removed items readable without colour); quickstart.md lists the steps.
+
+## 7. Verification
+
+### 7.1 The button, per node
+
+### 7.2 The details page's states
+
+### 7.3 The PDF's pages
+
+### 7.4 Tags, contrast and veraPDF
+
+### 7.5 Version, limits, edge cases and privacy
+
+## 8. Decisions and history
+
+### 8.1 Spec 009's API as built
+
+Looked up on 2026-11-12 (T002) in this checkout, where spec 009 is implemented. Where the name as
+built differs from plan.md's, the name as built wins and later task lines are read with this
+table; the "for" column names the tasks that must read it.
+
+| Name in plan.md / tasks.md | Name as built | File | For |
+|---|---|---|---|
+| `Language` | `Language` (`'en' \| 'de'`), with `LANGUAGES`, `DEFAULT_LANGUAGE` (`'en'`) and `isLanguage()`; imported as `@connection-portal/rules/language` | `rules/src/language.ts` | all |
+| `defineTexts` | `defineTexts(en, de)`: `de` is typed by `en` (`NoInfer`), so a German column that lacks or adds a key fails `tsc` | `rules/src/language.ts` | T013, T031 |
+| `useCopy` | `useCopy(table)`: the table's column in the website's language | `frontend/src/hooks/useLanguage.ts` | T031 |
+| `useLanguage` | `useLanguage()` → `{ language, setLanguage }` (`LanguageContextValue`) | `frontend/src/hooks/useLanguage.ts`, `frontend/src/components/LanguageProvider/types.ts` | T030 |
+| `RuleContext.language` | `RuleContext.language?: Language`; English when left out | `rules/src/types.ts` | T016, T019, T020 |
+| the problems' `code` on `RulesProblem` | `RulesProblem.code: RulesProblemCode` (`RulesMessageKey \| ConditionProblem \| EditMessageKey`), with `message`, `branchIndex`, `itemId` | `rules/src/types.ts` | T016, T019 |
+| `ruleProblemOf` | `ruleProblemOf(rule, branchName, context): RuleProblemDetail \| null` (`{ code, message }`); codes `chooseData`, `notRequested`, `unknownPart`, a `ConditionProblem`, `noMessage`, `messageTooLong` | `rules/src/validation.ts` | T016, T019 |
+| `firstProblem` | `firstProblem(branches: BranchInput[], context: RuleContext): RulesProblem \| null`; `publishProblems()` goes beside it | `rules/src/validation.ts` | T016 |
+| `statementPartsOf`, `statementOf` with a language | `statementOf(rule, context)` and `statementPartsOf(rule, context)`: the language is `context.language`, not a parameter of its own | `rules/src/statements.ts` | T020 |
+| `ApiFetchOptions.language` | `ApiFetchOptions.language?: Language`, sent as `Accept-Language` in place of the website's language; the interface is not exported | `frontend/src/api/client.ts` | T030 |
+| `getFormConnection(id, { language })` (T030) | `getFormConnection(id)`: **no options**. T030 adds an optional `language` that it passes to `apiFetch` | `frontend/src/api/form-connections.ts` | T030 |
+| `getOptionSets(language)`, `getDocumentTypes(language)` | `getOptionSets(language?)`, `getDocumentTypes(language?)` (the website's language when left out) | `frontend/src/api/option-sets.ts`, `frontend/src/api/document-types.ts` | T030 |
+| "spec 009's caches" (per language) | **No shared cache.** `useOptionSets()` and `useDocumentTypes()` each keep a `CatalogCacheState` (`loaded` per language) in their own `useReducer`, and return `catalogViewOf(state)`, which shows the *other* language's list until the current one's has arrived. Their `optionSets` / `documentTypes` can therefore be in the wrong language right after a switch | `frontend/src/hooks/useOptionSets.ts`, `useDocumentTypes.ts`, `hooks/utils.ts`, `hooks/types.ts` | T030 |
+| `frontend/src/copy.test.ts` | Exists. Glob `import.meta.glob('./**/constants.ts', { eager: true })` from `frontend/src/`, so `utils/connectionPdf/constants.ts` is covered. A table is any export that is a plain object with exactly the keys `en` and `de`. It checks the same keys and kinds in both columns, no empty text, and German ≠ English unless the English is in `EQUAL_IN_BOTH_LANGUAGES` (`Standard`, `Status`, `Details`, `Test`, `DE`, `EN`, `Konnekt`, `Optional`, `optional`, `Link`, `Wallet`, `Agent`, `Name`, `Region`, `serviceBW`, `EUDI Wallet`, `/`, `…`), one character, or punctuation only. Functions are checked by key and kind only | `frontend/src/copy.test.ts` | T013, T031 |
+| `DETAIL_COPY` | **`CONNECTION_DETAIL_COPY`** (`defineTexts`). The keys the PDF and the button reuse: `linksTitle`, `linksLead`, `requestLink`, `requestLinkInfo`, `resultLink`, `resultLinkInfo`, `draftLinksText`, `noDocumentsYet`, `noDataYet`, `noRules`, `items(n)`, `summaryCounts(d, i, rulesCounts)`, `rulesCounts(v, r)`, `retry` ("Try again" / "Erneut versuchen"), `rulesErrorText` | `frontend/src/pages/FormConnectionDetail/constants.ts` | T013, T020, T031 |
+| `BRANCH_MARK_COPY` | `BRANCH_MARK_COPY` (`defineTexts<Record<Mark, string>>`: `changed`, `added`, `removed`) | `frontend/src/components/BranchMark/constants.ts` | T013, T020 |
+| (not in plan.md) other tables with the PDF's texts | `STATUS_PILL_COPY` (`draft`, `scheduled`, `live` = "Active" / "Aktiv", `deactivated`) in `frontend/src/components/ConnectionStatusBadge/constants.ts`; `CONNECTOR_COPY.labels` ("AND" / "UND", "OR" / "ODER") and `.descriptions` ("All rules must be met" / "Alle Regeln müssen erfüllt sein", "At least one rule must be met" / "Mindestens eine Regel muss erfüllt sein") in `frontend/src/components/Connector/constants.ts`; `RULE_ROW_COPY.messageLabel` ("Message for citizens:" / "Nachricht für Bürgerinnen und Bürger:") in `frontend/src/components/RuleRow/constants.ts`; `CONDITION_PROBLEM_MESSAGES` (the create flow's instruction per `ConditionProblem`, "choose a check." / "Wählen Sie eine Prüfung.") in `rules/src/constants.ts` | as named | T013, T019, T020 |
+| "Enter a name for the connection." | `VALIDATION_MESSAGES.nameRequired` (with `nameTooLong`, `descriptionTooLong`), the server's `clean_name()` / `clean_description()` word for word in both languages | `frontend/src/pages/FormConnectionEditor/constants.ts` | T019 |
+| "Add at least one document." | **Only the server's** `clean_documents()` (German "Fügen Sie mindestens ein Dokument hinzu."); no frontend table has it (the Documents step disables "Set rules →" with `DOCUMENTS_COPY.addDocumentFirst`, "Add a document first", instead) | `backend/app/services/form_connections.py` | T019 |
+| "Choose at least one data item, or remove this document." | `DOCUMENTS_COPY.needsDataLine` (German "Wählen Sie mindestens ein Feld aus oder entfernen Sie dieses Dokument."); the server's message for the same gap is "Select at least one field for '{label}'." | `frontend/src/pages/FormConnectionEditor/DocumentsStep/constants.ts` | T019 |
+| the polite live region the details page uses for "Link copied" | **No page-level region.** Each `CopyableUrl` renders its own `<p role="status" className="sr-only">` with `COPY_TEXTS.link.announced` ("Link copied" / "Link kopiert"), and `ActivityCard` has its own `role="status"`; a draft's details have no `CopyableUrl` at all. `LIVE_REGION_DELAY_MS` (100 ms, `frontend/src/constants.ts`) is how long a region that has just appeared stays empty | `frontend/src/components/CopyableUrl/index.tsx`, `frontend/src/constants.ts` | T030, T031 |
+| (T004) "the block that sets `'no-console': 'error'` for the checks and personas" | The rule is set by the block for `{api-types,rules}/src/**/*.ts` (the checks and personas live in `rules/src/`); no block for `frontend/src/` sets it. T004 adds a block of its own for the three PDF paths | `eslint.config.mjs` | T004 |
+
+What this means for later tasks (the coordinator appends these to their lines as "carried from
+T002"):
+- **T013**: keys that a table above already has are reused, not added to `PDF_TEXTS`: the statuses
+  (`STATUS_PILL_COPY`), the AND/OR chips and the combinator sentences (`CONNECTOR_COPY`, the
+  sentence composed as "{description} ({label})"), "Message for citizens:" (`RULE_ROW_COPY`), the
+  links' heading (`CONNECTION_DETAIL_COPY.linksTitle`), "{n} data items" (`items`) and the contents
+  line (`summaryCounts` with `rulesCounts`). A string key whose German equals its English
+  (`version`: "Version") fails `copy.test.ts` unless "Version" is added to
+  `EQUAL_IN_BOTH_LANGUAGES` in the same task.
+- **T019**: "Add at least one document." needs a key with both columns, from the server's `Text`.
+- **T030**: `getFormConnection` gains the `language` option; the option sets and the catalog in the
+  captured language are the hooks' lists only when they are in that language: read the list
+  cached for that language (widening the hooks to expose it) and fetch only what isn't cached.
+- **T031**: `PdfDownload` gets its own polite `role="status"` region, as `CopyableUrl` does, present
+  from mount; there is no shared region to reuse.
+
+### 8.2 Decisions (D#)
+
+**D1, how PDFKit is typed** (T003, 2026-11-12; R1, constitution IV). Our own interface, no
+second package.
+- Checked on 2026-11-12: `pdfkit` 0.20.2's `exports` give `"."` a `node` condition
+  (`js/pdfkit.node.mjs` for `import`) and a `default` (`js/pdfkit.browser.mjs`), and no `types`;
+  `@types/pdfkit` is at 0.17.7, three minor versions behind, without 0.20's structure and outline
+  calls. One specifier, `'pdfkit'`, serves both builds: Vite resolves the browser build for the
+  worker, Vitest's `node` environment the Node build for the smoke test.
+- `frontend/src/utils/connectionPdf/types.ts` declares `PdfKitDocument` (only the calls and
+  properties `render.ts` uses, typed as PDFKit 0.20.2 takes them) and `PdfKitConstructor`
+  (`new (options) => PdfKitDocument`). `render()` receives the constructor as an argument.
+- Under `strict`, importing a package without types fails `tsc` (TS7016). One ambient declaration,
+  `declare module 'pdfkit';` in `frontend/src/utils/connectionPdf/pdfkit.d.ts`, with a comment
+  naming D1, makes the import compile. Its default export is untyped, so each of the two imports
+  (the worker's dynamic `import('pdfkit')`, the smoke test's) casts it to `PdfKitConstructor`
+  where it is imported, with a one-line comment: "pdfkit 0.20 ships no types; D1". Nothing else
+  imports `'pdfkit'`, and nothing writes `any`.
+- A call `render.ts` needs that the interface lacks is added to the interface, never cast at the
+  call. `plan.md` is unchanged: one new package, as planned.
+
+**D2, the German terms the glossary lacked** (T003, 2026-11-12; contracts/pdf-document.md §5,
+FR-034). Each proposal was compared with what spec 009's code says for the same English; the code
+wins.
+
+| Proposal | What the code says | Settled |
+|---|---|---|
+| "data item" → "Datenfeld" | "Feld" / "Felder": `CONNECTION_DETAIL_COPY.items` and `summaryCounts`, `DOCUMENTS_COPY` ("6 von 25 Feldern ausgewählt", "Alle Felder"); glossary §2 already has "data item → Feld" (T036 of spec 009) | **Feld** (no glossary change) |
+| "Added here" → "Hier hinzugefügt" | `BRANCH_MARK_COPY.de.added`; glossary §2 (T032) | **Hier hinzugefügt**, reused from `BRANCH_MARK_COPY` |
+| "Removed here" → "Hier entfernt" | `BRANCH_MARK_COPY.de.removed`; glossary §2 (T032) | **Hier entfernt**, reused from `BRANCH_MARK_COPY` |
+| "Not live" → "Nicht veröffentlicht" | "live" is "aktiv": glossary §2 "live connections" → "aktive Anbindungen", "never live" → "nie aktiv" (the draft's delete dialog: "Die Anbindung war nie aktiv"), `Approval`'s "goes live at once" → "wird sofort aktiv". One exception, the publish failure's "Nothing went live." → "Es wurde nichts veröffentlicht." | **nicht aktiv**: "Not live" → "Nicht aktiv", "Not live yet" → "Noch nicht aktiv", "Draft · Not live" → "Entwurf · Nicht aktiv", "it isn’t live" → "er ist nicht aktiv"; added to glossary §2 |
+| "version" (the content's fingerprint) → "Version" | no UI text yet; glossary §2 has "revision" → "Version", which no screen shows | **Version**; added to glossary §2 beside "revision". German equals English, so the task that adds a string key "Version" adds the word to `copy.test.ts`'s `EQUAL_IN_BOTH_LANGUAGES` |
+
+Further corrections found by the same comparison (same English in the code, so the code's German
+wins; applied to contracts/pdf-document.md §5 and to §3 above):
+- "Connection details" is "Details der Anbindung" (the wizard's step 1, glossary §2), not
+  "Anbindungsdetails": the eyebrow, the draft's eyebrow and the two titles.
+- "result link" is "Ergebnislink" (glossary §2), so "Result links" is "Ergebnislinks", not
+  "Ergebnis-Links"; "request link" is "Anfragelink".
+- "Documents and data items" is "Dokumente und Felder"; "{n} data items" is
+  `CONNECTION_DETAIL_COPY.items` ("{n} Felder", "1 Feld").
+- "Message for citizens:" is "Nachricht für Bürgerinnen und Bürger:" (`RULE_ROW_COPY`), not
+  "Nachricht an …".
+- "Check your connection and try again." is "Prüfen Sie Ihre Internetverbindung und versuchen Sie
+  es erneut." (`CONNECTION_DETAIL_COPY.rulesErrorText`), and "Try again" is "Erneut versuchen"
+  (`CONNECTION_DETAIL_COPY.retry`).
+
+Not settled here (no code says the same English; T041 reviews them with the rest of the German):
+"Connection ID" → "Anbindungs-ID" stays the proposal, although the glossary's pattern for
+"connection <noun>" is "<Noun> der Anbindung" ("Name der Anbindung", "URLs der Anbindung"), which
+would give "ID der Anbindung".
+
+### 8.3 The test connections
+
+### 8.4 History
+
+**2026-11-12, T001 baseline.** `npm install` and `uv sync` ran on Node 20.19.2 (npm 9.2.0; no
+switch to Node 22 was needed), Python 3.13.5 and uv 0.13.0, and changed no tracked file. The
+gates were green on the unmodified checkout: lint, tests, build, Ruff (nothing fixed or
+reformatted), mypy (95 source files) and pytest.
+
+| Suite | Result |
+|---|---|
+| `rules/` (Vitest) | 2664 tests passed, 46 files |
+| `frontend/` (Vitest) | 1573 tests passed, 36 files |
+| `mcp/` (Vitest) | 510 tests passed, 15 files |
+| `backend/` (pytest) | 2557 passed, 0 skipped (14 min 8 s) |
+
+The build of `frontend/` (`npm run build -w frontend`, the size quickstart §1 compares against):
+
+| Chunk | Raw | Gzip |
+|---|---|---|
+| `index-BUwgvwRI.js` (the main entry) | 934.62 kB | 278.94 kB |
+| `checks-C766b_cc.js` (worker) | 36.37 kB | not printed |
+| `personas-CIJR7rKY.js` (worker) | 70.50 kB | not printed |
+
+On the PATH: `docker` (29.9.2, daemon reachable). Not on the PATH: `verapdf`, `java`, `qpdf`,
+`pdftotext`, `pdftoppm`. The PostgreSQL of the tests was started for this run with the repo's
+`docker compose up -d postgres` (port 5435), and `template_db_test` was created in it.
+
+**2026-11-12, T005 fonts.** The five TTFs are copied byte for byte from
+`@expo-google-fonts/fira-sans` 0.4.1 and `@expo-google-fonts/fira-mono` 0.4.1 (the versions in the
+prototype's `package-lock.json`, whose `npm install` left the lockfile unchanged) into
+`frontend/src/assets/fonts/`. `OFL.txt` is the packages' `LICENSE_FONT` (the OFL 1.1 text, the
+same in both), with both packages' copyright lines at its top: Fira Sans "2012-2015, The Mozilla
+Foundation and Telefonica S.A.", Fira Mono "2012-2013, The Mozilla Corporation and Telefonica
+S.A.". The largest file is 473160 bytes, under the 500 KB (512000 bytes) of the
+`check-added-large-files` hook, which sets no `--maxkb`.
+
+| File | Bytes | SHA-256 |
+|---|---|---|
+| `FiraSans-Regular.ttf` | 440984 | `3dabf3d48bf4599f95cffd92f99ea426a014d5311f52a5eb5ec3af265e97cd97` |
+| `FiraSans-Medium.ttf` | 441384 | `7c2d4961dd4a2dbe3ec9c6a2fc60d7ee21f44dfa7c5c71256b28d15e8af89535` |
+| `FiraSans-SemiBold.ttf` | 473160 | `1352f54dafec54419303fd4e55bc4d2aad4379f5105122f78034ddb48499e1d1` |
+| `FiraMono-Regular.ttf` | 170204 | `9c1c51abec8b9f7fa24bfb88ebe80b354cc6da9d4036d6bedeaf495d24933e42` |
+| `FiraMono-Medium.ttf` | 169056 | `5ebf0b5802814edb228b711b70c02736506bb8bce32da2608dcbf9e0df45798d` |
+| `OFL.txt` | 4461 | `4da2f15e9bcb2fc38ce0e9326bebbb904da3377204d4d3d06878cd3f6653c1e0` |
+
+**2026-11-12, T006 checkpoint of the setup.**
+- **Gates**: the Node gates are green with `pdfkit` 0.20.2 installed (18 packages added to the
+  lockfile, none imported by our code): lint; 2664 / 1573 / 510 tests in `rules/`, `frontend/`,
+  `mcp/`; the build, whose main entry is unchanged (934.62 kB, 278.94 kB gzip) and whose two
+  workers are still chunks of their own in ES format. Phase 1 changed no backend file, so T001's
+  backend gates stand. Twice, while two agents ran the Node gates side by side (load average 8–9),
+  the time budgets of `rules/src/personas/performance.test.ts` failed and passed on the rerun:
+  parallel Node batches can trip them, so a red run there is re-run alone before it counts.
+- **Records**: §8.1 has a row for every name T002 lists, and the as-built differences are carried
+  to T004, T013, T019, T030 and T031; §8.2 holds D1 and D2 (the contract's §5, §3 above and spec
+  009's glossary corrected); the fonts' sizes and hashes are above (T005).
+- **veraPDF**: not on the PATH and no Java (T001), but Docker runs it:
+  `docker run --rm --network none -v <dir>:/data:ro verapdf/cli:v1.28.1 --flavour ua1 /data/<file>.pdf`
+  (veraPDF 1.28.1, image pulled 2026-11-12). On the prototype's `published-ids-top.pdf` and
+  `draft-ids-top.pdf` it fails one rule only, 7.21.4.2 test 2 (font: the incomplete `CIDSet`,
+  3 checks; 105 rules passed): the PDFKit bug research R5 names, which the implementation works
+  around. So quickstart §5 step 2 runs in the chat.
+- **Needs a person**: SC-006's screen-reader walk (quickstart §5 step 3, NVDA with Acrobat or
+  another screen reader with a tagged-PDF reader) can't run here. The user was asked on
+  2026-11-12 who does it; the answer is pending and goes here.
+- **Other**: the tests' PostgreSQL is the container `pdf-summary-postgres-1` that T001 started
+  (port 5435). `pdfkit` was moved into alphabetical order in `frontend/package.json` (the
+  lockfile is unchanged by it).
+
+## 9. Closing report
