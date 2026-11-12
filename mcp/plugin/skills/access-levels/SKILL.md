@@ -8,15 +8,16 @@ description: The three access levels an agent can have in Konnekt, what each all
 The team member chooses your access level when they connect you, on Konnekt's
 consent page. Each level includes the one before it:
 
-| Level                                           | Allows                                                                                  |
-| ----------------------------------------------- | --------------------------------------------------------------------------------------- |
-| "Read only"                                     | Reading connections, variants, rules, the catalog, the rule checks and the tests        |
-| "Read and edit drafts"                          | Also creating and changing drafts, and asking for approval to publish or delete a draft |
-| "Read, edit drafts and manage live connections" | Also asking for approval to deactivate, reactivate or delete a published connection     |
+| Level                                           | Allows                                                                                                                              |
+| ----------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------- |
+| "Read only"                                     | Reading connections, variants, rules, the catalog, the rule checks and the tests                                                    |
+| "Read and edit drafts"                          | Also creating and changing drafts, and asking for approval to publish or delete a draft                                             |
+| "Read, edit drafts and manage live connections" | Also asking for approval to deactivate, reactivate or delete a published connection, or to change its start date (`set_start_date`) |
 
 At every level, a published connection's content (its name, description, documents, variants and
 rules) is read-only for agents: the team member changes it in Konnekt. Publishing,
-deleting, deactivating and reactivating never happen without the team member's approval.
+deleting, deactivating, reactivating and changing a start date never happen without the team
+member's approval.
 
 Some actions are a person's at every level, and no tool offers them: starting from the example,
 restoring a deleted connection and deleting several connections at once. The team member does
@@ -24,8 +25,8 @@ them in Konnekt; tell them so when they ask you for one.
 
 ## When a level isn't enough
 
-Asking for approval to deactivate, reactivate or delete a published connection needs the third
-level, "Read, edit drafts and manage live connections", even when you can edit drafts:
+Asking for approval to deactivate, reactivate or delete a published connection, or to change its
+start date (`set_start_date`), needs the third level, "Read, edit drafts and manage live connections", even when you can edit drafts:
 `request_approval` refuses it at "Read only" and at "Read and edit drafts" with
 `insufficient_access`, and makes no request.
 

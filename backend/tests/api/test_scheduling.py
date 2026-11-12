@@ -1294,11 +1294,12 @@ def test_an_approved_reactivation_of_a_connection_scheduled_since_does_nothing(
 def test_the_service_refuses_a_scheduled_connection_with_any_snapshot(
     signed_in_client: TestClient, fake_eudiplo: FakeEudiplo, today: date
 ) -> None:
-    """`activate_form_connection()` with the approvals' `expected_active`: the
-    scheduled connection's `is_active` matches, and it still answers `409
-    status_changed` under the lock."""
+    """`activate_form_connection()` with the approvals' `expected` status: the
+    scheduled connection's own status (spec 010, research R9) matches, and it
+    still answers `409 status_changed` under the lock."""
     connection_id = scheduled_connection(signed_in_client)
     before = snapshot()
+    expected = form_connections.StatusSnapshot(was_active=False, was_start_date=START)
 
     for start_date in (None, LATER):
         with SessionLocal() as db, pytest.raises(HTTPException) as refused:
@@ -1306,7 +1307,7 @@ def test_the_service_refuses_a_scheduled_connection_with_any_snapshot(
                 db,
                 connection_id,
                 actor=APPROVER,
-                expected_active=False,
+                expected=expected,
                 start_date=start_date,
             )
         assert refused.value.status_code == 409

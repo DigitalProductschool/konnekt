@@ -12,6 +12,7 @@ from pydantic import (
     StrictStr,
     TypeAdapter,
     field_validator,
+    model_validator,
 )
 
 from .catalog import FieldKind, PartKind
@@ -838,20 +839,39 @@ class AgentMe(BaseModel):
 # Approval requests (research R12, data-model.md section 5)
 
 ApprovalAction = Literal[
-    'publish', 'delete_draft', 'deactivate', 'reactivate', 'delete'
+    'publish', 'delete_draft', 'deactivate', 'reactivate', 'delete', 'set_start_date'
 ]
 ApprovalStatus = Literal[
     'waiting', 'done', 'declined', 'expired', 'replaced', 'cancelled'
 ]
 # The status, or failed while waiting after an approve attempt failed (FR-027)
 ApprovalOutcome = ApprovalStatus | Literal['failed']
+# The actions that take a start date (spec 010, research R9, data-model 7)
+START_DATE_ACTIONS: frozenset[str] = frozenset(
+    {'publish', 'reactivate', 'set_start_date'}
+)
 
 
 class ApprovalCreate(BaseModel):
-    """An agent's request that a team member approve an action."""
+    """An agent's request that a team member approve an action.
+
+    `start_date` (spec 010, research R9) only for `publish` and `reactivate`
+    (the start date; absent or null: at once) and `set_start_date` (the new
+    date; absent or null: now). Another action with one fails the body's
+    validation (400 `Validation error`).
+    """
 
     form_connection_id: str
     action: ApprovalAction
+    # YYYY-MM-DD, a day in Germany after today
+    start_date: date | None = None
+
+    @model_validator(mode='after')
+    def check_start_date_action(self) -> 'ApprovalCreate':
+        """Refuse a start date for an action that takes none."""
+        if self.start_date is not None and self.action not in START_DATE_ACTIONS:
+            raise ValueError('This action takes no start date')
+        return self
 
 
 class ApprovalRequest(BaseModel):
@@ -866,8 +886,12 @@ class ApprovalRequest(BaseModel):
     status: ApprovalStatus
     outcome: ApprovalOutcome
     # revoked, access_changed, access_ended, draft_changed, draft_published,
-    # draft_deleted, connection_changed or connection_deleted
+    # draft_deleted, connection_changed, connection_deleted or start_date_passed
     cancel_reason: str | None
+    # YYYY-MM-DD, the start date as asked (spec 010, research R9); null: at once
+    # (publish, reactivate), now (set_start_date), or an action without one. The
+    # connection's own start date is on ApprovalPreview.connection
+    start_date: str | None
     # The approval page's link
     link: str
     expires_at: str
@@ -900,7 +924,9 @@ class ApprovalPreview(BaseModel):
     request: ApprovalRequest
     # publish and delete_draft, while the draft exists
     draft: FormConnectionDraft | None
-    # The other actions, while the connection exists
+    # The other actions while the connection exists, and the connection a done
+    # publish made while it isn't deleted: its own `state` and `start_date`
+    # (spec 010, research R9)
     connection: FormConnection | None
     # After a done publish or reactivate, and for the status actions
     urls: ConnectionUrls | None

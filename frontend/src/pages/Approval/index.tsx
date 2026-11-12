@@ -38,7 +38,9 @@ import {
  * under the same title. A failed approve leaves the request waiting: the page keeps the body,
  * shows the failure with its error ID above it and offers "Try again". Another team member's
  * request and one that isn't there show no preview; a failed load shows the §3 "Error state of a
- * page" with the way back to the connections.
+ * page" with the way back to the connections. After a done publish or reactivation the URLs copy
+ * unless the connection is deactivated now: a scheduled connection's links are ready to be added
+ * before its start, as on its details (spec 010, FR-007).
  */
 function ApprovalScreen({ id }: ApprovalScreenProps) {
   const [state, dispatch] = useReducer(approvalReducer, INITIAL_APPROVAL_STATE);
@@ -131,7 +133,7 @@ function ApprovalScreen({ id }: ApprovalScreenProps) {
           view={view}
           urls={doneShowsUrls(action) ? preview.urls : null}
           formConnectionId={preview.request.form_connection_id}
-          deactivated={preview.connection ? !preview.connection.is_active : false}
+          deactivated={preview.connection?.state === 'deactivated'}
         />
       ) : (
         <div className="flex flex-col gap-24">
@@ -141,6 +143,7 @@ function ApprovalScreen({ id }: ApprovalScreenProps) {
             draft={preview.draft}
             connection={preview.connection}
             urls={preview.urls}
+            startDate={preview.request.start_date}
           />
           <ApprovalActions
             action={action}

@@ -540,7 +540,9 @@ class ApprovalRequest(Base):
     `access_ended`. Deleting its connection stores `cancelled` with
     `connection_deleted` or `draft_deleted`, so that a restore doesn't bring it
     back (spec 010, research R5); it outlives its draft's row too, which is
-    removed once the restore time has passed.
+    removed once the restore time has passed. A request may carry the start date
+    the agent asks for, and remembers the connection's start date beside its
+    `is_active` (spec 010, research R9, data-model 7).
     """
 
     __tablename__ = 'approval_requests'
@@ -550,7 +552,7 @@ class ApprovalRequest(Base):
     # passed (spec 010, research R5), and the request stays to read as
     # draft_deleted; a published connection's row stays
     form_connection_id: Mapped[str] = mapped_column(String(36), index=True)
-    # publish, delete_draft, deactivate, reactivate or delete
+    # publish, delete_draft, deactivate, reactivate, delete or set_start_date
     action: Mapped[str] = mapped_column(String(16))
     # The agent that asked; null once its access was revoked or has ended, which a
     # waiting request reads as cancelled, access_ended
@@ -568,14 +570,22 @@ class ApprovalRequest(Base):
     )
     # publish and delete_draft: the draft's version when the request was made
     draft_version: Mapped[int | None] = mapped_column(Integer)
-    # deactivate, reactivate, delete: the connection's is_active when made
+    # deactivate, reactivate, delete, set_start_date: the connection's is_active
+    # when made
     was_active: Mapped[bool | None] = mapped_column(Boolean)
+    # What the agent asks for (spec 010, data-model 7), a day in Germany: for
+    # publish and reactivate the start date, null for at once; for set_start_date
+    # the new date, null for now; null for the other actions
+    start_date: Mapped[date | None] = mapped_column(Date)
+    # The connection's start_date when made, beside was_active: together the
+    # status the request was made for (spec 010, FR-066)
+    was_start_date: Mapped[date | None] = mapped_column(Date)
     # waiting, done, declined, expired, replaced or cancelled
     status: Mapped[str] = mapped_column(String(16), index=True)
     # revoked or access_changed, or connection_deleted or draft_deleted, which a
     # deletion stores (spec 010); the other reasons (access_ended, draft_changed,
-    # draft_published, connection_changed) are computed at every read, and so are
-    # the deletion's two for a request it didn't store them on
+    # draft_published, connection_changed, start_date_passed) are computed at every
+    # read, and so are the deletion's two for a request it didn't store them on
     cancel_reason: Mapped[str | None] = mapped_column(String(32))
     # APPROVAL_REQUEST_MINUTES after creation
     expires_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), index=True)

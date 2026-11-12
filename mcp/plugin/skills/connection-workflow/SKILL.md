@@ -51,10 +51,11 @@ which countries) rather than guessing. Read the guide's topics before working on
 ## Reading what is there
 
 - `search_connections` finds connections by a part of their name or description (letter case
-  doesn't matter) and by status: `draft`, `live` or `deactivated`. It answers at most 25 at a
-  time, the most recently changed first; pass its `next_cursor` to read the next page. Each
-  connection comes with its id and link, a published one with `published_at` (when it was first
-  published) and, while deactivated, `deactivated_at`, and a draft with its `step`.
+  doesn't matter) and by status: `draft`, `scheduled`, `live` or `deactivated`. It answers at
+  most 25 at a time, the most recently changed first; pass its `next_cursor` to read the next
+  page. Each connection comes with its id and link, a published one with `published_at` (when it
+  was first published), while deactivated `deactivated_at` and while scheduled `start_date` (the
+  day in Germany it becomes active), and a draft with its `step`.
 - `get_connection` reads one connection: its documents and fields, its variants with how many
   rules and groups each has (read the rules themselves with `get_variant`), its connection URLs
   once published, and for a draft its version, its `step` and `dropped`: requested data the

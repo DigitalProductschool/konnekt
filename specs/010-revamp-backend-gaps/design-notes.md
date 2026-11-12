@@ -1318,6 +1318,174 @@ Browser: the `playwright-firefox` MCP, viewport 1440 × 900 (body 1440 wide; Fir
 | — | edit flow, `#document-pid-group-birth` | 160 | focus ring after click / after Tab | none / 3 px | `none` / `solid 3px` | match |
 | — | edit flow, the question (Birth) | 160 | page and dialog | horizontal scroll / off-screen / h1 | — | 160 ≤ 160; none; 1 h1 | match |
 
+#### T080: the approval page's new cases (S21; W14, no frame)
+
+Items: FR-050, FR-060, FR-065–FR-067, US8-AS3; copy.md §7 (German title „<name>“ as amended), §2, FR-010. Browser: `playwright-chrome` MCP (Chromium), 1440 px viewport (set with `setViewportSize`), 320 and 160 CSS px (English). Data in `template_db_010_p11` (backend 3015, Vite 5179, `p10-alice`): connections named `T080 …`, the example draft `d443d829-7b9a-45a2-9ebf-63dab1943ccd`, tokens `T080 manage` and `T080 agent`; ids in `<SP>/T080-notes.md`. Every text below was read in both languages at 1440 px (EN / DE).
+
+| frame | state | width | element | property | Figma | actual | result |
+|---|---|---|---|---|---|---|---|
+| S21 (no frame) | W1 publish, at once | 1440 | h1 | text EN / DE | Publish ‘<name>’? / „<name>“ veröffentlichen? | Publish ‘<name>’? / „<name>“ veröffentlichen? (name as made) | match |
+| S21 (no frame) | W1 publish, at once | 1440 | start line | text EN / DE | The connection goes live at once. / Die Anbindung wird sofort aktiv. | The connection goes live at once. / Die Anbindung wird sofort aktiv. | match |
+| S21 (no frame) | W2 publish on a date | 1440 | h1 | text EN / DE | Publish ‘<name>’? / „<name>“ veröffentlichen? | Publish ‘<name>’? / „<name>“ veröffentlichen? (name as made) | match |
+| S21 (no frame) | W2 publish on a date | 1440 | start line | text EN / DE | Active from 01.12.2026 / Aktiv ab 01.12.2026 | Active from 01.12.2026 / Aktiv ab 01.12.2026 | match |
+| S21 (no frame) | W3 publish, unchanged example | 1440 | body | info line under the start line EN / DE | This is still the example. Check that the name, documents and rules fit your service. / Dies ist noch das Beispiel. Prüfen Sie, ob Name, Dokumente und Regeln zu Ihrem Dienst passen. | This is still the example. Check that the name, documents and rules fit your service. / Dies ist noch das Beispiel. Prüfen Sie, ob Name, Dokumente und Regeln zu Ihrem Dienst passen. | match |
+| S21 (no frame) | W4 reactivate on a date | 1440 | body | line under the Links card EN / DE | Active from 01.12.2026 / Aktiv ab 01.12.2026 | Active from 01.12.2026 / Aktiv ab 01.12.2026 | match |
+| S21 (no frame) | W4b reactivate at once | 1440 | body | line under the Links card EN / DE | The connection goes live at once. / Die Anbindung wird sofort aktiv. | The connection goes live at once. / Die Anbindung wird sofort aktiv. | match |
+| S21 (no frame) | W5 set_start_date, scheduled → 15.12.2026 | 1440 | h1 + body | Change the start date of ‘<name>’? / Startdatum von „<name>“ ändern?; Active from 15.12.2026 / Aktiv ab 15.12.2026 | Change the start date of ‘<name>’? / Startdatum von „<name>“ ändern?; Active from 15.12.2026 / Aktiv ab 15.12.2026 | Change the start date of ‘<name>’? / Startdatum von „<name>“ ändern?; Active from 15.12.2026 / Aktiv ab 15.12.2026 | match |
+| S21 (no frame) | W6 set_start_date, scheduled → now | 1440 | body | line under the Links card EN / DE | The connection goes live at once. / Die Anbindung wird sofort aktiv. | The connection goes live at once. / Die Anbindung wird sofort aktiv. | match |
+| S21 (no frame) | W7 set_start_date, live → 01.12.2026 | 1440 | body | lines under the Links card EN / DE | Active from 01.12.2026 + Until then its links stop working, and requests in progress are cancelled. / Aktiv ab 01.12.2026 + Bis dahin funktionieren die Links nicht, und laufende Anfragen werden abgebrochen. | Active from 01.12.2026 + Until then its links stop working, and requests in progress are cancelled. / Aktiv ab 01.12.2026 + Bis dahin funktionieren die Links nicht, und laufende Anfragen werden abgebrochen. | match |
+| S21 (no frame) | W8 deactivate a scheduled connection | 1440 | body | line under the Links card (copy.md §2) EN / DE | This connection will be active from 01.12.2026. If you deactivate it, it won’t become active and its links won’t work. You can activate it again later. / Diese Anbindung ist ab 01.12.2026 aktiv. Wenn Sie sie deaktivieren, wird sie nicht aktiv und ihre Links funktionieren nicht. Sie können sie später wieder aktivieren. | This connection will be active from 01.12.2026. If you deactivate it, it won’t become active and its links won’t work. You can activate it again later. / Diese Anbindung ist ab 01.12.2026 aktiv. Wenn Sie sie deaktivieren, wird sie nicht aktiv und ihre Links funktionieren nicht. Sie können sie später wieder aktivieren. | match |
+| S21 (no frame) | W9 delete a scheduled connection | 1440 | body | lines under the Links card (FR-010, FR-067) EN / DE | This connection will be active from 01.12.2026. If you delete it, it won’t become active and its links won’t work. + **Deleting can’t be undone.** / Diese Anbindung ist ab 01.12.2026 aktiv. Wenn Sie sie löschen, wird sie nicht aktiv und ihre Links funktionieren nicht. + **Das Löschen kann nicht rückgängig gemacht werden.** | This connection will be active from 01.12.2026. If you delete it, it won’t become active and its links won’t work. + **Deleting can’t be undone.** / Diese Anbindung ist ab 01.12.2026 aktiv. Wenn Sie sie löschen, wird sie nicht aktiv und ihre Links funktionieren nicht. + **Das Löschen kann nicht rückgängig gemacht werden.** | match |
+| S21 (no frame) | D1 done publish on a date (approved with the page’s button) | 1440 | success alert | title EN / DE | Published and scheduled for 01.12.2026. / Veröffentlicht und für den 01.12.2026 geplant. | Published and scheduled for 01.12.2026. / Veröffentlicht und für den 01.12.2026 geplant. | match |
+| S21 (no frame) | D2 done reactivate on a date | 1440 | success alert | title EN / DE | Connection scheduled for 01.12.2026. / Anbindung für den 01.12.2026 geplant. | Connection scheduled for 01.12.2026. / Anbindung für den 01.12.2026 geplant. | match |
+| S21 (no frame) | D3 done set_start_date | 1440 | success alert | title EN / DE | Start date saved. / Startdatum gespeichert. | Start date saved. / Startdatum gespeichert. | match |
+| S21 (no frame) | D4 done delete of a scheduled connection | 1440 | success alert | title; Undo EN / DE | Connection deleted. / Anbindung gelöscht.; no Undo | Connection deleted. / Anbindung gelöscht.; no Undo | match |
+| S21 (no frame) | C1 cancelled, date moved | 1440 | warning alert | title EN / DE | The connection’s start date changed in the meantime. / Das Startdatum der Anbindung wurde inzwischen geändert. | The connection’s start date changed in the meantime. / Das Startdatum der Anbindung wurde inzwischen geändert. | match |
+| S21 (no frame) | C2 cancelled, became active | 1440 | warning alert | title EN / DE | The connection became active in the meantime. / Die Anbindung ist inzwischen aktiv geworden. | The connection became active in the meantime. / Die Anbindung ist inzwischen aktiv geworden. | match |
+| S21 (no frame) | C3 cancelled, start_date_passed | 1440 | warning alert | title EN / DE | The start date is no longer after today. The agent can ask again with a new date. / Das Startdatum liegt nicht mehr nach dem heutigen Tag. Der Agent kann mit einem neuen Datum erneut fragen. | The start date is no longer after today. The agent can ask again with a new date. / Das Startdatum liegt nicht mehr nach dem heutigen Tag. Der Agent kann mit einem neuen Datum erneut fragen. | match |
+| S21 (no frame) | W2 publish on a date | 1440 | summary table | documents order | stored order (FR-050) | T080 stored order (mdl, pid): "Driving licence · 3 data items", "Personal ID · 4 data items" in EN and DE, the Summary card the same | match |
+| S21 (no frame) | W5–W9 (scheduled / live connection) | 1440 | Copy link buttons | enabled | scheduled and live: copy (FR-007) | 2 of 2 enabled | match |
+| S21 (no frame) | W4, W4b (deactivated connection) | 1440 | Copy link buttons | enabled | off while deactivated (W21) | 2 of 2 aria-disabled | match |
+| S21 (no frame) | D1, D2 done on a date | 1440 | Links card, "Open the connection" | shown, copy enabled | scheduled links copy as on the details (FR-007; T079 carried note) | "Add both links to your form. …", 2 of 2 copy enabled, "Open the connection" | decided: copy on, UNCERTAIN 2 of T080 |
+| S21 (no frame) | W9, D4 delete | 1440 | Undo | absent | no "Undo" after approving a deletion (FR-067) | no Undo / Rückgängig in main | match |
+| S21 (no frame) | D1 done publish | 1440 | focus | alert takes focus | the outcome alert takes the focus | .kern-alert--success focused | match |
+| S21 (no frame) | W1 publish, at once | 320 | html | scrollWidth ≤ clientWidth | no horizontal scroll | 305 ≤ 320 | match |
+| S21 (no frame) | W1 publish, at once | 320 | main | off-screen / clipped | none (DescriptionLine truncates by design, R6; the ⓘ buttons’ hidden labels clip) | 0 off-screen; only the intended truncation and hidden ⓘ labels | match |
+| S21 (no frame) | W1 publish, at once | 320 | h1 | count | 1 | 1 | match |
+| S21 (no frame) | W1 publish, at once | 160 | html | scrollWidth ≤ clientWidth | no horizontal scroll | 160 ≤ 160 | match |
+| S21 (no frame) | W1 publish, at once | 160 | main | off-screen / clipped | none (DescriptionLine truncates by design, R6; the ⓘ buttons’ hidden labels clip) | 0 off-screen; only the intended truncation and hidden ⓘ labels | match |
+| S21 (no frame) | W1 publish, at once | 160 | h1 | count | 1 | 1 | match |
+| S21 (no frame) | W1 publish, at once | 320 | first control in main | ring after keyboard / after click | ring after Tab, none after a mouse click | ring after Tab (:focus-visible); none after a mouse click (checked with page.mouse on a fresh load: ⓘ, Copy link, View summary) | match |
+| S21 (no frame) | W1 publish, at once | 160 | first control in main | ring after keyboard / after click | ring after Tab, none after a mouse click | ring after Tab (:focus-visible); none after a mouse click (checked with page.mouse on a fresh load: ⓘ, Copy link, View summary) | match |
+| S21 (no frame) | W2 publish on a date | 320 | html | scrollWidth ≤ clientWidth | no horizontal scroll | 305 ≤ 320 | match |
+| S21 (no frame) | W2 publish on a date | 320 | main | off-screen / clipped | none (DescriptionLine truncates by design, R6; the ⓘ buttons’ hidden labels clip) | 0 off-screen; only the intended truncation and hidden ⓘ labels | match |
+| S21 (no frame) | W2 publish on a date | 320 | h1 | count | 1 | 1 | match |
+| S21 (no frame) | W2 publish on a date | 160 | html | scrollWidth ≤ clientWidth | no horizontal scroll | 160 ≤ 160 | match |
+| S21 (no frame) | W2 publish on a date | 160 | main | off-screen / clipped | none (DescriptionLine truncates by design, R6; the ⓘ buttons’ hidden labels clip) | 0 off-screen; only the intended truncation and hidden ⓘ labels | match |
+| S21 (no frame) | W2 publish on a date | 160 | h1 | count | 1 | 1 | match |
+| S21 (no frame) | W2 publish on a date | 320 | first control in main | ring after keyboard / after click | ring after Tab, none after a mouse click | ring after Tab (:focus-visible); none after a mouse click (checked with page.mouse on a fresh load: ⓘ, Copy link, View summary) | match |
+| S21 (no frame) | W2 publish on a date | 160 | first control in main | ring after keyboard / after click | ring after Tab, none after a mouse click | ring after Tab (:focus-visible); none after a mouse click (checked with page.mouse on a fresh load: ⓘ, Copy link, View summary) | match |
+| S21 (no frame) | W3 publish, unchanged example | 320 | html | scrollWidth ≤ clientWidth | no horizontal scroll | 305 ≤ 320 | match |
+| S21 (no frame) | W3 publish, unchanged example | 320 | main | off-screen / clipped | none (DescriptionLine truncates by design, R6; the ⓘ buttons’ hidden labels clip) | 0 off-screen; only the intended truncation and hidden ⓘ labels | match |
+| S21 (no frame) | W3 publish, unchanged example | 320 | h1 | count | 1 | 1 | match |
+| S21 (no frame) | W3 publish, unchanged example | 160 | html | scrollWidth ≤ clientWidth | no horizontal scroll | 160 ≤ 160 | match |
+| S21 (no frame) | W3 publish, unchanged example | 160 | main | off-screen / clipped | none (DescriptionLine truncates by design, R6; the ⓘ buttons’ hidden labels clip) | 0 off-screen; only the intended truncation and hidden ⓘ labels | match |
+| S21 (no frame) | W3 publish, unchanged example | 160 | h1 | count | 1 | 1 | match |
+| S21 (no frame) | W3 publish, unchanged example | 320 | first control in main | ring after keyboard / after click | ring after Tab, none after a mouse click | ring after Tab (:focus-visible); none after a mouse click (checked with page.mouse on a fresh load: ⓘ, Copy link, View summary) | match |
+| S21 (no frame) | W3 publish, unchanged example | 160 | first control in main | ring after keyboard / after click | ring after Tab, none after a mouse click | ring after Tab (:focus-visible); none after a mouse click (checked with page.mouse on a fresh load: ⓘ, Copy link, View summary) | match |
+| S21 (no frame) | W4 reactivate on a date | 320 | html | scrollWidth ≤ clientWidth | no horizontal scroll | 305 ≤ 320 | match |
+| S21 (no frame) | W4 reactivate on a date | 320 | main | off-screen / clipped | none (DescriptionLine truncates by design, R6; the ⓘ buttons’ hidden labels clip) | 0 off-screen; only the intended truncation and hidden ⓘ labels | match |
+| S21 (no frame) | W4 reactivate on a date | 320 | h1 | count | 1 | 1 | match |
+| S21 (no frame) | W4 reactivate on a date | 160 | html | scrollWidth ≤ clientWidth | no horizontal scroll | 160 ≤ 160 | match |
+| S21 (no frame) | W4 reactivate on a date | 160 | main | off-screen / clipped | none (DescriptionLine truncates by design, R6; the ⓘ buttons’ hidden labels clip) | 0 off-screen; only the intended truncation and hidden ⓘ labels | match |
+| S21 (no frame) | W4 reactivate on a date | 160 | h1 | count | 1 | 1 | match |
+| S21 (no frame) | W4 reactivate on a date | 320 | first control in main | ring after keyboard / after click | ring after Tab, none after a mouse click | ring after Tab (:focus-visible); none after a mouse click (checked with page.mouse on a fresh load: ⓘ, Copy link, View summary) | match |
+| S21 (no frame) | W4 reactivate on a date | 160 | first control in main | ring after keyboard / after click | ring after Tab, none after a mouse click | ring after Tab (:focus-visible); none after a mouse click (checked with page.mouse on a fresh load: ⓘ, Copy link, View summary) | match |
+| S21 (no frame) | W4b reactivate at once | 320 | html | scrollWidth ≤ clientWidth | no horizontal scroll | 305 ≤ 320 | match |
+| S21 (no frame) | W4b reactivate at once | 320 | main | off-screen / clipped | none (DescriptionLine truncates by design, R6; the ⓘ buttons’ hidden labels clip) | 0 off-screen; only the intended truncation and hidden ⓘ labels | match |
+| S21 (no frame) | W4b reactivate at once | 320 | h1 | count | 1 | 1 | match |
+| S21 (no frame) | W4b reactivate at once | 160 | html | scrollWidth ≤ clientWidth | no horizontal scroll | 160 ≤ 160 | match |
+| S21 (no frame) | W4b reactivate at once | 160 | main | off-screen / clipped | none (DescriptionLine truncates by design, R6; the ⓘ buttons’ hidden labels clip) | 0 off-screen; only the intended truncation and hidden ⓘ labels | match |
+| S21 (no frame) | W4b reactivate at once | 160 | h1 | count | 1 | 1 | match |
+| S21 (no frame) | W4b reactivate at once | 320 | first control in main | ring after keyboard / after click | ring after Tab, none after a mouse click | ring after Tab (:focus-visible); none after a mouse click (checked with page.mouse on a fresh load: ⓘ, Copy link, View summary) | match |
+| S21 (no frame) | W4b reactivate at once | 160 | first control in main | ring after keyboard / after click | ring after Tab, none after a mouse click | ring after Tab (:focus-visible); none after a mouse click (checked with page.mouse on a fresh load: ⓘ, Copy link, View summary) | match |
+| S21 (no frame) | W5 set_start_date, scheduled → 15.12.2026 | 320 | html | scrollWidth ≤ clientWidth | no horizontal scroll | 305 ≤ 320 | match |
+| S21 (no frame) | W5 set_start_date, scheduled → 15.12.2026 | 320 | main | off-screen / clipped | none (DescriptionLine truncates by design, R6; the ⓘ buttons’ hidden labels clip) | 0 off-screen; only the intended truncation and hidden ⓘ labels | match |
+| S21 (no frame) | W5 set_start_date, scheduled → 15.12.2026 | 320 | h1 | count | 1 | 1 | match |
+| S21 (no frame) | W5 set_start_date, scheduled → 15.12.2026 | 160 | html | scrollWidth ≤ clientWidth | no horizontal scroll | 160 ≤ 160 | match |
+| S21 (no frame) | W5 set_start_date, scheduled → 15.12.2026 | 160 | main | off-screen / clipped | none (DescriptionLine truncates by design, R6; the ⓘ buttons’ hidden labels clip) | 0 off-screen; only the intended truncation and hidden ⓘ labels | match |
+| S21 (no frame) | W5 set_start_date, scheduled → 15.12.2026 | 160 | h1 | count | 1 | 1 | match |
+| S21 (no frame) | W5 set_start_date, scheduled → 15.12.2026 | 320 | first control in main | ring after keyboard / after click | ring after Tab, none after a mouse click | ring after Tab (:focus-visible); none after a mouse click (checked with page.mouse on a fresh load: ⓘ, Copy link, View summary) | match |
+| S21 (no frame) | W5 set_start_date, scheduled → 15.12.2026 | 160 | first control in main | ring after keyboard / after click | ring after Tab, none after a mouse click | ring after Tab (:focus-visible); none after a mouse click (checked with page.mouse on a fresh load: ⓘ, Copy link, View summary) | match |
+| S21 (no frame) | W6 set_start_date, scheduled → now | 320 | html | scrollWidth ≤ clientWidth | no horizontal scroll | 305 ≤ 320 | match |
+| S21 (no frame) | W6 set_start_date, scheduled → now | 320 | main | off-screen / clipped | none (DescriptionLine truncates by design, R6; the ⓘ buttons’ hidden labels clip) | 0 off-screen; only the intended truncation and hidden ⓘ labels | match |
+| S21 (no frame) | W6 set_start_date, scheduled → now | 320 | h1 | count | 1 | 1 | match |
+| S21 (no frame) | W6 set_start_date, scheduled → now | 160 | html | scrollWidth ≤ clientWidth | no horizontal scroll | 160 ≤ 160 | match |
+| S21 (no frame) | W6 set_start_date, scheduled → now | 160 | main | off-screen / clipped | none (DescriptionLine truncates by design, R6; the ⓘ buttons’ hidden labels clip) | 0 off-screen; only the intended truncation and hidden ⓘ labels | match |
+| S21 (no frame) | W6 set_start_date, scheduled → now | 160 | h1 | count | 1 | 1 | match |
+| S21 (no frame) | W6 set_start_date, scheduled → now | 320 | first control in main | ring after keyboard / after click | ring after Tab, none after a mouse click | ring after Tab (:focus-visible); none after a mouse click (checked with page.mouse on a fresh load: ⓘ, Copy link, View summary) | match |
+| S21 (no frame) | W6 set_start_date, scheduled → now | 160 | first control in main | ring after keyboard / after click | ring after Tab, none after a mouse click | ring after Tab (:focus-visible); none after a mouse click (checked with page.mouse on a fresh load: ⓘ, Copy link, View summary) | match |
+| S21 (no frame) | W7 set_start_date, live → 01.12.2026 | 320 | html | scrollWidth ≤ clientWidth | no horizontal scroll | 305 ≤ 320 | match |
+| S21 (no frame) | W7 set_start_date, live → 01.12.2026 | 320 | main | off-screen / clipped | none (DescriptionLine truncates by design, R6; the ⓘ buttons’ hidden labels clip) | 0 off-screen; only the intended truncation and hidden ⓘ labels | match |
+| S21 (no frame) | W7 set_start_date, live → 01.12.2026 | 320 | h1 | count | 1 | 1 | match |
+| S21 (no frame) | W7 set_start_date, live → 01.12.2026 | 160 | html | scrollWidth ≤ clientWidth | no horizontal scroll | 160 ≤ 160 | match |
+| S21 (no frame) | W7 set_start_date, live → 01.12.2026 | 160 | main | off-screen / clipped | none (DescriptionLine truncates by design, R6; the ⓘ buttons’ hidden labels clip) | 0 off-screen; only the intended truncation and hidden ⓘ labels | match |
+| S21 (no frame) | W7 set_start_date, live → 01.12.2026 | 160 | h1 | count | 1 | 1 | match |
+| S21 (no frame) | W7 set_start_date, live → 01.12.2026 | 320 | first control in main | ring after keyboard / after click | ring after Tab, none after a mouse click | ring after Tab (:focus-visible); none after a mouse click (checked with page.mouse on a fresh load: ⓘ, Copy link, View summary) | match |
+| S21 (no frame) | W7 set_start_date, live → 01.12.2026 | 160 | first control in main | ring after keyboard / after click | ring after Tab, none after a mouse click | ring after Tab (:focus-visible); none after a mouse click (checked with page.mouse on a fresh load: ⓘ, Copy link, View summary) | match |
+| S21 (no frame) | W8 deactivate a scheduled connection | 320 | html | scrollWidth ≤ clientWidth | no horizontal scroll | 305 ≤ 320 | match |
+| S21 (no frame) | W8 deactivate a scheduled connection | 320 | main | off-screen / clipped | none (DescriptionLine truncates by design, R6; the ⓘ buttons’ hidden labels clip) | 0 off-screen; only the intended truncation and hidden ⓘ labels | match |
+| S21 (no frame) | W8 deactivate a scheduled connection | 320 | h1 | count | 1 | 1 | match |
+| S21 (no frame) | W8 deactivate a scheduled connection | 160 | html | scrollWidth ≤ clientWidth | no horizontal scroll | 160 ≤ 160 | match |
+| S21 (no frame) | W8 deactivate a scheduled connection | 160 | main | off-screen / clipped | none (DescriptionLine truncates by design, R6; the ⓘ buttons’ hidden labels clip) | 0 off-screen; only the intended truncation and hidden ⓘ labels | match |
+| S21 (no frame) | W8 deactivate a scheduled connection | 160 | h1 | count | 1 | 1 | match |
+| S21 (no frame) | W8 deactivate a scheduled connection | 320 | first control in main | ring after keyboard / after click | ring after Tab, none after a mouse click | ring after Tab (:focus-visible); none after a mouse click (checked with page.mouse on a fresh load: ⓘ, Copy link, View summary) | match |
+| S21 (no frame) | W8 deactivate a scheduled connection | 160 | first control in main | ring after keyboard / after click | ring after Tab, none after a mouse click | ring after Tab (:focus-visible); none after a mouse click (checked with page.mouse on a fresh load: ⓘ, Copy link, View summary) | match |
+| S21 (no frame) | W9 delete a scheduled connection | 320 | html | scrollWidth ≤ clientWidth | no horizontal scroll | 305 ≤ 320 | match |
+| S21 (no frame) | W9 delete a scheduled connection | 320 | main | off-screen / clipped | none (DescriptionLine truncates by design, R6; the ⓘ buttons’ hidden labels clip) | 0 off-screen; only the intended truncation and hidden ⓘ labels | match |
+| S21 (no frame) | W9 delete a scheduled connection | 320 | h1 | count | 1 | 1 | match |
+| S21 (no frame) | W9 delete a scheduled connection | 160 | html | scrollWidth ≤ clientWidth | no horizontal scroll | 160 ≤ 160 | match |
+| S21 (no frame) | W9 delete a scheduled connection | 160 | main | off-screen / clipped | none (DescriptionLine truncates by design, R6; the ⓘ buttons’ hidden labels clip) | 0 off-screen; only the intended truncation and hidden ⓘ labels | match |
+| S21 (no frame) | W9 delete a scheduled connection | 160 | h1 | count | 1 | 1 | match |
+| S21 (no frame) | W9 delete a scheduled connection | 320 | first control in main | ring after keyboard / after click | ring after Tab, none after a mouse click | ring after Tab (:focus-visible); none after a mouse click (checked with page.mouse on a fresh load: ⓘ, Copy link, View summary) | match |
+| S21 (no frame) | W9 delete a scheduled connection | 160 | first control in main | ring after keyboard / after click | ring after Tab, none after a mouse click | ring after Tab (:focus-visible); none after a mouse click (checked with page.mouse on a fresh load: ⓘ, Copy link, View summary) | match |
+| S21 (no frame) | D1 done publish on a date (approved with the page’s button) | 320 | html | scrollWidth ≤ clientWidth | no horizontal scroll | 305 ≤ 320 | match |
+| S21 (no frame) | D1 done publish on a date (approved with the page’s button) | 320 | main | off-screen / clipped | none (DescriptionLine truncates by design, R6; the ⓘ buttons’ hidden labels clip) | 0 off-screen; only the intended truncation and hidden ⓘ labels | match |
+| S21 (no frame) | D1 done publish on a date (approved with the page’s button) | 320 | h1 | count | 1 | 1 | match |
+| S21 (no frame) | D1 done publish on a date (approved with the page’s button) | 160 | html | scrollWidth ≤ clientWidth | no horizontal scroll | 160 ≤ 160 | match |
+| S21 (no frame) | D1 done publish on a date (approved with the page’s button) | 160 | main | off-screen / clipped | none (DescriptionLine truncates by design, R6; the ⓘ buttons’ hidden labels clip) | 0 off-screen; only the intended truncation and hidden ⓘ labels | match |
+| S21 (no frame) | D1 done publish on a date (approved with the page’s button) | 160 | h1 | count | 1 | 1 | match |
+| S21 (no frame) | D1 done publish on a date (approved with the page’s button) | 320 | first control in main | ring after keyboard / after click | ring after Tab, none after a mouse click | ring after Tab (:focus-visible); none after a mouse click (checked with page.mouse on a fresh load: ⓘ, Copy link, View summary) | match |
+| S21 (no frame) | D1 done publish on a date (approved with the page’s button) | 160 | first control in main | ring after keyboard / after click | ring after Tab, none after a mouse click | ring after Tab (:focus-visible); none after a mouse click (checked with page.mouse on a fresh load: ⓘ, Copy link, View summary) | match |
+| S21 (no frame) | D2 done reactivate on a date | 320 | html | scrollWidth ≤ clientWidth | no horizontal scroll | 305 ≤ 320 | match |
+| S21 (no frame) | D2 done reactivate on a date | 320 | main | off-screen / clipped | none (DescriptionLine truncates by design, R6; the ⓘ buttons’ hidden labels clip) | 0 off-screen; only the intended truncation and hidden ⓘ labels | match |
+| S21 (no frame) | D2 done reactivate on a date | 320 | h1 | count | 1 | 1 | match |
+| S21 (no frame) | D2 done reactivate on a date | 160 | html | scrollWidth ≤ clientWidth | no horizontal scroll | 160 ≤ 160 | match |
+| S21 (no frame) | D2 done reactivate on a date | 160 | main | off-screen / clipped | none (DescriptionLine truncates by design, R6; the ⓘ buttons’ hidden labels clip) | 0 off-screen; only the intended truncation and hidden ⓘ labels | match |
+| S21 (no frame) | D2 done reactivate on a date | 160 | h1 | count | 1 | 1 | match |
+| S21 (no frame) | D2 done reactivate on a date | 320 | first control in main | ring after keyboard / after click | ring after Tab, none after a mouse click | ring after Tab (:focus-visible); none after a mouse click (checked with page.mouse on a fresh load: ⓘ, Copy link, View summary) | match |
+| S21 (no frame) | D2 done reactivate on a date | 160 | first control in main | ring after keyboard / after click | ring after Tab, none after a mouse click | ring after Tab (:focus-visible); none after a mouse click (checked with page.mouse on a fresh load: ⓘ, Copy link, View summary) | match |
+| S21 (no frame) | D3 done set_start_date | 320 | html | scrollWidth ≤ clientWidth | no horizontal scroll | 305 ≤ 320 | match |
+| S21 (no frame) | D3 done set_start_date | 320 | main | off-screen / clipped | none (DescriptionLine truncates by design, R6; the ⓘ buttons’ hidden labels clip) | 0 off-screen; only the intended truncation and hidden ⓘ labels | match |
+| S21 (no frame) | D3 done set_start_date | 320 | h1 | count | 1 | 1 | match |
+| S21 (no frame) | D3 done set_start_date | 160 | html | scrollWidth ≤ clientWidth | no horizontal scroll | 160 ≤ 160 | match |
+| S21 (no frame) | D3 done set_start_date | 160 | main | off-screen / clipped | none (DescriptionLine truncates by design, R6; the ⓘ buttons’ hidden labels clip) | 0 off-screen; only the intended truncation and hidden ⓘ labels | match |
+| S21 (no frame) | D3 done set_start_date | 160 | h1 | count | 1 | 1 | match |
+| S21 (no frame) | D3 done set_start_date | 320 | controls in main | focus ring | — | no control in the body (the alert takes programmatic focus); header controls are spec 008’s | match (n/a) |
+| S21 (no frame) | D3 done set_start_date | 160 | controls in main | focus ring | — | no control in the body (the alert takes programmatic focus); header controls are spec 008’s | match (n/a) |
+| S21 (no frame) | D4 done delete of a scheduled connection | 320 | html | scrollWidth ≤ clientWidth | no horizontal scroll | 305 ≤ 320 | match |
+| S21 (no frame) | D4 done delete of a scheduled connection | 320 | main | off-screen / clipped | none (DescriptionLine truncates by design, R6; the ⓘ buttons’ hidden labels clip) | 0 off-screen; only the intended truncation and hidden ⓘ labels | match |
+| S21 (no frame) | D4 done delete of a scheduled connection | 320 | h1 | count | 1 | 1 | match |
+| S21 (no frame) | D4 done delete of a scheduled connection | 160 | html | scrollWidth ≤ clientWidth | no horizontal scroll | 160 ≤ 160 | match |
+| S21 (no frame) | D4 done delete of a scheduled connection | 160 | main | off-screen / clipped | none (DescriptionLine truncates by design, R6; the ⓘ buttons’ hidden labels clip) | 0 off-screen; only the intended truncation and hidden ⓘ labels | match |
+| S21 (no frame) | D4 done delete of a scheduled connection | 160 | h1 | count | 1 | 1 | match |
+| S21 (no frame) | D4 done delete of a scheduled connection | 320 | controls in main | focus ring | — | no control in the body (the alert takes programmatic focus); header controls are spec 008’s | match (n/a) |
+| S21 (no frame) | D4 done delete of a scheduled connection | 160 | controls in main | focus ring | — | no control in the body (the alert takes programmatic focus); header controls are spec 008’s | match (n/a) |
+| S21 (no frame) | C1 cancelled, date moved | 320 | html | scrollWidth ≤ clientWidth | no horizontal scroll | 305 ≤ 320 | match |
+| S21 (no frame) | C1 cancelled, date moved | 320 | main | off-screen / clipped | none (DescriptionLine truncates by design, R6; the ⓘ buttons’ hidden labels clip) | 0 off-screen; only the intended truncation and hidden ⓘ labels | match |
+| S21 (no frame) | C1 cancelled, date moved | 320 | h1 | count | 1 | 1 | match |
+| S21 (no frame) | C1 cancelled, date moved | 160 | html | scrollWidth ≤ clientWidth | no horizontal scroll | 160 ≤ 160 | match |
+| S21 (no frame) | C1 cancelled, date moved | 160 | main | off-screen / clipped | none (DescriptionLine truncates by design, R6; the ⓘ buttons’ hidden labels clip) | 0 off-screen; only the intended truncation and hidden ⓘ labels | match |
+| S21 (no frame) | C1 cancelled, date moved | 160 | h1 | count | 1 | 1 | match |
+| S21 (no frame) | C1 cancelled, date moved | 320 | controls in main | focus ring | — | no control in the body (the alert takes programmatic focus); header controls are spec 008’s | match (n/a) |
+| S21 (no frame) | C1 cancelled, date moved | 160 | controls in main | focus ring | — | no control in the body (the alert takes programmatic focus); header controls are spec 008’s | match (n/a) |
+| S21 (no frame) | C2 cancelled, became active | 320 | html | scrollWidth ≤ clientWidth | no horizontal scroll | 305 ≤ 320 | match |
+| S21 (no frame) | C2 cancelled, became active | 320 | main | off-screen / clipped | none (DescriptionLine truncates by design, R6; the ⓘ buttons’ hidden labels clip) | 0 off-screen; only the intended truncation and hidden ⓘ labels | match |
+| S21 (no frame) | C2 cancelled, became active | 320 | h1 | count | 1 | 1 | match |
+| S21 (no frame) | C2 cancelled, became active | 160 | html | scrollWidth ≤ clientWidth | no horizontal scroll | 160 ≤ 160 | match |
+| S21 (no frame) | C2 cancelled, became active | 160 | main | off-screen / clipped | none (DescriptionLine truncates by design, R6; the ⓘ buttons’ hidden labels clip) | 0 off-screen; only the intended truncation and hidden ⓘ labels | match |
+| S21 (no frame) | C2 cancelled, became active | 160 | h1 | count | 1 | 1 | match |
+| S21 (no frame) | C2 cancelled, became active | 320 | controls in main | focus ring | — | no control in the body (the alert takes programmatic focus); header controls are spec 008’s | match (n/a) |
+| S21 (no frame) | C2 cancelled, became active | 160 | controls in main | focus ring | — | no control in the body (the alert takes programmatic focus); header controls are spec 008’s | match (n/a) |
+| S21 (no frame) | C3 cancelled, start_date_passed | 320 | html | scrollWidth ≤ clientWidth | no horizontal scroll | 305 ≤ 320 | match |
+| S21 (no frame) | C3 cancelled, start_date_passed | 320 | main | off-screen / clipped | none (DescriptionLine truncates by design, R6; the ⓘ buttons’ hidden labels clip) | 0 off-screen; only the intended truncation and hidden ⓘ labels | match |
+| S21 (no frame) | C3 cancelled, start_date_passed | 320 | h1 | count | 1 | 1 | match |
+| S21 (no frame) | C3 cancelled, start_date_passed | 160 | html | scrollWidth ≤ clientWidth | no horizontal scroll | 160 ≤ 160 | match |
+| S21 (no frame) | C3 cancelled, start_date_passed | 160 | main | off-screen / clipped | none (DescriptionLine truncates by design, R6; the ⓘ buttons’ hidden labels clip) | 0 off-screen; only the intended truncation and hidden ⓘ labels | match |
+| S21 (no frame) | C3 cancelled, start_date_passed | 160 | h1 | count | 1 | 1 | match |
+| S21 (no frame) | C3 cancelled, start_date_passed | 320 | controls in main | focus ring | — | no control in the body (the alert takes programmatic focus); header controls are spec 008’s | match (n/a) |
+| S21 (no frame) | C3 cancelled, start_date_passed | 160 | controls in main | focus ring | — | no control in the body (the alert takes programmatic focus); header controls are spec 008’s | match (n/a) |
+
 ### 2.2 The walks (quickstart V1–V12)
 
 #### T017: walk V5, dates and the draft's step (US2; FR-015–FR-021, SC-003, US2-AS1–AS6; scripted `playwright-core` 1.65: Chromium `/usr/bin/chromium` and Firefox 159 (build 1572), 1440 × 900, browser zone Europe/Berlin unless named; English and German through the stored language choice; backend with the fake EUDIPLO; every text compared with the one the script composed from the API's dates (data-model §1.4, the glossary's words), the publish/deactivate/reactivate/save instants checked to fall inside the action; connections `T017 <browser> <lang> <stamp>` made in the UI, one document and one rule seeded through the API between the connection and documents saves so that the rules and test steps open; CSV `<scratchpad>/T017/walk.csv`, summary `<scratchpad>/T017/summary.md`)
@@ -1938,6 +2106,46 @@ Before the counted run, two English runs (markers `=== T070 en start 2026-11-12T
 195 rows; 414 measures: 414 pass, 0 fail, 0 unsure.
 
 No app change: every row passed on the counted run, so no file of T073 or T074 was touched and the root gates were not run. Before the counted run, an English run of V11 (markers `=== T076 en start 2026-11-12T09:25:51.029Z ===` to `… end 2026-11-12T09:26:14.653Z ===`) failed one row on the script's own expectation (a published connection's `state` is `live`, not `active`), and a run at `09:26:23.320Z` stopped on the script's catalog call without a cookie after saving the English SC-012 drafts; the counted run first put both English drafts back to no data with one API save each (so their versions read 4, the German ones 2). Earlier exploration runs (`09:24:32`, `09:24:56`) stopped on the script's selectors. Their rows were discarded. The dialog names the seeded rules by their stored names ("Rule 01", "Rule 02") in German too: the names are the connection's data, copied from `P3 seed live`, not copy.
+
+#### T082: walk quickstart V12 (agents see and use the new data), script-first
+
+Items: FR-062–FR-069, SC-010, US8-AS1–AS5; V12.1–V12.9 (plus V12.7b: `start_date_passed`, and T080's done requests read again). Browser: scripted `playwright-core` 1.65 Chromium (`/usr/bin/chromium`, headless, 1455 px window), English and German (localStorage `connection-portal:language:v1`). MCP: `@modelcontextprotocol/client` 2.4 over Streamable HTTP against `http://localhost:3101/mcp`, without elicitation, a personal access token per level. Data in `template_db_010_p11` (backend 3015, Vite 5179, `p10-alice`): tokens `T082 read`, `T082 drafts`, `T082 manage` (made with `POST /api/agent-access/tokens` from a cookie session of `p10-alice`, revoked at the end); connections `T082 live`, `T082 scheduled`, `T082 deactivated`, `T082 draft`, `T082 publish on a date draft`, `T082 moved scheduled`, `T082 passed draft`; 6 approval requests (state.json). Evidence: `<SP>/T082/walk.csv` (285 rows, 241 measures after a re-measured measure keeps its last row), `<SP>/T082/summary.md`, screenshots `<SP>/T082/shots/` (44 taken, none opened: no failing or unsure row). The "walk.csv rows" column gives the line span of the step's counted rows (superseded rows listed in summary.md).
+
+| step | language | what was walked | measures pass / fail / unsure | walk.csv rows | result |
+|---|---|---|---|---|---|
+| V12.1 | n/a (API, MCP, server) | search_connections status "scheduled" and get_connection on `T082 scheduled` (read token): status, start date, "(scheduled from …)", urls_note, URLs, against the API | 1 / 0 / 0 | 2 | pass |
+| V12.1 | English | search_connections status "scheduled" and get_connection on `T082 scheduled` (read token): status, start date, "(scheduled from …)", urls_note, URLs, against the API | 9 / 0 / 0 | 3–11 | pass |
+| V12.2 | English | get_connection (read) on `T080 stored order`, `T082 draft` and the example `d443d829…`: step, stored order (structured and text), example mark | 17 / 0 / 0 | 12–28 | pass |
+| V12.3 | English | move_document on `T082 draft`: read refused with the level message and nothing changed; drafts moved mdl to 1 (answer, API, get_connection, version); Activity card newest row "Documents changed" · "p10-alice with T082 drafts" | 9 / 0 / 0 | 29–37 | pass |
+| V12.3 | German | move_document on `T082 draft`: read refused with the level message and nothing changed; drafts moved mdl to 1 (answer, API, get_connection, version); Activity card newest row "Documents changed" · "p10-alice with T082 drafts" | 1 / 0 / 0 | 38 | pass |
+| V12.4 | English | get_activity (read) on `T082 draft`, `T082 scheduled`, `T082 publish on a date draft` (approved): kinds = API, card rows = entries (count, instants; EN events and persons incl. ", asked by") | 18 / 0 / 0 | 55–200 | pass |
+| V12.4 | German | get_activity (read) on `T082 draft`, `T082 scheduled`, `T082 publish on a date draft` (approved): kinds = API, card rows = entries (count, instants; EN events and persons incl. ", asked by") | 6 / 0 / 0 | 61–202 | pass |
+| V12.6 | English | start_date today (publish drafts, reactivate, set_start_date) and an earlier day: validation "Enter a date after today: today in Germany is 2026-11-12."; no approval_requests row; backend saw 1 GET /api/agent/me, 0 POST /api/approval-requests | 16 / 0 / 0 | 71–86 | pass |
+| V12.5 setScheduled | English | set_start_date 2026-12-10 (manage) on `T082 scheduled`; drafts refused (insufficient_access, manage); title "Change the start date of …"; "Start date saved."; check_approval | 18 / 0 / 0 | 87–205 | pass |
+| V12.5 setScheduled | German | set_start_date 2026-12-10 (manage) on `T082 scheduled`; drafts refused (insufficient_access, manage); title "Change the start date of …"; "Start date saved."; check_approval | 8 / 0 / 0 | 149–161 | pass |
+| V12.5 setScheduled | n/a (API, MCP, server) | set_start_date 2026-12-10 (manage) on `T082 scheduled`; drafts refused (insufficient_access, manage); title "Change the start date of …"; "Start date saved."; check_approval | 2 / 0 / 0 | 155–166 | pass |
+| V12.5 publish | English | request_approval publish 2026-12-03 (drafts): what_happens, link; page "Active from 03.12.2026" after the summary table; approved; "Published and scheduled for 03.12.2026."; links copyable; check_approval done + scheduled + date; entry approved | 17 / 0 / 0 | 88–203 | pass |
+| V12.5 publish | German | request_approval publish 2026-12-03 (drafts): what_happens, link; page "Active from 03.12.2026" after the summary table; approved; "Published and scheduled for 03.12.2026."; links copyable; check_approval done + scheduled + date; entry approved | 8 / 0 / 0 | 97–109 | pass |
+| V12.5 publish | n/a (API, MCP, server) | request_approval publish 2026-12-03 (drafts): what_happens, link; page "Active from 03.12.2026" after the summary table; approved; "Published and scheduled for 03.12.2026."; links copyable; check_approval done + scheduled + date; entry approved | 2 / 0 / 0 | 103–114 | pass |
+| V12.5 reactivate | English | reactivate 2026-12-04 (manage) on `T082 deactivated`: page "Active from 04.12.2026"; "Connection scheduled for 04.12.2026."; check_approval | 16 / 0 / 0 | 115–204 | pass |
+| V12.5 reactivate | German | reactivate 2026-12-04 (manage) on `T082 deactivated`: page "Active from 04.12.2026"; "Connection scheduled for 04.12.2026."; check_approval | 7 / 0 / 0 | 123–134 | pass |
+| V12.5 reactivate | n/a (API, MCP, server) | reactivate 2026-12-04 (manage) on `T082 deactivated`: page "Active from 04.12.2026"; "Connection scheduled for 04.12.2026."; check_approval | 2 / 0 / 0 | 128–139 | pass |
+| V12.5 setLive | English | set_start_date 2026-12-08 (manage) on `T082 live`: "Active from 08.12.2026" + "Until then its links stop working, and requests in progress are cancelled."; "Start date saved."; scheduled; check_approval | 17 / 0 / 0 | 167–206 | pass |
+| V12.5 setLive | German | set_start_date 2026-12-08 (manage) on `T082 live`: "Active from 08.12.2026" + "Until then its links stop working, and requests in progress are cancelled."; "Start date saved."; scheduled; check_approval | 8 / 0 / 0 | 176–189 | pass |
+| V12.5 setLive | n/a (API, MCP, server) | set_start_date 2026-12-08 (manage) on `T082 live`: "Active from 08.12.2026" + "Until then its links stop working, and requests in progress are cancelled."; "Start date saved."; scheduled; check_approval | 3 / 0 / 0 | 182–194 | pass |
+| V12.7 | English | deactivate asked for `T082 moved scheduled`, then "Change start date" → 22.12.2026 in the browser: Approve on the open page shows the server's warning; reloaded EN/DE the page's sentence; no Approve; nothing changed; check_approval connection_changed | 8 / 0 / 0 | 207–243 | pass |
+| V12.7 | German | deactivate asked for `T082 moved scheduled`, then "Change start date" → 22.12.2026 in the browser: Approve on the open page shows the server's warning; reloaded EN/DE the page's sentence; no Approve; nothing changed; check_approval connection_changed | 3 / 0 / 0 | 209–217 | pass |
+| V12.7 | n/a (API, MCP, server) | deactivate asked for `T082 moved scheduled`, then "Change start date" → 22.12.2026 in the browser: Approve on the open page shows the server's warning; reloaded EN/DE the page's sentence; no Approve; nothing changed; check_approval connection_changed | 2 / 0 / 0 | 211–213 | pass |
+| V12.7b | English | start_date_passed: a publish request on `T082 passed draft`, its row set to today: page EN/DE sentence; check_approval reason and text; still a draft | 3 / 0 / 0 | 220–244 | pass |
+| V12.7b | German | start_date_passed: a publish request on `T082 passed draft`, its row set to today: page EN/DE sentence; check_approval reason and text; still a draft | 1 / 0 / 0 | 221 | pass |
+| V12.7b | n/a (API, MCP, server) | start_date_passed: a publish request on `T082 passed draft`, its row set to today: page EN/DE sentence; check_approval reason and text; still a draft | 1 / 0 / 0 | 224 | pass |
+| V12.8 | English | tools/list per token (26 tools): no name or description restores, deletes several or creates the example; request_approval's six actions; 3 endpoints × 3 bearers 403 browser_only | 9 / 0 / 0 | 245–253 | pass |
+| V12.8 | n/a (API, MCP, server) | tools/list per token (26 tools): no name or description restores, deletes several or creates the example; request_approval's six actions; 3 endpoints × 3 bearers 403 browser_only | 9 / 0 / 0 | 254–262 | pass |
+| V12.9 | n/a (API, MCP, server) | npm test -w mcp (510 passed), guidance.test.ts 24/24 incl. the six actions, instructions.md six actions in backticks, 419 words | 5 / 0 / 0 | 267–271 | pass |
+| V12.5 (T080 done) | English | T080's done requests D1–D4 read again: dated outcomes, a scheduled connection's deletion without Undo | 5 / 0 / 0 | 272–279 | pass |
+| V12.5 (T080 done) | German | T080's done requests D1–D4 read again: dated outcomes, a scheduled connection's deletion without Undo | 5 / 0 / 0 | 273–281 | pass |
+| logs | n/a (API, MCP, server) | MCP log slice: method, tool, status, duration only; no secret in either slice | 2 / 0 / 0 | 282–283 | pass |
+| cleanup | n/a (API, MCP, server) | the three T082 tokens revoked; their bearers answer 401 | 3 / 0 / 0 | 284–286 | pass |
 
 ### 2.3 The measured sweeps
 
@@ -2789,6 +2997,111 @@ reversed.
   since the audit. Notes for T076: `<SP>/T074-notes.md` of phase 10's chat; rows `T074 draft`
   (`ebaea848-da54-42ba-8040-03c5d98dd6dd`) and `T074 live` (`39394df3-6dd6-4747-b7bd-e8a96cfac843`)
   in `template_db_010_p10`.
+- **T078 and T079, the approvals' start date and snapshot** (their UNCERTAIN 1–10; the
+  coordinator, phase 11): (1) a done `publish` now answers `ApprovalPreview.connection` (with
+  `urls`) while the connection isn't deleted, where it answered `connection: null` before; the
+  contract puts the connection's own start date there and `check_approval` needs it (one existing
+  assertion changed for it); T080 decides what the page's copy buttons do for a done publish on a
+  date (`deactivated={!connection.is_active}` turns them off). (2) A `start_date` with
+  `delete_draft`, `deactivate` or `delete`, and a value that is no date, fail the body's validation
+  (`400 Validation error`, the generic message, before the level's `403`), as T046's bodies do; no
+  new copy. (3) `set_start_date` to now on a live connection reuses "This connection is already
+  live." / "Diese Anbindung ist bereits aktiv." (copy.md §8 has no own row for it). (4)
+  `connection_changed` is worded from the connection's state now and the action
+  (`approvals._connection_change()`): scheduled → "The connection's start date changed in the
+  meantime."; deactivated → "… was deactivated …"; live → "… was reactivated …" for `reactivate`,
+  "The connection became active in the meantime." for every other action; so a `delete` asked
+  while deactivated and then reactivated now reads "became active" (spec 007's "was reactivated"
+  before; no test covered it), and a request made while live or deactivated whose connection then
+  got a date reads "start date changed". The request stores no snapshot field in its answer, so
+  the page derives the same words from `preview.connection.state`. (5) The reasons' order: deleted,
+  then `connection_changed`, then `start_date_passed`; "today" is `today_in_germany()` at each
+  read. (6) The checks at the request: `403 browser_only`, `403` level, `400 invalid_start_date`
+  (before the connection is read, as T020 decided for the services), `404`, then the
+  preconditions; the date again under the row lock. (7) The server's `409 approval_done` sentence
+  for a dated `publish` or `reactivate` uses copy.md §7's dated texts ("Published and scheduled for
+  DD.MM.YYYY." / "Connection scheduled for DD.MM.YYYY."); the `200` messages stay "Published",
+  "Connection reactivated", and "Start date saved" for `set_start_date`. (8) A scheduled connection
+  whose day came but which the worker hasn't made live yet still matches its snapshot: an approved
+  `set_start_date`, `deactivate` or `delete` applies. (9) The revision `1f5e81861348` keeps its
+  autogenerated docstring (nothing by hand, as data-model §9 says). (10) T079 put placeholder
+  `set_start_date` texts into `mcp/src/tools/approvals.ts` so that `Record<ApprovalAction, …>`
+  compiles; T081 replaces them with mcp-tools.md's. Kept. **Plan change**: T079's files gained
+  `backend/tests/api/{test_deletions.py,test_scheduling.py}` (the `expected=` rename, one call each),
+  `frontend/src/pages/Approval/{types.ts,constants.ts,utils.test.ts}` and
+  `mcp/src/tools/approvals.ts` (type-level entries for the new action). **copy.md §7 amended by the
+  coordinator**: the German title "Startdatum von ‚<name>‘ ändern?" becomes "Startdatum von
+  „<name>“ ändern?", since every other German title of the page quotes the name with „…“ where the
+  English has ‘…’ (T079's note); T080 builds it.
+- **T081, the agents' start date** (T081's UNCERTAIN 1–9; the coordinator, phase 11): (1)
+  `what_happens` is a wait sentence followed by mcp-tools.md's case text word for word; a dated
+  `publish` keeps spec 007's publish wait sentence (the draft and the findings), and the other new
+  cases (every `set_start_date`, a dated `reactivate`, deactivating or deleting a scheduled
+  connection) use a neutral one, "Nothing changes yet. The team member opens the link, sees what
+  approving does, and approves or declines before {time}.", since spec 007's deactivate and
+  reactivate wait sentences would contradict them ("will work again", "requests in progress").
+  (2) Dates are `YYYY-MM-DD` in every MCP text, as T016 and T029 decided. (3) The tool checks the
+  date's form first (another action with a `start_date`, `set_start_date` without one, no date),
+  then the level, then "after today in Germany", mirroring the backend (body validation before
+  the `403`); the last check runs after the elicitation's re-entered branch, so a call re-entered
+  at midnight still reads back the request it made; `'now'` is sent as `start_date: null`. (4)
+  The tool's own `validation` messages: "set_start_date needs a start_date: a date as YYYY-MM-DD,
+  or 'now'.", "<action> takes no start_date: only publish, reactivate and set_start_date do.",
+  "Give the start_date as a date the calendar has, YYYY-MM-DD, or 'now'.", "Enter a date after
+  today: today in Germany is <today>.". (5) `request_approval`'s `request` also carries
+  `start_date` when one was asked (the contract states it for `check_approval` only). (6)
+  `check_approval` puts `start_date` on `request.connection` while the connection is scheduled,
+  as the search's items carry it beside `status`. (7) The `connection_changed` text becomes "The
+  connection's status or start date changed since you asked, so nothing happened." (spec 007's
+  named only deactivating or reactivating; the reason now also covers a moved date and a
+  connection that became active; one existing assertion changed). (8) The done texts: a dated
+  publish "…: the draft is published and scheduled for {D}."; a dated reactivate or
+  `set_start_date` with a date "…: the connection is scheduled for {D}."; `set_start_date` now
+  "…: the connection is live."; the URLs come only after a done `publish` or `reactivate`, as
+  before. (9) No new date helper: `todayInGermany()` and `isValidIsoDate()` of
+  `@connection-portal/rules/dates`, which `checks.ts` already uses. Kept. `mcp/plugin/instructions.md`
+  (419 words) already had the status `scheduled` and the sentence on a day in Germany (T029). A
+  date refused by the tool still makes one backend call (`GET /api/agent/me`, the bearer's level),
+  and no `POST /api/approval-requests`.
+- **T080, the approval page's new cases** (T080's UNCERTAIN 1–6 and its copy note; the
+  coordinator, phase 11): (1) `set_start_date` is a status action: its body is the Links card
+  without a lead (no copy names what happens to its URLs; `ApprovalLinkCards`' lead became
+  optional, a file outside T080's line), then "Active from <date>" (for an active connection also
+  "Until then its links stop working, and requests in progress are cancelled.") or "The connection
+  goes live at once.", under the card where the other status actions put their sentences. (2) A
+  scheduled connection's links are copyable, as on the details page (FR-007): after a done publish
+  or reactivation on a date the Links card, its lead and "Open the connection" stay with copy on,
+  and the waiting status actions follow the same rule; copy is off only while the connection is
+  deactivated (`connection.state`, no longer `is_active`). (3) Deactivating and deleting a
+  scheduled connection put the dialogs' scheduled sentence in place of "Requests in progress are
+  cancelled." (it has none in progress), reused from `CONNECTION_DETAIL_COPY.deactivateScheduledText`
+  and `DELETE_CONNECTION_COPY.scheduled`; delete keeps "Deleting can’t be undone." in semibold;
+  the cards' leads are unchanged. (4) For `publish` the start line is a paragraph 16 px under the
+  summary table, where the publish dialog has "Active from", and the example's line an info line
+  16 px under it (`PUBLISH_DIALOG_COPY.exampleLine` through the editor's `PublishFindingLine`); for
+  `reactivate` the start line stands under the Links card, which keeps its lead "These connection
+  URLs will work again:". (5) The done texts and "Active from" use the request's `start_date`; the
+  deactivate and delete sentences the connection's own; the `connection_changed` sentence follows
+  the connection's state and the action, as the server words it (§4.2 T078/T079 (4)). (6) A done
+  `set_start_date` shows "Start date saved." alone, without the Links card or "Open the
+  connection" (`DONE_WITH_URLS` unchanged). Kept. The copy note: copy.md §7's "The connection's
+  start date changed in the meantime." and the server's message keep the straight apostrophe, as
+  every server message does since spec 007 ("The agent's access has changed, …"); the page's own
+  table writes ’, so the page shows ’ when it words a cancelled request itself and the server's
+  straight ' when an approve answers `409 approval_cancelled`, as it already did for spec 007's
+  reasons. Unchanged; for T086's text pairs to list if it flags it.
+- **T082, the walk V12** (T082's UNCERTAIN 1–4; the coordinator, phase 11): (1) V12.4 compares
+  `get_activity`'s entries with the Activity card's after converting the days, since the MCP
+  server writes `YYYY-MM-DD` and the card `DD.MM.YYYY` (T016, T035); the texts aren't meant to
+  match word for word. (2) The request's `link` points at `http://localhost:5173/approvals/<id>`
+  because the phase's backend on 3015 ran without `PORTAL_URL` (the development default of
+  `config.py`); the walk opened the same path on its Vite (5179). An environment setting of the
+  coordinator's launcher, not a fault of the code; a later launcher sets `PORTAL_URL` to its Vite.
+  (3) V12.8's "no tool restores" pattern allows "restores" in `delete_item` and `reset_item`'s
+  descriptions, which restore a based variant's removed rule (spec 002), not a deleted connection.
+  (4) The walk added V12.7b (`start_date_passed`, reached by setting its own request's
+  `start_date` to today in the database), a reread of T080's done requests, and log and cleanup
+  rows to V12's nine steps; they count in its 241 measures. Kept.
 
 ### 4.3 Open points
 
@@ -3272,5 +3585,65 @@ reversed.
   MCP's and api-types' diffs (with the new `FieldGroup.tsx`) add no `console.*`, no inline style,
   no `any`, no `dark:` and no `focus:`. Phase 10's "Needs a person" lists nothing, so T077 is
   ticked.
+- 2026-11-12: phase 11, US8 (T078–T082), each wave's gates green on the combined tree. The
+  environment: a scratch copy of phase 10's database, `template_db_010_p11` (`pg_dump` through
+  the PostgreSQL container, since the host's `pg_dump` 17 refuses server 18); phase 10's backend on
+  3014 and Vite on 5178 kept running (another chat's processes, left alone), so this phase's
+  backend ran on 3015 with the fake EUDIPLO (the launcher copied into this chat's scratchpad),
+  `WORKER_ENABLED=false`, without `PORTAL_URL` (§4.2 T082 (2)), started after wave 1; Vite on
+  5179; the MCP server on 3101 (`BACKEND_URL` 3015) for wave 3. Migration `1f5e81861348` (the
+  approvals' start dates, T078; autogenerated, nothing by hand) applied to `template_db` and
+  `template_db_010_p11`, its downgrade run once on the copy. Test counts after the phase: pytest
+  2557 passed (2457 after phase 10, +100: the approvals' start date, preconditions, snapshot,
+  staleness and races, and the access table's rows), run by T079 after its last backend edit and
+  not rerun by the coordinator (the user's standing rule; no backend file changed after it); Ruff,
+  mypy over 95 files and the fixtures' `--check` rerun green after wave 1 and at the checkpoint;
+  `rules/` 46 files, 2664 tests (unchanged); `frontend/` 35 files, 1565 tests (+13: the approval
+  page's sentence helpers); `mcp/` 15 files, 510 tests (+33: the start date's cases). T079's
+  mutation check broke 19 points of the new logic one at a time and a test failed for each
+  (`<SP>/T079/mutations.txt` of this chat). Waves ran as planned, with no change of level or batch.
+  **Plan changes** (§4.2): T079's files gained `backend/tests/api/{test_deletions.py,
+  test_scheduling.py}`, `frontend/src/pages/Approval/{types.ts,constants.ts,utils.test.ts}` and
+  `mcp/src/tools/approvals.ts` (type-level entries for the new action, replaced by T080 and T081);
+  T080's gained `frontend/src/pages/Approval/ApprovalLinkCards.tsx` (an optional lead). copy.md §7's
+  German title amended to „<name>“ by the coordinator (§4.2 T078/T079). The tasks left in
+  `template_db_010_p11` the rows `T080 …` with the unchanged example draft
+  `d443d829-7b9a-45a2-9ebf-63dab1943ccd` and T080's requests, and T082's seven connections
+  (`T082 live` `686534ef…`, scheduled for 08.12.2026 by the walk; `T082 scheduled` `1c7b4465…`;
+  `T082 deactivated` `87261bfe…`, now scheduled; `T082 draft` `49039240…`; `T082 publish on a date
+  draft` `d1ce006f…`, now scheduled; `T082 moved scheduled` `a64cc65c…`; `T082 passed draft`
+  `7cb33f50…`) and six requests (`f1ac0ae2…`, `a8a659fd…`, `e78c88ee…`, `8517ec50…`, `1ae617c1…`
+  cancelled, `e521b00b…` with its `start_date` set to today in the database; full ids in
+  `<SP>/T082/state.json` of this chat); every personal access token of the phase is revoked (T082's
+  three by T082, T080's two by the coordinator, each bearer answering `401` afterwards);
+  screenshots in the git-ignored `.playwright-mcp/T080/` and `<SP>/T082/shots/`; no local draft is
+  left in any browser profile. The documentation checklist's entries are for T102: ARCHITECTURE's
+  "Agent access" (a request's `start_date`, the action `set_start_date` at level `manage`, the
+  status snapshot `StatusSnapshot` checked under the row lock through `expected=`, the computed
+  `start_date_passed`, `connection_changed` worded from the connection's state and the action, a
+  done publish answering `preview.connection`), the MCP server's `request_approval` and
+  `check_approval` (`start_date`, `'now'`, the wait sentences and texts of §4.2 T081 (1), (4) and
+  (7), for `contracts/mcp-tools.md` too), and the frontend's approval page (`set_start_date` as a
+  status action, a scheduled connection's links copyable); no new environment variable or
+  dependency.
+- 2026-11-12: US8's checkpoint (T083, the coordinator). The gates are green on both sides: the
+  root gates (lint, `npm test` with the counts above, build) rerun by the coordinator after wave 2,
+  and no repository file changed after that run (T082 fixed nothing); the backend's Ruff, mypy and
+  the fixtures' `--check` rerun at the checkpoint; pytest as above. T082's walk V12 (§2.2): 241
+  measures, 241 pass, 0 fail, 0 unsure, over V12.1–V12.9 (and V12.7b) in English and German, with
+  personal access tokens at the three levels against the MCP server and a scripted Chromium. T080's
+  table in §2.1 (161 rows) has no open row. **The MCP server's log of the walk**
+  (`mcp-3101.log`, 88 lines between T082's markers) holds JSON lines with `method`, `tool`,
+  `status` and `durationMs` only. The backend's log of the walk (`backend-3015.log`, 571 lines
+  between the markers) holds uvicorn's access lines only: methods, paths with ids, statuses; the
+  one text in it is the walk's own search, `search?q=T082+draft`, in two lines: the search's query
+  string of spec 007, which uvicorn logged before this feature too (as §4.3's cursor note), not a
+  log line this phase added. The phase's diff adds no log call in `backend/app`, and its frontend,
+  MCP and api-types diffs add no `console.*`, no inline style, no `any`, no `dark:` and no
+  `focus:`. **Left for a person** (tasks.md, phase 11 "Needs a person"), so T083 stays open: a
+  real MCP client (Claude Code or Claude Desktop) with an agent connection at each access level,
+  signed in through OAuth, once through V12.3 and V12.5 (the walk used personal access tokens made
+  through the API and a client without URL elicitation, so the elicitation prompt "Approve
+  changing the start date of '…' in Konnekt." wasn't seen in a real client).
 
 ## 6. Closing report

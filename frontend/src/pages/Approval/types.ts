@@ -17,16 +17,17 @@ import type { LinkCardLink } from '../FormConnectionDetail/types';
 /** The calls the page makes on the request */
 export type ApprovalCall = 'approve' | 'decline';
 
-/** The actions on a published connection, whose body shows its URLs */
+/**
+ * The actions on a published connection, whose body shows its URLs: `deactivate`, `reactivate`,
+ * `delete` and `set_start_date` (spec 010)
+ */
 export type StatusAction = Exclude<ApprovalAction, 'publish' | 'delete_draft'>;
 
-/** A status action's body: what becomes of the URLs, and the sentences under them */
-export interface StatusBody {
-  lead: string;
-  /** "Requests in progress are cancelled.", or null */
-  cancelsRequests: string | null;
-  /** "Deleting can’t be undone.", or null */
-  final: string | null;
+/** A sentence of what will happen, under the URLs; "Deleting can’t be undone." is `strong` */
+export interface BodyLine {
+  key: string;
+  text: string;
+  strong: boolean;
 }
 
 /** The statuses a request ends in */
@@ -98,16 +99,29 @@ export interface ApprovalSummaryProps {
   connection: FormConnection | null;
   /** Its URLs while it exists (the status actions) */
   urls: ConnectionUrls | null;
+  /** The start date the agent asked for (YYYY-MM-DD), or null: at once, or now (spec 010) */
+  startDate: string | null;
 }
 
 export interface StatusSummaryProps {
   action: StatusAction;
   connection: FormConnection;
   urls: ConnectionUrls | null;
+  startDate: string | null;
+}
+
+export interface BodyLinesProps {
+  lines: BodyLine[];
+}
+
+export interface BodyLineTextProps {
+  line: BodyLine;
 }
 
 export interface PublishSummaryProps {
   draft: FormConnectionDraft;
+  /** The start date the agent asked for (YYYY-MM-DD), or null: at once (spec 010) */
+  startDate: string | null;
 }
 
 export interface DescriptionLineProps {
@@ -145,8 +159,11 @@ export interface ApprovalOutcomeProps {
 export interface ApprovalLinkCardsProps {
   /** The URLs; without them, the card holds only its title and lead */
   urls: ConnectionUrls | null;
-  /** The sentence under the title: what becomes of the URLs, or what to do with them */
-  lead: string;
+  /**
+   * The sentence under the title: what becomes of the URLs, or what to do with them; null for
+   * `set_start_date`, whose sentences stand under the card
+   */
+  lead: string | null;
   /** While the connection is deactivated: the copy buttons are off and say why (FR-046, W21) */
   deactivated?: boolean;
 }

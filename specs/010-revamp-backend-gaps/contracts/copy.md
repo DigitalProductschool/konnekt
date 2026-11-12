@@ -161,7 +161,7 @@ T066's UNCERTAIN 2; design-notes §4.2).
 |---|---|---|
 | `publish`, `reactivate` without a date | "The connection goes live at once." | "Die Anbindung wird sofort aktiv." |
 | `publish`, `reactivate`, `set_start_date` with a date (the spec's) | "Active from <date>" | "Aktiv ab <date>" |
-| `set_start_date`: the title, with and without a name | "Change the start date of ‘<name>’?" / "Change the start date?" | "Startdatum von ‚<name>‘ ändern?" / "Startdatum ändern?" |
+| `set_start_date`: the title, with and without a name | "Change the start date of ‘<name>’?" / "Change the start date?" | "Startdatum von „<name>“ ändern?" / "Startdatum ändern?" |
 | `set_start_date` for an active connection: the sentence (FR-065) | "Until then its links stop working, and requests in progress are cancelled." | "Bis dahin funktionieren die Links nicht, und laufende Anfragen werden abgebrochen." |
 | `set_start_date` to now | "The connection goes live at once." | "Die Anbindung wird sofort aktiv." |
 | Done: `publish` with a date | "Published and scheduled for <date>." | "Veröffentlicht und für den <date> geplant." |

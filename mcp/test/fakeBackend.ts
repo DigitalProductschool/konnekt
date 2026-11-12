@@ -34,6 +34,7 @@ import type {
   RuleTreeItem,
 } from '@connection-portal/api-types/form-connections';
 import type { OptionSet } from '@connection-portal/api-types/option-sets';
+import { isValidIsoDate, todayInGermany } from '@connection-portal/rules/dates';
 import { MDL, OPTION_SETS, PID, rule, target } from '@connection-portal/rules/testData';
 
 /** The callers' bearer tokens, one per access level. */
@@ -782,15 +783,26 @@ export async function startFakeBackend(options: { portalUrl?: string } = {}): Pr
   function requestApproval(
     token: string,
     me: AgentMe,
-    body: { form_connection_id?: string; action?: ApprovalAction }
+    body: { form_connection_id?: string; action?: ApprovalAction; start_date?: string | null }
   ): ApprovalRequest {
     const action = body.action;
     const draftAction = action === 'publish' || action === 'delete_draft';
     if (
       !action ||
-      !['publish', 'delete_draft', 'deactivate', 'reactivate', 'delete'].includes(action)
+      !['publish', 'delete_draft', 'deactivate', 'reactivate', 'delete', 'set_start_date'].includes(
+        action
+      )
     ) {
       throw validation('Unknown action.');
+    }
+    // As the backend's body validation (before the level): a date only for the actions that
+    // take one, and a date the calendar has
+    const startDate = body.start_date ?? null;
+    if (
+      startDate !== null &&
+      (!['publish', 'reactivate', 'set_start_date'].includes(action) || !isValidIsoDate(startDate))
+    ) {
+      throw validation('Invalid request payload');
     }
     // As the backend: each action's own level, so that a read caller asking to deactivate reads
     // the manage level's message
@@ -798,7 +810,14 @@ export async function startFakeBackend(options: { portalUrl?: string } = {}): Pr
     if (!draftAction && !allows(me, 'manage')) {
       throw insufficient('manage', 'Deactivating, reactivating and deleting published connections');
     }
+    if (startDate !== null && startDate <= todayInGermany()) {
+      throw new HttpError(400, {
+        error: 'invalid_start_date',
+        message: 'Enter a date after today.',
+      });
+    }
     const fc = connectionOf(body.form_connection_id ?? '');
+    const state = stateOf(fc);
     if (draftAction && fc.status !== 'draft')
       throw notAllowed('This connection is already published.');
     if (!draftAction && fc.status === 'draft') {
@@ -806,11 +825,27 @@ export async function startFakeBackend(options: { portalUrl?: string } = {}): Pr
     }
     if (action === 'publish' && fc.documents.length === 0)
       throw validation('Add at least one document.');
-    if (action === 'deactivate' && fc.status === 'published' && !fc.is_active) {
+    // A scheduled connection may be deactivated or deleted, not reactivated (spec 010, data-model
+    // §7)
+    if (action === 'deactivate' && state === 'deactivated') {
       throw notAllowed('This connection is already deactivated.');
     }
-    if (action === 'reactivate' && fc.status === 'published' && fc.is_active) {
+    if (action === 'reactivate' && state === 'live') {
       throw notAllowed('This connection is already live.');
+    }
+    if (action === 'reactivate' && state === 'scheduled') {
+      throw notAllowed('This connection is scheduled. Change its start date instead.');
+    }
+    if (action === 'set_start_date') {
+      if (state === 'deactivated') {
+        throw notAllowed('This connection is deactivated. Reactivate it instead.');
+      }
+      if (state === 'live' && startDate === null) {
+        throw notAllowed('This connection is already live.');
+      }
+      if (state === 'scheduled' && fc.status === 'published' && startDate === fc.start_date) {
+        throw notAllowed('This connection is already scheduled for that date.');
+      }
     }
     for (const stored of fake.store.approvals.values()) {
       const waiting = stored.request;
@@ -833,6 +868,8 @@ export async function startFakeBackend(options: { portalUrl?: string } = {}): Pr
       status: 'waiting',
       outcome: 'waiting',
       cancel_reason: null,
+      // The start date as asked (spec 010, research R9); null: at once, or none
+      start_date: startDate,
       link: `${portalUrl}/approvals/${id}`,
       expires_at: new Date(now.getTime() + APPROVAL_MINUTES * 60_000).toISOString(),
       created_at: now.toISOString(),
@@ -925,6 +962,7 @@ export async function startFakeBackend(options: { portalUrl?: string } = {}): Pr
       const body = (await bodyOf(request)) as {
         form_connection_id?: string;
         action?: ApprovalAction;
+        start_date?: string | null;
       };
       return ok(requestApproval(token, me, body ?? {}), 201);
     }

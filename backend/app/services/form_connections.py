@@ -1429,21 +1429,44 @@ def _status_changed() -> HTTPException:
     )
 
 
+@dataclass(frozen=True)
+class StatusSnapshot:
+    """The status an approval request was made for (spec 010, research R9).
+
+    The connection's `is_active` and `start_date` when the agent asked, stored on
+    the request as `was_active` and `was_start_date`: together they tell live,
+    scheduled for a day, and deactivated apart (data-model 1.2, 7; FR-066). An
+    approved request passes it to the service it runs, which compares it with
+    the row under its own row lock (`_lock_for_status_change`).
+    """
+
+    was_active: bool
+    was_start_date: date | None
+
+    def matches(self, form_connection: FormConnection) -> bool:
+        """Whether the connection still has the status the request was made for."""
+        return (
+            form_connection.is_active == self.was_active
+            and form_connection.start_date == self.was_start_date
+        )
+
+
 def _lock_for_status_change(
-    db: Session, form_connection_id: str, expected_active: bool | None
+    db: Session, form_connection_id: str, expected: StatusSnapshot | None
 ) -> FormConnection:
     """Lock a published form connection's row to change its status.
 
     Answers 404 and 409 `not_published` like `_lock_published_form_connection`.
-    With `expected_active`, the `is_active` an approved approval request was made
-    for (spec 007, research R12), also 409 `status_changed` when the row's is
-    another one by now, after releasing the lock: the connection was deactivated
-    or reactivated since the approval's check. The management interface passes
-    none; each caller then refuses, under this lock, the state its action doesn't
-    apply to (`_lock_for_start_date`).
+    With `expected`, the status an approved approval request was made for (spec
+    007, research R12; spec 010, research R9), also 409 `status_changed` when the
+    row's `is_active` or `start_date` is another one by now, after releasing the
+    lock: since the approval's check, the connection was deactivated or
+    reactivated, scheduled, became active, or its start date moved. The
+    management interface passes none; each caller then refuses, under this lock,
+    the state its action doesn't apply to (`_lock_for_start_date`).
     """
     form_connection = _lock_published_form_connection(db, form_connection_id)
-    if expected_active is not None and form_connection.is_active != expected_active:
+    if expected is not None and not expected.matches(form_connection):
         db.rollback()
         raise _status_changed()
     return form_connection
@@ -1452,20 +1475,20 @@ def _lock_for_status_change(
 def _lock_for_start_date(
     db: Session,
     form_connection_id: str,
-    expected_active: bool | None,
+    expected: StatusSnapshot | None,
     refused: ConnectionState,
     start_date: date | None,
 ) -> FormConnection:
     """Lock a published connection's row for an action that takes a start date.
 
-    `_lock_for_status_change()`'s refusals; then, under the lock, 409
-    `status_changed` while the connection is in the state `refused`, which the
-    action doesn't apply to, and 400 `invalid_start_date` for a `start_date` that
-    is no longer after today in Germany (`check_start_date`): the caller checked
-    it before the lock, and the day may have ended since (spec 010, FR-003). A
-    refusal releases the lock.
+    `_lock_for_status_change()`'s refusals, `expected`'s among them; then, under
+    the lock, 409 `status_changed` while the connection is in the state
+    `refused`, which the action doesn't apply to, and 400 `invalid_start_date`
+    for a `start_date` that is no longer after today in Germany
+    (`check_start_date`): the caller checked it before the lock, and the day may
+    have ended since (spec 010, FR-003). A refusal releases the lock.
     """
-    form_connection = _lock_for_status_change(db, form_connection_id, expected_active)
+    form_connection = _lock_for_status_change(db, form_connection_id, expected)
     try:
         if state_of(form_connection) == refused:
             raise _status_changed()
@@ -1481,20 +1504,20 @@ def deactivate_form_connection(
     form_connection_id: str,
     *,
     actor: Actor,
-    expected_active: bool | None = None,
+    expected: StatusSnapshot | None = None,
 ) -> FormConnectionView:
     """Deactivate a form connection: its URLs answer 409 from the next call on.
 
     Its open requests become unavailable in the same transaction. EUDIPLO isn't
     called: the worker deletes their sessions in its next cycle. `actor` is who
-    deactivates it (spec 010, research R4); `expected_active` as
+    deactivates it (spec 010, research R4); `expected` as
     `_lock_for_status_change` says. Under the row lock (data-model 1.3), a live
     connection becomes inactive, and a scheduled one loses its `start_date`, so
     that its schedule ends and it never becomes active by itself (FR-012); either
     gets `deactivated_at` and the entry `deactivated`. One that is deactivated
     already keeps its date and gets no entry.
     """
-    form_connection = _lock_for_status_change(db, form_connection_id, expected_active)
+    form_connection = _lock_for_status_change(db, form_connection_id, expected)
     state = state_of(form_connection)
     if state != 'deactivated':
         if state == 'live':
@@ -1521,7 +1544,7 @@ def activate_form_connection(
     form_connection_id: str,
     *,
     actor: Actor,
-    expected_active: bool | None = None,
+    expected: StatusSnapshot | None = None,
     start_date: date | None = None,
 ) -> FormConnectionView:
     """Activate a deactivated form connection again, now or on a date.
@@ -1529,8 +1552,8 @@ def activate_form_connection(
     "Now" (`start_date` None): its URLs work again, unchanged. With `start_date`,
     a day after today in Germany, it is scheduled for that day instead: its URLs
     keep answering as a deactivated connection's until the worker activates it
-    (spec 010, FR-011). `actor` is who activates it (research R4);
-    `expected_active` as `_lock_for_status_change` says.
+    (spec 010, FR-011). `actor` is who activates it (research R4); `expected` as
+    `_lock_for_status_change` says.
 
     The date is checked before the row is locked and again under the lock, 400
     `invalid_start_date` either time (research R2), and a scheduled connection
@@ -1543,7 +1566,7 @@ def activate_form_connection(
     """
     check_start_date(start_date)
     form_connection = _lock_for_start_date(
-        db, form_connection_id, expected_active, 'scheduled', start_date
+        db, form_connection_id, expected, 'scheduled', start_date
     )
     scheduling = False
     if state_of(form_connection) == 'deactivated':
@@ -1571,6 +1594,7 @@ def set_start_date(
     start_date: date | None,
     *,
     actor: Actor,
+    expected: StatusSnapshot | None = None,
 ) -> FormConnectionView:
     """Change a scheduled or live connection's start (spec 010, FR-008, FR-009).
 
@@ -1593,11 +1617,12 @@ def set_start_date(
     A deactivated connection answers 409 `status_changed` under the lock (it is
     activated again instead), a draft 409 `not_published`, and an unknown or
     deleted one 404. EUDIPLO isn't called. `actor` is who changes it (research
-    R4).
+    R4); `expected` as `_lock_for_status_change` says: an approved
+    `set_start_date` request passes the status it was made for (research R9).
     """
     check_start_date(start_date)
     form_connection = _lock_for_start_date(
-        db, form_connection_id, None, 'deactivated', start_date
+        db, form_connection_id, expected, 'deactivated', start_date
     )
     entries: list[activity.Entry] = []
     cancelled = 0
@@ -1694,7 +1719,7 @@ def delete_form_connection(
     form_connection_id: str,
     *,
     actor: Actor,
-    expected_active: bool | None = None,
+    expected: StatusSnapshot | None = None,
     deletion_id: str | None = None,
     deleted_by_id: str | None = None,
 ) -> Deletion:
@@ -1705,12 +1730,12 @@ def delete_form_connection(
     research R5). Open requests are cancelled as for deactivating, and the
     connection's waiting approval requests stored cancelled; EUDIPLO isn't called.
     `actor` is who deletes it, recorded as `deleted` under the row lock (spec 010,
-    research R4); `expected_active` as `_lock_for_status_change` says. Answers
-    the deletion: with `deletion_id` and `deleted_by_id`, which the router passes,
+    research R4); `expected` as `_lock_for_status_change` says. Answers the
+    deletion: with `deletion_id` and `deleted_by_id`, which the router passes,
     restorable until DELETION_UNDO_SECONDS from now; without them, as an approved
     approval request runs it, `id` null (FR-067).
     """
-    form_connection = _lock_for_status_change(db, form_connection_id, expected_active)
+    form_connection = _lock_for_status_change(db, form_connection_id, expected)
     deletion, cancelled = _mark_deleted(
         db,
         form_connection,

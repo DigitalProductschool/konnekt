@@ -323,16 +323,18 @@ def test_a_deletion_an_approval_runs_cant_be_restored(
     request runs the services, the deletion answers `id` null."""
     form_connection_id = _create(signed_in_client, state, 'T040 approved')
     approver = Actor(name=TEST_USERNAME, agent='Test agent', approved=True)
+    # The status the approval request was made for (spec 010, research R9)
+    created = _row(form_connection_id)
+    expected = form_connections.StatusSnapshot(
+        was_active=created.is_active, was_start_date=created.start_date
+    )
 
     with SessionLocal() as db:
         if state == 'draft':
             deletion = drafts.delete_draft(db, form_connection_id, 1, actor=approver)
         else:
             deletion = form_connections.delete_form_connection(
-                db,
-                form_connection_id,
-                actor=approver,
-                expected_active=state == 'live',
+                db, form_connection_id, actor=approver, expected=expected
             )
 
     assert deletion == Deletion(id=None, restorable_until=None)

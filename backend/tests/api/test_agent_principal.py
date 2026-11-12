@@ -2,7 +2,8 @@
 
 First the level table of contracts/management-api.md "Who may call what": every
 management endpoint × {no credentials, cookie, read, drafts, manage} → the status
-it answers. US1, US3 and US7 add their endpoints to ENDPOINTS; US3's approval
+it answers. US1, US3 and US7 add their endpoints to ENDPOINTS, and spec 010 the
+start date's (`PUT …/start-date` and asking for `set_start_date`); US3's approval
 requests are the bearer's own, so the request is made once the caller is known.
 Then the bearer's own rules (contracts/oauth.md "Bearer access", data-model.md
 section 4.1): the tokens that are refused, `last_used_at`, the level read at every
@@ -33,6 +34,7 @@ from app.models import (
     UserAccount,
 )
 from app.schemas import AccessLevel
+from app.services import start_dates
 from app.services.auth import (
     ACCESS_LEVELS,
     insufficient_access,
@@ -69,6 +71,9 @@ NEEDS_MANAGE = {
     ),
     'needs_access_level': 'manage',
 }
+
+# A day after today in Germany, for the bodies that take a start date (spec 010)
+START_DATE = (start_dates.today_in_germany() + timedelta(days=30)).isoformat()
 
 # A minimal draft: a name and Standard without rules, in the first step
 DRAFT: dict[str, Any] = {
@@ -483,6 +488,29 @@ ENDPOINTS = [
         body={'form_connection_id': '{id}', 'action': 'delete'},
         success=201,
         label='delete',
+    ),
+    # Spec 010: changing a start date is the browser's (contracts/management-api.md
+    # "Who may call what"); agents ask for it with an approval request, 'manage'
+    # only
+    Endpoint(
+        'PUT',
+        f'{BASE}/{{id}}/start-date',
+        BROWSER_SESSION,
+        setup=_published,
+        body={'start_date': START_DATE},
+    ),
+    Endpoint(
+        'POST',
+        '/api/approval-requests',
+        AGENTS_WITH_MANAGE,
+        setup=_published,
+        body={
+            'form_connection_id': '{id}',
+            'action': 'set_start_date',
+            'start_date': START_DATE,
+        },
+        success=201,
+        label='set_start_date',
     ),
     Endpoint(
         'GET',

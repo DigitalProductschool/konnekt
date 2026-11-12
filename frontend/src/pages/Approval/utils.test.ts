@@ -17,8 +17,11 @@ import {
   callFailureOf,
   cancelledTextOf,
   checkedBranchesOf,
+  connectionChangedTextOf,
   documentsInLanguageOf,
   doneShowsUrls,
+  doneTextOf,
+  exampleLineOf,
   failureOfPreview,
   finalOutcomeOf,
   isStatusAction,
@@ -28,6 +31,8 @@ import {
   outcomeTextOf,
   outcomeViewOf,
   requestedDocumentsOf,
+  startLineOf,
+  statusLinesOf,
   subtitleOf,
   titleOf,
   urlsLinksOf,
@@ -45,6 +50,7 @@ const REQUEST: ApprovalRequest = {
   status: 'waiting',
   outcome: 'waiting',
   cancel_reason: null,
+  start_date: null,
   link: 'https://portal.example/approvals/req-1',
   expires_at: EXPIRES_AT,
   created_at: '2026-11-06T13:17:00Z',
@@ -136,6 +142,17 @@ function connectionOf(isActive: boolean): FormConnection {
   };
 }
 
+/** A scheduled connection as the preview holds it */
+function scheduledOf(startDate: string): FormConnection {
+  return {
+    ...connectionOf(false),
+    state: 'scheduled',
+    activated_at: null,
+    deactivated_at: null,
+    start_date: startDate,
+  };
+}
+
 function previewOf(request: Partial<ApprovalRequest> = {}): ApprovalPreview {
   return {
     request: { ...REQUEST, ...request },
@@ -167,6 +184,13 @@ describe('titleOf', () => {
     expect(titleOf('deactivate', '', 'en')).toBe('Deactivate the connection?');
     expect(titleOf('reactivate', '', 'en')).toBe('Reactivate the connection?');
     expect(titleOf('delete', '', 'en')).toBe('Delete the connection?');
+  });
+
+  it('asks to change the start date (spec 010, copy.md §7)', () => {
+    expect(titleOf('set_start_date', 'Parking permit', 'en')).toBe(
+      'Change the start date of ‘Parking permit’?'
+    );
+    expect(titleOf('set_start_date', '', 'en')).toBe('Change the start date?');
   });
 
   it('leaves the name out once a deleted draft’s row is gone', () => {
@@ -268,11 +292,211 @@ describe('outcomeTextOf', () => {
 });
 
 describe('cancelledTextOf', () => {
+  const reasonOf = (
+    cancel_reason: string | null,
+    action: ApprovalRequest['action'] = 'delete'
+  ) => ({
+    cancel_reason,
+    action,
+  });
+
   it('falls back to the general sentence without the connection', () => {
-    expect(cancelledTextOf('connection_changed', null, 'en')).toBe('This request was cancelled.');
-    expect(cancelledTextOf('connection_deleted', null, 'en')).toBe(
+    expect(cancelledTextOf(reasonOf('connection_changed'), null, 'en')).toBe(
+      'This request was cancelled.'
+    );
+    expect(cancelledTextOf(reasonOf('connection_deleted'), null, 'en')).toBe(
       'The connection has been deleted in the meantime.'
     );
+  });
+
+  it('says that the start date passed (spec 010, FR-065)', () => {
+    expect(cancelledTextOf(reasonOf('start_date_passed', 'publish'), null, 'en')).toBe(
+      'The start date is no longer after today. The agent can ask again with a new date.'
+    );
+    expect(cancelledTextOf(reasonOf('start_date_passed', 'set_start_date'), null, 'de')).toBe(
+      'Das Startdatum liegt nicht mehr nach dem heutigen Tag. Der Agent kann mit einem neuen Datum erneut fragen.'
+    );
+  });
+
+  it('words a changed connection from its state now and the action (spec 010, FR-066)', () => {
+    expect(
+      cancelledTextOf(reasonOf('connection_changed', 'deactivate'), scheduledOf('2026-12-20'), 'en')
+    ).toBe('The connection’s start date changed in the meantime.');
+    expect(
+      cancelledTextOf(reasonOf('connection_changed', 'delete'), connectionOf(true), 'en')
+    ).toBe('The connection became active in the meantime.');
+  });
+});
+
+describe('connectionChangedTextOf', () => {
+  it('words each state and action as the server does, in both languages', () => {
+    expect(connectionChangedTextOf('scheduled', 'set_start_date', 'en')).toBe(
+      'The connection’s start date changed in the meantime.'
+    );
+    expect(connectionChangedTextOf('scheduled', 'reactivate', 'de')).toBe(
+      'Das Startdatum der Anbindung wurde inzwischen geändert.'
+    );
+    expect(connectionChangedTextOf('deactivated', 'delete', 'en')).toBe(
+      'The connection was deactivated in the meantime.'
+    );
+    expect(connectionChangedTextOf('deactivated', 'set_start_date', 'de')).toBe(
+      'Die Anbindung wurde in der Zwischenzeit deaktiviert.'
+    );
+    expect(connectionChangedTextOf('live', 'reactivate', 'en')).toBe(
+      'The connection was reactivated in the meantime.'
+    );
+    expect(connectionChangedTextOf('live', 'reactivate', 'de')).toBe(
+      'Die Anbindung wurde in der Zwischenzeit reaktiviert.'
+    );
+    for (const action of ['deactivate', 'delete', 'set_start_date'] as const) {
+      expect(connectionChangedTextOf('live', action, 'en')).toBe(
+        'The connection became active in the meantime.'
+      );
+      expect(connectionChangedTextOf('live', action, 'de')).toBe(
+        'Die Anbindung ist inzwischen aktiv geworden.'
+      );
+    }
+  });
+});
+
+describe('doneTextOf', () => {
+  const doneOf = (action: ApprovalRequest['action'], start_date: string | null) => ({
+    action,
+    start_date,
+  });
+
+  it('words a publish and a reactivation on a date with the date asked for', () => {
+    expect(doneTextOf(doneOf('publish', '2026-12-01'), 'en')).toBe(
+      'Published and scheduled for 01.12.2026.'
+    );
+    expect(doneTextOf(doneOf('publish', '2026-12-01'), 'de')).toBe(
+      'Veröffentlicht und für den 01.12.2026 geplant.'
+    );
+    expect(doneTextOf(doneOf('reactivate', '2026-12-01'), 'en')).toBe(
+      'Connection scheduled for 01.12.2026.'
+    );
+    expect(doneTextOf(doneOf('reactivate', '2026-12-01'), 'de')).toBe(
+      'Anbindung für den 01.12.2026 geplant.'
+    );
+  });
+
+  it('keeps the action’s sentence without a date, and for a new start date', () => {
+    expect(doneTextOf(doneOf('publish', null), 'en')).toBe('Published.');
+    expect(doneTextOf(doneOf('reactivate', null), 'de')).toBe('Anbindung reaktiviert.');
+    expect(doneTextOf(doneOf('set_start_date', '2026-12-15'), 'en')).toBe('Start date saved.');
+    expect(doneTextOf(doneOf('set_start_date', null), 'en')).toBe('Start date saved.');
+    expect(doneTextOf(doneOf('set_start_date', '2026-12-15'), 'de')).toBe(
+      'Startdatum gespeichert.'
+    );
+  });
+
+  it('is the done outcome’s sentence', () => {
+    expect(
+      outcomeTextOf(
+        { ...REQUEST, status: 'done', outcome: 'done', start_date: '2026-12-01' },
+        scheduledOf('2026-12-01'),
+        'en'
+      )
+    ).toBe('Published and scheduled for 01.12.2026.');
+  });
+});
+
+describe('startLineOf', () => {
+  it('says when the connection goes live, in both languages (copy.md §7)', () => {
+    expect(startLineOf('2026-12-01', 'en')).toBe('Active from 01.12.2026');
+    expect(startLineOf('2026-12-01', 'de')).toBe('Aktiv ab 01.12.2026');
+    expect(startLineOf(null, 'en')).toBe('The connection goes live at once.');
+    expect(startLineOf(null, 'de')).toBe('Die Anbindung wird sofort aktiv.');
+  });
+});
+
+describe('statusLinesOf', () => {
+  const texts = (...args: Parameters<typeof statusLinesOf>) =>
+    statusLinesOf(...args).map((line) => (line.strong ? `**${line.text}**` : line.text));
+
+  it('says that deactivating cancels requests, or that a scheduled one won’t become active', () => {
+    expect(texts('deactivate', connectionOf(true), null, 'en')).toEqual([
+      'Requests in progress are cancelled.',
+    ]);
+    expect(texts('deactivate', scheduledOf('2026-12-01'), null, 'en')).toEqual([
+      'This connection will be active from 01.12.2026. If you deactivate it, it won’t become active and its links won’t work. You can activate it again later.',
+    ]);
+    expect(texts('deactivate', connectionOf(true), null, 'de')).toEqual([
+      'Laufende Anfragen werden abgebrochen.',
+    ]);
+    expect(texts('deactivate', scheduledOf('2026-12-01'), null, 'de')).toEqual([
+      'Diese Anbindung ist ab 01.12.2026 aktiv. Wenn Sie sie deaktivieren, wird sie nicht aktiv und ihre Links funktionieren nicht. Sie können sie später wieder aktivieren.',
+    ]);
+  });
+
+  it('keeps “Deleting can’t be undone.” after deleting, a scheduled one with FR-010’s sentence', () => {
+    expect(texts('delete', connectionOf(true), null, 'en')).toEqual([
+      'Requests in progress are cancelled.',
+      '**Deleting can’t be undone.**',
+    ]);
+    expect(texts('delete', connectionOf(false), null, 'en')).toEqual([
+      'Requests in progress are cancelled.',
+      '**Deleting can’t be undone.**',
+    ]);
+    expect(texts('delete', scheduledOf('2026-12-01'), null, 'en')).toEqual([
+      'This connection will be active from 01.12.2026. If you delete it, it won’t become active and its links won’t work.',
+      '**Deleting can’t be undone.**',
+    ]);
+    expect(texts('delete', scheduledOf('2026-12-01'), null, 'de')).toEqual([
+      'Diese Anbindung ist ab 01.12.2026 aktiv. Wenn Sie sie löschen, wird sie nicht aktiv und ihre Links funktionieren nicht.',
+      '**Das Löschen kann nicht rückgängig gemacht werden.**',
+    ]);
+  });
+
+  it('says when a reactivated connection goes live', () => {
+    expect(texts('reactivate', connectionOf(false), '2026-12-01', 'en')).toEqual([
+      'Active from 01.12.2026',
+    ]);
+    expect(texts('reactivate', connectionOf(false), null, 'en')).toEqual([
+      'The connection goes live at once.',
+    ]);
+    expect(texts('reactivate', connectionOf(false), '2026-12-01', 'de')).toEqual([
+      'Aktiv ab 01.12.2026',
+    ]);
+    expect(texts('reactivate', connectionOf(false), null, 'de')).toEqual([
+      'Die Anbindung wird sofort aktiv.',
+    ]);
+  });
+
+  it('says what a new start date does to a scheduled and to an active connection', () => {
+    expect(texts('set_start_date', scheduledOf('2026-12-01'), '2026-12-15', 'en')).toEqual([
+      'Active from 15.12.2026',
+    ]);
+    expect(texts('set_start_date', scheduledOf('2026-12-01'), null, 'en')).toEqual([
+      'The connection goes live at once.',
+    ]);
+    expect(texts('set_start_date', connectionOf(true), '2026-12-01', 'en')).toEqual([
+      'Active from 01.12.2026',
+      'Until then its links stop working, and requests in progress are cancelled.',
+    ]);
+    expect(texts('set_start_date', scheduledOf('2026-12-01'), '2026-12-15', 'de')).toEqual([
+      'Aktiv ab 15.12.2026',
+    ]);
+    expect(texts('set_start_date', scheduledOf('2026-12-01'), null, 'de')).toEqual([
+      'Die Anbindung wird sofort aktiv.',
+    ]);
+    expect(texts('set_start_date', connectionOf(true), '2026-12-01', 'de')).toEqual([
+      'Aktiv ab 01.12.2026',
+      'Bis dahin funktionieren die Links nicht, und laufende Anfragen werden abgebrochen.',
+    ]);
+  });
+});
+
+describe('exampleLineOf', () => {
+  it('shows the example’s line for the unchanged example only (FR-060)', () => {
+    expect(exampleLineOf({ example: 'unchanged' }, 'en')).toBe(
+      'This is still the example. Check that the name, documents and rules fit your service.'
+    );
+    expect(exampleLineOf({ example: 'unchanged' }, 'de')).toBe(
+      'Dies ist noch das Beispiel. Prüfen Sie, ob Name, Dokumente und Regeln zu Ihrem Dienst passen.'
+    );
+    expect(exampleLineOf({ example: 'changed' }, 'en')).toBeNull();
+    expect(exampleLineOf({ example: null }, 'en')).toBeNull();
   });
 });
 
@@ -281,6 +505,7 @@ describe('isStatusAction and doneShowsUrls', () => {
     expect(isStatusAction('deactivate')).toBe(true);
     expect(isStatusAction('reactivate')).toBe(true);
     expect(isStatusAction('delete')).toBe(true);
+    expect(isStatusAction('set_start_date')).toBe(true);
     expect(isStatusAction('publish')).toBe(false);
     expect(isStatusAction('delete_draft')).toBe(false);
   });
@@ -291,6 +516,7 @@ describe('isStatusAction and doneShowsUrls', () => {
     expect(doneShowsUrls('deactivate')).toBe(false);
     expect(doneShowsUrls('delete')).toBe(false);
     expect(doneShowsUrls('delete_draft')).toBe(false);
+    expect(doneShowsUrls('set_start_date')).toBe(false);
   });
 });
 
@@ -615,6 +841,10 @@ describe('in German', () => {
     expect(titleOf('publish', '', 'de')).toBe('Entwurf veröffentlichen?');
     expect(titleOf('delete_draft', ' ', 'de')).toBe('Entwurf löschen?');
     expect(titleOf('delete', '', 'de')).toBe('Anbindung löschen?');
+    expect(titleOf('set_start_date', 'Parking permit', 'de')).toBe(
+      'Startdatum von „Parking permit“ ändern?'
+    );
+    expect(titleOf('set_start_date', '', 'de')).toBe('Startdatum ändern?');
   });
 
   it('names the agent as it registered and the expiry time', () => {
@@ -648,22 +878,28 @@ describe('in German', () => {
   });
 
   it('words a cancellation by its reason', () => {
-    expect(cancelledTextOf('draft_changed', null, 'de')).toBe(
+    const reasonOf = (cancel_reason: string, action: ApprovalRequest['action'] = 'deactivate') => ({
+      cancel_reason,
+      action,
+    });
+    expect(cancelledTextOf(reasonOf('draft_changed', 'publish'), null, 'de')).toBe(
       'Der Entwurf wurde geändert, seit der Agent gefragt hat. Es wurde nichts geändert; der Agent muss erneut fragen.'
     );
-    expect(cancelledTextOf('revoked', null, 'de')).toBe(
+    expect(cancelledTextOf(reasonOf('revoked'), null, 'de')).toBe(
       'Der Zugriff des Agenten wurde widerrufen, daher wurde diese Anfrage abgebrochen.'
     );
-    expect(cancelledTextOf('connection_changed', connectionOf(false), 'de')).toBe(
+    expect(cancelledTextOf(reasonOf('connection_changed'), connectionOf(false), 'de')).toBe(
       'Die Anbindung wurde in der Zwischenzeit deaktiviert.'
     );
-    expect(cancelledTextOf('connection_changed', connectionOf(true), 'de')).toBe(
-      'Die Anbindung wurde in der Zwischenzeit reaktiviert.'
-    );
-    expect(cancelledTextOf('connection_changed', null, 'de')).toBe(
+    expect(
+      cancelledTextOf(reasonOf('connection_changed', 'reactivate'), connectionOf(true), 'de')
+    ).toBe('Die Anbindung wurde in der Zwischenzeit reaktiviert.');
+    expect(cancelledTextOf(reasonOf('connection_changed'), null, 'de')).toBe(
       'Diese Anfrage wurde abgebrochen.'
     );
-    expect(cancelledTextOf('unknown', null, 'de')).toBe('Diese Anfrage wurde abgebrochen.');
+    expect(cancelledTextOf(reasonOf('unknown'), null, 'de')).toBe(
+      'Diese Anfrage wurde abgebrochen.'
+    );
   });
 
   it('words a failed attempt read again in the language of the moment', () => {

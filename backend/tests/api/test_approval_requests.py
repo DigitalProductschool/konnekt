@@ -11,11 +11,21 @@ an agent whose access ended, and another team member get nothing done. An approv
 publish runs the editor's publish, an approved status change the management
 interface's, and a failure of EUDIPLO keeps the request waiting for another
 attempt. The level table of every endpoint is in test_agent_principal.py.
+
+Spec 010, user story 8 (research R9, data-model 7; FR-065 to FR-067, SC-010): a
+request to publish or reactivate may name a start date, `set_start_date` asks to
+move, set or start a scheduled or live connection's start, and deactivating and
+deleting take a scheduled connection. Each row of data-model 7's table is checked
+when the request is made and at approval; a request remembers the status it was
+made for, the connection's `is_active` and `start_date`, and does nothing once the
+connection's status or start date moved, also by the worker's step, or once the
+day it asks for came, also while the approval runs.
 """
 
+import json
 import logging
 from collections.abc import Callable
-from datetime import datetime, timedelta
+from datetime import date, datetime, timedelta
 from typing import Any
 
 import pytest
@@ -33,11 +43,16 @@ from app.models import (
 )
 from app.routers.form_connections import CONFIG_FAILED as CONFIG_FAILED_TEXT
 from app.schemas import AccessLevel, AgentAccessKind
-from app.services import approvals, drafts, form_connections, worker
+from app.services import approvals, drafts, form_connections, start_dates, worker
 from app.services.activity import Actor
 from app.services.eudiplo import NOT_CONFIGURED_MESSAGE as NOT_CONFIGURED_MESSAGE_TEXT
 from app.services.evaluation import GERMANY
-from tests.api.test_form_connection_drafts import editor_publish_body, published_shape
+from tests.api.test_form_connection_drafts import (
+    editor_publish_body,
+    published_shape,
+    rows,
+)
+from tests.api.test_scheduling import entries, snapshot
 from tests.conftest import TEST_PASSWORD, TEST_USERNAME, create_user
 from tests.fake_eudiplo import FakeEudiplo
 from tests.helpers import (
@@ -128,6 +143,7 @@ REQUEST_KEYS = {
     'status',
     'outcome',
     'cancel_reason',
+    'start_date',
     'link',
     'expires_at',
     'created_at',
@@ -712,8 +728,10 @@ def test_approving_publishes_the_draft_as_the_editor_does(
     assert before <= decided_at <= now()
     assert preview['request']['connection_name'] == COMPLETE_DRAFT['name']
     assert preview['draft'] is None
-    assert preview['connection'] is None
     connection = _connection(signed_in_client, draft_id)
+    # The connection it made, with its state (spec 010, research R9, FR-065)
+    assert preview['connection'] == connection
+    assert (connection['state'], connection['start_date']) == ('live', None)
     assert connection['status'] == 'published'
     assert published_shape(connection) == published_shape(
         _publish_in_the_editor(signed_in_client, twin_id)
@@ -927,7 +945,7 @@ def test_a_draft_saved_while_the_approval_runs_isnt_published(
     publish_stored_draft = drafts.publish_stored_draft
 
     def saved_meanwhile(
-        db: Any, form_connection_id: str, version: int, *, actor: Actor
+        db: Any, form_connection_id: str, version: int, **options: Any
     ) -> Any:
         with SessionLocal() as other:
             other.execute(
@@ -936,7 +954,7 @@ def test_a_draft_saved_while_the_approval_runs_isnt_published(
                 .values(name='Geändert', draft_version=FormConnection.draft_version + 1)
             )
             other.commit()
-        return publish_stored_draft(db, form_connection_id, version, actor=actor)
+        return publish_stored_draft(db, form_connection_id, version, **options)
 
     monkeypatch.setattr(drafts, 'publish_stored_draft', saved_meanwhile)
 
@@ -1966,13 +1984,13 @@ def test_a_draft_deleted_while_its_publish_is_approved_isnt_published(
     publish_stored_draft = drafts.publish_stored_draft
 
     def deleted_meanwhile(
-        db: Any, form_connection_id: str, version: int, *, actor: Actor
+        db: Any, form_connection_id: str, version: int, **options: Any
     ) -> Any:
         with SessionLocal() as other:
             drafts.delete_draft(
                 other, form_connection_id, actor=Actor(name=TEST_USERNAME)
             )
-        return publish_stored_draft(db, form_connection_id, version, actor=actor)
+        return publish_stored_draft(db, form_connection_id, version, **options)
 
     monkeypatch.setattr(drafts, 'publish_stored_draft', deleted_meanwhile)
 
@@ -1988,3 +2006,1168 @@ def test_a_draft_deleted_while_its_publish_is_approved_isnt_published(
     assert fake_eudiplo.configs == {}
     read = _preview(signed_in_client, request['id'])['request']
     assert (read['status'], read['cancel_reason']) == ('cancelled', 'draft_deleted')
+
+
+# Start dates and the scheduled status (spec 010, user story 8; research R9,
+# data-model 7; FR-065 to FR-067, SC-010)
+
+# The day the tests run on in Germany, unless a test moves it (`days`)
+TODAY = date(2026, 11, 11)
+# After TODAY and before START
+EARLIER = date(2026, 11, 20)
+START = date(2026, 12, 1)
+LATER = date(2026, 12, 15)
+MOVED = date(2026, 12, 20)
+
+GERMAN = {'Accept-Language': 'de'}
+# The person of an approved action's entry: (actor_name, agent_name, approved)
+APPROVED = (TEST_USERNAME, 'Claude Code', True)
+VALIDATION_ERROR = {'error': 'Validation error', 'message': 'Invalid request payload'}
+# The refusals as answered in English and in German (contracts/copy.md section 8)
+INVALID_START_DATE = (
+    'invalid_start_date',
+    'Enter a date after today.',
+    'Geben Sie ein Datum nach dem heutigen Tag ein.',
+)
+REFUSALS: dict[str, tuple[str, str, str]] = {
+    'scheduled': (
+        'not_allowed',
+        'This connection is scheduled. Change its start date instead.',
+        'Diese Anbindung ist geplant. Ändern Sie stattdessen das Startdatum.',
+    ),
+    'deactivated': (
+        'not_allowed',
+        'This connection is deactivated. Reactivate it instead.',
+        'Diese Anbindung ist deaktiviert. Reaktivieren Sie sie stattdessen.',
+    ),
+    'same date': (
+        'not_allowed',
+        'This connection is already scheduled for that date.',
+        'Diese Anbindung ist bereits für dieses Datum geplant.',
+    ),
+    'live': (
+        'not_allowed',
+        'This connection is already live.',
+        'Diese Anbindung ist bereits aktiv.',
+    ),
+    'draft': (
+        'not_allowed',
+        'This connection is a draft: it has nothing live yet.',
+        'Diese Anbindung ist ein Entwurf: Von ihr ist noch nichts aktiv.',
+    ),
+}
+# The approval page's sentences of a request that does nothing (contracts/copy.md
+# section 7, and spec 007's), in English and in German
+STALE_TEXTS: dict[str, tuple[str, str]] = {
+    'became active': (
+        'The connection became active in the meantime.',
+        'Die Anbindung ist inzwischen aktiv geworden.',
+    ),
+    'date changed': (
+        "The connection's start date changed in the meantime.",
+        'Das Startdatum der Anbindung wurde inzwischen geändert.',
+    ),
+    'deactivated': (
+        'The connection was deactivated in the meantime.',
+        'Die Anbindung wurde in der Zwischenzeit deaktiviert.',
+    ),
+    'start_date_passed': (
+        'The start date is no longer after today. The agent can ask again with a '
+        'new date.',
+        'Das Startdatum liegt nicht mehr nach dem heutigen Tag. Der Agent kann mit '
+        'einem neuen Datum erneut fragen.',
+    ),
+}
+
+
+@pytest.fixture
+def days(monkeypatch: pytest.MonkeyPatch) -> list[date]:
+    """The day in Germany is the list's last; a test appends to move it."""
+    days = [TODAY]
+    monkeypatch.setattr(start_dates, 'today_in_germany', lambda: days[-1])
+    return days
+
+
+def _scheduled(client: TestClient) -> str:
+    """A connection with Standard and a variant, scheduled for START."""
+    return create_form_connection(
+        client, rules=LIVE_RULES, start_date=START.isoformat()
+    )
+
+
+def _asking(
+    agent: TestClient,
+    form_connection_id: str,
+    action: str,
+    start_date: date | None = None,
+    headers: dict[str, str] | None = None,
+) -> Any:
+    """The agent asks for `action` with `start_date`; the raw answer."""
+    body: dict[str, Any] = {'form_connection_id': form_connection_id, 'action': action}
+    if start_date is not None:
+        body['start_date'] = start_date.isoformat()
+    return agent.post(BASE, json=body, headers=headers)
+
+
+def _ask_on(
+    agent: TestClient,
+    form_connection_id: str,
+    action: str,
+    start_date: date | None,
+) -> dict[str, Any]:
+    """The agent asks for `action` with `start_date`; the request it is answered."""
+    response = _asking(agent, form_connection_id, action, start_date)
+    assert response.status_code == 201, response.json()
+    data: dict[str, Any] = response.json()['data']
+    return data
+
+
+def _refused(response: Any, german: Any, refusal: tuple[str, str, str]) -> None:
+    """The English and the German answer are `refusal`'s."""
+    error, english_message, german_message = refusal
+    assert response.json() == {'error': error, 'message': english_message}
+    assert german.json() == {'error': error, 'message': german_message}
+
+
+def _day(value: date | None) -> str | None:
+    return None if value is None else value.isoformat()
+
+
+def _status(form_connection_id: str) -> tuple[bool, date | None, bool]:
+    """The row's `is_active` and `start_date`, and whether it is deleted."""
+    row = _stored_connection(form_connection_id)
+    return row.is_active, row.start_date, row.deleted_at is not None
+
+
+def _the_worker_starts(days: list[date], day: date) -> None:
+    """The day becomes `day`, and the worker's step makes the due connections live."""
+    days.append(day)
+    worker.activate_scheduled_connections()
+
+
+# The services the browser's calls run, as they are before a test patches one
+SET_START_DATE: Callable[..., Any] = form_connections.set_start_date
+DEACTIVATE: Callable[..., Any] = form_connections.deactivate_form_connection
+ACTIVATE: Callable[..., Any] = form_connections.activate_form_connection
+
+
+def _in_the_browser(form_connection_id: str, change: str, days: list[date]) -> None:
+    """What a team member, or the worker, does to a connection meanwhile.
+
+    Each in a session of its own, as the browser's calls are; 'worker' moves the
+    day to START and runs the worker's step.
+    """
+    person = Actor(name=TEST_USERNAME)
+    if change == 'worker':
+        _the_worker_starts(days, START)
+        return
+    with SessionLocal() as other:
+        if change == 'move':
+            SET_START_DATE(other, form_connection_id, MOVED, actor=person)
+        elif change == 'start now':
+            SET_START_DATE(other, form_connection_id, None, actor=person)
+        elif change == 'schedule':
+            SET_START_DATE(other, form_connection_id, START, actor=person)
+        elif change == 'deactivate':
+            DEACTIVATE(other, form_connection_id, actor=person)
+        elif change == 'activate on a date':
+            ACTIVATE(other, form_connection_id, actor=person, start_date=START)
+        else:
+            raise AssertionError(change)
+
+
+# Asking (data-model 7, "Preconditions at the request")
+
+
+@pytest.mark.parametrize(
+    ('action', 'setup', 'start_date', 'was'),
+    [
+        pytest.param('publish', _draft, START, (None, None), id='publish-on-a-date'),
+        pytest.param(
+            'reactivate', _deactivated, START, (False, None), id='reactivate-on-a-date'
+        ),
+        pytest.param(
+            'set_start_date',
+            _scheduled,
+            LATER,
+            (False, START),
+            id='set-scheduled-to-another-date',
+        ),
+        pytest.param(
+            'set_start_date', _scheduled, None, (False, START), id='set-scheduled-now'
+        ),
+        pytest.param(
+            'set_start_date', _live, START, (True, None), id='set-live-to-a-date'
+        ),
+        pytest.param(
+            'deactivate', _scheduled, None, (False, START), id='deactivate-scheduled'
+        ),
+        pytest.param('delete', _scheduled, None, (False, START), id='delete-scheduled'),
+    ],
+)
+def test_a_request_remembers_its_date_and_the_status_it_was_made_for(
+    signed_in_client: TestClient,
+    fake_eudiplo: FakeEudiplo,
+    days: list[date],
+    action: str,
+    setup: Callable[[TestClient], str],
+    start_date: date | None,
+    was: tuple[bool | None, date | None],
+) -> None:
+    """FR-065, FR-066: the request carries the date as asked, and stores the
+    connection's `is_active` and `start_date`; nothing changes yet."""
+    form_connection_id = setup(signed_in_client)
+    _, agent = _agent(_user_id(), 'manage')
+    before = snapshot()
+    calls = len(fake_eudiplo.calls)
+
+    request = _ask_on(agent, form_connection_id, action, start_date)
+
+    assert request.keys() == REQUEST_KEYS
+    assert (request['action'], request['start_date']) == (action, _day(start_date))
+    assert request['status'] == request['outcome'] == 'waiting'
+    stored = _stored(request['id'])
+    assert stored is not None
+    assert (stored.start_date, stored.was_active, stored.was_start_date) == (
+        start_date,
+        *was,
+    )
+    assert snapshot() == before
+    assert len(fake_eudiplo.calls) == calls
+    # The page and the agent read it with the date, and the connection with its
+    # own state and start date
+    preview = _preview(signed_in_client, request['id'])
+    assert preview['request'] == request
+    if action == 'publish':
+        assert preview['draft']['id'] == form_connection_id
+        assert preview['connection'] is None
+    else:
+        connection = _connection(signed_in_client, form_connection_id)
+        assert preview['connection'] == connection
+        assert connection['start_date'] == _day(was[1])
+    assert _preview(agent, request['id'])['request']['start_date'] == _day(start_date)
+
+
+@pytest.mark.parametrize(
+    ('action', 'setup', 'start_date', 'refusal'),
+    [
+        pytest.param(
+            'reactivate', _scheduled, None, 'scheduled', id='reactivate-scheduled'
+        ),
+        pytest.param(
+            'reactivate',
+            _scheduled,
+            LATER,
+            'scheduled',
+            id='reactivate-scheduled-on-a-date',
+        ),
+        pytest.param(
+            'reactivate', _live, START, 'live', id='reactivate-live-on-a-date'
+        ),
+        pytest.param(
+            'set_start_date',
+            _deactivated,
+            START,
+            'deactivated',
+            id='set-deactivated-to-a-date',
+        ),
+        pytest.param(
+            'set_start_date',
+            _deactivated,
+            None,
+            'deactivated',
+            id='set-deactivated-now',
+        ),
+        pytest.param('set_start_date', _live, None, 'live', id='set-live-now'),
+        pytest.param(
+            'set_start_date', _scheduled, START, 'same date', id='set-the-same-date'
+        ),
+        pytest.param('set_start_date', _draft, START, 'draft', id='set-a-draft'),
+    ],
+)
+def test_a_status_the_action_doesnt_apply_to_is_refused_at_once(
+    signed_in_client: TestClient,
+    fake_eudiplo: FakeEudiplo,
+    days: list[date],
+    action: str,
+    setup: Callable[[TestClient], str],
+    start_date: date | None,
+    refusal: str,
+) -> None:
+    """data-model 7's refusals, with contracts/copy.md section 8's reasons in both
+    languages: no request is made, and nothing changes."""
+    form_connection_id = setup(signed_in_client)
+    _, agent = _agent(_user_id(), 'manage')
+    before = snapshot()
+
+    response = _asking(agent, form_connection_id, action, start_date)
+    german = _asking(agent, form_connection_id, action, start_date, GERMAN)
+
+    assert response.status_code == german.status_code == 409
+    _refused(response, german, REFUSALS[refusal])
+    assert _count() == 0
+    assert snapshot() == before
+
+
+@pytest.mark.parametrize('days_after_today', [0, -1], ids=['today', 'yesterday'])
+@pytest.mark.parametrize(
+    ('action', 'setup'),
+    [
+        pytest.param('publish', _draft, id='publish'),
+        pytest.param('reactivate', _deactivated, id='reactivate'),
+        pytest.param('set_start_date', _scheduled, id='set-scheduled'),
+        pytest.param('set_start_date', _live, id='set-live'),
+        # The date is checked first, before the connection's status
+        pytest.param('set_start_date', _deactivated, id='set-deactivated'),
+    ],
+)
+def test_a_start_date_not_after_today_makes_no_request(
+    signed_in_client: TestClient,
+    fake_eudiplo: FakeEudiplo,
+    days: list[date],
+    action: str,
+    setup: Callable[[TestClient], str],
+    days_after_today: int,
+) -> None:
+    """FR-065, quickstart V12.6: 400 `invalid_start_date`, and no request."""
+    form_connection_id = setup(signed_in_client)
+    _, agent = _agent(_user_id(), 'manage')
+    start_date = TODAY + timedelta(days=days_after_today)
+    before = snapshot()
+
+    response = _asking(agent, form_connection_id, action, start_date)
+    german = _asking(agent, form_connection_id, action, start_date, GERMAN)
+
+    assert response.status_code == german.status_code == 400
+    _refused(response, german, INVALID_START_DATE)
+    assert _count() == 0
+    assert snapshot() == before
+
+
+@pytest.mark.parametrize(
+    ('action', 'setup'),
+    [
+        pytest.param('publish', _draft, id='publish'),
+        pytest.param('reactivate', _deactivated, id='reactivate'),
+        pytest.param('set_start_date', _live, id='set-live'),
+    ],
+)
+def test_a_day_that_ends_while_asking_is_checked_again_under_the_lock(
+    signed_in_client: TestClient,
+    fake_eudiplo: FakeEudiplo,
+    monkeypatch: pytest.MonkeyPatch,
+    days: list[date],
+    action: str,
+    setup: Callable[[TestClient], str],
+) -> None:
+    """The day of TOMORROW's request comes between the first check and the row
+    lock: refused under the lock, and no request is made."""
+    form_connection_id = setup(signed_in_client)
+    _, agent = _agent(_user_id(), 'manage')
+    tomorrow = TODAY + timedelta(days=1)
+    agent_name = approvals._agent_name
+
+    def midnight_meanwhile(db: Any, authorization: Any) -> str:
+        days.append(tomorrow)
+        return agent_name(db, authorization)
+
+    monkeypatch.setattr(approvals, '_agent_name', midnight_meanwhile)
+
+    response = _asking(agent, form_connection_id, action, tomorrow)
+
+    assert response.status_code == 400
+    assert response.json() == {
+        'error': INVALID_START_DATE[0],
+        'message': INVALID_START_DATE[1],
+    }
+    assert _count() == 0
+
+
+@pytest.mark.parametrize(
+    ('action', 'setup', 'value'),
+    [
+        pytest.param('deactivate', _live, START.isoformat(), id='deactivate'),
+        pytest.param('delete', _live, START.isoformat(), id='delete'),
+        pytest.param('delete_draft', _draft, START.isoformat(), id='delete_draft'),
+        pytest.param('publish', _draft, '01.12.2026', id='no-iso-date'),
+        pytest.param('set_start_date', _scheduled, 'now', id='now-as-text'),
+        pytest.param('reactivate', _deactivated, '2026-02-31', id='no-such-day'),
+    ],
+)
+def test_a_start_date_an_action_doesnt_take_fails_the_validation(
+    signed_in_client: TestClient,
+    fake_eudiplo: FakeEudiplo,
+    days: list[date],
+    action: str,
+    setup: Callable[[TestClient], str],
+    value: str,
+) -> None:
+    """contracts/management-api.md: a start date with another action, and a value
+    that is no date, answer 400 with the generic message; no request."""
+    form_connection_id = setup(signed_in_client)
+    _, agent = _agent(_user_id(), 'manage')
+
+    response = agent.post(
+        BASE,
+        json={
+            'form_connection_id': form_connection_id,
+            'action': action,
+            'start_date': value,
+        },
+    )
+
+    assert response.status_code == 400
+    assert response.json() == VALIDATION_ERROR
+    assert _count() == 0
+
+
+@pytest.mark.parametrize('level', ['read', 'drafts'])
+def test_only_the_manage_level_asks_to_change_a_start_date(
+    signed_in_client: TestClient,
+    fake_eudiplo: FakeEudiplo,
+    days: list[date],
+    level: AccessLevel,
+) -> None:
+    """contracts "Who may call what": `set_start_date` needs 'manage'; a 'Read and
+    edit drafts' token is refused with the level that allows it."""
+    form_connection_id = _scheduled(signed_in_client)
+    _, agent = _agent(_user_id(), level)
+
+    response = _asking(agent, form_connection_id, 'set_start_date', LATER)
+
+    assert response.status_code == 403
+    assert response.json() == NEEDS_MANAGE
+    assert _count() == 0
+
+
+@pytest.mark.parametrize(
+    ('action', 'setup', 'start_date', 'change', 'outcome'),
+    [
+        pytest.param(
+            'reactivate',
+            _deactivated,
+            LATER,
+            'activate on a date',
+            'scheduled',
+            id='reactivate-scheduled-meanwhile',
+        ),
+        pytest.param(
+            'set_start_date',
+            _scheduled,
+            MOVED,
+            'move',
+            'same date',
+            id='set-moved-to-that-date-meanwhile',
+        ),
+        pytest.param(
+            'set_start_date',
+            _scheduled,
+            None,
+            'worker',
+            'live',
+            id='set-now-started-meanwhile',
+        ),
+        pytest.param(
+            'deactivate',
+            _scheduled,
+            None,
+            'worker',
+            (True, None),
+            id='deactivate-started-meanwhile',
+        ),
+    ],
+)
+def test_a_status_moved_while_asking_is_checked_again_under_the_lock(
+    signed_in_client: TestClient,
+    fake_eudiplo: FakeEudiplo,
+    monkeypatch: pytest.MonkeyPatch,
+    days: list[date],
+    action: str,
+    setup: Callable[[TestClient], str],
+    start_date: date | None,
+    change: str,
+    outcome: str | tuple[bool, date | None],
+) -> None:
+    """A change between the first check and the row lock, by a team member or by
+    the worker's step: the request is checked, and made, for the connection's
+    status as it is then (its start date too)."""
+    form_connection_id = setup(signed_in_client)
+    _, agent = _agent(_user_id(), 'manage')
+    agent_name = approvals._agent_name
+
+    def changed_meanwhile(db: Any, authorization: Any) -> str:
+        _in_the_browser(form_connection_id, change, days)
+        return agent_name(db, authorization)
+
+    monkeypatch.setattr(approvals, '_agent_name', changed_meanwhile)
+
+    response = _asking(agent, form_connection_id, action, start_date)
+
+    if isinstance(outcome, str):
+        assert response.status_code == 409
+        error, message, _ = REFUSALS[outcome]
+        assert response.json() == {'error': error, 'message': message}
+        assert _count() == 0
+    else:
+        assert response.status_code == 201, response.json()
+        stored = _stored(response.json()['data']['id'])
+        assert stored is not None
+        assert (stored.was_active, stored.was_start_date) == outcome
+
+
+# Reading: what the request was made for moved on (FR-066), or its day came (FR-065)
+
+
+@pytest.mark.parametrize(
+    ('setup', 'action', 'start_date', 'change', 'text'),
+    [
+        # Made for a scheduled connection (quickstart V12.7)
+        *[
+            pytest.param(
+                _scheduled,
+                action,
+                start_date,
+                change,
+                text,
+                id=f'{action}-{"now" if start_date is None else "date"}-{change}',
+            )
+            for action, start_date in [
+                ('deactivate', None),
+                ('delete', None),
+                ('set_start_date', LATER),
+                ('set_start_date', None),
+            ]
+            for change, text in [
+                ('move', 'date changed'),
+                ('start now', 'became active'),
+                ('worker', 'became active'),
+                ('deactivate', 'deactivated'),
+            ]
+        ],
+        # Made for a live or deactivated connection that got a start date
+        pytest.param(
+            _live,
+            'deactivate',
+            None,
+            'schedule',
+            'date changed',
+            id='deactivate-live-scheduled',
+        ),
+        pytest.param(
+            _live,
+            'delete',
+            None,
+            'schedule',
+            'date changed',
+            id='delete-live-scheduled',
+        ),
+        pytest.param(
+            _deactivated,
+            'reactivate',
+            None,
+            'activate on a date',
+            'date changed',
+            id='reactivate-deactivated-scheduled',
+        ),
+        pytest.param(
+            _deactivated,
+            'delete',
+            None,
+            'activate on a date',
+            'date changed',
+            id='delete-deactivated-scheduled',
+        ),
+        pytest.param(
+            _live, 'set_start_date', START, 'move', 'date changed', id='set-live-moved'
+        ),
+        pytest.param(
+            _live,
+            'set_start_date',
+            START,
+            'deactivate',
+            'deactivated',
+            id='set-live-deactivated',
+        ),
+    ],
+)
+def test_a_request_does_nothing_once_the_status_it_was_made_for_moved_on(
+    signed_in_client: TestClient,
+    fake_eudiplo: FakeEudiplo,
+    days: list[date],
+    setup: Callable[[TestClient], str],
+    action: str,
+    start_date: date | None,
+    change: str,
+    text: str,
+) -> None:
+    """FR-066, US8: a request made for a status whose start date moved, or that
+    became active (also by the worker's step), was deactivated or got a start
+    date reads as cancelled, `connection_changed`, and approving it does nothing
+    and says why."""
+    form_connection_id = setup(signed_in_client)
+    _, agent = _agent(_user_id(), 'manage')
+    request = _ask_on(agent, form_connection_id, action, start_date)
+    if setup is _live and action == 'set_start_date' and change == 'move':
+        # Live to scheduled in the browser, then the date moved
+        _in_the_browser(form_connection_id, 'schedule', days)
+    _in_the_browser(form_connection_id, change, days)
+    before = snapshot()
+    calls = len(fake_eudiplo.calls)
+
+    for reader in (signed_in_client, agent):
+        read = _preview(reader, request['id'])['request']
+        assert (read['status'], read['outcome'], read['cancel_reason']) == (
+            'cancelled',
+            'cancelled',
+            'connection_changed',
+        )
+    english, german = STALE_TEXTS[text]
+    for call in (_approve, _decline):
+        response = call(signed_in_client, request['id'])
+        assert response.status_code == 409
+        assert response.json() == {'error': 'approval_cancelled', 'message': english}
+    response = signed_in_client.post(
+        f'{BASE}/{request["id"]}/approve', json={}, headers=GERMAN
+    )
+    assert response.json() == {'error': 'approval_cancelled', 'message': german}
+    assert snapshot() == before
+    assert len(fake_eudiplo.calls) == calls
+    stored = _stored(request['id'])
+    assert stored is not None
+    assert (stored.status, stored.cancel_reason) == ('waiting', None)
+
+
+@pytest.mark.parametrize('days_later', [0, 1], ids=['on-the-day', 'a-day-later'])
+@pytest.mark.parametrize(
+    ('action', 'setup', 'start_date'),
+    [
+        pytest.param('publish', _draft, START, id='publish'),
+        pytest.param('reactivate', _deactivated, START, id='reactivate'),
+        pytest.param('set_start_date', _scheduled, EARLIER, id='set-scheduled'),
+        pytest.param('set_start_date', _live, START, id='set-live'),
+    ],
+)
+def test_a_request_whose_day_came_does_nothing(
+    signed_in_client: TestClient,
+    fake_eudiplo: FakeEudiplo,
+    days: list[date],
+    action: str,
+    setup: Callable[[TestClient], str],
+    start_date: date,
+    days_later: int,
+) -> None:
+    """FR-065: once the asked date is no longer after today in Germany, the
+    request reads as cancelled, `start_date_passed`, at every read, and
+    approving it answers 409 `approval_cancelled` with the reason; nothing is
+    published or changed."""
+    form_connection_id = setup(signed_in_client)
+    _, agent = _agent(_user_id(), 'manage')
+    request = _ask_on(agent, form_connection_id, action, start_date)
+    days.append(start_date + timedelta(days=days_later))
+    before = snapshot()
+    calls = len(fake_eudiplo.calls)
+
+    for reader in (signed_in_client, agent):
+        read = _preview(reader, request['id'])['request']
+        assert (read['status'], read['outcome'], read['cancel_reason']) == (
+            'cancelled',
+            'cancelled',
+            'start_date_passed',
+        )
+        assert read['start_date'] == start_date.isoformat()
+    english, german = STALE_TEXTS['start_date_passed']
+    for call in (_approve, _decline):
+        response = call(signed_in_client, request['id'])
+        assert response.status_code == 409
+        assert response.json() == {'error': 'approval_cancelled', 'message': english}
+    response = signed_in_client.post(
+        f'{BASE}/{request["id"]}/approve', json={}, headers=GERMAN
+    )
+    assert response.json() == {'error': 'approval_cancelled', 'message': german}
+    assert snapshot() == before
+    assert len(fake_eudiplo.calls) == calls
+    stored = _stored(request['id'])
+    assert stored is not None
+    assert (stored.status, stored.cancel_reason) == ('waiting', None)
+
+
+# Approving (FR-065, FR-067): the same services, with the date and the snapshot
+
+
+def test_approving_a_publish_on_a_date_schedules_it(
+    signed_in_client: TestClient,
+    fake_eudiplo: FakeEudiplo,
+    days: list[date],
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    """US8-AS3, quickstart V12.5: published scheduled, its links exist and answer
+    unavailable until the worker makes it live on its day; the page and the agent
+    read the connection's own state and date."""
+    caplog.set_level(logging.DEBUG)
+    draft_id = _draft(signed_in_client)
+    _, agent = _agent(_user_id())
+    request = _ask_on(agent, draft_id, 'publish', START)
+    page = _preview(signed_in_client, request['id'])
+    assert page['request']['start_date'] == '2026-12-01'
+    assert (page['draft']['id'], page['connection']) == (draft_id, None)
+
+    response = _approve(signed_in_client, request['id'])
+
+    assert response.status_code == 200, response.json()
+    assert response.json()['message'] == 'Published'
+    preview = response.json()['data']
+    assert preview['request']['status'] == preview['request']['outcome'] == 'done'
+    connection = _connection(signed_in_client, draft_id)
+    assert (
+        connection['state'],
+        connection['is_active'],
+        connection['start_date'],
+        connection['activated_at'],
+    ) == ('scheduled', False, '2026-12-01', None)
+    assert (preview['draft'], preview['connection']) == (None, connection)
+    assert preview['urls'] == _urls(connection)
+    assert entries(draft_id)[:2] == [
+        ('scheduled', 1, START, APPROVED),
+        ('published', 0, None, APPROVED),
+    ]
+    assert set(fake_eudiplo.configs) == {f'fc-{draft_id}-r1'}
+    triggered = signed_in_client.post(requests_url(draft_id))
+    assert (triggered.status_code, triggered.json()) == (409, UNAVAILABLE)
+    # The agent reads the outcome with the date; approving again says it
+    assert _preview(agent, request['id']) == preview
+    again = _approve(signed_in_client, request['id'])
+    assert (again.status_code, again.json()) == (
+        409,
+        {
+            'error': 'approval_done',
+            'message': 'Published and scheduled for 01.12.2026.',
+        },
+    )
+    german = signed_in_client.post(
+        f'{BASE}/{request["id"]}/approve', json={}, headers=GERMAN
+    )
+    assert german.json() == {
+        'error': 'approval_done',
+        'message': 'Veröffentlicht und für den 01.12.2026 geplant.',
+    }
+    # No date in the logs
+    assert '2026-12-01' not in caplog.text
+    assert '01.12.2026' not in caplog.text
+    # On its day the worker makes it live, which the agent reads
+    _the_worker_starts(days, START)
+    read = _preview(agent, request['id'])
+    assert (read['connection']['state'], read['connection']['start_date']) == (
+        'live',
+        None,
+    )
+    assert trigger(signed_in_client, draft_id)['status'] == 'pending'
+
+
+def test_approving_a_reactivation_on_a_date_schedules_it(
+    signed_in_client: TestClient, fake_eudiplo: FakeEudiplo, days: list[date]
+) -> None:
+    """quickstart V12.5: `activate_form_connection()` with the date: scheduled,
+    its links unavailable until then, the entry with who approved and asked."""
+    form_connection_id = _deactivated(signed_in_client)
+    deactivated_at = _stored_connection(form_connection_id).deactivated_at
+    _, agent = _agent(_user_id(), 'manage')
+    request = _ask_on(agent, form_connection_id, 'reactivate', START)
+    calls = len(fake_eudiplo.calls)
+
+    response = _approve(signed_in_client, request['id'])
+
+    assert response.status_code == 200, response.json()
+    assert response.json()['message'] == 'Connection reactivated'
+    preview = response.json()['data']
+    assert preview['request']['outcome'] == 'done'
+    connection = _connection(signed_in_client, form_connection_id)
+    assert (connection['state'], connection['is_active'], connection['start_date']) == (
+        'scheduled',
+        False,
+        '2026-12-01',
+    )
+    assert preview['connection'] == connection
+    assert preview['urls'] == _urls(connection)
+    assert _status(form_connection_id) == (False, START, False)
+    assert _stored_connection(form_connection_id).deactivated_at == deactivated_at
+    assert entries(form_connection_id)[0] == ('scheduled', 0, START, APPROVED)
+    triggered = signed_in_client.post(requests_url(form_connection_id))
+    assert (triggered.status_code, triggered.json()) == (409, UNAVAILABLE)
+    assert len(fake_eudiplo.calls) == calls
+    assert _preview(agent, request['id']) == preview
+    again = _approve(signed_in_client, request['id'])
+    assert again.json() == {
+        'error': 'approval_done',
+        'message': 'Connection scheduled for 01.12.2026.',
+    }
+    german = signed_in_client.post(
+        f'{BASE}/{request["id"]}/approve', json={}, headers=GERMAN
+    )
+    assert german.json() == {
+        'error': 'approval_done',
+        'message': 'Anbindung für den 01.12.2026 geplant.',
+    }
+
+
+@pytest.mark.parametrize(
+    ('setup', 'start_date', 'after', 'entry'),
+    [
+        pytest.param(
+            _scheduled,
+            LATER,
+            ('scheduled', False, LATER),
+            ('start_date_changed', 0, LATER, APPROVED),
+            id='scheduled-to-another-date',
+        ),
+        pytest.param(
+            _scheduled,
+            None,
+            ('live', True, None),
+            ('start_date_changed', 0, None, APPROVED),
+            id='scheduled-to-now',
+        ),
+        pytest.param(
+            _live,
+            START,
+            ('scheduled', False, START),
+            ('scheduled', 0, START, APPROVED),
+            id='live-to-a-date',
+        ),
+    ],
+)
+def test_approving_a_start_date_change_runs_set_start_date(
+    signed_in_client: TestClient,
+    fake_eudiplo: FakeEudiplo,
+    days: list[date],
+    setup: Callable[[TestClient], str],
+    start_date: date | None,
+    after: tuple[str, bool, date | None],
+    entry: tuple[Any, ...],
+) -> None:
+    """FR-065, quickstart V12.5: each case of `set_start_date()`, with its
+    columns, its entry and, for a live connection, its cancelled requests."""
+    form_connection_id = setup(signed_in_client)
+    was_live = setup is _live
+    started = (
+        trigger(signed_in_client, form_connection_id)['reference'] if was_live else None
+    )
+    _, agent = _agent(_user_id(), 'manage')
+    request = _ask_on(agent, form_connection_id, 'set_start_date', start_date)
+    calls = len(fake_eudiplo.calls)
+    before = now()
+
+    response = _approve(signed_in_client, request['id'])
+
+    assert response.status_code == 200, response.json()
+    assert response.json()['message'] == 'Start date saved'
+    preview = response.json()['data']
+    assert preview['request']['status'] == preview['request']['outcome'] == 'done'
+    connection = _connection(signed_in_client, form_connection_id)
+    state, is_active, new_start = after
+    assert (connection['state'], connection['is_active'], connection['start_date']) == (
+        state,
+        is_active,
+        _day(new_start),
+    )
+    assert preview['connection'] == connection
+    assert preview['urls'] == _urls(connection)
+    assert entries(form_connection_id)[0] == entry
+    assert len(fake_eudiplo.calls) == calls
+    if state == 'live':
+        activated_at = datetime.fromisoformat(connection['activated_at'])
+        assert before <= activated_at <= now()
+        assert trigger(signed_in_client, form_connection_id)['status'] == 'pending'
+    else:
+        triggered = signed_in_client.post(requests_url(form_connection_id))
+        assert (triggered.status_code, triggered.json()) == (409, UNAVAILABLE)
+    if started is not None:
+        # Its requests in progress are cancelled, as a deactivation cancels them
+        assert stored_request(started).status == 'unavailable'
+    assert _preview(agent, request['id']) == preview
+    again = _approve(signed_in_client, request['id'])
+    assert again.json() == {'error': 'approval_done', 'message': 'Start date saved.'}
+    german = signed_in_client.post(
+        f'{BASE}/{request["id"]}/approve', json={}, headers=GERMAN
+    )
+    assert german.json() == {
+        'error': 'approval_done',
+        'message': 'Startdatum gespeichert.',
+    }
+
+
+def test_approving_deactivates_a_scheduled_connection(
+    signed_in_client: TestClient, fake_eudiplo: FakeEudiplo, days: list[date]
+) -> None:
+    """FR-066, FR-012: the schedule ends and the connection is deactivated; the
+    worker doesn't make it live on its day."""
+    form_connection_id = _scheduled(signed_in_client)
+    _, agent = _agent(_user_id(), 'manage')
+    request = _ask_on(agent, form_connection_id, 'deactivate', None)
+
+    response = _approve(signed_in_client, request['id'])
+
+    assert response.status_code == 200, response.json()
+    assert response.json()['message'] == 'Connection deactivated'
+    connection = _connection(signed_in_client, form_connection_id)
+    assert (connection['state'], connection['start_date']) == ('deactivated', None)
+    assert connection['deactivated_at'] is not None
+    assert response.json()['data']['connection'] == connection
+    assert entries(form_connection_id)[0] == ('deactivated', 0, None, APPROVED)
+    _the_worker_starts(days, START)
+    assert _status(form_connection_id) == (False, None, False)
+
+
+def test_approving_deletes_a_scheduled_connection_for_good(
+    signed_in_client: TestClient, fake_eudiplo: FakeEudiplo, days: list[date]
+) -> None:
+    """FR-066, FR-067: deleted without a deletion id, so nothing restores it, and
+    the worker doesn't make it live on its day."""
+    form_connection_id = _scheduled(signed_in_client)
+    _, agent = _agent(_user_id(), 'manage')
+    request = _ask_on(agent, form_connection_id, 'delete', None)
+
+    response = _approve(signed_in_client, request['id'])
+
+    assert response.status_code == 200, response.json()
+    assert response.json()['message'] == 'Connection deleted'
+    preview = response.json()['data']
+    assert (preview['connection'], preview['urls']) == (None, None)
+    row = _stored_connection(form_connection_id)
+    assert row.deleted_at is not None
+    assert (row.deletion_id, row.deleted_by_id) == (None, None)
+    assert entries(form_connection_id)[0] == ('deleted', 0, None, APPROVED)
+    response = signed_in_client.get(f'{CONNECTIONS}/{form_connection_id}')
+    assert response.status_code == 404
+    _the_worker_starts(days, START)
+    assert _status(form_connection_id) == (False, START, True)
+
+
+# Races at approval: the status or the day moves after the approval's check, before
+# the service's own row lock
+
+
+@pytest.mark.parametrize(
+    ('setup', 'action', 'start_date', 'service_name', 'change', 'text'),
+    [
+        pytest.param(
+            _scheduled,
+            'set_start_date',
+            LATER,
+            'set_start_date',
+            'move',
+            'date changed',
+            id='set-date-moved',
+        ),
+        pytest.param(
+            _scheduled,
+            'set_start_date',
+            LATER,
+            'set_start_date',
+            'worker',
+            'became active',
+            id='set-date-worker-started',
+        ),
+        pytest.param(
+            _scheduled,
+            'set_start_date',
+            None,
+            'set_start_date',
+            'deactivate',
+            'deactivated',
+            id='set-now-deactivated',
+        ),
+        pytest.param(
+            _scheduled,
+            'deactivate',
+            None,
+            'deactivate_form_connection',
+            'worker',
+            'became active',
+            id='deactivate-worker-started',
+        ),
+        pytest.param(
+            _scheduled,
+            'delete',
+            None,
+            'delete_form_connection',
+            'move',
+            'date changed',
+            id='delete-date-moved',
+        ),
+        pytest.param(
+            _scheduled,
+            'delete',
+            None,
+            'delete_form_connection',
+            'worker',
+            'became active',
+            id='delete-worker-started',
+        ),
+        pytest.param(
+            _deactivated,
+            'reactivate',
+            START,
+            'activate_form_connection',
+            'activate on a date',
+            'date changed',
+            id='reactivate-scheduled-in-the-browser',
+        ),
+        pytest.param(
+            _live,
+            'set_start_date',
+            START,
+            'set_start_date',
+            'deactivate',
+            'deactivated',
+            id='set-live-deactivated',
+        ),
+        pytest.param(
+            _live,
+            'deactivate',
+            None,
+            'deactivate_form_connection',
+            'schedule',
+            'date changed',
+            id='deactivate-live-scheduled',
+        ),
+    ],
+)
+def test_a_status_moved_while_the_approval_runs_isnt_changed_again(
+    signed_in_client: TestClient,
+    fake_eudiplo: FakeEudiplo,
+    monkeypatch: pytest.MonkeyPatch,
+    days: list[date],
+    setup: Callable[[TestClient], str],
+    action: str,
+    start_date: date | None,
+    service_name: str,
+    change: str,
+    text: str,
+) -> None:
+    """SC-010: between the approval's check and the service, a team member
+    changes the status or the start date, or the worker makes the connection
+    live: the service compares the snapshot under its own row lock, so the
+    approval schedules, starts, deactivates or deletes nothing the team member
+    didn't see, and says what changed."""
+    form_connection_id = setup(signed_in_client)
+    _, agent = _agent(_user_id(), 'manage')
+    request = _ask_on(agent, form_connection_id, action, start_date)
+    service = getattr(form_connections, service_name)
+    changed: list[tuple[bool, date | None, bool]] = []
+
+    def changed_meanwhile(db: Any, *arguments: Any, **options: Any) -> Any:
+        _in_the_browser(form_connection_id, change, days)
+        changed.append(_status(form_connection_id))
+        return service(db, *arguments, **options)
+
+    monkeypatch.setattr(form_connections, service_name, changed_meanwhile)
+
+    response = _approve(signed_in_client, request['id'])
+
+    assert response.status_code == 409
+    assert response.json() == {
+        'error': 'approval_cancelled',
+        'message': STALE_TEXTS[text][0],
+    }
+    # The connection is as the change left it, with no entry of the approval
+    assert _status(form_connection_id) == changed[0]
+    assert APPROVED not in [entry[3] for entry in entries(form_connection_id)]
+    read = _preview(signed_in_client, request['id'])['request']
+    assert (read['status'], read['cancel_reason']) == (
+        'cancelled',
+        'connection_changed',
+    )
+
+
+@pytest.mark.parametrize(
+    ('action', 'setup', 'service_name'),
+    [
+        pytest.param(
+            'reactivate', _deactivated, 'activate_form_connection', id='reactivate'
+        ),
+        pytest.param('set_start_date', _live, 'set_start_date', id='set-live'),
+        pytest.param(
+            'set_start_date', _scheduled, 'set_start_date', id='set-scheduled'
+        ),
+    ],
+)
+def test_a_day_that_comes_while_the_approval_runs_changes_nothing(
+    signed_in_client: TestClient,
+    fake_eudiplo: FakeEudiplo,
+    monkeypatch: pytest.MonkeyPatch,
+    days: list[date],
+    action: str,
+    setup: Callable[[TestClient], str],
+    service_name: str,
+) -> None:
+    """FR-065: the day asked for comes after the approval's check; the service's
+    own check refuses it, and the approval answers 409 `approval_cancelled`,
+    `start_date_passed`, with nothing changed."""
+    form_connection_id = setup(signed_in_client)
+    _, agent = _agent(_user_id(), 'manage')
+    request = _ask_on(agent, form_connection_id, action, EARLIER)
+    service = getattr(form_connections, service_name)
+
+    def midnight_meanwhile(db: Any, *arguments: Any, **options: Any) -> Any:
+        days.append(EARLIER)
+        return service(db, *arguments, **options)
+
+    monkeypatch.setattr(form_connections, service_name, midnight_meanwhile)
+    before = snapshot()
+
+    response = _approve(signed_in_client, request['id'])
+
+    assert response.status_code == 409
+    assert response.json() == {
+        'error': 'approval_cancelled',
+        'message': STALE_TEXTS['start_date_passed'][0],
+    }
+    assert snapshot() == before
+    read = _preview(agent, request['id'])['request']
+    assert (read['status'], read['cancel_reason']) == ('cancelled', 'start_date_passed')
+
+
+def test_a_day_that_ends_while_eudiplo_answers_publishes_nothing(
+    signed_in_client: TestClient,
+    fake_eudiplo: FakeEudiplo,
+    monkeypatch: pytest.MonkeyPatch,
+    days: list[date],
+) -> None:
+    """FR-065, research R2: no transaction is held while EUDIPLO answers; the
+    publish checks the date again under its last row lock, after the call, so
+    the configuration it created is deleted, the draft stays a draft, and the
+    approval answers 409 `approval_cancelled`, `start_date_passed`."""
+    draft_id = _draft(signed_in_client)
+    _, agent = _agent(_user_id())
+    tomorrow = TODAY + timedelta(days=1)
+    request = _ask_on(agent, draft_id, 'publish', tomorrow)
+    create_config = fake_eudiplo._create_config
+    created: list[str] = []
+
+    def create_config_over_midnight(call: Any) -> Any:
+        answer = create_config(call)
+        created.append(json.loads(call.content)['id'])
+        days.append(tomorrow)
+        return answer
+
+    monkeypatch.setattr(fake_eudiplo, '_create_config', create_config_over_midnight)
+    before = snapshot()
+
+    response = _approve(signed_in_client, request['id'])
+
+    assert response.status_code == 409
+    assert response.json() == {
+        'error': 'approval_cancelled',
+        'message': STALE_TEXTS['start_date_passed'][0],
+    }
+    # The call was made, and its configuration deleted again
+    assert len(created) == 1
+    assert fake_eudiplo.configs == {}
+    assert snapshot() == before
+    assert rows(draft_id) == (0, 0, 0)
+    assert _connection(signed_in_client, draft_id)['status'] == 'draft'
+    stored = _stored(request['id'])
+    assert stored is not None
+    assert (stored.status, stored.failed_at) == ('waiting', None)
+    read = _preview(agent, request['id'])['request']
+    assert (read['status'], read['cancel_reason']) == ('cancelled', 'start_date_passed')

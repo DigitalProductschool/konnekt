@@ -30,7 +30,7 @@ start is a day in Germany: the connection becomes active at 00:00 there.
 - "Read only": read connections, the catalog, the checks and the tests.
 - "Read and edit drafts": also create and change drafts.
 - "Read, edit drafts and manage live connections": also ask to deactivate, reactivate or delete
-  published connections.
+  published connections, or to change their start date.
 
 A published connection's content is read-only at every level: the team member changes it in
 Konnekt. Ask for a higher level with `request_access`.
@@ -38,8 +38,9 @@ Konnekt. Ask for a higher level with `request_access`.
 ## Approval
 
 Publishing a draft (`publish`), deleting a draft (`delete_draft`), and deactivating
-(`deactivate`), reactivating (`reactivate`) or deleting (`delete`) a published connection need the
-team member's approval. `request_approval` never acts itself: it answers a link that the team
+(`deactivate`), reactivating (`reactivate`) or deleting (`delete`) a published connection, or
+changing its start date (`set_start_date`), need the team member's approval. Publishing and
+reactivating may name a start date; without one they act at once. `request_approval` never acts itself: it answers a link that the team
 member opens to approve or decline. Hand the link over, then check the outcome with
 `check_approval`.
 

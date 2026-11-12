@@ -3421,7 +3421,10 @@ describe('the approval tools', () => {
     );
 
     it.each([
-      ['connection_changed', 'The connection was deactivated or reactivated since you asked'],
+      [
+        'connection_changed',
+        "The connection's status or start date changed since you asked, so nothing happened.",
+      ],
       ['connection_deleted', 'The connection has been deleted since you asked.'],
     ])('answers a status action cancelled with %s', async (reason, sentence) => {
       const id = await storedRequest(
@@ -3470,6 +3473,465 @@ describe('the approval tools', () => {
         BEARERS.drafts
       );
       expect(structured.code).toBe('validation');
+    });
+  });
+  describe('start dates (spec 010, research R9)', () => {
+    /** A day `days` after today in Germany, YYYY-MM-DD. */
+    function dayAfterToday(days: number): string {
+      const date = new Date(`${todayInGermany()}T12:00:00Z`);
+      date.setUTCDate(date.getUTCDate() + days);
+      return date.toISOString().slice(0, 10);
+    }
+
+    const WAIT = (time: string) =>
+      'Nothing changes yet. The team member opens the link, sees what approving does, and ' +
+      `approves or declines before ${time}.`;
+    const PUBLISH_WAIT = (time: string) =>
+      "Nothing is published yet. The team member opens the link, sees the draft's content " +
+      `and the rule checks' findings, and approves or declines before ${time}.`;
+
+    /** The body of the one approval request the fake received, as it stored it. */
+    function onlyRequest(): ApprovalRequest {
+      expect(approvalPosts()).toHaveLength(1);
+      const [{ request }] = [...fake.store.approvals.values()];
+      return request;
+    }
+
+    describe('request_approval', () => {
+      it.each([
+        [
+          'publish with a date',
+          'publish',
+          IDS.draft,
+          BEARERS.drafts,
+          'draft',
+          (date: string, time: string) =>
+            `${PUBLISH_WAIT(time)} The draft is published and scheduled: its links exist at ` +
+            `once and answer "unavailable" until it becomes active on ${date}, 00:00 in Germany.`,
+        ],
+        [
+          'reactivate with a date',
+          'reactivate',
+          IDS.deactivated,
+          BEARERS.manage,
+          'deactivated',
+          (date: string, time: string) =>
+            `${WAIT(time)} The connection is scheduled: its links answer "unavailable" until ` +
+            `it becomes active on ${date}, 00:00 in Germany.`,
+        ],
+        [
+          'set_start_date, scheduled, a date',
+          'set_start_date',
+          IDS.scheduled,
+          BEARERS.manage,
+          'scheduled',
+          (date: string, time: string) =>
+            `${WAIT(time)} The connection's start moves to ${date}, 00:00 in Germany.`,
+        ],
+        [
+          'set_start_date, live, a date',
+          'set_start_date',
+          IDS.live,
+          BEARERS.manage,
+          'live',
+          (date: string, time: string) =>
+            `${WAIT(time)} The connection is scheduled for ${date}: its links answer ` +
+            '"unavailable" until then, and requests in progress are cancelled.',
+        ],
+      ] as const)(
+        '%s: asks with the date and says what approving does; nothing changes',
+        async (_case, action, connection, token, status, whatHappens) => {
+          const date = dayAfterToday(20);
+          const before = fake.store.connections.get(connection);
+          const { isError, structured, text } = await callTool(
+            'request_approval',
+            { connection, action, start_date: date },
+            token
+          );
+          expect(isError).toBe(false);
+          const request = onlyRequest();
+          expect(request).toMatchObject({ action, start_date: date });
+          expect(structured.request).toMatchObject({
+            id: request.id,
+            action,
+            connection: { id: connection, status },
+            status: 'waiting',
+            start_date: date,
+          });
+          expect(structured.what_happens).toBe(whatHappens(date, timeOf(request.expires_at)));
+          expect(text).toContain(structured.what_happens);
+          expect(fake.store.connections.get(connection)).toBe(before);
+        }
+      );
+
+      it('set_start_date, scheduled, now: asks with no date; the connection becomes active', async () => {
+        const { isError, structured } = await callTool(
+          'request_approval',
+          { connection: IDS.scheduled, action: 'set_start_date', start_date: 'now' },
+          BEARERS.manage
+        );
+        expect(isError).toBe(false);
+        const request = onlyRequest();
+        expect(request).toMatchObject({ action: 'set_start_date', start_date: null });
+        expect(structured.request).not.toHaveProperty('start_date');
+        expect(structured.what_happens).toBe(
+          `${WAIT(timeOf(request.expires_at))} The connection becomes active at once.`
+        );
+      });
+
+      it.each([
+        [
+          'deactivate',
+          (time: string) =>
+            `${WAIT(time)} The schedule is cancelled and the connection is deactivated: it ` +
+            `doesn't become active on ${SCHEDULED_START}.`,
+        ],
+        [
+          'delete',
+          (time: string) =>
+            `${WAIT(time)} The connection is deleted: it doesn't become active on ` +
+            `${SCHEDULED_START}, and its links stop working for good. This can't be undone.`,
+        ],
+      ] as const)("%s, scheduled: names the date that won't come", async (action, whatHappens) => {
+        const { isError, structured } = await callTool(
+          'request_approval',
+          { connection: IDS.scheduled, action },
+          BEARERS.manage
+        );
+        expect(isError).toBe(false);
+        const request = onlyRequest();
+        expect(request).toMatchObject({ action, start_date: null });
+        expect(structured.request.connection).toMatchObject({ status: 'scheduled' });
+        expect(structured.what_happens).toBe(whatHappens(timeOf(request.expires_at)));
+      });
+
+      it.each([
+        ['publish', IDS.draft, BEARERS.drafts, /^Nothing is published yet\. /],
+        [
+          'reactivate',
+          IDS.deactivated,
+          BEARERS.manage,
+          /^Nothing changes yet\. The team member sees which connection URLs will work again/,
+        ],
+      ] as const)(
+        "%s with 'now' acts at once, as without a date",
+        async (action, connection, token, whatHappens) => {
+          const { isError, structured } = await callTool(
+            'request_approval',
+            { connection, action, start_date: 'now' },
+            token
+          );
+          expect(isError).toBe(false);
+          expect(onlyRequest()).toMatchObject({ action, start_date: null });
+          expect(structured.request).not.toHaveProperty('start_date');
+          expect(structured.what_happens).toMatch(whatHappens);
+          expect(structured.what_happens).not.toContain('scheduled');
+        }
+      );
+
+      it.each([
+        [
+          'set_start_date without a start_date',
+          { connection: IDS.scheduled, action: 'set_start_date' },
+          "set_start_date needs a start_date: a date as YYYY-MM-DD, or 'now'.",
+        ],
+        [
+          'delete_draft with a start_date',
+          { connection: IDS.draft, action: 'delete_draft', start_date: '2027-01-04' },
+          'delete_draft takes no start_date: only publish, reactivate and set_start_date do.',
+        ],
+        [
+          'deactivate with a start_date',
+          { connection: IDS.live, action: 'deactivate', start_date: 'now' },
+          'deactivate takes no start_date: only publish, reactivate and set_start_date do.',
+        ],
+        [
+          'delete with a start_date',
+          { connection: IDS.live, action: 'delete', start_date: '2027-01-04' },
+          'delete takes no start_date: only publish, reactivate and set_start_date do.',
+        ],
+        [
+          'a start_date in German writing',
+          { connection: IDS.draft, action: 'publish', start_date: '01.12.2026' },
+          "Give the start_date as a date the calendar has, YYYY-MM-DD, or 'now'.",
+        ],
+        [
+          'a day the calendar lacks',
+          { connection: IDS.scheduled, action: 'set_start_date', start_date: '2027-02-29' },
+          "Give the start_date as a date the calendar has, YYYY-MM-DD, or 'now'.",
+        ],
+      ])('refuses %s with validation, and makes no request', async (_case, input, message) => {
+        const { isError, structured } = await callTool('request_approval', input, BEARERS.manage);
+        expect(isError).toBe(true);
+        expect(structured).toEqual({ code: 'validation', message });
+        expect(approvalPosts()).toEqual([]);
+        expect(fake.store.approvals.size).toBe(0);
+      });
+
+      it.each([
+        ['today', 0, 'publish', IDS.draft],
+        ['yesterday', -1, 'reactivate', IDS.deactivated],
+        ['today', 0, 'set_start_date', IDS.live],
+      ] as const)(
+        'refuses a date of %s (%s) with validation, and makes no request',
+        async (_case, days, action, connection) => {
+          const { isError, structured } = await callTool(
+            'request_approval',
+            { connection, action, start_date: dayAfterToday(days) },
+            BEARERS.manage
+          );
+          expect(isError).toBe(true);
+          expect(structured).toEqual({
+            code: 'validation',
+            message: `Enter a date after today: today in Germany is ${todayInGermany()}.`,
+          });
+          // Only the bearer's check: neither the connection nor the request is asked for
+          expect(fake.calls.map((call) => call.path)).toEqual(['/api/agent/me']);
+          expect(fake.store.approvals.size).toBe(0);
+        }
+      );
+
+      it('accepts tomorrow, the first day after today in Germany', async () => {
+        const date = dayAfterToday(1);
+        const { isError } = await callTool(
+          'request_approval',
+          { connection: IDS.draft, action: 'publish', start_date: date },
+          BEARERS.drafts
+        );
+        expect(isError).toBe(false);
+        expect(onlyRequest().start_date).toBe(date);
+      });
+
+      it.each([
+        ['read', 'read only'],
+        ['drafts', 'read and edit drafts'],
+      ] as const)(
+        'refuses set_start_date for the %s caller with the manage level, no request made',
+        async (level, current) => {
+          const { structured } = await callTool(
+            'request_approval',
+            { connection: IDS.scheduled, action: 'set_start_date', start_date: dayAfterToday(5) },
+            BEARERS[level]
+          );
+          expect(structured).toEqual({
+            code: 'insufficient_access',
+            message:
+              `Your access is ${current}. Deactivating, reactivating and deleting published ` +
+              "connections needs the access level 'Read, edit drafts and manage live " +
+              "connections'. Ask for it with request_access, or the team member raises it on " +
+              'their user page.',
+            needs_access_level: 'manage',
+          });
+          expect(approvalPosts()).toEqual([]);
+        }
+      );
+
+      it.each([
+        [
+          'reactivate a scheduled connection',
+          { connection: IDS.scheduled, action: 'reactivate' },
+          'This connection is scheduled. Change its start date instead.',
+        ],
+        [
+          'set_start_date on a deactivated connection',
+          { connection: IDS.deactivated, action: 'set_start_date', start_date: 'now' },
+          'This connection is deactivated. Reactivate it instead.',
+        ],
+        [
+          'set_start_date on a draft',
+          { connection: IDS.draft, action: 'set_start_date', start_date: '2027-01-04' },
+          'This connection is a draft: it has nothing live yet.',
+        ],
+        [
+          'set_start_date to now on a live connection',
+          { connection: IDS.live, action: 'set_start_date', start_date: 'now' },
+          'This connection is already live.',
+        ],
+        [
+          'set_start_date to the date a scheduled connection has',
+          { connection: IDS.scheduled, action: 'set_start_date', start_date: SCHEDULED_START },
+          'This connection is already scheduled for that date.',
+        ],
+      ])("refuses to %s with the backend's not_allowed", async (_case, input, message) => {
+        const { isError, structured } = await callTool('request_approval', input, BEARERS.manage);
+        expect(isError).toBe(true);
+        expect(structured).toEqual({ code: 'not_allowed', message });
+        expect(fake.store.approvals.size).toBe(0);
+      });
+
+      it('a client that declares elicitation.url reads the dated text back', async () => {
+        const date = dayAfterToday(20);
+        const seen: ElicitParams[] = [];
+        const client = await elicitingClient('modern', seen, BEARERS.manage);
+        const answer = await client.callTool({
+          name: 'request_approval',
+          arguments: { connection: IDS.live, action: 'set_start_date', start_date: date },
+        });
+        expect(answer.isError).not.toBe(true);
+        const request = onlyRequest();
+        expect(seen).toEqual([
+          expect.objectContaining({
+            mode: 'url',
+            url: request.link,
+            message: "Approve changing the start date of 'Fishing licence' in Konnekt.",
+          }),
+        ]);
+        const structured = answer.structuredContent as Record<string, any>; // eslint-disable-line @typescript-eslint/no-explicit-any
+        expect(structured.request.start_date).toBe(date);
+        expect(structured.what_happens).toContain(`The connection is scheduled for ${date}:`);
+      });
+    });
+
+    describe('check_approval', () => {
+      /** A request asked with `input`, then changed in the fake by `change`. */
+      async function askedRequest(
+        input: Record<string, unknown>,
+        change: (request: ApprovalRequest) => ApprovalRequest,
+        token: string = BEARERS.manage
+      ): Promise<string> {
+        const { structured } = await callTool('request_approval', input, token);
+        const id = structured.request.id as string;
+        const stored = fake.store.approvals.get(id);
+        if (!stored) throw new Error('The fake stored no request');
+        stored.request = change(stored.request);
+        return id;
+      }
+
+      const done = (request: ApprovalRequest): ApprovalRequest => ({
+        ...request,
+        status: 'done',
+        outcome: 'done',
+      });
+
+      it('answers the start_date asked for while the request waits', async () => {
+        const date = dayAfterToday(20);
+        const id = await askedRequest(
+          { connection: IDS.draft, action: 'publish', start_date: date },
+          (request) => request,
+          BEARERS.drafts
+        );
+        const { structured } = await callTool('check_approval', { request_id: id }, BEARERS.drafts);
+        expect(structured.request).toMatchObject({
+          outcome: 'waiting',
+          start_date: date,
+          connection: { id: IDS.draft, status: 'draft' },
+        });
+        expect(structured.urls).toBeNull();
+      });
+
+      it('answers a done publish on a date: scheduled with its start_date, and the URLs', async () => {
+        const date = dayAfterToday(20);
+        const id = await askedRequest(
+          { connection: IDS.draft, action: 'publish', start_date: date },
+          done,
+          BEARERS.drafts
+        );
+        const live = fake.store.connections.get(IDS.live) as FormConnection;
+        fake.store.connections.set(IDS.draft, {
+          ...live,
+          id: IDS.draft,
+          name: NAME,
+          is_active: false,
+          activated_at: null,
+          start_date: date,
+        });
+        const { structured, text } = await callTool(
+          'check_approval',
+          { request_id: id },
+          BEARERS.drafts
+        );
+        expect(structured.request).toMatchObject({
+          action: 'publish',
+          outcome: 'done',
+          start_date: date,
+          connection: {
+            id: IDS.draft,
+            name: NAME,
+            status: 'scheduled',
+            start_date: date,
+            link: links.connectionLink(IDS.draft),
+          },
+        });
+        expect(structured.urls?.trigger_url).toBe(live.trigger_url);
+        expect(text).toContain(
+          `The team member approved: the draft is published and scheduled for ${date}.`
+        );
+        expect(text).toContain(`'${NAME}' (scheduled from ${date})`);
+        expect(text).toContain(
+          `its URLs answer "unavailable" until it becomes active on ${date}, 00:00 in Germany.`
+        );
+      });
+
+      it('answers a done set_start_date to now: live, without a start_date', async () => {
+        const id = await askedRequest(
+          { connection: IDS.scheduled, action: 'set_start_date', start_date: 'now' },
+          done
+        );
+        const boat = fake.store.connections.get(IDS.scheduled) as FormConnection;
+        fake.store.connections.set(IDS.scheduled, { ...boat, is_active: true, start_date: null });
+        const { structured, text } = await callTool(
+          'check_approval',
+          { request_id: id },
+          BEARERS.manage
+        );
+        expect(structured.request).toMatchObject({
+          action: 'set_start_date',
+          outcome: 'done',
+          connection: { id: IDS.scheduled, status: 'live' },
+        });
+        expect(structured.request).not.toHaveProperty('start_date');
+        expect(structured.request.connection).not.toHaveProperty('start_date');
+        expect(text).toContain('The team member approved: the connection is live.');
+      });
+
+      it('answers a done set_start_date on a live connection: scheduled with its date', async () => {
+        const date = dayAfterToday(30);
+        const id = await askedRequest(
+          { connection: IDS.live, action: 'set_start_date', start_date: date },
+          done
+        );
+        const fishing = fake.store.connections.get(IDS.live) as FormConnection;
+        fake.store.connections.set(IDS.live, { ...fishing, is_active: false, start_date: date });
+        const { structured, text } = await callTool(
+          'check_approval',
+          { request_id: id },
+          BEARERS.manage
+        );
+        expect(structured.request.connection).toMatchObject({
+          status: 'scheduled',
+          start_date: date,
+        });
+        expect(structured.urls).toBeNull();
+        expect(text).toContain(
+          `The team member approved: the connection is scheduled for ${date}.`
+        );
+      });
+
+      it('answers a request cancelled with start_date_passed', async () => {
+        const id = await askedRequest(
+          { connection: IDS.scheduled, action: 'set_start_date', start_date: dayAfterToday(3) },
+          (request) => ({
+            ...request,
+            status: 'cancelled',
+            outcome: 'cancelled',
+            cancel_reason: 'start_date_passed',
+          })
+        );
+        const { structured, text } = await callTool(
+          'check_approval',
+          { request_id: id },
+          BEARERS.manage
+        );
+        expect(structured.request).toMatchObject({
+          outcome: 'cancelled',
+          reason: 'start_date_passed',
+        });
+        expect(structured.urls).toBeNull();
+        expect(text).toContain(
+          'The start date is no longer after today in Germany, so nothing happened. Ask again ' +
+            'with request_approval and a new date.'
+        );
+      });
     });
   });
 });

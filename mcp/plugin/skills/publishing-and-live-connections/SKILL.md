@@ -1,24 +1,32 @@
 ---
 name: publishing-and-live-connections
-description: Publishing a draft, deleting a draft, and deactivating, reactivating or deleting a published connection, always through the team member's approval link; the checks, the link's expiry, the outcomes and the connection URLs.
+description: Publishing a draft, deleting a draft, and deactivating, reactivating or deleting a published connection or changing its start date, always through the team member's approval link; scheduled connections, the checks, the link's expiry, the outcomes and the connection URLs.
 ---
 
 # Publishing and live connections
 
-Five actions change what citizens and serviceBW see, or delete content for good, so an agent
+Six actions change what citizens and serviceBW see, or delete content for good, so an agent
 never performs them itself. It asks for them, and the team member approves or declines on an
 approval page in Konnekt:
 
-| Action         | What happens when approved                                              |
-| -------------- | ----------------------------------------------------------------------- |
-| `publish`      | The draft becomes a live connection and gets its connection URLs        |
-| `delete_draft` | The draft is deleted; its content is gone for good                      |
-| `deactivate`   | The connection's URLs answer "unavailable" until it is reactivated      |
-| `reactivate`   | The URLs work again                                                     |
-| `delete`       | The published connection is deleted, and its URLs stop working for good |
+| Action                               | What happens when approved                                                                                        |
+| ------------------------------------ | ----------------------------------------------------------------------------------------------------------------- |
+| `publish`                            | The draft becomes a live connection and gets its connection URLs                                                  |
+| `publish` with a `start_date`        | The draft is published and scheduled: its URLs exist at once and answer "unavailable" until the start date        |
+| `delete_draft`                       | The draft is deleted; its content is gone for good                                                                |
+| `deactivate`                         | The connection's URLs answer "unavailable" until it is reactivated                                                |
+| `deactivate`, scheduled              | The schedule is cancelled and the connection is deactivated: it doesn't become active on its date                 |
+| `reactivate`                         | The URLs work again                                                                                               |
+| `reactivate` with a `start_date`     | The connection is scheduled: its URLs answer "unavailable" until the start date                                   |
+| `delete`                             | The published connection is deleted, and its URLs stop working for good                                           |
+| `delete`, scheduled                  | The connection is deleted and doesn't become active on its date                                                   |
+| `set_start_date`, scheduled, a date  | The start moves to the new date                                                                                   |
+| `set_start_date`, scheduled, `'now'` | The connection becomes active at once                                                                             |
+| `set_start_date`, live, a date       | The connection is scheduled: its URLs answer "unavailable" until the date, and requests in progress are cancelled |
 
 Publishing and deleting a draft need "Read and edit drafts"; deactivating, reactivating and
-deleting a published connection need "Read, edit drafts and manage live connections".
+deleting a published connection, and changing its start date, need "Read, edit drafts and manage
+live connections".
 
 ## Before publishing
 
@@ -29,14 +37,15 @@ tests first: the team member sees the same findings on the approval page.
 
 ## Asking for approval: `request_approval`
 
-`request_approval` takes the `connection` (its id or link) and the `action`. It checks your access
-level for that action first, then whether the action applies: publishing a published connection,
+`request_approval` takes the `connection` (its id or link), the `action` and, for `publish`,
+`reactivate` and `set_start_date`, a `start_date` (below). It checks your access level for that
+action first, then whether the action applies: publishing a published connection,
 or deactivating a connection that is already deactivated, is refused with `not_allowed`, and a
 draft that publishing would refuse is refused with `validation` and publishing's message. Nothing
 is made then; fix what the message says and ask again.
 
-Otherwise it answers `request` (its `id`, `action`, `connection`, `link`, `expires_at` and
-`status: 'waiting'`) and `what_happens`, which says what the team member will see and the time
+Otherwise it answers `request` (its `id`, `action`, `connection`, `link`, `expires_at`,
+`status: 'waiting'` and the `start_date` asked for, if any) and `what_happens`, which says what the team member will see and the time
 by which they must decide. Nothing has happened yet:
 
 - Hand the `link` to the team member, say what will happen when they approve (`what_happens`),
@@ -45,7 +54,7 @@ by which they must decide. Nothing has happened yet:
   answer either way, so always pass it on.
 - Don't change the draft while the request waits: any change to it cancels the request, and the
   team member would approve what you no longer meant.
-- Never say that something was published, deleted, deactivated or reactivated before
+- Never say that something was published, scheduled, deleted, deactivated or reactivated before
   `check_approval` says `done`.
 
 A newer request for the same connection and action replaces a waiting one, so ask once and keep
@@ -74,11 +83,48 @@ reactivation or deletion made in Konnekt cancels it (`connection_changed`,
 `connection_deleted`). Their content, the name, description, documents, variants and rules, stays
 read-only for agents at every level: a change to it is refused with `published_read_only`.
 
+## Start dates: `start_date` and `set_start_date`
+
+A start date is a day in Germany, `YYYY-MM-DD`, after today there: the connection becomes active
+at 00:00 German time on that day.
+
+- `publish` and `reactivate` take an optional `start_date`. With a date, approving publishes or
+  reactivates the connection as scheduled for it; without one, or with `'now'`, it acts at once.
+  A scheduled connection can't be reactivated (`not_allowed`): change its start date instead.
+- `set_start_date` needs "Read, edit drafts and manage live connections" and a `start_date`, in
+  three cases:
+  - a scheduled connection and a date: its start moves to that date (its own date is refused
+    with `not_allowed`);
+  - a scheduled connection and `'now'`: it becomes active at once;
+  - a live connection and a date: it is scheduled for that date; its URLs answer "unavailable"
+    until then, and requests in progress are cancelled. `'now'` on a live connection is refused
+    with `not_allowed`.
+
+  A draft or a deactivated connection is refused with `not_allowed`: publish a draft, reactivate a
+  deactivated connection, each with a `start_date` if wanted.
+
+- A `start_date` with `delete_draft`, `deactivate` or `delete`, a `start_date` that is no date, a
+  `set_start_date` without one, and a date that isn't after today in Germany are refused with
+  `validation` before any request is made; the message says why.
+
+`what_happens` names the date. While the request waits, the connection's start date changing or
+the connection becoming active in Konnekt cancels it (`connection_changed`); a start date that is
+no longer after today when the team member approves cancels it too (`start_date_passed`): ask
+again with a new date.
+
+## A scheduled connection: deactivating and deleting
+
+`deactivate` and `delete` also accept a scheduled connection. Deactivating cancels the schedule:
+the connection doesn't become active on its date and stays deactivated until it is reactivated.
+Deleting removes it, and it never becomes active. `what_happens` names the date that won't come.
+
 ## Learning the outcome: `check_approval`
 
 When the team member says they decided, call `check_approval` with the request's `id` (or its
-link). Don't call it in a loop while they decide. It answers the `request` with its `status` and
-its `outcome`, and `urls` once a draft is published or a connection reactivated:
+link). Don't call it in a loop while they decide. It answers the `request` with its `status`, its
+`outcome`, the `start_date` asked for, if any, and its `connection`, and `urls` once a draft is
+published or a connection reactivated. After a done request the connection's `status` is
+`scheduled` with its `start_date`, or `live`:
 
 | Outcome     | Meaning                                                                                                                   |
 | ----------- | ------------------------------------------------------------------------------------------------------------------------- |
@@ -93,8 +139,10 @@ its `outcome`, and `urls` once a draft is published or a connection reactivated:
 The `reason` of a cancelled request: `draft_changed` (the draft changed after you asked: ask
 again for the draft as it is now), `draft_published` or `draft_deleted` (someone published or
 deleted it meanwhile), `connection_changed` or `connection_deleted` (the connection was
-deactivated, reactivated or deleted meanwhile), `revoked`, `access_changed` or `access_ended`
-(your access was revoked, lowered or ended).
+deactivated, reactivated, became active, got another start date or was deleted meanwhile),
+`start_date_passed` (the start date asked for is no longer after today in Germany: ask again with
+a new date), `revoked`, `access_changed` or `access_ended` (your access was revoked, lowered or
+ended).
 
 ## A scheduled connection
 

@@ -11,11 +11,14 @@ import type {
   RequestedDocument,
   RequestedDocumentView,
 } from '@connection-portal/api-types/form-connections';
+import { formatDate } from '@connection-portal/rules/dates';
 import { DEFAULT_LANGUAGE, type Language } from '@connection-portal/rules/language';
 
 import { ApiError, errorNoticeOf } from '../../api/client';
-import { SAVED_TIME_FORMATS } from '../FormConnectionDetail/constants';
+import { CONNECTION_DETAIL_COPY, SAVED_TIME_FORMATS } from '../FormConnectionDetail/constants';
+import { PUBLISH_DIALOG_COPY } from '../FormConnectionEditor/constants';
 import type { RulesBranch } from '../FormConnectionEditor/RulesStep/types';
+import { DELETE_CONNECTION_COPY } from '../FormConnectionList/constants';
 import { formatRowDate } from '../FormConnectionList/utils';
 import {
   APPROVAL_COPY,
@@ -29,6 +32,7 @@ import type {
   ApprovalCall,
   ApprovalPageAction,
   ApprovalPageState,
+  BodyLine,
   CallFailure,
   FinalOutcome,
   FinalStatus,
@@ -73,9 +77,86 @@ export function lastSavedLineOf(updatedAt: string, language: Language): string {
   );
 }
 
-/** Whether the action acts on a published connection: `deactivate`, `reactivate` or `delete` */
+/**
+ * Whether the action acts on a published connection: `deactivate`, `reactivate`, `delete` or
+ * `set_start_date` (spec 010)
+ */
 export function isStatusAction(action: ApprovalAction): action is StatusAction {
-  return action === 'deactivate' || action === 'reactivate' || action === 'delete';
+  return action !== 'publish' && action !== 'delete_draft';
+}
+
+/**
+ * The start as part of what will happen (spec 010, copy.md §7; FR-065): "Active from 01.12.2026"
+ * for the date the agent asked for (YYYY-MM-DD), or "The connection goes live at once." without
+ * one; for `publish`, `reactivate` and `set_start_date`
+ */
+export function startLineOf(startDate: string | null, language: Language): string {
+  const copy = APPROVAL_COPY[language];
+  return startDate ? copy.activeFrom(formatDate(startDate, language)) : copy.goesLiveAtOnce;
+}
+
+/**
+ * What will happen, under the URLs of a status action (S3 "Body"; spec 010, FR-065, FR-066,
+ * FR-067), from the connection's state now and the date the agent asked for:
+ *
+ * - `deactivate`: "Requests in progress are cancelled."; for a scheduled connection, the
+ *   deactivate dialog's sentence of copy.md §2 in its place (FR-012), with its start date;
+ * - `reactivate`: the start (`startLineOf()`);
+ * - `delete`: "Requests in progress are cancelled.", or for a scheduled connection the delete
+ *   dialog's sentence of FR-010, then "Deleting can’t be undone." (strong; approving offers no
+ *   "Undo");
+ * - `set_start_date`: "Active from <date>", and for an active connection "Until then its links
+ *   stop working, and requests in progress are cancelled."; to now "The connection goes live at
+ *   once."
+ */
+export function statusLinesOf(
+  action: StatusAction,
+  connection: Pick<FormConnection, 'state' | 'start_date'>,
+  startDate: string | null,
+  language: Language
+): BodyLine[] {
+  const copy = APPROVAL_COPY[language];
+  const line = (key: string, text: string, strong = false): BodyLine => ({ key, text, strong });
+  const scheduledStart =
+    connection.state === 'scheduled' && connection.start_date
+      ? formatDate(connection.start_date, language)
+      : null;
+  switch (action) {
+    case 'deactivate':
+      return [
+        scheduledStart
+          ? line(
+              'scheduled',
+              CONNECTION_DETAIL_COPY[language].deactivateScheduledText(scheduledStart)
+            )
+          : line('requests', copy.requestsCancelled),
+      ];
+    case 'reactivate':
+      return [line('start', startLineOf(startDate, language))];
+    case 'delete':
+      return [
+        scheduledStart
+          ? line('scheduled', DELETE_CONNECTION_COPY[language].scheduled(scheduledStart))
+          : line('requests', copy.requestsCancelled),
+        line('final', copy.cantBeUndone, true),
+      ];
+    case 'set_start_date':
+      return startDate && connection.state === 'live'
+        ? [line('start', startLineOf(startDate, language)), line('untilThen', copy.untilThen)]
+        : [line('start', startLineOf(startDate, language))];
+  }
+}
+
+/**
+ * The example's line on a request to publish it (spec 010, FR-060): the publish dialog's "This is
+ * still the example. Check that the name, documents and rules fit your service." while the stored
+ * draft is the unchanged example, or null
+ */
+export function exampleLineOf(
+  draft: Pick<FormConnectionDraft, 'example'>,
+  language: Language
+): string | null {
+  return draft.example === 'unchanged' ? PUBLISH_DIALOG_COPY[language].exampleLine : null;
 }
 
 /**
@@ -88,26 +169,73 @@ export function doneShowsUrls(action: ApprovalAction): boolean {
 }
 
 /**
- * A cancellation's sentence by its reason. `connection_changed` says which way the connection
- * changed, from whether it is live now: the request doesn't say whether it was; without the
+ * `connection_changed`'s sentence, from the connection's state now and the action, as the
+ * server's `approvals._connection_change()` words it (spec 010, FR-066; design-notes §4.2
+ * T078/T079 (4)): scheduled, its start date changed; deactivated, it was deactivated; live, it
+ * was reactivated for `reactivate`, and became active for every other action. The request doesn't
+ * say what the connection was
+ */
+export function connectionChangedTextOf(
+  state: FormConnection['state'],
+  action: ApprovalAction,
+  language: Language
+): string {
+  const copy = APPROVAL_COPY[language];
+  switch (state) {
+    case 'scheduled':
+      return copy.connectionStartDateChanged;
+    case 'deactivated':
+      return copy.connectionDeactivated;
+    case 'live':
+      return action === 'reactivate' ? copy.connectionReactivated : copy.connectionBecameActive;
+  }
+}
+
+/**
+ * A cancellation's sentence by its reason (`start_date_passed` included, spec 010).
+ * `connection_changed` says how the connection changed (`connectionChangedTextOf()`); without the
  * connection, the general sentence
  */
 export function cancelledTextOf(
-  reason: string | null,
+  request: Pick<ApprovalRequest, 'cancel_reason' | 'action'>,
   connection: FormConnection | null,
   language: Language
 ): string {
   const copy = APPROVAL_COPY[language];
+  const reason = request.cancel_reason;
   if (reason === 'connection_changed') {
-    return connection ? copy.connectionChanged(connection.is_active) : copy.cancelled;
+    return connection
+      ? connectionChangedTextOf(connection.state, request.action, language)
+      : copy.cancelled;
   }
   return CANCELLED_TEXTS[language][reason ?? ''] ?? copy.cancelled;
 }
 
 /**
+ * A done request's sentence (S3 "Outcome states"), as the server's `409 approval_done` words it: a
+ * `publish` or `reactivate` with a start date "Published and scheduled for 01.12.2026." or
+ * "Connection scheduled for 01.12.2026." with the date asked for (spec 010, copy.md §7); otherwise
+ * the action's (`DONE_TEXTS`)
+ */
+export function doneTextOf(
+  request: Pick<ApprovalRequest, 'action' | 'start_date'>,
+  language: Language
+): string {
+  const copy = APPROVAL_COPY[language];
+  const { action, start_date: startDate } = request;
+  if (startDate && action === 'publish') {
+    return copy.publishedScheduled(formatDate(startDate, language));
+  }
+  if (startDate && action === 'reactivate') {
+    return copy.reactivatedScheduled(formatDate(startDate, language));
+  }
+  return DONE_TEXTS[language][action];
+}
+
+/**
  * The sentence of a request that isn't waiting (S3 "Outcome states"), the same as the server's
  * `409 approval_<status>` message; null while it waits, failed or not. A cancellation for
- * `connection_changed` takes its word from the connection the preview holds. The preview carries
+ * `connection_changed` takes its sentence from the connection the preview holds. The preview carries
  * codes, not sentences, so the page words it in `language` (spec 009)
  */
 export function outcomeTextOf(
@@ -120,7 +248,7 @@ export function outcomeTextOf(
     case 'waiting':
       return null;
     case 'done':
-      return DONE_TEXTS[language][request.action];
+      return doneTextOf(request, language);
     case 'declined':
       return copy.declined;
     case 'expired':
@@ -128,7 +256,7 @@ export function outcomeTextOf(
     case 'replaced':
       return copy.replaced;
     case 'cancelled':
-      return cancelledTextOf(request.cancel_reason, connection, language);
+      return cancelledTextOf(request, connection, language);
   }
 }
 
