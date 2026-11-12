@@ -3,12 +3,13 @@ import { useId, useMemo, useState } from 'react';
 
 import { useDocumentTypes } from '../../hooks/useDocumentTypes';
 import { useLanguage } from '../../hooks/useLanguage';
+import { draftRuleDocumentsOf } from '../../utils/connectionSummary';
 import { CONNECTION_DETAIL_COPY } from './constants';
 import DetailAccordion from './DetailAccordion';
 import DocumentsSummary from './DocumentsSummary';
 import RulesSummaryContent from './RulesSummaryContent';
 import type { RulesSummaryProps } from './types';
-import { draftRuleDocumentsOf, requestedDocumentsOf, summaryCountsOf } from './utils';
+import { requestedDocumentsOf, summaryCountsOf } from './utils';
 
 /**
  * The Summary accordion (S15; FR-046 (b), (i); U82 6396:48191, U91 7203:50531): "Summary" with

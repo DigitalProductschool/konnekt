@@ -357,4 +357,54 @@ S.A.". The largest file is 473160 bytes, under the 500 KB (512000 bytes) of the
 - **Carried**: T010's question whether the MCP's draft text keeps "Version {n}" for the save
   number goes to T051.
 
+**2026-11-12, T021 checkpoint of the pure core (Phase 3).**
+- **Gates**: lint; 2675 / 1741 / 513 tests in `rules/`, `frontend/`, `mcp/` (against T011: +11 in
+  `rules/`, +168 in `frontend/` in 8 new files); the build, whose main entry is 934.82 kB
+  (278.99 kB gzip), 0.2 kB more than T001's after T017's move, since nothing in the app imports
+  `utils/connectionPdf/` yet. `rules/src/personas/performance.test.ts` missed its time budget in
+  several agents' runs while four suites ran side by side and passed alone each time; the
+  checkpoint's run was green throughout.
+
+  | File | Tests |
+  |---|---|
+  | `rules/src/validation.test.ts` (with `publishProblems`; every `firstProblem` case also checks `publishProblems(...)[0]`) | 191 |
+  | `frontend/src/utils/connectionSummary.test.ts` | 7 |
+  | `utils/connectionPdf/constants.test.ts` (contrast of every text colour on its backgrounds, the body) | 37 |
+  | `utils/connectionPdf/paginate.test.ts` (the pinned bug fails under both broken variants) | 14 |
+  | `utils/connectionPdf/wrapUrl.test.ts`, `fileName.test.ts` | 7, 10 |
+  | `utils/connectionPdf/testData.test.ts` | 17 |
+  | `utils/connectionPdf/gaps.test.ts` | 22 |
+  | `utils/connectionPdf/model.test.ts` | 54 |
+
+- **Copy**: `copy.test.ts` checks `PDF_TEXTS` (its three cases for the table); "Version" is in
+  `EQUAL_IN_BOTH_LANGUAGES` (T013).
+- **Purity**: no `console.*` and no browser API in `utils/connectionPdf/` or
+  `utils/connectionSummary.ts` (searched; T004's `no-console` block covers the folder). The
+  modules import only `api-types`, `rules`, each other and the editor's copy tables
+  (`pages/FormConnectionEditor/constants.ts`, `DocumentsStep/constants.ts`, whose SVG imports are
+  URL strings).
+- **Fixtures** (T018, checked with scratchpad scripts, not committed): A gives the backend's
+  `FA7E-47BB-5368`, C `3D3C-F9EA-5FE0`, D (A's content and ids as a draft) `FA7E-47BB-5368`, E
+  `EDD5-7EDC-E4FD`. The server's create checks (`clean_*`, `clean_rules`, `check_first_save`)
+  accept A, D and E and refuse C at its first gap. E's create body is 1.56 MB, above nginx's
+  default 1 MB `client_max_body_size`, which `frontend/nginx.conf` doesn't set (carried to T028
+  and T051).
+- **Decisions the agents marked UNCERTAIN, accepted**: T012: an 18th block kind, `linkHeading`
+  (① and ② with their explanations); the structure's identity as `key` and `within`;
+  `PlacedRect.joinsAbove`; `PlaceLabelTexts` and `LineWidth` as the paginator's and `urlLines()`'
+  parameters. T013: `notComplete` is a label beside its text, as `messageLabel`; a sentence of its
+  own for `linksToCreate` with one variant; faded items strike the name too; `#EEF1F6` for the URL
+  box and the group header. T014: single spaces around "›". T015: the trailing trim applies after a
+  cut only ("name." gives `name-_<version>.pdf`); a name of only `-` reads `connection`. T016: a
+  wrong number of variants and a missing main variant are both listed, then the list ends; a name
+  already taken stays its first owner's. T019: besides `addDocument`, three keys where no table had
+  the instruction (`chooseData`, `addDataAgain`, `shortenMessage`), `unknownPart` reads "Choose
+  the data to check.", a variant without a name gives only its own gap. T020: a rule a based
+  variant inherits unchanged shows Standard's "Not complete", a removed one none; a blank group
+  message is none. The German of every new key goes to T041's review.
+- **Plan**: T019 also edited `constants.ts`, outside its file list: the key that T002's carried
+  note asks for, allowed by the coordinator since no batch ran beside it, and three more under the
+  same brief's rule. Every other task kept its level, batch and files.
+- **Carried**: notes appended to T020 (done), T023, T024, T025, T028, T030, T035, T042 and T051.
+
 ## 9. Closing report

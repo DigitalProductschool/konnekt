@@ -12,7 +12,7 @@ import type {
   RuleTreeItem,
 } from '@connection-portal/api-types/form-connections';
 import type { BranchCheck, ItemFinding } from '@connection-portal/rules/checks/types';
-import { mainBranch, MDL, PID, rule, US1_RULES } from '@connection-portal/rules/testData';
+import { mainBranch, rule, US1_RULES } from '@connection-portal/rules/testData';
 import { describe, expect, it, vi } from 'vitest';
 
 import { ApiError } from '../../api/client';
@@ -40,7 +40,6 @@ import {
   deleteDraftNoticeOf,
   dialogCopyOf,
   draftDeleteReducer,
-  draftRuleDocumentsOf,
   editedLineOf,
   editEntryCopyOf,
   hasOlderActivity,
@@ -197,48 +196,6 @@ describe('rulesCountsOf (Figma 10.11, B8)', () => {
     expect(rulesCountsOf([mainBranch(items), variant('empty', [])], 'de')).toBe(
       '2 Varianten · 2 Regeln'
     );
-  });
-});
-
-describe('draftRuleDocumentsOf (S6; FR-004)', () => {
-  const [familyName, birthdate] = PID.fields;
-  const dropped = { ...familyName, key: 'eye_colour_old', label: 'eye_colour_old' };
-
-  it('names data that rules check but the draft doesn’t request, from the catalog', () => {
-    const documents = draftRuleDocumentsOf(
-      [{ document_type: 'pid', label: 'Personal ID', fields: [birthdate] }],
-      [PID, MDL]
-    );
-
-    expect(documents.map((document) => document.key)).toEqual(['pid', 'mdl']);
-    expect(documents[0].fields[0]).toBe(birthdate);
-    expect(documents[0].fields.map((field) => field.key).sort()).toEqual(
-      PID.fields.map((field) => field.key).sort()
-    );
-    expect(documents[1]).toBe(MDL);
-  });
-
-  it('keeps what the catalog dropped, with its key as its label', () => {
-    const documents = draftRuleDocumentsOf(
-      [
-        { document_type: 'pid', label: 'Personal ID', fields: [dropped] },
-        { document_type: 'old_permit', label: 'old_permit', fields: [] },
-      ],
-      [PID]
-    );
-
-    expect(documents.map((document) => document.key)).toEqual(['pid', 'old_permit']);
-    expect(documents[0].fields[0]).toBe(dropped);
-    expect(documents[0].fields).toHaveLength(PID.fields.length + 1);
-  });
-
-  it('names only the requested documents without the catalog', () => {
-    expect(
-      draftRuleDocumentsOf(
-        [{ document_type: 'pid', label: 'Personal ID', fields: [birthdate] }],
-        []
-      )
-    ).toEqual([{ key: 'pid', label: 'Personal ID', fields: [birthdate] }]);
   });
 });
 
