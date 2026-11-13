@@ -203,7 +203,7 @@ export interface DetailAccordionProps {
 
 /**
  * The Summary's version and "Download PDF" (spec 011, FR-001, FR-032; design-notes §2, §3): the
- * version alone without `pdf` (a draft's details until T036)
+ * version alone without `pdf` (both details pass it; the approval page shows neither)
  */
 export interface PdfDownloadProps {
   /** The content's version, `XXXX-XXXX-XXXX` (`version_fingerprint`) */
@@ -395,6 +395,11 @@ export interface DraftDetailsProps {
   draft: FormConnectionDraft;
   /** Loads the details again: after "Open the connection", once the draft was published */
   onReload: () => void;
+  /**
+   * "Download PDF" (spec 011, FR-001): the page's `useConnectionPdf()`, as `ConnectionDetails`
+   * gets it, kept by the page so that a run survives the swap to the published details (FR-005)
+   */
+  pdf: ConnectionPdf;
 }
 
 /**

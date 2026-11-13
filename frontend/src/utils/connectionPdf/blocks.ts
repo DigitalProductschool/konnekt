@@ -16,7 +16,6 @@ import { PDF_COLOURS, PDF_LAYOUT, PDF_STYLES, PDF_TEXTS } from './constants';
 import type {
   Block,
   BlockContent,
-  BlockKind,
   BlockLayout,
   ConnectionPdfModel,
   ConnectorContent,
@@ -24,6 +23,8 @@ import type {
   DetailsRow,
   DetailsValueKind,
   DocumentContent,
+  GapContent,
+  GapsHeadingContent,
   GroupEndContent,
   GroupHeaderContent,
   HexColour,
@@ -32,6 +33,7 @@ import type {
   LayoutPart,
   LinkContent,
   LinkHeadingContent,
+  LinksToCreateContent,
   MarkBadge,
   Measure,
   NoteContent,
@@ -50,6 +52,7 @@ import type {
   RuleContinuationContent,
   SectionHeadingContent,
   StatusContent,
+  StrokeStyle,
   StructNode,
   StructType,
   TextRole,
@@ -64,6 +67,13 @@ const L = PDF_LAYOUT;
 const S = PDF_STYLES;
 const C = PDF_COLOURS;
 const BODY_WIDTH = L.body.width;
+
+/**
+ * How far a fill reaching up overlaps the block above that continues it, in points (T037a): more
+ * than a pixel at 100 % zoom (1.33 px), and inside the empty space at the bottom of what it can
+ * reach (a gap's 4 pt, the gaps' heading's 8 pt, a bar)
+ */
+export const JOIN_OVERLAP = 1;
 
 /** The unit the result links form (FR-026) */
 export const RESULT_LINKS_UNIT = 'result-links';
@@ -351,6 +361,103 @@ function noteLayout(content: NoteContent, measure: Measure): BlockLayout {
 }
 
 // ---------------------------------------------------------------------------------------------
+// A draft's gaps: "To finish before publishing (n)", a warning box cut into slices, one per block
+
+/**
+ * One slice of the gaps' box (artifacts): its fill, rounded at the box's top (the heading's
+ * slice) or bottom (the last gap's) and square where it joins the next slice, and the bar at its
+ * left. Gaps follow one another without a gap, so the slices on a page form one box. A gap's
+ * slice joins the one above it (`joinsAbove`, see `reachOf()`): its bar and a strip of its fill
+ * right of the bar reach `JOIN_OVERLAP` up into the slice above when it is on the same page, so
+ * that no viewer anti-aliases the shared edge into a light seam (T037a). The strip leaves the bar's
+ * columns alone, so the bar's own top edge lies over the bar above. A gap that begins a page reaches
+ * nowhere: the strip then lies inside its own fill
+ */
+function gapsSliceOf(height: number, roundTop: boolean, roundBottom: boolean): PlacedShape[] {
+  const gaps = L.gaps;
+  const fill = C.warningBackground;
+  const square = Math.min(gaps.radius, height);
+  const shapes: PlacedShape[] = [];
+  if (roundTop || roundBottom) {
+    shapes.push({ ...fillRect(0, 0, BODY_WIDTH, height, fill), radius: gaps.radius });
+    if (!roundTop) shapes.push(fillRect(0, 0, BODY_WIDTH, square, fill));
+    if (!roundBottom) shapes.push(fillRect(0, height - square, BODY_WIDTH, square, fill));
+  } else {
+    shapes.push(fillRect(0, 0, BODY_WIDTH, height, fill));
+  }
+  const joins = !roundTop;
+  if (joins) {
+    const strip = fillRect(gaps.barWidth, 0, BODY_WIDTH - gaps.barWidth, JOIN_OVERLAP, fill);
+    shapes.push({ ...strip, joinsAbove: true });
+  }
+  shapes.push({ ...fillRect(0, 0, gaps.barWidth, height, C.warning), joinsAbove: joins });
+  return shapes;
+}
+
+/**
+ * The box's top: "To finish before publishing (n)" (`H2`) and its sentence (`P`), down to where
+ * the first gap starts; chained to it
+ */
+function gapsHeadingLayout(content: GapsHeadingContent, measure: Measure): BlockLayout {
+  const { key, within } = content;
+  const gaps = L.gaps;
+  const width = BODY_WIDTH - 2 * gaps.paddingX;
+  const title = wrappedText(
+    content.title,
+    S.gapsTitle,
+    { x: gaps.paddingX, y: gaps.paddingTop, width },
+    tagged(within, structNode('H2', `${key}/title`)),
+    measure
+  );
+  const lead = wrappedText(
+    content.lead,
+    S.gapsLead,
+    {
+      x: gaps.paddingX,
+      y: gaps.leadY + extraLinesOf(content.title, S.gapsTitle, width, measure),
+      width,
+    },
+    tagged(within, structNode('P', `${key}/lead`)),
+    measure
+  );
+  const height = lead.y + lead.height + gaps.leadGap;
+  return { height, parts: [...gapsSliceOf(height, true, false), title, lead] };
+}
+
+/**
+ * One gap: its slice of the box, its bullet (an artifact) and its text, an `LI` with its `LBody`
+ * in the gaps' `L` (`within`); the last one closes the box
+ */
+function gapLayout(content: GapContent, measure: Measure): BlockLayout {
+  const { key, within } = content;
+  const gaps = L.gaps;
+  const text = wrappedText(
+    content.text,
+    S.gap,
+    { x: gaps.itemX, y: 0, width: BODY_WIDTH - gaps.itemInset },
+    tagged(within, structNode('LI', `${key}/item`), structNode('LBody', `${key}/body`)),
+    measure
+  );
+  const height = text.height + gaps.itemGap + (content.last ? gaps.paddingBottom : 0);
+  return {
+    height,
+    parts: [
+      ...gapsSliceOf(height, false, content.last),
+      {
+        kind: 'circle',
+        artifact: 'Layout',
+        cx: gaps.bulletX,
+        cy: gaps.bulletY,
+        radius: gaps.bulletRadius,
+        fill: C.warning,
+        stroke: null,
+      },
+      text,
+    ],
+  };
+}
+
+// ---------------------------------------------------------------------------------------------
 // Sections
 
 /**
@@ -515,6 +622,53 @@ function linkLayout(content: LinkContent, measure: Measure): BlockLayout {
     );
   });
   return { height: y + boxHeight, parts };
+}
+
+/**
+ * A draft's dashed box in place of the links (FR-013): "Created when the connection is published
+ * and active." and the links publishing will create, each a `P`; the dashed frame is an artifact.
+ * No URL
+ */
+function linksToCreateLayout(content: LinksToCreateContent, measure: Measure): BlockLayout {
+  const { key, within } = content;
+  const box = L.linksToCreate;
+  const width = BODY_WIDTH - 2 * box.paddingX;
+  const title = wrappedText(
+    content.title,
+    S.linksToCreateTitle,
+    { x: box.paddingX, y: box.paddingTop, width },
+    tagged(within, structNode('P', `${key}/title`)),
+    measure
+  );
+  const text = wrappedText(
+    content.text,
+    S.linksToCreateText,
+    {
+      x: box.paddingX,
+      y:
+        box.paddingTop +
+        box.titleAdvance +
+        extraLinesOf(content.title, S.linksToCreateTitle, width, measure) +
+        box.textGap,
+      width,
+    },
+    tagged(within, structNode('P', `${key}/text`)),
+    measure
+  );
+  const height = text.y + text.height + box.paddingBottom;
+  const frame: PlacedRect = {
+    kind: 'rect',
+    artifact: 'Layout',
+    x: 0,
+    y: 0,
+    width: BODY_WIDTH,
+    height,
+    radius: box.radius,
+    fill: null,
+    stroke: { colour: C.draftDot, width: box.strokeWidth, dash: box.dash },
+    joinsAbove: false,
+  };
+  return { height, parts: [frame, title, text] };
 }
 
 /**
@@ -716,6 +870,30 @@ function barsOf(depth: number, height: number): PlacedRect[] {
     stroke: null,
     joinsAbove: true,
   }));
+}
+
+/**
+ * How far `rect` is drawn reaching up above its block's top (research R11: the geometry stays
+ * here, `render.ts` only applies it). Nothing for a rect that doesn't join above, or for a block
+ * that begins its page (`above` null). Otherwise the block's gap, and `JOIN_OVERLAP` more where
+ * the block above continues the rect: a square rect of the same fill that spans its columns down
+ * to that block's bottom (a group's bar above a bar, a gaps slice above a slice). Two fills that
+ * only abut leave a light hairline in viewers that anti-alias each edge (T037a); where nothing of
+ * the same fill continues it (a member's bar under its group's tinted header) it stops at the
+ * edge, as drawn before
+ */
+export function reachOf(rect: PlacedRect, gapBefore: number, above: BlockLayout | null): number {
+  if (!rect.joinsAbove || above === null) return 0;
+  const continues = above.parts.some(
+    (part) =>
+      part.kind === 'rect' &&
+      part.fill === rect.fill &&
+      part.radius === 0 &&
+      part.x <= rect.x &&
+      part.x + part.width >= rect.x + rect.width &&
+      Math.abs(part.y + part.height - above.height) < 1e-6
+  );
+  return gapBefore + (continues ? JOIN_OVERLAP : 0);
 }
 
 /** A square-cornered fill, to square off one side of a rounded one */
@@ -1052,10 +1230,55 @@ function labelledTextAt(
 }
 
 /**
+ * A draft's "Not complete: <what is missing>" (FR-018) at `box`: the "!" in its warning circle
+ * (artifacts) and the line after it, one `P` in the warning colour, wrapped beside the circle
+ */
+function missingNoteOf(
+  missing: LabelledText,
+  box: TextBox,
+  role: TextRole,
+  measure: Measure
+): Placed {
+  const rule = L.rule;
+  const radius = rule.noteIconRadius;
+  const icon: PlacedShape = {
+    kind: 'circle',
+    artifact: 'Layout',
+    cx: box.x + radius,
+    cy: box.y + rule.noteIconY,
+    radius,
+    fill: C.warning,
+    stroke: null,
+  };
+  const mark = oneLineText(
+    [{ text: '!', style: S.notCompleteIcon }],
+    { x: box.x, y: box.y + rule.noteIconTextY, width: 2 * radius },
+    LAYOUT_ARTIFACT,
+    measure,
+    'center'
+  );
+  const text = wrappedText(
+    `${missing.label} ${missing.text}`,
+    S.notComplete,
+    { x: box.x + rule.noteIndent, y: box.y, width: box.width - rule.noteIndent },
+    role,
+    measure
+  );
+  return {
+    shapes: [icon],
+    texts: [mark, text],
+    bottom: Math.max(text.y + text.height, mark.y + mark.height, icon.cy + radius),
+  };
+}
+
+/**
  * A rule's card, or a piece of one cut at value boundaries (FR-027): the frame (tinted by its
  * mark) and the bars of the groups around it (artifacts); for the head, the heading row; the
- * statement's flow with its values as chips; "Message for citizens: <message>". A continuation
- * has no heading: its texts go on into the same `Div` and statement `P` as the head's
+ * statement's flow with its values as chips, as far as it goes (an incomplete condition shows
+ * its subject alone, or its words without values, as the Summary does); "Message for citizens:
+ * <message>"; a draft's "Not complete: <what is missing>" after all that, the frame then dashed
+ * (FR-018). A continuation has no heading: its texts go on into the same `Div` and statement `P`
+ * as the head's
  */
 function ruleLayout(content: RuleContent | RuleContinuationContent, measure: Measure): BlockLayout {
   const rule = L.rule;
@@ -1118,9 +1341,23 @@ function ruleLayout(content: RuleContent | RuleContinuationContent, measure: Mea
     texts.push(message);
     y = message.y + message.height;
   }
-  // A draft's "Not complete: …" (`missing`) is laid out with the draft's kinds (T035)
+  if (content.missing) {
+    const note = missingNoteOf(
+      content.missing,
+      { x: left, y: y > rule.padding ? y + rule.noteGap : y, width: inner },
+      tagged(within, structNode('P', `${owner}/missing`)),
+      measure
+    );
+    shapes.push(...note.shapes);
+    texts.push(...note.texts);
+    y = note.bottom;
+  }
   const height = y + rule.padding;
   const look = itemLookOf(content.badge?.mark ?? null);
+  // An incomplete rule's frame is dashed in the warning colour, in the piece that says so
+  const stroke: StrokeStyle = content.missing
+    ? { colour: C.warning, width: rule.incompleteStrokeWidth, dash: rule.incompleteDash }
+    : { colour: look.cardStroke, width: rule.strokeWidth, dash: null };
   const frame: PlacedRect = {
     kind: 'rect',
     artifact: 'Layout',
@@ -1130,7 +1367,7 @@ function ruleLayout(content: RuleContent | RuleContinuationContent, measure: Mea
     height,
     radius: rule.radius,
     fill: look.card,
-    stroke: { colour: look.cardStroke, width: rule.strokeWidth, dash: null },
+    stroke,
     joinsAbove: false,
   };
   return { height, parts: [...barsOf(content.depth, height), frame, ...shapes, ...texts] };
@@ -1363,10 +1600,7 @@ function variantHeaderLayout(content: VariantHeaderContent, measure: Measure): B
  * A block's geometry (research R11): its texts, placed, with their tag or artifact role, and its
  * shapes (all artifacts), in drawing order, the tagged texts in reading order; x from the body's
  * left edge, y from the block's top. The one place that computes geometry: `blocksOf()` takes the
- * height from it and `render.ts` draws from it.
- *
- * Throws for a kind whose layout isn't built yet: a draft's gaps and dashed box (T035).
- * `blocksOf()` makes none of them yet
+ * height from it and `render.ts` draws from it
  */
 export function layoutOf(content: BlockContent, measure: Measure): BlockLayout {
   switch (content.kind) {
@@ -1388,11 +1622,12 @@ export function layoutOf(content: BlockContent, measure: Measure): BlockLayout {
       return documentLayout(content, measure);
     case 'placeholder':
       return placeholderLayout(content, measure);
-    // A draft's gaps box and dashed box (T035)
     case 'gapsHeading':
+      return gapsHeadingLayout(content, measure);
     case 'gap':
+      return gapLayout(content, measure);
     case 'linksToCreate':
-      throw notLaidOutYet(content.kind);
+      return linksToCreateLayout(content, measure);
     case 'variantHeader':
       return variantHeaderLayout(content, measure);
     case 'rule':
@@ -1405,11 +1640,6 @@ export function layoutOf(content: BlockContent, measure: Measure): BlockLayout {
     case 'connector':
       return connectorLayout(content, measure);
   }
-}
-
-/** The error of a block kind whose layout a later task builds */
-function notLaidOutYet(kind: BlockKind): Error {
-  return new Error(`No layout for the block kind "${kind}" yet`);
 }
 
 // ---------------------------------------------------------------------------------------------
@@ -1536,6 +1766,49 @@ function pageOneBlocksOf(model: ConnectionPdfModel, measure: Measure): Block[] {
   ];
 }
 
+/** The gaps' part */
+const GAPS_SECT: StructNode = { type: 'Sect', key: 'gaps' };
+
+/**
+ * A draft's "To finish before publishing (n)" (FR-010; research R11): the box's heading and
+ * sentence chained to the first gap, then one block per gap, an `LI` of the gaps' `L`, so that
+ * hundreds of gaps continue on later pages. Outside the sections: no place label (FR-021 names
+ * only the sections) and no outline entry (FR-038). None without gaps
+ */
+function gapsBlocksOf(model: ConnectionPdfModel, measure: Measure): Block[] {
+  const { gaps } = model;
+  if (gaps.length === 0) return [];
+  const texts = PDF_TEXTS[model.language];
+  const list = structNode('L', 'gaps/list');
+  const place = PAGE_ONE_PLACE;
+  return [
+    blockOf(
+      {
+        kind: 'gapsHeading',
+        key: 'gaps/heading',
+        within: [GAPS_SECT],
+        title: texts.gapsTitle(gaps.length),
+        lead: texts.gapsLead,
+      },
+      measure,
+      { place, gapBefore: L.gaps.gapBefore, keepWithNext: true }
+    ),
+    ...gaps.map((gap, index) =>
+      blockOf(
+        {
+          kind: 'gap',
+          key: `gaps/gap-${index}`,
+          within: [GAPS_SECT, list],
+          text: gap.text,
+          last: index === gaps.length - 1,
+        },
+        measure,
+        { place }
+      )
+    ),
+  ];
+}
+
 /**
  * A section's heading block, "1  Links for your service" with its lead and notice: chained to
  * what follows it, opening the section's place and its outline entry (FR-038)
@@ -1597,8 +1870,22 @@ function linksSectionBlocksOf(model: ConnectionPdfModel, measure: Measure): Bloc
     measure
   );
   if (links === null) {
-    // A draft has no URL (FR-013): its dashed box comes with the draft's kinds (T035)
-    return [heading];
+    // A draft has no URL anywhere (FR-013): the dashed box names the links publishing creates
+    if (model.linksToCreate === null) return [heading];
+    return [
+      heading,
+      blockOf(
+        {
+          kind: 'linksToCreate',
+          key: 'section-1/links-to-create',
+          within,
+          title: copy.draftLinksText,
+          text: texts.linksToCreate(model.linksToCreate),
+        },
+        measure,
+        { place, gapBefore: L.linksToCreate.gapBefore }
+      ),
+    ];
   }
   const blocks = [
     heading,
@@ -1769,7 +2056,7 @@ type RulePiece = RuleContent | RuleContinuationContent;
 /**
  * A rule cut at value boundaries (FR-027; research R11): a head with the heading, the statement's
  * words and the values that fit in `headRoom`, then continuations of the remaining values, each
- * at most a page, and the message last, after the tail. The last piece leaves `trailing` free for
+ * at most a page, and the message and a draft's "Not complete" last, after the tail. The last piece leaves `trailing` free for
  * the blocks chained after it (a group's closing block). Each piece holds at least one value
  * after the head, so that the cut always ends; one value taller than a page would be too tall
  */
@@ -1780,7 +2067,7 @@ function rulePiecesOf(
   continuationOf: (index: number, values: string[], tail: string | null) => RuleContinuationContent,
   measure: Measure
 ): RulePiece[] {
-  const { statement, message } = whole;
+  const { statement, message, missing } = whole;
   const values = statement?.values ?? [];
   const count = values.length;
   const pieceOf = (
@@ -1796,7 +2083,13 @@ function rulePiecesOf(
       index === 0
         ? { ...whole, statement: statement && { ...statement, values: values.slice(0, to), tail } }
         : continuationOf(index, values.slice(from, to), tail);
-    return { ...piece, message: withMessage ? message : null, continues };
+    // The message and a draft's "Not complete" go into the last piece, together
+    return {
+      ...piece,
+      message: withMessage ? message : null,
+      missing: withMessage ? missing : null,
+      continues,
+    };
   };
   const heightOf = (piece: RulePiece) => layoutOf(piece, measure).height;
   const pieces: RulePiece[] = [];
@@ -1816,7 +2109,7 @@ function rulePiecesOf(
       if (heightOf(pieceOf(index, from, middle, false, true)) <= room) to = middle;
       else top = middle - 1;
     }
-    if (to === count && message === null) {
+    if (to === count && message === null && missing === null) {
       // Nothing left to move to a later piece
       pieces.push(rest);
       return pieces;
@@ -1857,8 +2150,10 @@ function ruleBlocksOf(
     level: headingLevelOf(scope.depth),
     statement: rule.statement,
     message: messageOf(rule.message, scope.language),
-    // A draft's "Not complete: …" comes with the draft's kinds (T035)
-    missing: null,
+    missing:
+      rule.missing === null
+        ? null
+        : { label: PDF_TEXTS[scope.language].notComplete, text: rule.missing },
     continues: false,
   };
   const gapBefore = L.items.gapBefore;
@@ -2086,7 +2381,7 @@ function rulesSectionBlocksOf(model: ConnectionPdfModel, measure: Measure): Bloc
 export function blocksOf(model: ConnectionPdfModel, measure: Measure): Block[] {
   return [
     ...pageOneBlocksOf(model, measure),
-    // A draft's gaps box goes here, between page 1 and section 1 (T035)
+    ...gapsBlocksOf(model, measure),
     ...linksSectionBlocksOf(model, measure),
     ...documentsSectionBlocksOf(model, measure),
     ...rulesSectionBlocksOf(model, measure),

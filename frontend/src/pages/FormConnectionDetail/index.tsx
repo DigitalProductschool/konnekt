@@ -116,7 +116,7 @@ export default function FormConnectionDetailPage() {
     );
   }
   if (shown.formConnection.status === 'draft') {
-    return <DraftDetails draft={shown.formConnection} onReload={retry} />;
+    return <DraftDetails draft={shown.formConnection} onReload={retry} pdf={pdf} />;
   }
   return (
     <ConnectionDetails

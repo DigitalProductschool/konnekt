@@ -18,8 +18,8 @@ import { requestedDocumentsOf, summaryCountsOf } from './utils';
  * summary" (`DetailAccordion`, T078); open, the documents part, a 1px line in action blue at 30 %,
  * then "Rules" with the variants as tabs and the findings (`RulesSummaryContent`), the parts 24px
  * apart. In the header, between the counts and the toggle, the content's version and "Download
- * PDF" (spec 011, which lifts F53; FR-001, FR-032, design-notes §2): the details pass `version`
- * and the page's download (`pdf`), a draft's details the version alone until T036, the approval
+ * PDF" (spec 011, which lifts F53; FR-001, FR-032, design-notes §2): both details, a published
+ * connection's and a stored draft's, pass `version` and the page's download (`pdf`), the approval
  * page neither (FR-006). A failed run's alert sits under the header row (`PdfFailure`). There is
  * no "Edit rules": the footer's "Edit connection" is the one way into editing (FR-046 (a); U83
  * #35).

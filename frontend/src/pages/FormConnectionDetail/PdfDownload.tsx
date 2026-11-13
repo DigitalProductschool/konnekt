@@ -15,8 +15,8 @@ import type { PdfDownloadProps, PdfFailureProps } from './types';
  * "Creating PDF…", keeps the glyph and is `aria-disabled`, its clicks ignored, as
  * `ConfirmDialog`'s busy button (FR-003). Its own polite live region, there from mount (the details
  * have no shared one), says "Creating the PDF…" once a run starts and "PDF saved." once the file
- * is saved; a failure is `PdfFailure`'s alert. Without `pdf` (a draft's details until T036), the
- * version alone.
+ * is saved; a failure is `PdfFailure`'s alert. Without `pdf`, the version alone (no caller does
+ * that today: the published and the draft's details both pass it).
  */
 export default function PdfDownload({ version, pdf, buttonRef }: PdfDownloadProps) {
   const copy = useCopy(CONNECTION_DETAIL_COPY);

@@ -152,6 +152,10 @@ token's name beside each, since the worker can't read CSS.
     "Variant Taxi") while the drawing keeps the prototype's gap; the prototype, whose names are
     short, would have wrapped them back to the left edge (T026; in A nothing wraps, in E 19 of 20
     variant names of 100 characters do, in both languages, and no section title).
+18. A draft's gaps box is 2 pt taller than the prototype's: both draw its sentence 32 pt below
+    the box's top, but the prototype counts 30 pt for it, so its box ends 2 pt before its own
+    bottom padding. Ours is measured as drawn (R11), so what follows on page 1 sits 2 pt lower
+    (T037; added by the coordinator 2026-11-13).
 
 ## 6. How it is verified
 
@@ -284,6 +288,65 @@ The run's other states, the timings and the second browser are T033's (§7.2).
   of `*-prod-requests.csv`). This is allowed (contracts/pdf-worker.md §2: "when their cache is
   cold"), names no connection, and later runs use the hook's own copy.
 
+**T037, 2026-11-13**, the draft's details: C's header, the downloads of C and D, "Published
+meanwhile" and "Deleted meanwhile" (quickstart §3, §6), in headless Chromium 156 and Firefox 159
+(Playwright MCP), a 1455 × 1000 window.
+- **The stack**: the dev SPA (5173) against the backend on 3000 (`template_db`, the tests' fake
+  EUDIPLO, the worker off), signed in as a local account. The timings below are the dev server's
+  (T033's production timings stand for A and B).
+- **The scripts**, in the chat's scratchpad:
+  - `011/T037/page-sweep.js`, one `browser_run_code_unsafe` call per browser. The password came
+    from a one-shot local server, never from the script.
+  - `011/T037/files-check.mjs` reads the saved files' text. It uses `pdftext.mjs`, a small
+    extractor over the ToUnicode maps of PDFKit's fonts, since this machine has no pdf.js.
+  - `011/T037/gaps-server.ts` (vite-node, through the API) checks the gaps against the server.
+- **The files**: `chromium-page.csv` and `firefox-page.csv` (134 rows each, all pass),
+  `*-page.json` (the measures, the downloads, the console), `files.csv` (80 rows, all pass),
+  `gaps-server.csv` (28 rows, all pass), `verapdf.txt`, and the six saved files under `dl/`.
+- **The "other tab"**: a second page in the same browser context, which publishes or deletes the
+  copy through the API (`POST /{id}/publish` with the stored content, `DELETE /{id}/draft`).
+  The editor's publish dialog is not driven.
+- **The copies**: fresh copies of D, two per run (§8.3).
+- **Cited, not re-checked**: the run's states on A and B (busy, saved, failed, double activation,
+  keyboard, offline, timings: T033 above); the header in German and on a narrow window (§7.1).
+
+| State | What was checked | Chromium | Firefox | Result |
+|---|---|---|---|---|
+| C's header, Summary open and closed | §7.1's measures for A: C against A measured in the same run, and against §7.1's values | the header 124 high, as A's (the same counts, "2 documents · 12 data items · 3 variants · 12 rules", wrap alike). The paddings 24. Heading → version 8, version → button 8, button → toggle 8, right 24. The version, button, toggle and glyph centred (offset 0). The button 176.59 × 48, `kern-btn kern-btn--secondary`, 1px solid rgb(29, 86, 240), radius 8px, no fill. A's glyph, 24 × 24 at x16, 8 to the label and 24 from the label to the right edge. The label 16px/24px 600 rgb(29, 86, 240), "Download PDF". "Version" 14px/24px 400 rgb(74, 84, 104); the code 14/24 500 rgb(11, 18, 32) `tabular-nums`, on one line. The toggle 144 × 40 (144.56 closed). One `h1`, no horizontal scroll | the same, with the button 176.58 and the toggle 143.97 / 144.52 | pass, 54 of 54 per state and browser. C's code is 108.0 wide and A's 104.6 (BD20-E34A-47BC against 98C8-BFF0-B8E2: the figures are tabular, but each letter has its own width), so C's heading block is 3.4 narrower (278.5 against 281.9); the two widths add up to A's |
+| C, download from the details | the file name (FR-044), no failure, the live region, the page | `Taxi and private hire driver licence_draft_BD20-E34A-47BC.pdf`, the header's version, in 1.27 s; "PDF saved."; still "This connection is a draft" | the same, in 1.22 s | pass |
+| D, download from the details | as C | `…_draft_294E-2CA8-EC64.pdf`, in 1.08 s | the same, in 1.09 s | pass |
+| C and D, the files (`files.csv`) | every page's text and the properties | no "http", no "/api/connect" and no "connect" outside "connection", in the pages or in Title, Subject and Keywords (FR-013). "DRAFT" and "DRAFT · NOT LIVE" on all 6 pages. Page 1's eyebrow, "Draft Not live yet" and "Last saved … (draft save 1)". Section 1's two sentences, naming Standard, Taxi and Hire car. The title "Draft – … – Connection details" and the keywords "connection <id>; version <version>; draft". C: "To finish before publishing (2)" with both gaps on page 1, and the two "Not complete: …". D: no gaps box and no "Not complete" | the same | pass, 15 of 15 per file |
+| Published meanwhile | tab 1 shows a fresh copy of D; tab 2 publishes it unchanged (200, live); then the download in tab 1 | before the click, tab 1 still shows the draft. After it, "Your connection is active", and the file `…_9136-E998-8D35.pdf` (no "_draft_") in 2.29 s. The header's version equals the API's after publishing and the draft's (published unchanged keeps it). "PDF saved." | the same, `…_2946-92A0-A59F.pdf`, in 1.50 s | pass, 8 of 8 |
+| Published meanwhile, the file | its text and properties | no "DRAFT"; the request link and the three result links (`…/api/connect/…`); "Active as of …"; no gaps box; a title without "Draft" and keywords without "draft" | the same | pass, 10 of 10 |
+| Deleted meanwhile | tab 1 shows a second fresh copy; tab 2 deletes it (200); then the download in tab 1 | "Page not found" as the only `h1`; no file within 8 s; after the click, one request names the copy: the run's `GET` (404) | the same | pass, 5 of 5 |
+| all states | the console | nothing from the app. The browser's own line for the 404 (Chromium). The dev server's lines: `[vite]`, React's DevTools hint and, in Firefox, React 19's dev-build performance tracks (`console.timeStamp`) | the same | pass |
+| the six saved files | veraPDF 1.28.1, PDF/UA-1 | 106 rules, 0 failed checks | the same | pass |
+
+**The gaps against the server** (FR-010, R10 "Not gaps"; `gaps-server.ts`):
+- **C refused**: the script read C with `GET` and sent the body the editor sends for a stored
+  draft to `POST /{id}/publish`: the name, the description, the documents' keys, the branches as
+  stored, `numbering_base` from the counters and `version`.
+  - The answer was 400 with "Licence class B in Hire car has no error message.". That is the
+    first gap on page 1 of the PDF made from the same `GET`.
+  - In German (`Accept-Language: de`) the answer was "Licence class B in Hire car hat keine
+    Fehlermeldung.", again the German PDF's first gap.
+  - With that gap filled in the body only, the answer was 400 with the PDF's second gap, in
+    both languages. So the server refuses in the PDF's order.
+- **Nothing written**: afterwards C was unchanged. It is still a draft, at save number 1 and
+  version BD20-E34A-47BC, with the same `updated_at` and the same last activity.
+- **D's copies**: the first four copies had no gaps heading and no gap in their PDFs (made from
+  the API's answer, before the runs). All six copies the runs published answered 200, live
+  (§8.3).
+
+**Earlier runs** (`run1-*`, `run2-*`), each re-run with fresh copies of D. No app defect:
+- **Chromium, run 1**: 5 rows failed on the script's own checks. Two compared the code's width
+  with A's, which differs by content, and the console check counted the dev server's lines.
+- **Firefox, run 1**: the console check failed on React's `timeStamp` lines and on one dev-server
+  module load (`rules/src/checks/literals.ts`) cut off by a navigation.
+- **Firefox, run 2**: one row failed. The run before had left the pointer where C's button now
+  sat, so the button had KERN's hover tint. Since then the script moves the pointer away before
+  it measures. Chromium's final run came before that line, with the same rows.
+
 ### 7.3 The PDF's pages
 
 **A in English against the prototype's `published-ids-top.pdf`** (T026, 2026-11-12; quickstart §2
@@ -333,6 +396,132 @@ After the fixes: veraPDF's PDF/UA-1 profile passes for A in English and German a
 rules, 0 failed checks each); E has 764 pages and strikes 3,068 texts, each with its line (D3's
 2,970 plus the 98 faded groups' lines, one line each), 542 of them over two lines or more.
 D3's list of faded styles gains `groupCombinesFaded`.
+
+**C and D in English against the prototype's draft** (T037, 2026-11-13; quickstart §3).
+- **The script**: `011/T037/sweep.ts` (`npx vite-node` from `frontend/`), with `causes.ts` beside
+  it, rebuilds T026's method above.
+- **What it renders**, all at 09.11.2026, 16:45, through `recordingDocument()`:
+  - C and D: `SAMPLE_DRAFT_GAPS` and `SAMPLE_DRAFT` from `testData.ts`.
+  - C's reference: the prototype's draft, `draftOf(sample)`, from a wrapped copy of `make.mjs`.
+    The copy injects the PDFKit constructor, makes the font path absolute and exports in place
+    of the last loop. Its file has the 82,242 bytes of `draft-ids-top.pdf`, which
+    `node prototype/make.mjs` made in the scratchpad.
+  - D's reference: the prototype's completed draft, `completed(draftOf(sample), sample)`. The
+    prototype makes no PDF of it.
+- **Pairing**: as T026's, with one addition. The script also renders A and
+  `published-ids-top.pdf` and pairs them the same way. A C or D pair whose two texts and
+  difference (dx, dy, the vertical step, the pairing) equal A's pair is cited "as in A", with
+  T026's causes (§5.15–§5.17). So only the draft's own content needs a cause of its own.
+- **Counts**: both files have 6 pages, as their references, and no text is on a different page.
+  C has 275 texts and its reference 229; D has 272 and its reference 225.
+
+| File | Page | Same | Intended (colour only) | Unsure | Defect |
+|---|---|---|---|---|---|
+| C | 1 | 4 | 27 (20) | 0 | 0 |
+| C | 2 | 2 | 27 (13) | 0 | 0 |
+| C | 3 | 6 | 48 (20) | 0 | 0 |
+| C | 4 | 6 | 57 (19) | 0 | 0 |
+| C | 5 | 2 | 67 (20) | 0 | 0 |
+| C | 6 | 3 | 29 (18) | 0 | 0 |
+| D | 1 | 5 | 34 (26) | 0 | 0 |
+| D | 2 | 2 | 15 (6) | 0 | 0 |
+| D | 3 | 6 | 48 (20) | 0 | 0 |
+| D | 4 | 6 | 57 (19) | 0 | 0 |
+| D | 5 | 2 | 67 (20) | 0 | 0 |
+| D | 6 | 3 | 30 (18) | 0 | 0 |
+
+"Same" includes the parts of a text the other file draws whole (C 9, D 9, the statements around
+their chips).
+
+| Intended difference | Source | Rows (pages) |
+|---|---|---|
+| Colours as §4: the draft blue, the band's tint, the pill's `#05669E`, the warning colours of the gaps box and of "Not complete:" | §5.1 | C 202 (1–6), D 200 (1–6) |
+| The version: the backend's `3D3C-F9EA-5FE0` and `FA7E-47BB-5368`, where the prototype hashes its own data shape | §8.4 T021, "Fixtures" | C 7, D 7 (2 on page 1, 1 on each other page) |
+| Sections 2 and 3 as in A against `published-ids-top.pdf`: the catalog's labels and order, the statements from `rules/src/` with chips, 0.9 pt per card with values, the right column, headings with one space | §7.3 above (T026): §5.15–§5.17 | C 128 (2–6) and 5 moved with them (6); D 134 (1–6) |
+| The gaps box's sentence says "parts": it lists everything publishing refuses | §5.2 | C 1 (1) |
+| The gaps box is 2 pt taller. Both files draw its sentence 32 pt below the box's top, but the prototype counts only 30 pt (12 and 18), so its box ends 2 pt before its own 10 pt bottom padding. Ours is measured as drawn, so section 1's heading, the dashed box and its two sentences sit 2 pt lower | §5.18 (R11, measured equals drawn) | C 4 (1) |
+| A rule without a check reads as the Summary's rule row shows it: "Driving licence · Expiry date", without the prototype's "…" | §5.15 (FR-018, FR-019) | C 1 (6) |
+| D's "Last saved": save 8 at 15:40 in `SAMPLE_DRAFT`, where the prototype's completed draft keeps save 7 at 14:10 | `testData.ts` (T018) | D 1 (1) |
+
+Also checked:
+- **No URL** (FR-013): no recorded text of C or D holds "http" or "/api/connect", in English or
+  German. The files from the page are in §7.2.
+- **The gaps**: page 1 of C lists "Licence class B in Hire car has no error message." and
+  "Licence still valid in Hire car: choose a check." under "To finish before publishing (2)", the
+  prototype's words at its places. D has no gaps box. The two "Not complete: …" lines pair with
+  the prototype's (colour only, and moved with A's 0.9 pt step).
+- **Page 1's shapes** (C against `draft-ids-top.pdf`, from the recording):
+  - The band, its bar and the pill have the same boxes, the pill filled `#05669E` for `#0284C7`
+    (§4). The status pill, the details box and the gaps' bullets are at the same places.
+  - The gaps box is drawn in slices (the head 371.4–438.4, then one slice per gap) and spans
+    371.4–484.8. The prototype draws one rect, 371.4–482.8 (the 2 pt above). Since T037a each
+    gap's slice reaches 1 pt (`JOIN_OVERLAP`) into the slice above: its bar from 437.4 and
+    455.6, and a strip of the fill right of the bar across each join (437.4–439.4,
+    455.6–457.6), so that the slices read as one box with no seam; the box's top, bottom and
+    heights are unchanged.
+  - The dashed box is 76.4 high in both files, ours 2 pt lower.
+- **German page 1 of C** (carried from T036): page 1 ends after the dashed box in both
+  languages, and the English one breaks there as the prototype's does. Section 2's heading keeps
+  with its first document (FR-025):
+  - In English, 164.7 pt are left on page 1, and the heading with "Personal ID" needs 195.0
+    (24 + 48.2 + 14 + 108.8).
+  - In German, 152.6 pt are left and 209.2 are needed, since the heading's lead takes one more
+    line (62.4).
+  - This is the prototype's rule, not a defect. D keeps the heading and its first document on
+    page 1 in both languages, and its second document starts page 2, as in the prototype.
+- **The accepted choices** (compared, not re-decided):
+  - The dashed box is two `P`s (D6), as the recording's roles show.
+  - The other choices don't occur in C or D, so `blocks.test.ts` and `render.test.ts` (T035,
+    T036) stand for them: a page that begins inside the gaps list has no place label, a cut
+    incomplete rule is dashed only in its last piece, and the band cuts a long name before the
+    pill. In C and D no page begins in the gaps list, no rule is cut and the name fits.
+- **veraPDF**: the six files from the page pass PDF/UA-1 (§7.2).
+- **No page image** was opened, since no row is unsure or failing.
+
+No defect, so no fix. The script's files: `sweep.csv` (553 rows: 278 for C, 275 for D),
+`summary.txt`, `summary.json`, the rendered PDFs under `files/` and the wrapped prototype under
+`proto/`.
+
+**The seams at the joins of fills** (T037a, 2026-11-13; found by the coordinator in T038: C's
+page 1 from the page, in pdf.js 3.11.174, showed a light hairline across the gaps box's fill and
+bar where the heading's slice meets the first gap's and the two gaps' slices meet).
+- **Cause**: each block draws its own fills, and where two of one colour only abut, a viewer
+  anti-aliases each edge on its own, so the row of pixels on the edge lets the page show through.
+  The same held for the group bars, which T026 and T037 compared by their texts only: a member's
+  bar reaches up by its gap to the bar above and stopped there (A, C, D and E).
+- **Fix**: `reachOf()` in `blocks.ts` gives `render.ts` how far a rect that `joinsAbove` reaches
+  up: its block's gap, and 1 pt more (`JOIN_OVERLAP`) where the block above on the same page
+  continues it with a square rect of the same fill down to its bottom. A gap's slice joins above
+  with its bar and with a 1 pt strip of its fill right of the bar (the strip leaves the bar's
+  columns, so the bar's top edge lies over the bar above). A gap that begins a page, and a
+  member's bar under its group's tinted header, reach no further than before. Heights, texts and
+  tags are unchanged (R11). Tests: `blocks.test.ts` ("joins each gap's slice …", "reaches a
+  group's bar …", the 300 gaps' "draws nothing above the box …"), `render.test.ts` (no two fills
+  of one colour edge to edge without a shape over the edge, in A, C, D, E and 80 gaps; C's page 1).
+- **The pixel check** (`011/T037a/`; `bin/probes.ts` with `npx vite-node` from `frontend/`, then
+  `www/probe.html` in the Firefox Playwright MCP, pdf.js 3.11.174 from cdnjs): every place where
+  two painted fills meet edge to edge, found in the recording of A, C and a draft with 80 gaps (G,
+  3 pages of box) in English and German, and the first 12 such pages of E, sampled at 1.35× and
+  4× in the bar's column and the fill's (the lightest of the three pixel rows on the edge against
+  the colours drawn on either side and two control rows; 6 the tolerance on the sum of R, G and
+  B). G's box is also checked above its top and below its end on each of its three pages (white,
+  and nothing of it above the body's top where it continues).
+
+| Join | Files | Before: pass / fail | After: pass / fail |
+|---|---|---|---|
+| Gaps bar, slice to slice | C en, C de, G en, G de | 39 / 281 | 320 / 0 |
+| Gaps fill, slice to slice | C en, C de, G en, G de | 87 / 233 | 320 / 0 |
+| Group bar to group bar | A, C en, C de, E | 56 / 282 | 338 / 0 |
+| Group bar to a tinted header or end | A, C en, C de, E | 90 / 0 | 90 / 0 |
+| Outside G's box: above its top, below its end, on each of its pages | G en, G de | 48 / 0 | 48 / 0 |
+
+  The worst seam before: 203 lighter (sum of RGB) in the gaps bar, 9 in its fill, 34 in a
+  group bar. One sample below G's box is the watermark's blue, not the box. The files: `results/`
+  (`joins-*.csv`, `pixels-before.csv`, `pixels-after-at-before.csv`, `pixels-after.csv`,
+  `summary-*.txt`, `compare.txt`). No page image was needed.
+- **T037's sweep** re-run on a copy (`011/T037a/sweep/`): `sweep.csv` and `summary.txt` are
+  byte for byte T037's, so no row moved. veraPDF's PDF/UA-1 profile passes C and D in English and
+  German (106 rules, 0 failed checks each).
 
 ### 7.4 Tags, contrast and veraPDF
 
@@ -489,6 +678,15 @@ coordinator 2026-11-13; FR-005, SC-008; contracts/pdf-worker.md §2).
   `messageerror` or the watchdog terminate it (T033: before, "Try again" loaded the worker,
   PDFKit and the fonts again).
 
+**D6, how a draft's links to be created are tagged** (T035, decided by the coordinator
+2026-11-13; FR-013, FR-036; contract §2 and its `linksToCreate(list)` row). FR-036 counts "the
+links to be created" among the lists, but contract §2 words them as two sentences, the
+variants' names joined inside the second ("… a result link for each variant: Standard, Taxi and
+Hire car."), so there is no item to tag. The dashed box is tagged as two `P`s, its frame an
+artifact. Rejected: an `L` with one `LI` per variant, which would need a layout the contract
+doesn't draw. FR-036's mention is read as met by those sentences; T051's converge run keeps
+it as decided, not as unbuilt work.
+
 ### 8.3 The test connections
 
 **2026-11-12, T028.** Made in one run of `prototype/seed.ts` from `SEED_BODIES`
@@ -524,6 +722,33 @@ script (not committed): `SEED_BODIES.A.body` with `start_date: '2026-11-20'`, po
 | | What it is | Id | Status / state | Version |
 |---|---|---|---|---|
 | F | A copy of A, scheduled to start on 20.11.2026 | `e5c09dca-1843-47ae-9e74-5ebd0fa063e1` | published / scheduled | `610E-B3CA-743B` |
+
+**2026-11-13, T037.** Fresh copies of D for "Published meanwhile" and "Deleted meanwhile"
+(§7.2), made by a scratchpad script (`011/T037/seed-copies.ts`, not committed):
+- **How**: it posted `SEED_BODIES.D.body` to `POST /api/form-connections/drafts`, signed in as a
+  local account. Each copy was a draft at save 1.
+- **What became of them**: the runs published one copy each, unchanged, which kept its version,
+  and deleted another, a restorable deletion that answers 404.
+- **Runs 1 and 2** of each browser failed only on the script's own checks and were run again with
+  new copies (§7.2). The status column is as checked afterwards.
+
+| Run | Use | Id | Status / state | Version |
+|---|---|---|---|---|
+| Chromium, run 1 | published meanwhile | `eaf7de75-1116-45e0-8009-09ba151239bf` | published / live | `A105-E511-2F90` |
+| Chromium, run 1 | deleted meanwhile | `adfdd03a-4d4b-4e2e-98e7-18e84b3fed61` | deleted (404) | `F257-C3E7-8CDB` |
+| Chromium, run 2 | published meanwhile | `eef596fa-d404-4ed0-9634-25ddab415c24` | published / live | `E7A9-49C1-EEFA` |
+| Chromium, run 2 | deleted meanwhile | `ece55f37-3e32-4d7e-b4e3-ef0f88bdb7a7` | deleted (404) | `A6AC-4A01-EC21` |
+| Chromium, final | published meanwhile | `3ea1cc21-a413-4489-a147-50cdd0d2ca4f` | published / live | `9136-E998-8D35` |
+| Chromium, final | deleted meanwhile | `d11e6581-49b6-419a-ba9b-ac868eeb61ce` | deleted (404) | `ACE5-7C9C-6344` |
+| Firefox, run 1 | published meanwhile | `da5b5977-9e3c-4ea1-9cab-1e0d363aad59` | published / live | `8D2D-9763-00C6` |
+| Firefox, run 1 | deleted meanwhile | `2dfbaf16-42e1-401b-ae28-12b475c938d6` | deleted (404) | `84DB-447E-B5C2` |
+| Firefox, run 2 | published meanwhile | `8bc6b857-4d8b-4dd3-a53c-e82864a1e85a` | published / live | `F6F5-5E64-1365` |
+| Firefox, run 2 | deleted meanwhile | `62347be9-1cd6-4e6d-8f16-aa866780da73` | deleted (404) | `61FA-B4A6-6727` |
+| Firefox, final | published meanwhile | `ad805eb6-ce09-4db6-8ff3-83404da7f5eb` | published / live | `2946-92A0-A59F` |
+| Firefox, final | deleted meanwhile | `b5c5ca5b-e1fb-4fd1-bb38-814c9c8e3266` | deleted (404) | `9A92-E7C4-730E` |
+
+C and D themselves are unchanged: still drafts at their §8.3 versions. Publishing C was refused
+with 400 and wrote nothing (§7.2).
 
 ### 8.4 History
 
@@ -799,5 +1024,66 @@ S.A.". The largest file is 473160 bytes, under the 500 KB (512000 bytes) of the
   T032's narrow check with the browser's own 200 % zoom; T027's look at A's page 1 in a real PDF
   reader; the designer's answer on the version's place in the header; SC-006's screen-reader
   walk (T006).
+
+**2026-11-13, T038 checkpoint of US2 (Phase 6).**
+- **Gates**: lint; 2675 / 1948 / 513 tests in `rules/`, `frontend/`, `mcp/` (against T034: +77
+  in `frontend/`, T035's and T036's 67 and T037a's 10); the build, the main entry 932.93 kB
+  (278.86 kB gzip), unchanged. The worker's chunk grew from about 55 kB to 59.09 kB (the draft's
+  drawing).
+- **The stack**: as T034's (`template_db`, the tests' fake EUDIPLO from a scratchpad launcher,
+  the worker off, the dev SPA), signed in as a local account made for T037. The dev database now
+  holds T037's twelve copies of D (§8.3).
+- **The file from the page**: C downloaded from its details in headless Firefox (Playwright MCP)
+  as "Taxi and private hire driver licence_draft_BD20-E34A-47BC.pdf", after T037a's fix, read as
+  text (every page, with T037's extractor) and as images of pages 1 and 6 (pdf.js 3.11.174 at
+  1.35× and 4×), against quickstart §3:
+  - Step 1: the version and "Download PDF" in C's header (T037, §7.2).
+  - Step 2: "DRAFT" and "DRAFT · NOT LIVE" on all six pages; page 1's eyebrow "CONNECTION
+    DETAILS · DRAFT FOR REVIEW" (capitals, §5.12), "Draft Not live yet" and "Last saved
+    12.11.2026, 23:58 (draft save 1)".
+  - Step 3: "To finish before publishing (2)" with "Licence class B in Hire car has no error
+    message." and "Licence still valid in Hire car: choose a check."; rule-11 and rule-12 end
+    with "Not complete: Write the message for citizens." and "Not complete: Choose a check.", in
+    dashed warning frames with the "!".
+  - Step 4: no "http", no "/api/connect" and no "connect" outside "connection" on any page;
+    section 1 reads "Created when the connection is published and active." and names Standard,
+    Taxi and Hire car.
+  - Step 5: D has no gaps box (T037's files, §7.2).
+  - veraPDF 1.28.1's PDF/UA-1 profile passes the file (106 rules, 0 failed checks).
+- **The seams**: the first read, of T037's file, showed a light hairline across the gaps box's
+  fill and bar at each slice join, at 1.35× and at 4×. T037's sweep compares texts and shapes, so
+  it couldn't see them. The coordinator added T037a (wave 2b), which fixed them and the same seams
+  in the group bars, so the published connection's PDF (A, B, E) changes too, by those 1 pt
+  overlaps only (§7.3). In the file from the page after the fix, neither the fill nor the bar shows
+  a hairline; at 4× the bar's right edge has a faint darker notch at each join (the overlap's
+  edge anti-aliased twice), not visible at 1.35×. Accepted.
+- **§7.2 and §7.3**: no open row; no unsure row for C and D (T037, T037a).
+- **Decisions**: D6 (the coordinator: a draft's links to be created as two `P`s; carried to
+  T051) and §5.18 (the gaps box's 2 pt, R11).
+- **Decisions the agents marked UNCERTAIN, accepted**:
+  - T035, T036: no place label on a page that begins inside the gaps list; only a cut incomplete
+    rule's last piece dashed; a draft's band name cut 8 pt before the pill; "Not complete: …" as
+    one span; the watermark centred by its measured width, without a text box; the gaps list no
+    unit, only its heading chained to the first gap.
+  - T037: D's reference is the prototype's `completed(draftOf(sample), sample)`; "the other
+    tab" publishes and deletes through the API; C's and D's sections 2 and 3 cited "as in A";
+    "Driving licence · Expiry date" without the prototype's "…" (§5.15).
+  - T037a: a 1 pt strip of the fill right of the bar, not the whole fill, reaches up; the overlap
+    decided at draw time from the block above on the page (`reachOf()`); `JOIN_OVERLAP` 1 pt.
+- **Plan**: waves 1 and 2 kept their levels and batches. Added: T037a [high] as wave 2b, the
+  checkpoint's defect made a task, as T040 does for Phase 7. Edits outside a line's file list,
+  each allowed in the brief or reported: T036 passed the page's `pdf` through `index.tsx` and
+  `DraftDetails`' props in `FormConnectionDetail/types.ts` (D5 keeps the hook in `index.tsx`) and
+  corrected a comment in `RulesSummary.tsx`; T037a corrected the comment on `joinsAbove` in
+  `utils/connectionPdf/types.ts`; the coordinator corrected the comments in `PdfDownload.tsx` and
+  on `TextRole`. T037 and T037a used the repository's gitignored `.playwright-mcp/` (the MCP
+  writes only there) and left it empty.
+- **Carried**: D6 to T051.
+- **Needs a person**: SC-007: a colleague who has never opened the website reads C's PDF and says,
+  per variant, what is asked for, which rules apply, what a citizen is told and what is left to
+  finish (T038 stays unchecked until then). Still open from earlier phases: the user validates the
+  MVP (T034); T032's narrow check with the browser's own 200 % zoom; T027's look at A's page 1 in
+  a real PDF reader; the designer's answer on the version's place in the header; SC-006's
+  screen-reader walk (T006).
 
 ## 9. Closing report

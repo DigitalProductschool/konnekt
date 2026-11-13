@@ -260,7 +260,7 @@ export type ArtifactType = 'Layout' | 'Pagination';
 export type TextRole =
   /** Tagged: the elements from its part's `Sect` down to the one that holds the text */
   | { kind: 'tag'; path: StructNode[] }
-  /** Decoration they skip: a step number, an AND/OR chip's word, the "!" of a gap */
+  /** Decoration they skip: a step number, an AND/OR chip's word, the "!" before "Not complete:" */
   | { kind: 'artifact'; type: ArtifactType };
 
 // ---------------------------------------------------------------------------------------------
@@ -571,8 +571,9 @@ export interface PlacedRect extends ShapeBase {
   fill: HexColour | null;
   stroke: StrokeStyle | null;
   /**
-   * A group's bar: when the block isn't the first on its page, it is drawn reaching up by the
-   * block's `gapBefore`, so that it joins the bar of the block above
+   * A group's bar, or a gaps slice's bar and strip: when the block isn't the first on its page,
+   * it is drawn reaching up by the block's `gapBefore`, and `JOIN_OVERLAP` further where the block
+   * above continues it (`reachOf()` in `blocks.ts`), so that it joins the one above without a seam
    */
   joinsAbove: boolean;
 }

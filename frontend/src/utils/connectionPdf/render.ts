@@ -8,12 +8,13 @@
 import type { Language } from '@connection-portal/rules/language';
 
 import { CONNECTION_DETAIL_COPY } from '../../pages/FormConnectionDetail/constants';
-import { blocksOf, layoutOf } from './blocks';
+import { blocksOf, layoutOf, reachOf } from './blocks';
 import { PDF_COLOURS, PDF_LAYOUT, PDF_STYLES, PDF_TEXTS } from './constants';
 import { paginate, placeLabelOf } from './paginate';
 import type {
   ArtifactType,
   Block,
+  BlockLayout,
   ConnectionPdfModel,
   LayoutPart,
   Measure,
@@ -31,6 +32,7 @@ import type {
   PdfKitTextOptions,
   PdfRecording,
   PdfRenderOptions,
+  PlacedRect,
   PlacedShape,
   PlacedText,
   RecordedElement,
@@ -284,15 +286,21 @@ function paint(doc: PdfKitDocument, fill: string | null, stroke: StrokeStyle | n
   if (stroke?.dash) doc.undash();
 }
 
+/** How far a rect is drawn reaching up above its block's top, `reachOf()` for the block's place */
+type Reach = (rect: PlacedRect) => number;
+
+const NO_REACH: Reach = () => 0;
+
 /**
- * A shape. A rect that `joinsAbove` reaches up by `reach`: its block's gap when the block isn't
- * the first on its page, so that a group's bar joins the bar of the block above
+ * A shape. A rect is drawn reaching up by `reach(rect)`: for one that `joinsAbove`, its block's
+ * gap and the overlap into the block above (`reachOf()`) when the block isn't the first on its
+ * page, so that a group's bar or a gaps slice joins the one above without a seam
  */
-function drawShape(doc: PdfKitDocument, shape: PlacedShape, origin: Origin, reach: number): void {
+function drawShape(doc: PdfKitDocument, shape: PlacedShape, origin: Origin, reach: Reach): void {
   switch (shape.kind) {
     case 'rect': {
       if (shape.fill === null && shape.stroke === null) return;
-      const up = shape.joinsAbove ? reach : 0;
+      const up = reach(shape);
       const x = origin.x + shape.x;
       const y = origin.y + shape.y - up;
       const height = shape.height + up;
@@ -330,7 +338,7 @@ function drawParts(
   origin: Origin,
   tree: StructureTree,
   measure: Measure,
-  reach = 0
+  reach: Reach = NO_REACH
 ): void {
   let artifact: ArtifactType | null = null;
   const closeArtifact = (): void => {
@@ -384,9 +392,43 @@ function paginationText(
 }
 
 /**
- * The band (the name on one line cut with "…", "Connection ID <id>", right-aligned "Version
- * <version>" and "Generated <date>") and the bottom (the rule, the page's place from page 2,
- * "Page n of N"), all `Pagination` artifacts; x from the body's left edge, y from the page's top
+ * A draft's "Draft · Not live" pill in the band (FR-020), in capitals, white on the draft blue,
+ * its right edge `gapToVersion` left of the right-aligned version: its shape and its word, both
+ * `Pagination` artifacts like the band
+ */
+function draftPillOf(model: ConnectionPdfModel, measure: Measure): [PlacedShape, PlacedText] {
+  const texts = PDF_TEXTS[model.language];
+  const band = L.band;
+  const pill = band.draftPill;
+  const label = texts.draftNotLive.toUpperCase();
+  const width = measure.width(label, S.bandDraftPill) + 2 * pill.paddingX;
+  const versionWidth = measure.width(texts.versionLine(model.version), S.bandVersionDraft);
+  const x = BODY_WIDTH - band.paddingRight - versionWidth - pill.gapToVersion - width;
+  return [
+    {
+      kind: 'rect',
+      artifact: 'Pagination',
+      x,
+      y: band.y + pill.y,
+      width,
+      height: pill.height,
+      radius: pill.radius,
+      fill: C.draft,
+      stroke: null,
+      joinsAbove: false,
+    },
+    paginationText(label, S.bandDraftPill, { x, y: band.y + pill.y + pill.textY, width }, measure, {
+      align: 'center',
+    }),
+  ];
+}
+
+/**
+ * The band (the name on one line cut with "…", "Connection ID <id>", a draft's "Draft · Not live"
+ * pill, right-aligned "Version <version>" and "Generated <date>") and the bottom (the rule, the
+ * page's place from page 2, "Page n of N"), all `Pagination` artifacts; x from the body's left
+ * edge, y from the page's top. A draft's name is cut where the pill begins, so that the two never
+ * overlap
  */
 function paginationPartsOf(
   model: ConnectionPdfModel,
@@ -401,6 +443,11 @@ function paginationPartsOf(
   const right = BODY_WIDTH * band.rightColumnShare;
   const rightWidth = BODY_WIDTH - right - band.paddingRight;
   const textY = bottom.ruleY + bottom.textGap;
+  const pill = draft ? draftPillOf(model, measure) : null;
+  const nameWidth = Math.min(
+    BODY_WIDTH * band.nameWidthShare,
+    pill === null ? Infinity : pill[1].x - band.draftPill.gapToVersion - left
+  );
   const parts: LayoutPart[] = [
     {
       kind: 'rect',
@@ -429,7 +476,7 @@ function paginationPartsOf(
     paginationText(
       model.name,
       S.bandName,
-      { x: left, y: band.y + band.firstLineY, width: BODY_WIDTH * band.nameWidthShare },
+      { x: left, y: band.y + band.firstLineY, width: nameWidth },
       measure,
       { lines: 'cut' }
     ),
@@ -439,6 +486,7 @@ function paginationPartsOf(
       { x: left, y: band.y + band.secondLineY, width: BODY_WIDTH * band.idWidthShare },
       measure
     ),
+    ...(pill ?? []),
     paginationText(
       texts.versionLine(model.version),
       draft ? S.bandVersionDraft : S.bandVersion,
@@ -487,6 +535,32 @@ function paginationPartsOf(
   return parts;
 }
 
+/**
+ * A draft's watermark (FR-022; contracts/pdf-document.md section 2): "DRAFT" in its language,
+ * 150 pt SemiBold in the draft blue at 6 % opacity, rotated −38° about the page's centre and
+ * centred on it, a `Pagination` artifact. Drawn last, so that the cards' fills don't hide it; the
+ * opacity is restored with the graphics state
+ */
+function drawWatermark(doc: PdfKitDocument, model: ConnectionPdfModel, measure: Measure): void {
+  const style = S.watermark;
+  const { page, watermark } = L;
+  const text = PDF_TEXTS[model.language].watermark;
+  doc.markContent('Artifact', { type: 'Pagination' });
+  doc.save();
+  doc.rotate(watermark.angle, { origin: [page.width / 2, page.height / 2] });
+  doc.font(style.font, style.size).fillColor(style.colour).fillOpacity(C.watermarkOpacity);
+  // Centred by its measured width, on one line: given a box, PDFKit would break a word wider
+  // than the page ("ENTWURF" at 150 pt)
+  doc.text(
+    text,
+    (page.width - measure.width(text, style)) / 2,
+    page.height / 2 + watermark.offsetY,
+    { lineBreak: false, strike: false }
+  );
+  doc.restore();
+  doc.endMarkedContent();
+}
+
 // ---------------------------------------------------------------------------------------------
 // The outline (FR-038)
 
@@ -530,7 +604,10 @@ function bytesOf(doc: PdfKitDocument): Promise<Uint8Array> {
   });
 }
 
-/** Draws one page: its band and bottom, then its blocks in order, with their bookmarks */
+/**
+ * Draws one page: its band and bottom, then its blocks in order, with their bookmarks, and a
+ * draft's watermark last
+ */
 function drawPage(
   doc: PdfKitDocument,
   model: ConnectionPdfModel,
@@ -556,14 +633,19 @@ function drawPage(
     tree,
     measure
   );
-  page.placed.forEach(({ index, y }, position) => {
+  // The layout of the block drawn before on this page, which a rect joining above may reach into
+  let above: BlockLayout | null = null;
+  page.placed.forEach(({ index, y }) => {
     const block = page.blocks[index];
     const top = L.body.y + y;
     if (block.bookmark !== null) context.bookmark(block.bookmark, top);
-    const { parts } = layoutOf(block.content, measure);
-    const reach = position > 0 ? block.gapBefore : 0;
-    drawParts(doc, parts, { x: L.body.x, y: top }, tree, measure, reach);
+    const layout = layoutOf(block.content, measure);
+    const before = above;
+    const reach: Reach = (rect) => reachOf(rect, block.gapBefore, before);
+    drawParts(doc, layout.parts, { x: L.body.x, y: top }, tree, measure, reach);
+    above = layout;
   });
+  if (model.kind === 'draft') drawWatermark(doc, model, measure);
 }
 
 /**
@@ -571,7 +653,8 @@ function drawPage(
  * tagged PDF/UA, the title shown, the language, the properties), registers the five fonts, builds
  * the blocks with PDFKit's `Measure` (or the given one) and places them with `paginate()`, then
  * draws page by page: the band and the bottom as `Pagination` artifacts, each block through its
- * `layoutOf()` geometry inside the structure tree, and the outline from the blocks' bookmarks.
+ * `layoutOf()` geometry inside the structure tree, a draft's watermark over it all, and the
+ * outline from the blocks' bookmarks.
  * Before `end()`, `withoutCidSet()`. Resolves with the file's bytes; rejects when drawing throws
  */
 export function renderConnectionPdf(

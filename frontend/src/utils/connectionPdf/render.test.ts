@@ -6,10 +6,18 @@ import { beforeAll, describe, expect, it } from 'vitest';
 
 import { BRANCH_MARK_COPY } from '../../components/BranchMark/constants';
 import { CONNECTOR_COPY } from '../../components/Connector/constants';
+import { JOIN_OVERLAP } from './blocks';
 import { PDF_COLOURS, PDF_LAYOUT, PDF_STYLES, PDF_TEXTS } from './constants';
 import { connectionPdfModelOf } from './model';
 import { recordingDocument, renderConnectionPdf } from './render';
-import { largestConnection, SAMPLE_OPTION_SETS, SAMPLE_PUBLISHED } from './testData';
+import {
+  largestConnection,
+  SAMPLE_DOCUMENT_TYPES,
+  SAMPLE_DRAFT,
+  SAMPLE_DRAFT_GAPS,
+  SAMPLE_OPTION_SETS,
+  SAMPLE_PUBLISHED,
+} from './testData';
 import type {
   ConnectionPdfModel,
   PdfFont,
@@ -65,11 +73,14 @@ const FONTS = fontsOf();
 /** 16:45 in Germany on 09.11.2026 (CET) */
 const NOW = new Date('2026-11-09T15:45:00Z');
 
-/** A connection's model as the hook builds it in English */
+/** A connection's model as the hook builds it in English: a draft's with the catalog (D5) */
 function modelOf(connection: Parameters<typeof connectionPdfModelOf>[0]): ConnectionPdfModel {
   return connectionPdfModelOf(
     connection,
-    { optionSets: SAMPLE_OPTION_SETS.en, documentTypes: null },
+    {
+      optionSets: SAMPLE_OPTION_SETS.en,
+      documentTypes: connection.status === 'draft' ? SAMPLE_DOCUMENT_TYPES.en : null,
+    },
     { language: 'en', now: NOW }
   );
 }
@@ -195,6 +206,41 @@ function expectShapesArtifactsOrStrikes(recording: PdfRecording): void {
 }
 
 /**
+ * The seams a viewer may draw (T037a): per page, two filled rects of one colour edge to edge (one's
+ * bottom the other's top) where no shape painted after both spans the edge across their shared
+ * columns. Anti-aliasing each edge on its own leaves a light hairline there
+ */
+function seamsOf(recording: PdfRecording): string[] {
+  const seams: string[] = [];
+  recording.pages.forEach((page, index) => {
+    const rects = page.shapes.filter(
+      (shape) => shape.kind === 'rect' && shape.fill !== null && shape.height > 0
+    );
+    rects.forEach((a, i) => {
+      rects.forEach((b, j) => {
+        if (i === j || a.fill !== b.fill || Math.abs(a.y + a.height - b.y) > 1e-6) return;
+        const left = Math.max(a.x, b.x);
+        const right = Math.min(a.x + a.width, b.x + b.width);
+        if (right - left < 0.01) return;
+        const edge = b.y;
+        const covers = rects
+          .slice(Math.max(i, j) + 1)
+          .filter((c) => c.y <= edge - 0.5 && c.y + c.height >= edge + 0.5)
+          .map((c) => [c.x, c.x + c.width] as const)
+          .sort((m, n) => m[0] - n[0]);
+        let reached = left;
+        for (const [from, to] of covers)
+          if (from <= reached + 1e-6) reached = Math.max(reached, to);
+        if (reached < right - 1e-6) {
+          seams.push(`page ${index + 1}: ${a.fill} at y ${edge.toFixed(2)}, x ${left.toFixed(2)}`);
+        }
+      });
+    });
+  });
+  return seams;
+}
+
+/**
  * A one-line text struck through as D3 says: PDFKit's line in the text's own marked content, in
  * its colour, as wide as its words, through the middle of its line (half PDFKit's line height
  * below the line's top: 0.6 × the size in Fira Sans)
@@ -240,8 +286,15 @@ function placeLabelsOf(recording: PdfRecording): RecordedText[][] {
   );
 }
 
-describe('renderConnectionPdf, A in English', () => {
-  const model = modelOfA();
+/** A, published, and the drafts C (with Hire car's two gaps) and D (without gaps), in English */
+const DOCUMENTS: [string, ConnectionPdfModel][] = [
+  ['A', modelOfA()],
+  ['C', modelOf(SAMPLE_DRAFT_GAPS)],
+  ['D', modelOf(SAMPLE_DRAFT)],
+];
+
+describe.each(DOCUMENTS)('renderConnectionPdf, %s in English', (_name, model) => {
+  const draft = model.kind === 'draft';
   let rendered: Rendered;
 
   beforeAll(async () => {
@@ -263,9 +316,9 @@ describe('renderConnectionPdf, A in English', () => {
   it('sets the properties of contracts/pdf-document.md section 4 and no custom key', () => {
     const info = rendered.recording.options?.info;
     expect(info).toEqual({
-      Title: PDF_TEXTS.en.title(model.name),
+      Title: draft ? PDF_TEXTS.en.titleDraft(model.name) : PDF_TEXTS.en.title(model.name),
       Subject: `Connection ${model.id}, version ${model.version}`,
-      Keywords: `connection ${model.id}; version ${model.version}`,
+      Keywords: `connection ${model.id}; version ${model.version}${draft ? '; draft' : ''}`,
       Author: 'Konnekt',
       Creator: 'Konnekt',
     });
@@ -302,6 +355,10 @@ describe('renderConnectionPdf, A in English', () => {
     expectShapesArtifactsOrStrikes(rendered.recording);
   });
 
+  it('joins the fills that continue one another without a seam: group bars, the gaps box (T037a)', () => {
+    expect(seamsOf(rendered.recording)).toEqual([]);
+  });
+
   it('names the page’s place at the bottom from page 2 on, and none on page 1', () => {
     const [first, ...rest] = placeLabelsOf(rendered.recording);
     expect(first).toEqual([]);
@@ -326,7 +383,7 @@ describe('renderConnectionPdf, A in English', () => {
     ).toEqual(rows.map(() => ['TH', 'TD']));
   });
 
-  it('lists the data items as L › LI › LBody', () => {
+  it('lists the data items, and a draft’s gaps, as L › LI › LBody', () => {
     const lists = elementsOfType(rendered.recording.structure, 'L');
     expect(lists.length).toBeGreaterThan(0);
     for (const list of lists) {
@@ -693,10 +750,258 @@ describe('renderConnectionPdf, the largest connection (E)', () => {
     );
   });
 
+  it('joins its group bars without a seam on every page (T037a)', () => {
+    expect(seamsOf(rendered.recording)).toEqual([]);
+  });
+
   it('lists every variant in the outline under section 3', () => {
     const [, , rules] = rendered.recording.outline;
     expect(rules.children.map((item) => item.title)).toEqual(
       model.variants.map((variant) => PDF_TEXTS.en.variant(variant.name))
     );
+  });
+});
+
+/** The texts of a page drawn as `Pagination` artifacts whose words are `text` */
+function paginationTextsReading(page: { texts: RecordedText[] }, text: string): RecordedText[] {
+  return paginationTexts(page.texts).filter((recorded) => recorded.text === text);
+}
+
+describe.each([
+  ['C', SAMPLE_DRAFT_GAPS],
+  ['D', SAMPLE_DRAFT],
+] as const)('renderConnectionPdf, the draft %s in English', (name, connection) => {
+  const model = modelOf(connection);
+  const texts = PDF_TEXTS.en;
+  let rendered: Rendered;
+
+  beforeAll(async () => {
+    rendered = await render(model, { raw: false });
+  });
+
+  it('holds no URL: no recorded text of any page, no property and no outline entry (FR-013)', () => {
+    const { recording } = rendered;
+    const drawn = recording.pages.flatMap((page) => page.texts.map((text) => text.text));
+    expect(drawn.length).toBeGreaterThan(0);
+    expect(drawn.filter((text) => /http/i.test(text) || text.includes('/api/connect'))).toEqual([]);
+    const said = [
+      ...Object.values(recording.options?.info ?? {}).map(String),
+      ...recording.outline.flatMap((item) => [item.title, ...item.children.map((c) => c.title)]),
+    ];
+    expect(said.filter((text) => /http/i.test(text) || text.includes('/api/connect'))).toEqual([]);
+  });
+
+  it('carries the "Draft · Not live" pill in the band of every page, left of the version (FR-020)', () => {
+    const pill = texts.draftNotLive.toUpperCase();
+    expect(pill).toBe('DRAFT · NOT LIVE');
+    rendered.recording.pages.forEach((page, index) => {
+      const [word, ...others] = paginationTextsReading(page, pill);
+      expect(others, `page ${index + 1}`).toEqual([]);
+      expect(word, `page ${index + 1}`).toBeDefined();
+      expect(word).toMatchObject({ colour: PDF_COLOURS.white, opacity: 1 });
+      const shapes = page.shapes.filter(
+        (shape) =>
+          shape.fill === PDF_COLOURS.draft &&
+          shape.role?.kind === 'artifact' &&
+          shape.role.type === 'Pagination'
+      );
+      expect(shapes).toHaveLength(1);
+      const [shape] = shapes;
+      // The word inside its pill, the pill left of the version, the name cut before the pill
+      expect(word.x).toBe(shape.x);
+      expect(word.width).toBe(shape.width);
+      expect(word.advance).toBeLessThan(shape.width);
+      const [version] = paginationTextsReading(page, texts.versionLine(model.version));
+      expect(version.colour).toBe(PDF_COLOURS.draft);
+      const versionLeft = version.x + (version.width ?? 0) - version.advance;
+      expect(shape.x + shape.width).toBeCloseTo(
+        versionLeft - PDF_LAYOUT.band.draftPill.gapToVersion,
+        6
+      );
+      const nameText = paginationTexts(page.texts).find(
+        (text) => text.font === PDF_STYLES.bandName.font && text.size === PDF_STYLES.bandName.size
+      );
+      expect(nameText!.x + nameText!.advance).toBeLessThan(shape.x);
+    });
+  });
+
+  it('draws the faint "DRAFT" last on every page, a Pagination artifact at 6 % (FR-022, FR-037)', () => {
+    const style = PDF_STYLES.watermark;
+    rendered.recording.pages.forEach((page, index) => {
+      const marks = page.texts.filter((text) => text.text === texts.watermark);
+      expect(marks, `page ${index + 1}`).toHaveLength(1);
+      const [mark] = marks;
+      expect(page.texts.at(-1)).toBe(mark);
+      expect(mark).toMatchObject({
+        font: style.font,
+        size: style.size,
+        colour: PDF_COLOURS.watermark,
+        opacity: PDF_COLOURS.watermarkOpacity,
+        strike: false,
+        role: { kind: 'artifact', type: 'Pagination' },
+      });
+      // Centred on the page (the position before the rotation about the page's centre)
+      expect(mark.x + mark.advance / 2).toBeCloseTo(PDF_LAYOUT.page.width / 2, 6);
+      expect(mark.y).toBe(PDF_LAYOUT.page.height / 2 + PDF_LAYOUT.watermark.offsetY);
+      // The opacity goes no further than the watermark
+      for (const text of page.texts) if (text !== mark) expect(text.opacity).toBe(1);
+      for (const shape of page.shapes) expect(shape.opacity).toBe(1);
+    });
+  });
+
+  it('lists the gaps on page 1 as the box’s H2, sentence and L, or has no such box (FR-010)', () => {
+    const { recording } = rendered;
+    const title = texts.gapsTitle(model.gaps.length);
+    const headings = elementsOfType(recording.structure, 'H2').filter((heading) =>
+      textsOfElement(heading, recording).startsWith('To finish before publishing')
+    );
+    if (name === 'D') {
+      expect(model.gaps).toEqual([]);
+      expect(headings).toEqual([]);
+      const drawn = recording.pages.flatMap((page) => page.texts.map((text) => text.text));
+      expect(drawn.some((text) => text.startsWith('To finish before publishing'))).toBe(false);
+      return;
+    }
+    expect(headings).toHaveLength(1);
+    expect(textsOfElement(headings[0], recording)).toBe(title);
+    const sect = childElementsOf(recording.structure[0]).find((part) =>
+      childElementsOf(part).includes(headings[0])
+    )!;
+    // The page's second part, after page 1's
+    expect(childElementsOf(recording.structure[0]).indexOf(sect)).toBe(1);
+    const [heading, lead, list, ...rest] = childElementsOf(sect);
+    expect([heading.type, lead.type, list.type, rest]).toEqual(['H2', 'P', 'L', []]);
+    expect(textsOfElement(lead, recording)).toBe(texts.gapsLead);
+    const items = childElementsOf(list);
+    expect(items.map((item) => item.type)).toEqual(['LI', 'LI']);
+    expect(items.map((item) => textsOfElement(childElementsOf(item)[0], recording))).toEqual([
+      'Licence class B in Hire car has no error message.',
+      'Licence still valid in Hire car: choose a check.',
+    ]);
+    // All on page 1
+    for (const element of [heading, lead, ...items.map((item) => childElementsOf(item)[0])]) {
+      for (const text of recordedTextsOf(element, recording)) expect(text.page).toBe(1);
+    }
+    // No outline entry for the box
+    expect(recording.outline.map((item) => item.title)).not.toContain(title);
+  });
+
+  it('draws the gaps box as one box on page 1: each gap’s bar and strip reach over the join (T037a)', () => {
+    const [first] = rendered.recording.pages;
+    const bars = first.shapes.filter(
+      (shape) => shape.kind === 'rect' && shape.fill === PDF_COLOURS.warning
+    );
+    const strips = first.shapes.filter(
+      (shape) =>
+        shape.kind === 'rect' &&
+        shape.fill === PDF_COLOURS.warningBackground &&
+        shape.x === PDF_LAYOUT.body.x + PDF_LAYOUT.gaps.barWidth
+    );
+    if (name === 'D') {
+      expect([...bars, ...strips]).toEqual([]);
+      return;
+    }
+    // The heading's bar, then one per gap, each from JOIN_OVERLAP above the slice before's end
+    expect(bars).toHaveLength(3);
+    for (const [index, bar] of bars.entries()) {
+      if (index === 0) continue;
+      const before = bars[index - 1];
+      expect(bar.y).toBeCloseTo(before.y + before.height - JOIN_OVERLAP, 6);
+      expect(bar.x).toBe(PDF_LAYOUT.body.x);
+    }
+    // A strip of the fill right of each gap's bar, across the join
+    expect(strips).toHaveLength(2);
+    for (const [index, strip] of strips.entries()) {
+      const join = bars[index].y + bars[index].height;
+      expect(strip.y).toBeCloseTo(join - JOIN_OVERLAP, 6);
+      expect(strip.height).toBeCloseTo(2 * JOIN_OVERLAP, 6);
+    }
+    // Nothing of the box above its heading's top
+    const box = first.shapes.filter(
+      (shape) => shape.fill === PDF_COLOURS.warning || shape.fill === PDF_COLOURS.warningBackground
+    );
+    expect(Math.min(...box.map((shape) => shape.y))).toBe(bars[0].y);
+  });
+
+  it('ends each incomplete rule with "Not complete: …" in its Div, after what it has (FR-018)', () => {
+    const { recording } = rendered;
+    const notes = elementsOfType(recording.structure, 'P').filter((paragraph) =>
+      textsOfElement(paragraph, recording).startsWith('Not complete:')
+    );
+    const marks = recording.pages.flatMap((page) => page.texts.filter((text) => text.text === '!'));
+    if (name === 'D') {
+      expect(notes).toEqual([]);
+      expect(marks).toEqual([]);
+      return;
+    }
+    expect(notes.map((note) => textsOfElement(note, recording))).toEqual([
+      'Not complete: Write the message for citizens.',
+      'Not complete: Choose a check.',
+    ]);
+    for (const note of notes) {
+      const [text] = recordedTextsOf(note, recording);
+      expect(text.colour).toBe(PDF_COLOURS.warning);
+      const div = elementsOfType(recording.structure, 'Div').find((candidate) =>
+        childElementsOf(candidate).includes(note)
+      )!;
+      const children = childElementsOf(div);
+      expect(children.at(-1)).toBe(note);
+      // rule-11: heading and statement; rule-12: heading and its subject alone
+      expect(children.map((child) => child.type)).toEqual(['H4', 'P', 'P']);
+    }
+    expect(
+      textsOfElement(
+        childElementsOf(
+          elementsOfType(recording.structure, 'Div').find((div) =>
+            childElementsOf(div).includes(notes[1])
+          )!
+        )[1],
+        recording
+      )
+    ).toBe('Driving licence · Expiry date');
+    // The "!" before each, in its circle: artifacts
+    expect(marks).toHaveLength(2);
+    for (const mark of marks) expect(mark.role).toEqual({ kind: 'artifact', type: 'Layout' });
+  });
+});
+
+describe('renderConnectionPdf, a draft with 80 gaps (T037a)', () => {
+  const base = modelOf(SAMPLE_DRAFT_GAPS);
+  const model: ConnectionPdfModel = {
+    ...base,
+    gaps: Array.from({ length: 80 }, (_, index) => ({
+      ...base.gaps[0],
+      text: `Rule ${index + 1} in Variant ${index % 7}: choose a check.`,
+    })),
+  };
+  let rendered: Rendered;
+
+  beforeAll(async () => {
+    rendered = await render(model, { raw: false });
+  });
+
+  it('continues the box at the top of the next pages, with nothing drawn above it, and no seam', () => {
+    // The box's rects: its fills and bars start at the body's left edge or right of the bar (an
+    // incomplete rule's "Not complete" mark, in the warning colour too, sits inside its card)
+    const lefts = [PDF_LAYOUT.body.x, PDF_LAYOUT.body.x + PDF_LAYOUT.gaps.barWidth];
+    const boxes = rendered.recording.pages
+      .map((page) =>
+        page.shapes.filter(
+          (shape) =>
+            shape.kind === 'rect' &&
+            lefts.includes(shape.x) &&
+            (shape.fill === PDF_COLOURS.warning || shape.fill === PDF_COLOURS.warningBackground)
+        )
+      )
+      .filter((shapes) => shapes.length > 0);
+    expect(boxes.length).toBeGreaterThan(2);
+    for (const shapes of boxes.slice(1)) {
+      expect(Math.min(...shapes.map((shape) => shape.y))).toBe(PDF_LAYOUT.body.y);
+    }
+    for (const shapes of boxes) {
+      const bottom = Math.max(...shapes.map((shape) => shape.y + shape.height));
+      expect(bottom).toBeLessThanOrEqual(PDF_LAYOUT.body.y + PDF_LAYOUT.body.height + 1e-6);
+    }
+    expect(seamsOf(rendered.recording)).toEqual([]);
   });
 });

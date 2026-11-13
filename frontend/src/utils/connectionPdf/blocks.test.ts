@@ -7,13 +7,16 @@ import { STATUS_PILL_COPY } from '../../components/ConnectionStatusBadge/constan
 import { CONNECTOR_COPY } from '../../components/Connector/constants';
 import { RULE_ROW_COPY } from '../../components/RuleRow/constants';
 import { CONNECTION_DETAIL_COPY } from '../../pages/FormConnectionDetail/constants';
-import { blocksOf, layoutOf, RESULT_LINKS_UNIT } from './blocks';
+import { blocksOf, JOIN_OVERLAP, layoutOf, reachOf, RESULT_LINKS_UNIT } from './blocks';
 import { PDF_COLOURS, PDF_LAYOUT, PDF_STYLES, PDF_TEXTS } from './constants';
+import { missingOf } from './gaps';
 import { connectionPdfModelOf } from './model';
 import { paginate, placeLabelOf } from './paginate';
 import {
   largestConnection,
   SAMPLE_DOCUMENT_TYPES,
+  SAMPLE_DRAFT,
+  SAMPLE_DRAFT_GAPS,
   SAMPLE_OPTION_SETS,
   SAMPLE_PUBLISHED,
 } from './testData';
@@ -23,6 +26,7 @@ import type {
   BlockLayout,
   ConnectionPdfModel,
   DocumentContent,
+  GapContent,
   LinkContent,
   Measure,
   Page,
@@ -62,7 +66,10 @@ const measure: Measure = {
     (1.2 + PDF_LAYOUT.lineGapFactor),
 };
 
-function modelOf(connection: FormConnection, language: Language = 'en'): ConnectionPdfModel {
+function modelOf(
+  connection: Parameters<typeof connectionPdfModelOf>[0],
+  language: Language = 'en'
+): ConnectionPdfModel {
   return connectionPdfModelOf(
     connection,
     { optionSets: SAMPLE_OPTION_SETS[language], documentTypes: SAMPLE_DOCUMENT_TYPES[language] },
@@ -776,6 +783,11 @@ function framesOf(layout: BlockLayout): PlacedRect[] {
   );
 }
 
+/** Every rect of a block */
+function rectsOf(layout: BlockLayout): PlacedRect[] {
+  return layout.parts.filter((part): part is PlacedRect => part.kind === 'rect');
+}
+
 /** The group bars of a block */
 function barsOf(layout: BlockLayout): PlacedRect[] {
   return layout.parts.filter((part): part is PlacedRect => part.kind === 'rect' && part.joinsAbove);
@@ -1421,5 +1433,686 @@ describe('the largest connection (E) over paginate()’s pages (FR-045, SC-005)'
       }
     }
     expect(outside).toEqual([]);
+  });
+});
+
+// ---------------------------------------------------------------------------------------------
+// A draft (C with Hire car's two gaps, D without gaps)
+
+/** The page 1 kinds of a draft with gaps: the box's heading and one block per gap */
+function draftKindsOf(gaps: number): BlockKind[] {
+  return [
+    ...PAGE_ONE,
+    ...(gaps > 0 ? (['gapsHeading', ...Array(gaps).fill('gap')] as BlockKind[]) : []),
+    'sectionHeading',
+    'linksToCreate',
+    'sectionHeading',
+    'document',
+    'document',
+    'sectionHeading',
+    ...STANDARD,
+    ...TAXI,
+    ...HIRE_CAR,
+  ];
+}
+
+/** Every text a block holds, in its content and as its layout draws it */
+function everythingSaidBy(block: Block): string {
+  const drawn = textsOf(layoutOf(block.content, measure)).map(wordsOf);
+  return `${JSON.stringify(block.content)}\n${drawn.join('\n')}`;
+}
+
+/** A rule's dashed frame: the warning colour, dashed (an incomplete rule of a draft) */
+function isDashed(frame: PlacedRect | undefined): boolean {
+  return frame?.stroke?.colour === PDF_COLOURS.warning && frame.stroke.dash !== null;
+}
+
+const DRAFTS: [string, Parameters<typeof connectionPdfModelOf>[0]][] = [
+  ['C', SAMPLE_DRAFT_GAPS],
+  ['D', SAMPLE_DRAFT],
+];
+
+describe('blocksOf: a draft', () => {
+  it.each(LANGUAGES)('C in %s: page 1, the gaps box, the dashed box, documents, rules', (l) => {
+    expect(kindsOf(blocksOf(modelOf(SAMPLE_DRAFT_GAPS, l), measure))).toEqual(draftKindsOf(2));
+  });
+
+  it.each(LANGUAGES)('D in %s: no gaps box', (l) => {
+    const blocks = blocksOf(modelOf(SAMPLE_DRAFT, l), measure);
+    expect(kindsOf(blocks)).toEqual(draftKindsOf(0));
+    expect(blocks.some((block) => block.content.within[0].key === 'gaps')).toBe(false);
+  });
+
+  it.each(DRAFTS.flatMap(([name, draft]) => LANGUAGES.map((l) => [name, draft, l] as const)))(
+    'no block of %s holds a URL, in its content or in what it draws (FR-013; %s)',
+    (_name, draft, language) => {
+      const blocks = blocksOf(modelOf(draft, language), measure);
+      for (const block of blocks) {
+        const said = everythingSaidBy(block);
+        expect(said, block.content.key).not.toMatch(/https?:/);
+        expect(said, block.content.key).not.toContain('/api/connect');
+        expect(['link', 'linkHeading']).not.toContain(block.content.kind);
+      }
+    }
+  );
+
+  it.each(LANGUAGES)(
+    'page 1 of a draft: eyebrow, status, "Last saved" after the version, the draft’s note (%s)',
+    (l) => {
+      const texts = PDF_TEXTS[l];
+      const model = modelOf(SAMPLE_DRAFT_GAPS, l);
+      const [title, status, details, note] = blocksOf(model, measure);
+      expect(title.content).toMatchObject({ eyebrow: texts.eyebrowDraft, draft: true });
+      expect(status.content).toMatchObject({
+        status: 'draft',
+        label: STATUS_PILL_COPY[l].draft,
+        note: texts.notLiveYet,
+      });
+      expect(
+        details.content.kind === 'details' && details.content.rows.map((row) => row.label)
+      ).toEqual([
+        texts.connectionId,
+        texts.version,
+        texts.lastSaved,
+        texts.generated,
+        texts.contents,
+      ]);
+      expect(details.content).toMatchObject({ draft: true });
+      const rows = details.content.kind === 'details' ? details.content.rows : [];
+      expect(rows[1]).toMatchObject({ value: '3D3C-F9EA-5FE0', valueKind: 'version' });
+      expect(rows[2]).toEqual({
+        label: texts.lastSaved,
+        value: texts.lastSavedValue('09.11.2026, 14:10', 7),
+        valueKind: 'text',
+      });
+      expect(note.content).toMatchObject({ text: texts.checkNoteDraft });
+    }
+  );
+
+  it.each(LANGUAGES)(
+    'C’s gaps box: its H2 and sentence, then each gap an LI of one L (%s)',
+    (l) => {
+      const texts = PDF_TEXTS[l];
+      const model = modelOf(SAMPLE_DRAFT_GAPS, l);
+      const blocks = blocksOf(model, measure);
+      const [heading, ...gaps] = blocks.slice(4, 7);
+      expect(heading.content).toMatchObject({
+        kind: 'gapsHeading',
+        title: texts.gapsTitle(2),
+        lead: texts.gapsLead,
+      });
+      // Chained to the first gap, outside the sections, in no outline entry
+      expect(heading.keepWithNext).toBe(true);
+      expect(heading.gapBefore).toBe(PDF_LAYOUT.gaps.gapBefore);
+      for (const block of [heading, ...gaps]) {
+        expect(block.place).toEqual({ section: null, variant: null, opens: null });
+        expect(block.bookmark).toBeNull();
+        expect(block.startsUnits).toEqual([]);
+        expect(block.unitOf).toEqual([]);
+      }
+      for (const gap of gaps) expect(gap.gapBefore).toBe(0);
+      expect(gaps.map((gap) => (gap.content as GapContent).text)).toEqual(
+        model.gaps.map((gap) => gap.text)
+      );
+      expect(gaps.map((gap) => (gap.content as GapContent).last)).toEqual([false, true]);
+      const [title, lead] = textsOf(layoutOf(heading.content, measure));
+      expect(wordsOf(title)).toBe(texts.gapsTitle(2));
+      expect(title.role).toEqual({
+        kind: 'tag',
+        path: [
+          { type: 'Sect', key: 'gaps' },
+          { type: 'H2', key: 'gaps/heading/title' },
+        ],
+      });
+      expect(lead.role.kind === 'tag' && lead.role.path.map((node) => node.type)).toEqual([
+        'Sect',
+        'P',
+      ]);
+      expect(title.spans[0].style).toEqual(PDF_STYLES.gapsTitle);
+      gaps.forEach((gap, index) => {
+        const layout = layoutOf(gap.content, measure);
+        const [text] = textsOf(layout);
+        expect(wordsOf(text)).toBe(model.gaps[index].text);
+        expect(text.role).toEqual({
+          kind: 'tag',
+          path: [
+            { type: 'Sect', key: 'gaps' },
+            { type: 'L', key: 'gaps/list' },
+            { type: 'LI', key: `gaps/gap-${index}/item` },
+            { type: 'LBody', key: `gaps/gap-${index}/body` },
+          ],
+        });
+        // The bullet and the box's slice are artifacts
+        const shapes = layout.parts.filter((part) => part.kind !== 'text');
+        expect(shapes.every((shape) => shape.artifact === 'Layout')).toBe(true);
+        expect(
+          shapes.some((shape) => shape.kind === 'circle' && shape.fill === PDF_COLOURS.warning)
+        ).toBe(true);
+      });
+    }
+  );
+
+  it('C’s gaps box is one box: its slices fill the body’s width, rounded at the top and the bottom only', () => {
+    const blocks = blocksOf(modelOf(SAMPLE_DRAFT_GAPS), measure).slice(4, 7);
+    const fills = blocks.map((block) =>
+      framesOf(layoutOf(block.content, measure)).filter(
+        (frame) => frame.fill === PDF_COLOURS.warningBackground
+      )
+    );
+    for (const [index, slice] of fills.entries()) {
+      // Each slice covers its block from top to bottom across the body
+      expect(Math.min(...slice.map((rect) => rect.y))).toBe(0);
+      expect(Math.max(...slice.map((rect) => rect.y + rect.height))).toBe(blocks[index].height);
+      for (const rect of slice) expect(rect.width).toBe(BODY.width);
+    }
+    // The heading's slice square at its bottom, the last gap's at its top
+    const rounded = fills.map((slice) => slice.filter((rect) => rect.radius > 0).length);
+    expect(rounded).toEqual([1, 0, 1]);
+    const [top, , bottom] = fills;
+    expect(top.some((rect) => rect.radius === 0 && rect.y + rect.height === blocks[0].height)).toBe(
+      true
+    );
+    expect(bottom.some((rect) => rect.radius === 0 && rect.y === 0)).toBe(true);
+    // The bar at the left of every slice; a gap's joins the slice above (T037a)
+    for (const [index, block] of blocks.entries()) {
+      const bars = rectsOf(layoutOf(block.content, measure)).filter(
+        (rect) => rect.fill === PDF_COLOURS.warning
+      );
+      expect(bars).toEqual([
+        expect.objectContaining({
+          x: 0,
+          y: 0,
+          width: PDF_LAYOUT.gaps.barWidth,
+          joinsAbove: index > 0,
+        }),
+      ]);
+      expect(bars[0].height).toBe(blocks[index].height);
+    }
+  });
+
+  it('joins each gap’s slice to the one above without a seam: its bar and a strip of its fill reach over the edge (T037a)', () => {
+    const blocks = blocksOf(modelOf(SAMPLE_DRAFT_GAPS), measure).slice(4, 7);
+    const layouts = blocks.map((block) => layoutOf(block.content, measure));
+    const { barWidth } = PDF_LAYOUT.gaps;
+    // The heading's slice begins the box: nothing of it reaches up
+    expect(rectsOf(layouts[0]).filter((rect) => rect.joinsAbove)).toEqual([]);
+    for (const [index, layout] of layouts.entries()) {
+      if (index === 0) continue;
+      const joining = rectsOf(layout).filter((rect) => rect.joinsAbove);
+      // The strip right of the bar, so that the bar's own top edge lies over the bar above
+      expect(joining).toEqual([
+        expect.objectContaining({
+          x: barWidth,
+          y: 0,
+          width: BODY.width - barWidth,
+          height: JOIN_OVERLAP,
+          radius: 0,
+          fill: PDF_COLOURS.warningBackground,
+        }),
+        expect.objectContaining({ x: 0, width: barWidth, fill: PDF_COLOURS.warning }),
+      ]);
+      // On the same page they reach JOIN_OVERLAP into the slice above (the gaps' gap is 0) ...
+      const above = layouts[index - 1];
+      for (const rect of joining) {
+        expect(reachOf(rect, blocks[index].gapBefore, above)).toBe(JOIN_OVERLAP);
+        // ... and nowhere when the gap begins its page
+        expect(reachOf(rect, blocks[index].gapBefore, null)).toBe(0);
+      }
+      // Measured equals drawn: the joins add nothing to the slice's height
+      expect(Math.max(...rectsOf(layout).map((rect) => rect.y + rect.height))).toBe(
+        blocks[index].height
+      );
+    }
+    // The overlap stays in the empty space at the bottom of the slice above
+    expect(JOIN_OVERLAP).toBeLessThan(PDF_LAYOUT.gaps.itemGap);
+    expect(JOIN_OVERLAP).toBeLessThan(PDF_LAYOUT.gaps.leadGap);
+  });
+
+  it('reaches a group’s bar into the bar above by JOIN_OVERLAP, and only to the edge of a header (T037a)', () => {
+    const blocks = blocksOf(modelOf(SAMPLE_PUBLISHED), measure);
+    let underBar = 0;
+    let underHeader = 0;
+    blocks.forEach((block, index) => {
+      if (index === 0) return;
+      const layout = layoutOf(block.content, measure);
+      const above = layoutOf(blocks[index - 1].content, measure);
+      for (const bar of barsOf(layout)) {
+        const reach = reachOf(bar, block.gapBefore, above);
+        const continued = barsOf(above).some((other) => other.x === bar.x && other.height > 0);
+        expect(reach).toBe(block.gapBefore + (continued ? JOIN_OVERLAP : 0));
+        if (continued) underBar += 1;
+        else if (blocks[index - 1].content.kind === 'groupHeader') underHeader += 1;
+      }
+      // A rect that doesn't join above never reaches
+      for (const frame of framesOf(layout)) expect(reachOf(frame, block.gapBefore, above)).toBe(0);
+    });
+    expect(underBar).toBeGreaterThan(0);
+    expect(underHeader).toBeGreaterThan(0);
+  });
+
+  it.each(LANGUAGES)(
+    'the dashed box names the links publishing will create, without a URL (%s)',
+    (l) => {
+      const copy = CONNECTION_DETAIL_COPY[l];
+      const blocks = blocksOf(modelOf(SAMPLE_DRAFT, l), measure);
+      const heading = blocks[4];
+      expect(heading.content).toMatchObject({
+        kind: 'sectionHeading',
+        title: copy.linksTitle,
+        lead: null,
+        notice: null,
+      });
+      expect(heading.keepWithNext).toBe(true);
+      const box = blocks[5];
+      expect(box.content).toMatchObject({
+        kind: 'linksToCreate',
+        title: copy.draftLinksText,
+        text: PDF_TEXTS[l].linksToCreate(['Standard', 'Taxi', 'Hire car']),
+      });
+      expect(box.place).toEqual({ section: 1, variant: null, opens: null });
+      expect(box.gapBefore).toBe(PDF_LAYOUT.linksToCreate.gapBefore);
+      const layout = layoutOf(box.content, measure);
+      expect(textsOf(layout).map(wordsOf)).toEqual([
+        copy.draftLinksText,
+        PDF_TEXTS[l].linksToCreate(['Standard', 'Taxi', 'Hire car']),
+      ]);
+      for (const text of textsOf(layout)) {
+        expect(text.role.kind === 'tag' && text.role.path.map((node) => node.type)).toEqual([
+          'Sect',
+          'P',
+        ]);
+      }
+      const [frame] = framesOf(layout);
+      expect(frame).toMatchObject({
+        artifact: 'Layout',
+        x: 0,
+        y: 0,
+        width: BODY.width,
+        height: layout.height,
+        fill: null,
+        stroke: {
+          colour: PDF_COLOURS.draftDot,
+          width: PDF_LAYOUT.linksToCreate.strokeWidth,
+          dash: PDF_LAYOUT.linksToCreate.dash,
+        },
+      });
+    }
+  );
+
+  it('the English dashed box reads as contracts/pdf-document.md section 2 says', () => {
+    const box = blocksOf(modelOf(SAMPLE_DRAFT), measure)[5];
+    expect(box.content).toMatchObject({
+      title: 'Created when the connection is published and active.',
+      text: 'There will be one request link for all variants, and a result link for each variant: Standard, Taxi and Hire car.',
+    });
+  });
+
+  it.each(LANGUAGES)(
+    'a draft without documents, or with a document without data, shows the Summary’s placeholders (%s)',
+    (l) => {
+      const copy = CONNECTION_DETAIL_COPY[l];
+      const none = sectionTwoOf(blocksOf({ ...modelOf(SAMPLE_DRAFT, l), documents: [] }, measure));
+      expect(none.at(-1)!.content).toMatchObject({
+        kind: 'placeholder',
+        text: copy.noDocumentsYet,
+      });
+      const empty = sectionTwoOf(
+        blocksOf(
+          { ...modelOf(SAMPLE_DRAFT, l), documents: [{ name: 'Personal ID', dataItems: [] }] },
+          measure
+        )
+      );
+      expect(empty.at(-1)!.content).toMatchObject({
+        kind: 'document',
+        placeholder: copy.noDataYet,
+      });
+    }
+  );
+
+  it.each(DRAFTS.flatMap(([name, draft]) => LANGUAGES.map((l) => [name, draft, l] as const)))(
+    '%s in %s: every part inside its block, every shape an artifact, every text in its part’s Sect',
+    (_name, draft, language) => {
+      const blocks = blocksOf(modelOf(draft, language), measure);
+      const keys = blocks.map((block) => block.content.key);
+      expect(new Set(keys).size).toBe(keys.length);
+      const sects = new Set<string>();
+      for (const block of blocks) {
+        const layout = layoutOf(block.content, measure);
+        expect(layout.height).toBe(block.height);
+        for (const part of layout.parts) {
+          if (part.kind !== 'text') expect(part.artifact).toBe('Layout');
+          if (part.kind === 'line') continue;
+          const [left, top, right, bottom] =
+            part.kind === 'circle'
+              ? [
+                  part.cx - part.radius,
+                  part.cy - part.radius,
+                  part.cx + part.radius,
+                  part.cy + part.radius,
+                ]
+              : [part.x, part.y, part.x + part.width, part.y + part.height];
+          expect(left).toBeGreaterThanOrEqual(0);
+          expect(top).toBeGreaterThanOrEqual(0);
+          expect(right).toBeLessThanOrEqual(BODY.width + 1e-9);
+          expect(bottom).toBeLessThanOrEqual(layout.height + 1e-9);
+        }
+        for (const text of textsOf(layout)) {
+          if (text.role.kind === 'artifact') {
+            // The step numbers and chips as before, and the "!" before a rule's "Not complete"
+            expect(['connector', 'rule', 'ruleContinuation']).toContain(block.content.kind);
+            continue;
+          }
+          expect(text.role.path.slice(0, block.content.within.length)).toEqual(
+            block.content.within
+          );
+          sects.add(text.role.path[0].key);
+        }
+      }
+      expect([...sects]).toEqual([
+        'page-1',
+        ...(draft === SAMPLE_DRAFT_GAPS ? ['gaps'] : []),
+        'section-1',
+        'section-2',
+        'section-3',
+      ]);
+    }
+  );
+});
+
+describe('blocksOf: a draft’s incomplete rules (FR-018)', () => {
+  it.each(LANGUAGES)('C’s two rules read as far as they go, then "Not complete: …" (%s)', (l) => {
+    const texts = PDF_TEXTS[l];
+    const model = modelOf(SAMPLE_DRAFT_GAPS, l);
+    const blocks = blocksOf(model, measure).filter((block) => block.place.variant === 'Hire car');
+    const hireCar = model.variants[2].items as PdfRule[];
+    const [rule11] = itemBlocksOf(blocks, 'rule-11');
+    const [rule12] = itemBlocksOf(blocks, 'rule-12');
+    expect(rule11.content).toMatchObject({
+      message: null,
+      missing: { label: texts.notComplete, text: hireCar[1].missing },
+    });
+    const layout11 = layoutOf(rule11.content, measure);
+    const owner11 = rule11.content.within.at(-1)!.key;
+    const tagged11 = textsOf(layout11).filter((text) => text.role.kind === 'tag');
+    expect(tagged11.map(leafOf)).toEqual([
+      `${owner11}/heading`,
+      `${owner11}/heading`,
+      `${owner11}/statement`,
+      `${owner11}/statement`,
+      `${owner11}/missing`,
+    ]);
+    expect(wordsOf(tagged11.at(-1)!)).toBe(`${texts.notComplete} ${hireCar[1].missing}`);
+    expect(isDashed(framesOf(layout11)[0])).toBe(true);
+    // rule-12 has no check: its subject alone, then what it misses
+    const layout12 = layoutOf(rule12.content, measure);
+    const owner12 = rule12.content.within.at(-1)!.key;
+    const tagged12 = textsOf(layout12).filter((text) => text.role.kind === 'tag');
+    expect(tagged12.map(wordsOf).slice(2)).toEqual([
+      hireCar[2].statement!.subject,
+      `${texts.notComplete} ${hireCar[2].missing}`,
+    ]);
+    expect(leafOf(tagged12.at(-1)!)).toBe(`${owner12}/missing`);
+    expect(isDashed(framesOf(layout12)[0])).toBe(true);
+    // Every other rule is complete: a solid frame, no "Not complete"
+    const complete = blocks.filter(
+      (block) => block.content.kind === 'rule' && block !== rule11 && block !== rule12
+    );
+    expect(complete).toHaveLength(1);
+    for (const block of complete) {
+      expect((block.content as RuleContent).missing).toBeNull();
+      expect(isDashed(framesOf(layoutOf(block.content, measure))[0])).toBe(false);
+    }
+  });
+
+  it('C in English: the create flow’s words', () => {
+    const blocks = blocksOf(modelOf(SAMPLE_DRAFT_GAPS), measure);
+    const lines = blocks.flatMap((block) =>
+      textsOf(layoutOf(block.content, measure))
+        .map(wordsOf)
+        .filter((words) => words.startsWith('Not complete:'))
+    );
+    expect(lines).toEqual([
+      'Not complete: Write the message for citizens.',
+      'Not complete: Choose a check.',
+    ]);
+  });
+
+  it('D has no "Not complete" and no dashed frame', () => {
+    for (const block of blocksOf(modelOf(SAMPLE_DRAFT), measure)) {
+      const { content } = block;
+      if (content.kind !== 'rule' && content.kind !== 'ruleContinuation') continue;
+      expect(content.missing).toBeNull();
+      expect(isDashed(framesOf(layoutOf(content, measure))[0])).toBe(false);
+    }
+  });
+
+  /** A statement complete but for its values: the words without chips */
+  const NO_VALUES = {
+    subject: 'Personal ID · Nationality',
+    words: 'includes one of',
+    values: [],
+    tail: null,
+  };
+  /** Only the subject: the condition has no check */
+  const NO_CHECK = { subject: 'Personal ID · Nationality', words: null, values: [], tail: null };
+
+  it.each([
+    ['the data (no statement)', 'chooseData', { statement: null }, []],
+    [
+      'data no longer requested',
+      'notRequested',
+      {},
+      ['Personal ID · Nationality includes one of', 'Germany', 'France'],
+    ],
+    [
+      'the check (the subject alone)',
+      'choose_check',
+      { statement: NO_CHECK },
+      ['Personal ID · Nationality'],
+    ],
+    [
+      'the values (the words without chips)',
+      'choose_value',
+      { statement: NO_VALUES },
+      ['Personal ID · Nationality includes one of'],
+    ],
+    [
+      'a number',
+      'enter_number',
+      { statement: NO_VALUES },
+      ['Personal ID · Nationality includes one of'],
+    ],
+    [
+      'the message',
+      'noMessage',
+      { message: '' },
+      ['Personal ID · Nationality includes one of', 'Germany', 'France'],
+    ],
+    [
+      'a shorter message',
+      'messageTooLong',
+      {},
+      ['Personal ID · Nationality includes one of', 'Germany', 'France'],
+    ],
+  ] as const)(
+    'missing %s: the rule reads as far as it goes, then "Not complete: …" last, in a dashed frame',
+    (_what, code, overrides, before) => {
+      const missing = missingOf({ code }, 'en')!;
+      expect(missing).not.toBeNull();
+      const rule = ruleOf('rule-1', { ...overrides, missing });
+      const [block] = itemBlocksOf(blocksOf(withVariants([variantOf([rule])]), measure), 'rule-1');
+      const content = block.content as RuleContent;
+      expect(content.missing).toEqual({ label: 'Not complete:', text: missing });
+      const layout = layoutOf(content, measure);
+      const owner = content.within.at(-1)!.key;
+      const tagged = textsOf(layout).filter((text) => text.role.kind === 'tag');
+      expect(tagged.map(wordsOf)).toEqual([
+        'rule-1 ',
+        'Name of rule-1',
+        ...before,
+        // The message, when the rule has one, before what it misses
+        ...(rule.message ? [`${RULE_ROW_COPY.en.messageLabel} ${rule.message}`] : []),
+        `Not complete: ${missing}`,
+      ]);
+      const note = tagged.at(-1)!;
+      expect(leafOf(note)).toBe(`${owner}/missing`);
+      expect(note.role.kind === 'tag' && note.role.path.at(-1)!.type).toBe('P');
+      expect(note.spans.map((span) => span.style)).toEqual([PDF_STYLES.notComplete]);
+      // Below everything else, beside its "!" in the warning circle (artifacts)
+      for (const text of tagged.slice(0, -1)) expect(note.y).toBeGreaterThan(text.y);
+      const mark = textsOf(layout).find((text) => wordsOf(text) === '!')!;
+      expect(mark.role).toEqual({ kind: 'artifact', type: 'Layout' });
+      const circle = layout.parts.find(
+        (part) => part.kind === 'circle' && part.fill === PDF_COLOURS.warning
+      );
+      expect(circle).toMatchObject({ artifact: 'Layout', radius: PDF_LAYOUT.rule.noteIconRadius });
+      const rule1 = PDF_LAYOUT.rule;
+      expect(note.x).toBe(rule1.padding + rule1.noteIndent);
+      expect(mark.x).toBe(rule1.padding);
+      // The frame dashed in the warning colour, its fill the card's
+      const [frame] = framesOf(layout);
+      expect(frame).toMatchObject({
+        fill: PDF_COLOURS.white,
+        stroke: {
+          colour: PDF_COLOURS.warning,
+          width: rule1.incompleteStrokeWidth,
+          dash: rule1.incompleteDash,
+        },
+      });
+      expect(layout.height).toBe(block.height);
+      expect(layout.height).toBeGreaterThanOrEqual(note.y + note.height + rule1.padding);
+    }
+  );
+
+  it.each(LANGUAGES)(
+    'a rule taller than a page says what it misses in its last piece, with its message (%s)',
+    (language) => {
+      const missing = PDF_TEXTS[language].writeMessage;
+      const tall = ruleOf('rule-1', {
+        statement: {
+          subject: 'Personal ID · Nationality',
+          words: 'includes one of',
+          values: countriesIn(language),
+          tail: null,
+        },
+        message: '',
+        missing,
+      });
+      const blocks = blocksOf(
+        withVariants([variantOf([tall, ruleOf('rule-2')])], language),
+        measure
+      );
+      const pieces = itemBlocksOf(blocks, 'rule-1');
+      expect(pieces.length).toBeGreaterThan(1);
+      const contents = pieces.map(
+        (piece) => piece.content as RuleContent | RuleContinuationContent
+      );
+      expect(contents.map((content) => content.missing)).toEqual([
+        ...Array(pieces.length - 1).fill(null),
+        { label: PDF_TEXTS[language].notComplete, text: missing },
+      ]);
+      // The last piece holds the line and the dashed frame
+      const last = layoutOf(contents.at(-1)!, measure);
+      expect(textsOf(last).at(-1)!.spans[0].text).toBe(
+        `${PDF_TEXTS[language].notComplete} ${missing}`
+      );
+      expect(isDashed(framesOf(last)[0])).toBe(true);
+      for (const content of contents.slice(0, -1)) {
+        expect(isDashed(framesOf(layoutOf(content, measure))[0])).toBe(false);
+      }
+      for (const block of blocks) expect(block.height).toBeLessThanOrEqual(BODY.height);
+      const values = [
+        ...(contents[0] as RuleContent).statement!.values,
+        ...(contents.slice(1) as RuleContinuationContent[]).flatMap((piece) => piece.values),
+      ];
+      expect(values).toEqual(countriesIn(language));
+      expectPagesKeepChains(blocks, paginate(blocks, BODY.height));
+    }
+  );
+});
+
+describe('blocksOf: a long list of gaps (research R11)', () => {
+  const GAPS = 300;
+  const model: ConnectionPdfModel = {
+    ...modelOf(SAMPLE_DRAFT_GAPS),
+    gaps: Array.from({ length: GAPS }, (_, index) => ({
+      text: `Rule ${index + 1} in Variant ${index % 7}: choose a check.`,
+    })),
+  };
+  const blocks = blocksOf(model, measure);
+  const pages = paginate(blocks, BODY.height);
+  const pageOf = pageIndexesOf(pages);
+  const headingIndex = blocks.findIndex((block) => block.content.kind === 'gapsHeading');
+  const gapIndexes = blocks.flatMap((block, index) =>
+    block.content.kind === 'gap' ? [index] : []
+  );
+
+  it('makes one block per gap, in order, the last one closing the box', () => {
+    expect(gapIndexes).toHaveLength(GAPS);
+    expect(gapIndexes[0]).toBe(headingIndex + 1);
+    expect(gapIndexes.at(-1)).toBe(headingIndex + GAPS);
+    expect(gapIndexes.map((index) => (blocks[index].content as GapContent).text)).toEqual(
+      model.gaps.map((gap) => gap.text)
+    );
+    expect(gapIndexes.filter((index) => (blocks[index].content as GapContent).last)).toEqual([
+      gapIndexes.at(-1),
+    ]);
+    expect(blocks[headingIndex].content).toMatchObject({ title: PDF_TEXTS.en.gapsTitle(GAPS) });
+  });
+
+  it('continues over several pages, the heading on the first gap’s page', () => {
+    expect(pageOf.get(headingIndex)).toBe(pageOf.get(gapIndexes[0]));
+    const gapPages = new Set(gapIndexes.map((index) => pageOf.get(index)));
+    expect(gapPages.size).toBeGreaterThan(2);
+    for (const page of pages) {
+      for (const { index, y } of page) {
+        expect(y + blocks[index].height).toBeLessThanOrEqual(BODY.height + 1e-9);
+      }
+    }
+    // The section after the box starts below it, and the chains of FR-023 hold
+    const sectionOne = blocks.findIndex((block) => block.content.key === 'section-1/heading');
+    expect(pageOf.get(sectionOne)).toBeGreaterThanOrEqual(pageOf.get(gapIndexes.at(-1)!)!);
+    expectPagesKeepChains(blocks, pages);
+  });
+
+  it('fills each page’s slices without a gap between them, so they read as one box', () => {
+    for (const page of pages) {
+      page.forEach(({ index, y }, position) => {
+        if (position === 0 || blocks[index].content.kind !== 'gap') return;
+        const before = page[position - 1];
+        expect(y).toBe(before.y + blocks[before.index].height);
+      });
+    }
+  });
+
+  it('draws nothing above the box: a gap that begins a page reaches nowhere, the others only into the slice above (T037a)', () => {
+    let first = 0;
+    for (const page of pages) {
+      page.forEach(({ index }, position) => {
+        const block = blocks[index];
+        if (block.content.kind !== 'gap') return;
+        const above =
+          position === 0 ? null : layoutOf(blocks[page[position - 1].index].content, measure);
+        if (position === 0) first += 1;
+        else
+          expect(['gapsHeading', 'gap']).toContain(blocks[page[position - 1].index].content.kind);
+        for (const rect of layoutOf(block.content, measure).parts) {
+          if (rect.kind !== 'rect') continue;
+          expect(reachOf(rect, block.gapBefore, above)).toBe(
+            rect.joinsAbove && above !== null ? JOIN_OVERLAP : 0
+          );
+        }
+      });
+    }
+    expect(first).toBeGreaterThan(0);
+  });
+
+  it('names no place at the bottom of a page that begins inside the box (UNCERTAIN, T035)', () => {
+    // FR-021 names only the sections: a page that begins with a gap has no place label
+    const inside = pages.filter(
+      (page, number) => number > 0 && blocks[page[0].index].content.kind === 'gap'
+    );
+    expect(inside.length).toBeGreaterThan(0);
+    for (const page of inside) expect(placeLabelOf(page, blocks, PLACE_TEXTS)).toBeNull();
   });
 });
