@@ -77,8 +77,9 @@ import {
  * connection", and the copy buttons are off with their explanation (FR-046, W21); the Summary
  * stays as it is. A scheduled connection (S15,
  * FR-006, FR-007; U94 7246:52715, 7246:53289) reads "Your connection is scheduled" in the blue
- * band and is otherwise an active connection's details: every link with its copy button on. No
- * "Download PDF" (F12). "Change start date" opens `StartDateDialog` (S15; FR-008, FR-009), whose
+ * band and is otherwise an active connection's details: every link with its copy button on. The
+ * Summary's header holds the version and "Download PDF" in every state (spec 011, FR-001, FR-032),
+ * the download kept by the page (`pdf`). "Change start date" opens `StartDateDialog` (S15; FR-008, FR-009), whose
  * "Save date" sends the new start, or null for "Now", and shows the answered connection with the
  * toast "Start date saved." (W3), the focus back on the ⋯; an active connection's "Now" and a
  * scheduled one's own date close it without a call. A day that isn't after today, or the
@@ -105,6 +106,7 @@ export default function ConnectionDetails({
   formConnection,
   arrival,
   onChange,
+  pdf,
 }: ConnectionDetailsProps) {
   const { language } = useLanguage();
   const copy = CONNECTION_DETAIL_COPY[language];
@@ -342,6 +344,8 @@ export default function ConnectionDetails({
         <RulesSummary
           branches={formConnection.branches}
           documents={formConnection.documents}
+          version={formConnection.version_fingerprint}
+          pdf={pdf}
           open={openAccordion === 'summary'}
           onToggle={() => setOpenAccordion((open) => toggleAccordion(open, 'summary'))}
         />

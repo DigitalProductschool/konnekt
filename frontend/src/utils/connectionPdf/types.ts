@@ -623,15 +623,23 @@ export type PdfAnswer =
 // ---------------------------------------------------------------------------------------------
 // The download's state, `useConnectionPdf`'s reducer (data-model section 6)
 
+/**
+ * What the button's polite live region says (design-notes section 3), as a key that the page words
+ * in the website's language: `'creating'` "Creating the PDF…" while a run is busy, `'saved'` "PDF
+ * saved." once its file was saved. Null says nothing: before the first run, after a "gone", and on
+ * a failure, which the alert's own `role="alert"` announces
+ */
+export type PdfAnnouncement = 'creating' | 'saved';
+
 export type PdfDownloadState =
-  /** Nothing running: "Download PDF" */
-  | { status: 'idle' }
-  /** The fresh GET runs (FR-005): busy */
-  | { status: 'fetching'; runId: number }
+  /** Nothing running: "Download PDF"; `'saved'` after a saved file */
+  | { status: 'idle'; announcement: 'saved' | null }
+  /** The fresh GET runs (FR-005), then the option sets and the catalog: busy */
+  | { status: 'fetching'; runId: number; announcement: 'creating' }
   /** The worker makes the file: busy */
-  | { status: 'rendering'; runId: number }
+  | { status: 'rendering'; runId: number; announcement: 'creating' }
   /** A notice with its error id and "Try again" */
-  | { status: 'failed'; notice: ErrorNotice };
+  | { status: 'failed'; notice: ErrorNotice; announcement: null };
 
 /**
  * The reducer's actions. A `start` while fetching or rendering does nothing (FR-003); an action
@@ -640,10 +648,12 @@ export type PdfDownloadState =
 export type PdfDownloadAction =
   /** idle or failed → fetching */
   | { type: 'start'; runId: number }
-  /** fetching → rendering */
+  /** fetching → rendering: the model is posted to the worker */
   | { type: 'fetched'; runId: number }
   /** fetching → idle; the page shows "not found" */
   | { type: 'gone'; runId: number }
+  /** fetching → idle, nothing said: a 401 signs out, the sign-in replaces the page */
+  | { type: 'signedOut'; runId: number }
   /** rendering → idle; the file is saved */
   | { type: 'rendered'; runId: number }
   /** fetching or rendering → failed */

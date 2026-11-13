@@ -165,7 +165,124 @@ token's name beside each, since the worker can't read CSS.
 
 ### 7.1 The button, per node
 
+**T032, 2026-11-12**, Chromium (Playwright MCP, headless), the dev SPA against the seeded stack
+(A and C of §8.3).
+- **How it was measured**: a 1455 × 1167 window, so the body is 1440 wide (FIGMA-WORKFLOW §4
+  step 1); fonts checked with `document.fonts.check` (600 16px, 400 14px, 500 14px "Fira Sans":
+  all true); one script measures `getBoundingClientRect` and `getComputedStyle`.
+- **What it was compared with**: `get_design_context` for `6396:48196` (the button) and
+  `6809:46487`. The latter is the Summary header of `6809:46423` (P7b, closed). The user decided
+  (T031) to measure only that header node, so P7b's ⓘ tooltip stays out of the comparison. The
+  open frame P9 (`6396:47966`, header `6396:48192`) has the same geometry.
+- **The narrow check** stands for a 320 px window at 200 %: 160 CSS px, less the scrollbar's
+  7.5 CSS px. It was emulated with a 167 px viewport, whose 15 px gutter leaves a 152 px body.
+  The browser's own 200 % zoom was not used (it is under "Needs a person").
+- **The script and its files**: `011/T032/measure.js` in the chat's scratchpad, with the
+  screenshots `app-<state>.png` and the Figma renders `figma-6396-48196.png` and
+  `figma-6809-46487.png`.
+
+| Node | State | Element | Property | Figma | Actual | Result |
+|---|---|---|---|---|---|---|
+| `6396:48196` | A, Summary open | button | kind, box, border, radius | button-secondary, 177 × 48, 1 `#1d56f0` inside, 8 | `kern-btn kern-btn--secondary` with `px-15!` (KERN draws the border outside its 16), 176.59 × 48, 1px rgb(29, 86, 240), 8px, no fill | match (label text 104.59 for 105) |
+| `6396:48196` | A, Summary open | glyph, label | asset, place, type, colour | `icon-download-default` 24 at x16; label padding 8, "Download PDF" label/default 16/24 600 `#1d56f0` | `download-action.svg` (the asset as returned; not KERN 2.8's `kern-icon--download`, another path), 24 × 24 at x16, 8 to the text, 24 from the text to the right edge; 16px/24px 600 rgb(29, 86, 240) | match |
+| `6396:48196` | A, Summary closed | button, glyph, label | as above | as above | the same values | match |
+| `6396:48196` | C (draft) | button | presence | not drawn (U93 #10, T036) | no button; the version alone | as specified (T036 turns it on) |
+| `6396:48196` | A, narrow (152 px body) | button | label, height, sides | full label, 48 (task line) | full label, but the narrow rule's `overflow-wrap: anywhere` breaks "Downlo / ad PDF" in the 110 px row (62 px for the label beside the glyph, "Download" needs about 75), so 110 × 66; `narrow:px-7!`, label 8 4 | deviation, kept: KERN's narrow rule (spec 008 T096); the glyph is the design's, and min-height stays 48 |
+| `6809:46487` | A, Summary open | header row | padding, gaps, centring | 24 all round; heading → button 8, button → toggle 8; button and toggle centred in 100 | padding 24; heading → version 8, version → button 8, button → toggle 8, right 24; heading, version, button, glyph and toggle centred (offset 0) | match, with the version added (next rows) |
+| `6809:46487` | A, Summary open | header row | height, counts | 100; counts on one line (300 wide) | **124**: the counts wrap to two lines (heading block 282 × 76) | deviation, not drawn: A's counts ("2 documents · 12 data items · 3 variants · 12 rules", about 330) and the version (155.5 + 8) don't fit one 830 row; the heading keeps its row from 200 px on (`basis-200`) and wraps its counts, so that the button and the toggle stay beside it as drawn |
+| `6809:46487` | A, Summary open | version | placement, type | not drawn (§2: the proposal; the spec's clarification of 2026-11-09) | left of the button, 8 apart, one line, centred: "Version" 14/24 400 rgb(74, 84, 104); the code 14/24 500 rgb(11, 18, 32) `tabular-nums`, 104.6 wide | deviation the designer hasn't drawn (§2) |
+| `6809:46487` | A, Summary open | toggle | box | 144 × 48 instance, 40 visible | 144 × 40 (`kern-btn--small`, spec 008) | match; the 1 px between P9's 144 and P7b's 145 is not part of this task |
+| `6809:46487` | A, Summary closed | header row, version, toggle | as above | as above | the same values; toggle 144.56 × 40 ("View summary") | as A open |
+| `6809:46487` | C (draft), open | header row, version | padding, gaps, height | 24; 8; 100 | 24; heading → version 8, version → toggle 8, right 24; 100 high, all centred; "Version BD20-E34A-47BC" one line | match; the version is a deviation the designer hasn't drawn (§2) |
+| `6809:46487` | A, German (open and closed) | header row | wrap | not drawn | "Zusammenfassung ausblenden" (250) and "PDF herunterladen" (209) leave the heading under 200, so the version, the button and the toggle wrap together under the heading as one group at the right (8 apart, right 24, centred among themselves); 156 high | deviation, not drawn |
+| `6809:46487` | A, narrow (152 px body) | header row | order, overlap, scroll | §2: the slot under the heading as its own row, the toggle last; the version wraps before the code, never inside it | heading, then "Version" / "98C8-BFF0-B8E2" (the code `text-nowrap`, 104.6 in the 110 row), then the button, then "Hide summary" last; 0 overlaps, no horizontal scroll, one `h1` | match (the button's label: row above) |
+
+Also checked:
+- **390 px window**: the group wraps under the heading, starts at the left and stays in order,
+  with no horizontal scroll.
+- **The failed state** (a stubbed `500`): the danger alert, `role="alert"`, 782 wide right under
+  the header row; "Try again" moves the focus to the busy button, and the retry saves the file.
+- **A click on "Download PDF" on A** saved
+  `Taxi and private hire driver licence_98C8-BFF0-B8E2.pdf` (`%PDF-1.7`, 87 kB) after
+  1.85 s on the dev server with a cold worker. Meanwhile the label read "Creating PDF…" with
+  `aria-disabled="true"` and the live region "Creating the PDF…", then "PDF saved.".
+
+- **The bundle** (`npm run build`):
+  - The main entry is 932.91 kB (278.86 kB gzip). It loads one shared chunk at start,
+    `constants-*.js` (10.89 kB: `rules/`'s language and statement texts, which used to sit in
+    the entry). Together that is 943.80 kB, against 935.02 kB before T031: +8.8 kB (the button,
+    the hook with its reducer, the inlined glyph).
+  - `useConnectionPdf` loads `model.ts`, `fileName.ts` and `connectionPdf/constants.ts`
+    dynamically, on the first run (chunks of 4.68, 0.41 and 12.86 kB). Imported statically they
+    put about 20 kB into the entry (T032 measured 955.01 kB).
+
+The run's other states, the timings and the second browser are T033's (§7.2).
+
 ### 7.2 The details page's states
+
+**T033, 2026-11-13**, the run on A and B (§8.3) in headless Chromium 156 and Firefox 159
+(Playwright MCP), a 1455 × 1000 window.
+- **The build**: the production build (`VITE_API_URL=http://localhost:3000 npm run build -w
+  frontend`, served by `vite preview` on 5173), made after the fix below, against the seeded stack
+  (backend on 3000, the fake EUDIPLO). Every timing below is from that build. Two earlier
+  Chromium runs on the dev server, one before and one after the fix, are an upper bound only.
+- **The script**: `011/T033/sweep.js` in the chat's scratchpad, one `browser_run_code_unsafe`
+  call per browser. It measures the click to the `download` event, the requests (the context's
+  `request` events, the worker's included), the console, the button's label, `aria-disabled`,
+  the live region and the focus (a `MutationObserver` and `focusin` on the page), and the
+  longest gap between ticks of a 50 ms `setInterval` on the page.
+- **The files**: `chromium-prod.csv` and `firefox-prod.csv` (208 rows each, all pass),
+  `*-prod-requests.csv`, `*-prod-summary.json` and the 32 saved files under `dl/`. The dev runs
+  and the first Firefox run are in `run1-dev/`, `run2-dev-chromium/` and
+  `run3-firefox-offline-unblocked/`.
+- **Cited, not re-checked**: the idle layout, open, closed, in German and narrow (§7.1, T032).
+
+| State | What was checked | Chromium (prod) | Firefox (prod) | Result |
+|---|---|---|---|---|
+| A, 5 clicks (run 1 the first after loading the page) | click → `download` (SC-001) | 953, 591, 511, 546, 442 ms | 867, 665, 629, 564, 655 ms | pass, all under 3 s |
+| B (deactivated), 5 clicks (run 1 the first after loading) | click → `download` (SC-001) | 914, 555, 514, 583, 471 ms | 1137, 613, 628, 601, 811 ms | pass |
+| every run (16 per browser) | suggested name against `fileNameOf` (FR-044) | `Taxi and private hire driver licence_98C8-BFF0-B8E2.pdf` (A), `…_AA90-6EC5-A5BA.pdf` (B) | the same | pass 32/32 |
+| every run | the file: `%PDF`, size, no download failure, no dialog (FR-002) | 87.0–87.4 kB | 87.1–87.5 kB | pass 32/32 |
+| every run | busy: label and `aria-disabled` (FR-003) | "Creating PDF…", `true` throughout; then "Download PDF", `false` | the same | pass 32/32 |
+| every run | the live region's two texts | "Creating the PDF…", then "PDF saved." | the same | pass 32/32. "PDF saved." stays in the region until the next run replaces it with "Creating the PDF…", so nothing is announced twice |
+| every run | focus | on the button from the activation to the end | the same | pass 32/32 |
+| every run | longest gap between 50 ms ticks (FR-003, the page responds) | 50–67 ms | 52–66 ms | pass, no long task on the main thread |
+| A, double click (`dblclick`), and two `click()`s in one task | downloads, requests | 1 file, 1 GET each | the same | pass |
+| A, keyboard | Tab after the counts; Enter; Space (quickstart §5 step 5) | one Tab from the counts reaches the button, Shift+Tab goes back to "View links" (before the counts); Enter and Space each save one file, focus kept | the same | pass |
+| A, offline (quickstart §2 step 8) | the alert, "Try again", no file | "Couldn’t create the PDF" / "Check your connection and try again." (no error ID), `role="alert"`, one "Try again"; button idle, focus on it; region "Creating the PDF…", then empty; no file in 3 s | the same | pass |
+| A, offline, then online | "Try again" saves | the alert goes, the button busy with the focus on it, one file, 473 ms | the same, 688 ms | pass |
+| A, a 500 with the backend's real body (`{error, message, error_id}`, through `page.route`) | the alert's text and error ID (carried from T032) | "Something went wrong on our side. Contact an administrator and give them the error ID." and "Error ID: 7d1f3c2a-…-000000000033"; no file | the same | pass |
+| A, after the 500 | "Try again" saves | one file, 490 ms | one file, 631 ms | pass |
+| A and B, all states | console | none from the app; the browser's own line for the failures on purpose: `net::ERR_INTERNET_DISCONNECTED` and the 500 | none from the app; Firefox's "Cross-Origin Request Blocked … CORS request did not succeed" for the offline request | pass |
+
+**The requests** (SC-008, FR-042), the same in both browsers:
+- **The first run after loading the page** (A #1, B #1): `GET /api/form-connections/{id}`,
+  `GET /api/option-sets`, the three model chunks (`model-*.js`, `fileName-*.js`,
+  `constants-*.js`, while the GET runs), the worker's two chunks (`pdf-*.js`, `pdfFonts-*.js`),
+  `pdfkit.browser-*.js` and the five `.ttf` fonts, each once. Nothing else, nothing foreign, and
+  no other request names the connection.
+- **Every later run**, the retries after the offline and the 500 included: exactly
+  `GET /api/form-connections/{id}`.
+
+**Defects**:
+- **Fixed** (`useConnectionPdf.ts`): a failed fetch terminated the worker, so "Try again" started
+  a new worker that loaded the worker's chunks, PDFKit and the five fonts again. On the dev
+  server before the fix, A's retry after the offline and the retry after the 500 each made 37
+  static requests (`run1-dev/`). Now `failRun()` keeps the worker when a fetch failed, and only
+  a failure of the worker or the watchdog terminates it (contracts/pdf-worker.md §2, step 7).
+  After the fix both retries made only the GET, in the dev run and in both browsers on the build.
+- **Firefox and the object URL** (carried from T030): all 16 Firefox downloads were complete
+  (`%PDF`, 87 kB, no download failure). The URL is revoked in `setTimeout(…, 0)`, and the delay
+  stays as it is.
+- **The test harness, not the app**: Firefox's offline mode (`context.setOffline(true)`) leaves
+  loopback reachable, so the first Firefox run saved a file "offline"
+  (`run3-firefox-offline-unblocked/`). In Firefox the script also aborts the API's requests with
+  `internetdisconnected` while offline. The fetch then fails as it does in Chromium.
+- **Left, outside this task's files**: `pages/FormConnectionDetail/index.tsx` calls
+  `useConnectionPdf` without `optionSets`, although the Summary's `useOptionSets()` has already
+  loaded them. So the first run asks for `/api/option-sets` again (rows A-click#1 and B-click#1
+  of `*-prod-requests.csv`). This is allowed (contracts/pdf-worker.md §2: "when their cache is
+  cold"), names no connection, and later runs use the hook's own copy.
 
 ### 7.3 The PDF's pages
 
@@ -350,7 +467,63 @@ PDFKit's own `strike`, not `PlacedLine` artifacts.
 - Rejected: `PlacedLine` artifacts from `layoutOf()` (exact for one-line texts only; the wrapped
   ones would need a second line breaker); an artifact nested in the tag (fails PDF/UA-1).
 
+**D4, the version in the Summary's header** (T031, the user, 2026-11-12; FR-032; §2). The code
+is 14 px like "Version": one size on the line, told apart by weight (medium, `tabular-nums`) and
+colour (the default text against the label's muted). Rejected: 16 px, the body's size. And the
+closed header is measured on `6809:46423`'s Summary header node `6809:46487` only, keeping P7b's
+ⓘ tooltip out of the comparison (rejected: switching to P7 `6396:47648`, the same geometry).
+
+**D5, where the download's hook lives and what it is given** (T031, T033, accepted by the
+coordinator 2026-11-13; FR-005, SC-008; contracts/pdf-worker.md §2).
+- `useConnectionPdf` is called in `index.tsx` beside `useFormConnection`, not inside the details'
+  tree, so a draft published during a run (which swaps `DraftDetails` for `ConnectionDetails`)
+  keeps its run; `state` and `download` go down as one prop.
+- The page passes no option sets or catalog: the Summary's `useOptionSets()` lives in
+  `RulesSummaryContent`, and a second instance in `index.tsx` would add a request on every page
+  load. So the first run after loading the page asks for `GET /api/option-sets` once more (and,
+  for a draft, the catalog), which contract §2 allows ("when their cache is cold"); the request
+  names no connection, and later runs reuse the hook's own copy.
+- The model, file name and PDF texts load with dynamic `import()` during the fetch, keeping the
+  main entry within a few kB (T031: 955 kB with static imports).
+- A failed fetch (offline, a 5xx) keeps the worker; only the worker's own failure, `error`,
+  `messageerror` or the watchdog terminate it (T033: before, "Try again" loaded the worker,
+  PDFKit and the fonts again).
+
 ### 8.3 The test connections
+
+**2026-11-12, T028.** Made in one run of `prototype/seed.ts` from `SEED_BODIES`
+(`frontend/src/utils/connectionPdf/testData.ts`) against the backend on port 3000 (dev database
+`template_db`, the tests' fake EUDIPLO, no worker), signed in as a local dev account:
+
+```bash
+# from the repository root; port 3000 directly, not nginx (E's body is about 1.56 MB)
+npx vite-node specs/011-connection-pdf/prototype/seed.ts -- http://127.0.0.1:3000 <username> <password>
+```
+
+| | What it is | Id | Status / state | Version |
+|---|---|---|---|---|
+| A | The sample, published (`POST /api/form-connections`) | `cd9843b4-4c54-412f-8852-019b6d6dd476` | published / live | `98C8-BFF0-B8E2` |
+| B | A's body again, same name, then `POST /{id}/deactivate` | `e534ee85-4142-4fc3-9543-5e17cef6e0a9` | published / deactivated | `AA90-6EC5-A5BA` |
+| C | The sample as a draft with Hire car's two gaps (`POST /api/form-connections/drafts`) | `522c0e79-396b-413d-ab2c-6f3301a4199d` | draft / draft | `BD20-E34A-47BC` |
+| D | A draft without gaps (A's content) | `22a34b41-f75f-47ac-99d4-8e70de7846b5` | draft / draft | `294E-2CA8-EC64` |
+| E | The connection at the limits (20 variants), published | `3b61a5fe-dcc5-4fe7-bee7-b2d24e125ae3` | published / live | `8402-3F5B-32B3` |
+
+- The versions are those of `GET /api/form-connections/{id}`. They differ from T021's fixture
+  values (`FA7E-47BB-5368` for A and D, `3D3C-F9EA-5FE0`, `EDD5-7EDC-E4FD`) and from each other
+  (A and B have equal bodies) because the canonical form holds the connection's id
+  (`services/versions.py`), and the server gave each a new id.
+- Names needn't be unique, so B keeps A's name unchanged (no suffix); the backend refused
+  nothing, E included (published with its 20 variants), so no connection stayed a draft against
+  the plan.
+- F (scheduled, quickstart §0) is not part of `SEED_BODIES` and was not made by `seed.ts`.
+
+**2026-11-13, T034.** F made by the coordinator for quickstart §2 step 6, from a scratchpad
+script (not committed): `SEED_BODIES.A.body` with `start_date: '2026-11-20'`, posted to
+`POST /api/form-connections` (201). The worker is off, so F stays scheduled.
+
+| | What it is | Id | Status / state | Version |
+|---|---|---|---|---|
+| F | A copy of A, scheduled to start on 20.11.2026 | `e5c09dca-1843-47ae-9e74-5ebd0fa063e1` | published / scheduled | `610E-B3CA-743B` |
 
 ### 8.4 History
 
@@ -557,5 +730,74 @@ S.A.". The largest file is 473160 bytes, under the 500 KB (512000 bytes) of the
   viewer) and read page 1, as the phase's Delegation asks; until then T027 stays unchecked. The
   file is rendered by T027's scratchpad run (`011/T027/A-en.pdf`) and by `render.test.ts`'s
   helpers.
+
+**2026-11-13, T034 checkpoint of US1 (Phase 5).**
+- **Gates**: lint; 2675 / 1871 / 513 tests in `rules/`, `frontend/`, `mcp/` (against T027: +13 in
+  `frontend/`, T030's reducer cases in `hooks/utils.test.ts`); the build. The main entry is
+  932.92 kB (278.86 kB gzip) and now preloads one shared chunk, `constants-*.js` (10.89 kB,
+  3.40 kB gzip: `rules/`'s language and statement texts that sat in the entry), so together
+  about +9 kB raw and +3.3 kB gzip against T001's 934.62 kB (278.94 kB): the button, the hook
+  and the glyph. The worker (55 kB), PDFKit (530 kB), the fonts (1.69 MB) and the model's three
+  chunks (18 kB) are chunks and assets of their own, loaded on the first run only (§7.2).
+- **The stack**: the backend on `template_db` with the tests' fake EUDIPLO (T011's launcher, the
+  worker off) and the dev SPA with `VITE_API_URL=http://localhost:3000`; T033 timed on the
+  production build. No real EUDIPLO was used: publishing A, B, E and F set up nothing outside
+  the backend.
+- **The file from the page** (the coordinator, headless Chromium, the dev SPA): A, B and F of
+  §8.3 downloaded with one click each, as "Taxi and private hire driver licence_<version>.pdf",
+  in about 1.2 s (dev server; T033's production timings are in §7.2), with "Version …" in the
+  header matching the file's band. Read with pdf.js 3.11.174 (text of every page; images of A
+  pages 1 and 4, F page 1), against quickstart §2:
+  - Step 3: the title "Taxi and private hire driver licence – Connection details" with
+    `/DisplayDocTitle true`; page 1 with the eyebrow, the name, the description, "Active as of
+    13.11.2026, 01:20", the details box (ID, the version larger, "(Germany)", the contents) and
+    the note; the request link and the three result links in full, "Variant · Standard" first;
+    "2 Documents and data items"; "3 Rules per variant" with Taxi's "Changed here", "Added
+    here", "Removed here" and rule-5 struck through and muted.
+  - Step 5: every page's band holds the name, the ID, "Version 98C8-BFF0-B8E2" and "Generated
+    13.11.2026, 01:20"; "Page n of 6" on every page; place labels from page 2 ("2 Documents and
+    data items", "3 Rules per variant › Variant Taxi (continued)" on page 5).
+  - Step 6: B reads "Deactivated as of …" and adds "The connection is deactivated: its links
+    answer “unavailable” until it is activated again."; F reads "Scheduled as of 13.11.2026,
+    01:22 · starts on 20.11.2026" (the Active pill's colours with a hollow dot, §4) and adds
+    that its links answer "unavailable" until it starts on 20.11.2026.
+  - The bytes: `/Lang (en-GB)`, `/StructTreeRoot`, `/MarkInfo`, `/Outlines` (the three sections,
+    and the three variants under the third), `pdfuaid:part`, no `/CIDSet`. veraPDF 1.28.1's
+    PDF/UA-1 profile passes A, B and F (106 rules, 0 failed checks each): the first files made
+    by PDFKit's browser build that it has checked (Phase 4's came from Node).
+- **§7.1 and §7.2**: §7.2 has no open row (T033: every check passes in Chromium and Firefox).
+  §7.1 has three open rows, handed to T045 and T046 and, for the version's place, to the
+  designer (carried to T045): A's counts wrap beside the version at 1440 px (header 124 px, a
+  count split from its noun), the German header wraps under the heading (156 px), and at the
+  narrow width the label breaks inside "Download" (66 px high).
+- **Decisions the agents marked UNCERTAIN, accepted**:
+  - T028: B keeps A's name (names needn't be unique); F was not in `SEED_BODIES` (made here).
+  - T029: `render.ts` is a static import of the worker (in the worker's chunk); the export
+    `PDF_FONT_URLS`; runs arriving during the first load share it; the fonts' buffers are reused.
+  - T030: the optional `optionSets` and `documentTypes` (the hooks' `byLanguage`) with the
+    hook's own per-language copy; `pdfFailedText` in `CONNECTION_DETAIL_COPY`, worded in the
+    captured language; the language-free `announcement`; a `signedOut` action; `fetched` after
+    the context has arrived; the watchdog from the post to the worker; the object URL revoked in
+    `setTimeout(…, 0)`, which T033 found safe in Firefox (16 of 16 downloads complete).
+  - T031, T032: D4 and D5; a second `notice` slot on `DetailAccordion` and `PdfFailure` beside
+    `PdfDownload`; `basis-200` on the heading with the actions and the toggle wrapping as one
+    group; "Try again" moving the focus to the button; `px-15!` so the border sits inside the
+    drawn 16 px; the code `text-nowrap`; the narrow check emulated with a 167 px Chromium window.
+  - T033: a failed fetch keeps the worker (D5); the timing from just before the click to the
+    `download` event; "the page responds" as a 50 ms timer whose longest gap stays under 250 ms;
+    Firefox's offline mode leaves localhost reachable, so the script also aborts the API's
+    requests there.
+- **Plan**: every task kept its level, wave and batch. The stack for T028 used the fake EUDIPLO
+  in place of a real one (above). T029's build check ran on a scratch build, since nothing
+  imported the worker until T031. Edits outside a line's file list, each allowed in the brief
+  or reported: T030 widened `api/form-connections.ts`, `useOptionSets.ts`, `useDocumentTypes.ts`
+  and the download section of `utils/connectionPdf/types.ts`, and added `pdfFailedText`; T031
+  made the hook's three dynamic imports. T032's two Figma questions went to the user before
+  anything was built (FIGMA-WORKFLOW §1; D4).
+- **Carried**: notes appended to T031 (done), T033 (done), T036 and T045.
+- **Needs a person**: the user validates the MVP (T034, which stays unchecked until then);
+  T032's narrow check with the browser's own 200 % zoom; T027's look at A's page 1 in a real PDF
+  reader; the designer's answer on the version's place in the header; SC-006's screen-reader
+  walk (T006).
 
 ## 9. Closing report

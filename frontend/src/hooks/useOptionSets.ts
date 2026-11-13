@@ -2,7 +2,7 @@ import type { OptionSet } from '@connection-portal/api-types/option-sets';
 import { useEffect, useReducer } from 'react';
 
 import { getOptionSets } from '../api/option-sets';
-import type { OptionSetsState } from './types';
+import type { CatalogByLanguage, OptionSetsState } from './types';
 import { useLanguage } from './useLanguage';
 import { useSignOutOnUnauthorized } from './useSignOutOnUnauthorized';
 import {
@@ -23,6 +23,11 @@ import {
 export function useOptionSets(): {
   status: OptionSetsState['status'];
   optionSets: OptionSet[];
+  /**
+   * The answers so far, per language, for a run that needs a given language's list and never the
+   * other one's shown during a switch (the PDF's, spec 011)
+   */
+  byLanguage: CatalogByLanguage<OptionSet>;
   retry: () => void;
 } {
   const { language } = useLanguage();
@@ -76,6 +81,7 @@ export function useOptionSets(): {
   return {
     status: view.status,
     optionSets: view.items,
+    byLanguage: state.loaded,
     retry: () => dispatch({ type: 'retry' }),
   };
 }

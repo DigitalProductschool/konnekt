@@ -16,6 +16,7 @@ import type {
   RestoredConnections,
   StartDateUpdate,
 } from '@connection-portal/api-types/form-connections';
+import type { Language } from '@connection-portal/rules/language';
 
 import { apiFetch } from './client';
 
@@ -31,9 +32,18 @@ export function createFormConnection(data: FormConnectionCreate): Promise<FormCo
   return apiFetch<FormConnection>('/form-connections', { method: 'POST', body: data });
 }
 
-/** A published connection or a draft, told apart by `status` */
-export function getFormConnection(id: string): Promise<FormConnectionOrDraft> {
-  return apiFetch<FormConnectionOrDraft>(`/form-connections/${encodeURIComponent(id)}`);
+/**
+ * A published connection or a draft, told apart by `status`. `options.language` asks its texts in
+ * that language in place of the website's: the PDF's run asks in the language captured when it
+ * started (spec 011, research R9)
+ */
+export function getFormConnection(
+  id: string,
+  options: { language?: Language } = {}
+): Promise<FormConnectionOrDraft> {
+  return apiFetch<FormConnectionOrDraft>(`/form-connections/${encodeURIComponent(id)}`, {
+    language: options.language,
+  });
 }
 
 /**

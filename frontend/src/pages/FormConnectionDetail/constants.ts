@@ -160,6 +160,17 @@ export const CONNECTION_DETAIL_COPY = defineTexts(
     openConnection: 'Open the connection',
     draftAlreadyDeleted: 'This draft has already been deleted.',
     toOverview: 'Go to overview',
+    // "Download PDF" in the Summary's header (spec 011, design-notes §2, §3; U82 6396:48196): the
+    // button, its busy label, its live region's two sentences, the failure's alert (its text when
+    // the server gave no message, D2; "Try again" is `retry`) and the content's version beside it
+    // (FR-032)
+    downloadPdf: 'Download PDF',
+    creatingPdf: 'Creating PDF…',
+    creatingPdfAnnouncement: 'Creating the PDF…',
+    pdfSaved: 'PDF saved.',
+    pdfFailedTitle: 'Couldn’t create the PDF',
+    pdfFailedText: 'Check your connection and try again.',
+    version: (code: string) => `Version ${code}`,
   },
   {
     editConnection: 'Anbindung bearbeiten',
@@ -264,6 +275,13 @@ export const CONNECTION_DETAIL_COPY = defineTexts(
     openConnection: 'Anbindung öffnen',
     draftAlreadyDeleted: 'Dieser Entwurf wurde bereits gelöscht.',
     toOverview: 'Zur Übersicht',
+    downloadPdf: 'PDF herunterladen',
+    creatingPdf: 'PDF wird erstellt …',
+    creatingPdfAnnouncement: 'Das PDF wird erstellt …',
+    pdfSaved: 'PDF gespeichert.',
+    pdfFailedTitle: 'Das PDF konnte nicht erstellt werden',
+    pdfFailedText: 'Prüfen Sie Ihre Internetverbindung und versuchen Sie es erneut.',
+    version: (code: string) => `Version ${code}`,
   }
 );
 

@@ -16,6 +16,7 @@ import type { ReactNode, Ref } from 'react';
 
 import type { ActiveFrom } from '../../components/ActiveFromChoice/types';
 import type { ToastContent } from '../../components/Toast/types';
+import type { ConnectionPdf } from '../../hooks/types';
 
 /** How the screen was reached: right after publishing, after saving an edit, or otherwise */
 export type Arrival = 'published' | 'saved' | null;
@@ -157,6 +158,11 @@ export interface ConnectionDetailsProps {
   arrival: Arrival;
   /** Takes the connection as an action left it */
   onChange: (formConnection: FormConnection) => void;
+  /**
+   * "Download PDF" (spec 011): the page's `useConnectionPdf()`, kept by the page so that a run
+   * survives the swap from a draft's details to these (FR-005)
+   */
+  pdf: ConnectionPdf;
 }
 
 export interface DetailFooterProps {
@@ -184,7 +190,36 @@ export interface DetailAccordionProps {
   hideLabel: string;
   open: boolean;
   onToggle: () => void;
+  /**
+   * The header's controls between the heading and the toggle, such as the Summary's version and
+   * "Download PDF" (spec 011, design-notes §2); on narrow windows a row of their own under the
+   * heading
+   */
+  actions?: ReactNode;
+  /** Under the header row, open or closed, full width: the PDF's failure (design-notes §3) */
+  notice?: ReactNode;
   children: ReactNode;
+}
+
+/**
+ * The Summary's version and "Download PDF" (spec 011, FR-001, FR-032; design-notes §2, §3): the
+ * version alone without `pdf` (a draft's details until T036)
+ */
+export interface PdfDownloadProps {
+  /** The content's version, `XXXX-XXXX-XXXX` (`version_fingerprint`) */
+  version: string;
+  /** The page's download: its state and its start */
+  pdf?: ConnectionPdf;
+  /** The button, which "Try again" focuses before it goes */
+  buttonRef?: Ref<HTMLButtonElement>;
+}
+
+/** The PDF's failure under the Summary's header (FR-004; design-notes §3) */
+export interface PdfFailureProps {
+  /** The server's message with a 5xx's error ID, or "Check your connection and try again." */
+  notice: ErrorNotice;
+  /** "Try again": a new run */
+  onRetry: () => void;
 }
 
 export interface ConnectionLinksProps {
@@ -303,6 +338,13 @@ export interface RulesSummaryProps {
    * checked: the checks run on a published connection's rules only (FR-047)
    */
   draft?: boolean;
+  /**
+   * The content's version (`version_fingerprint`; spec 011, FR-032), shown beside "Download PDF"
+   * in the header; the details pass it, the approval page doesn't (FR-006)
+   */
+  version?: string;
+  /** The page's download (`useConnectionPdf()`): "Download PDF" shows only with it and `version` */
+  pdf?: ConnectionPdf;
 }
 
 export interface RulesSummaryContentProps {
@@ -336,6 +378,17 @@ export interface SummaryItemProps {
   dissolved?: boolean;
   /** In a removed or dissolved group, which fades what it holds */
   faded?: boolean;
+}
+
+/**
+ * A PDF run's fetch answered 404 (spec 011, design-notes §3 "Gone"): the details show "Page not
+ * found" for this id while the page still holds the connection it had then; another id, or a
+ * newer load of it, shows again
+ */
+export interface PdfGoneMark {
+  id: string;
+  /** The connection or draft loaded when the run found it gone; null when none was */
+  formConnection: FormConnectionOrDraft | null;
 }
 
 export interface DraftDetailsProps {
