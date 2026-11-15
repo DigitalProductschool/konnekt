@@ -40,6 +40,7 @@ import {
   initialDeletionOf,
   listReducer,
   restoreFailureOf,
+  rowBubbleClass,
   rowDeleteFailureOf,
   rowDeleteReducer,
   rowMetaOf,
@@ -162,6 +163,74 @@ describe('homepageOf (FR-027)', () => {
 // row's date reads by its state in dd.mm.yyyy: "Published <date>" (once "Edited <date>", the one
 // changed expectation), "Active from <date>", "Deactivated <date>", and a draft's "Edited <date>"
 // with its step (FR-019; F42), alone where no step is recorded
+// Bug connection-tooltip-clipped: the description's bubble opens in the top layer, anchored to the
+// description, so that the card, whose rows scroll, doesn't cut it off
+describe('rowBubbleClass (FR-051 (35), FR-052)', () => {
+  const SIDES = ['start', 'end', 'full'] as const;
+
+  function classesOf(value: string): string[] {
+    return value.split(/\s+/).filter(Boolean);
+  }
+
+  it("anchors the bubble to its own row's description, below it or flipped above it", () => {
+    for (const side of SIDES) {
+      const classes = classesOf(rowBubbleClass({ side, direction: 'down' }, true, true));
+      expect(classes).toContain('[position-anchor:--row-description]');
+      expect(classes).toContain('top-[anchor(bottom)]');
+      expect(classes).toContain('[position-try-fallbacks:flip-block,--row-description-top]');
+      // The browser's popover box: centred in the window, with a border and a padding
+      expect(classes).toEqual(expect.arrayContaining(['inset-auto', 'm-0', 'border-0', 'px-0']));
+      // The 8px gap on both sides, whichever side the browser opens it to
+      expect(classes).toContain('py-8');
+    }
+  });
+
+  it('lines the bubble up with the side placementFrom() chose', () => {
+    expect(classesOf(rowBubbleClass({ side: 'start', direction: 'down' }, true, true))).toEqual(
+      expect.arrayContaining(['left-[anchor(left)]', 'w-280', 'max-w-[calc(100vw-32px)]'])
+    );
+    expect(classesOf(rowBubbleClass({ side: 'end', direction: 'down' }, true, true))).toEqual(
+      expect.arrayContaining(['right-[anchor(right)]', 'w-280', 'max-w-[calc(100vw-32px)]'])
+    );
+    // Across the window less its gutters: the popover's fit-content width goes
+    const full = classesOf(rowBubbleClass({ side: 'full', direction: 'down' }, true, true));
+    expect(full).toEqual(expect.arrayContaining(['inset-x-16', 'w-auto']));
+    expect(full).not.toContain('w-280');
+  });
+
+  it('places it with the anchor and the gutters, never with coordinates', () => {
+    for (const side of SIDES) {
+      const insets = classesOf(rowBubbleClass({ side, direction: 'up' }, true, true)).filter(
+        (each) => /^-?(top|bottom|left|right|translate-[xy])-/.test(each)
+      );
+      expect(insets.length).toBeGreaterThan(0);
+      for (const inset of insets) {
+        expect(inset).toMatch(/^(top|bottom|left|right)-\[anchor\((top|bottom|left|right)\)\]$/);
+      }
+    }
+  });
+
+  it('leaves the direction and the showing to the browser in the top layer', () => {
+    for (const side of SIDES) {
+      const down = rowBubbleClass({ side, direction: 'down' }, true, true);
+      expect(rowBubbleClass({ side, direction: 'up' }, false, true)).toBe(down);
+      // Shown as an open popover; closed, the browser hides it
+      expect(classesOf(down)).toContain('open:flex');
+      expect(classesOf(down)).not.toContain('hidden');
+      expect(classesOf(down)).not.toContain('absolute');
+    }
+  });
+
+  it('keeps the bubble inside the row where the browser lacks anchor positioning', () => {
+    expect(rowBubbleClass({ side: 'start', direction: 'down' }, true, false)).toBe(
+      'absolute z-40 top-full left-0 pt-8 w-280 max-w-[calc(100vw-32px)] flex'
+    );
+    expect(rowBubbleClass({ side: 'end', direction: 'up' }, false, false)).toBe(
+      'absolute z-40 bottom-full right-0 pb-8 w-280 max-w-[calc(100vw-32px)] hidden'
+    );
+  });
+});
+
 describe('rowMetaOf (FR-017, FR-019, FR-020, FR-021)', () => {
   const noon = '2026-10-28T12:00:00Z';
   const live = summary({ updated_at: '2026-11-04T09:00:00Z', published_at: noon });

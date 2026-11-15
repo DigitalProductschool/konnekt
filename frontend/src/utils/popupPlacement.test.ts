@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import {
   type MenuBounds,
@@ -6,6 +6,7 @@ import {
   menuPlacement,
   popupPlacement,
   popupWrapperClass,
+  supportsAnchoredPopups,
 } from './popupPlacement';
 
 describe('popupPlacement', () => {
@@ -54,6 +55,42 @@ describe('popupWrapperClass', () => {
   it("doesn't let a closed popup's wrapper catch the popup inside it, as a rule's ⋯ menu", () => {
     // RuleListItem's "Copy to variant" wrapper holds the ⋯ menu's: a 32px box, not the card
     expect(popupWrapperClass(null)).toBe('static');
+  });
+});
+
+// Bug connection-tooltip-clipped: a popup goes into the top layer only where the browser can
+// anchor it there; elsewhere it stays positioned inside the page
+describe('supportsAnchoredPopups', () => {
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
+  function stubBrowser(popover: boolean, supported: string[]) {
+    vi.stubGlobal('HTMLElement', class {});
+    if (popover) {
+      Object.assign(HTMLElement.prototype, { showPopover() {} });
+    }
+    vi.stubGlobal('CSS', {
+      supports: (property: string) => supported.includes(property),
+    });
+  }
+
+  it('is false outside a browser', () => {
+    expect(supportsAnchoredPopups()).toBe(false);
+  });
+
+  it('is true with popovers, anchor-scope and position-try-fallbacks', () => {
+    stubBrowser(true, ['anchor-scope', 'position-try-fallbacks']);
+    expect(supportsAnchoredPopups()).toBe(true);
+  });
+
+  it('is false where one of them is missing', () => {
+    stubBrowser(false, ['anchor-scope', 'position-try-fallbacks']);
+    expect(supportsAnchoredPopups()).toBe(false);
+    stubBrowser(true, ['position-try-fallbacks']);
+    expect(supportsAnchoredPopups()).toBe(false);
+    stubBrowser(true, ['anchor-scope']);
+    expect(supportsAnchoredPopups()).toBe(false);
   });
 });
 

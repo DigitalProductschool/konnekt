@@ -18,14 +18,20 @@ import {
   TOOLTIP_HEIGHT,
   TOOLTIP_WIDTH,
 } from '../../components/InfoTooltip/constants';
-import { bubblePlacementClass, isOpen, tooltipReducer } from '../../components/InfoTooltip/utils';
+import { isOpen, tooltipReducer } from '../../components/InfoTooltip/utils';
 import { ROUTES } from '../../constants';
 import { useLanguage } from '../../hooks/useLanguage';
-import { placementFrom, POPUP_GUTTER, popupWrapperClass } from '../../utils/popupPlacement';
+import {
+  placementFrom,
+  POPUP_GUTTER,
+  popupWrapperClass,
+  supportsAnchoredPopups,
+} from '../../utils/popupPlacement';
 import {
   CHECKBOX_CLASSES,
   LIST_COPY,
   ROW_CLASSES,
+  ROW_DESCRIPTION_ANCHOR,
   ROW_EDIT_CLASSES,
   SELECTION_COPY,
   SKELETON_ROW_BARS,
@@ -36,9 +42,16 @@ import type {
   RowDescriptionProps,
   SelectCheckboxProps,
 } from './types';
-import { descriptionOf, rowMetaOf } from './utils';
+import { descriptionOf, rowBubbleClass, rowMetaOf } from './utils';
 
 const SMALL_TEXT = 'text-kern-static-small leading-(--kern-typography-line-height-medium-static)';
+
+/**
+ * Whether a description's bubble opens in the top layer, over the card whose rows scroll, and
+ * over the page (bug connection-tooltip-clipped). Where the browser lacks anchor positioning, it
+ * stays inside the rows, where the card's edges may cut it off
+ */
+const TOP_LAYER = supportsAnchoredPopups();
 
 /**
  * A row's description (U13 7173:52304), cut to one line with "…" (FR-032), and the design's
@@ -46,17 +59,22 @@ const SMALL_TEXT = 'text-kern-static-small leading-(--kern-typography-line-heigh
  * description or the bubble, while the row's name has the keyboard focus, and after a tap on
  * touch screens until the next tap (FR-052g); Escape and a tap elsewhere close it (WCAG 1.4.13).
  * Only a description that is cut shows it. The text is whole in the page for screen readers, so
- * the bubble, which repeats it, is hidden from them; no `title` attribute
+ * the bubble, which repeats it, is hidden from them; no `title` attribute. The bubble is a manual
+ * popover in the top layer (`TOP_LAYER`), so that the card doesn't cut it off, and stays the
+ * wrapper's child in the DOM: the mouse moves into it without leaving the wrapper, and a press in
+ * it isn't a press elsewhere
  */
 function RowDescription({ text, ref }: RowDescriptionProps) {
   const [state, dispatch] = useReducer(tooltipReducer, CLOSED);
   const wrapperRef = useRef<HTMLDivElement>(null);
   const textRef = useRef<HTMLParagraphElement>(null);
+  const bubbleRef = useRef<HTMLSpanElement>(null);
   const pressedWith = useRef<string | null>(null);
   const [cut, setCut] = useState(false);
   const open = cut && isOpen(state);
 
-  // Measured when the tooltip may open: the description's width changes with the window's
+  // Measured when the tooltip may open: the description's width changes with the window's. In
+  // the top layer only the side counts: the browser opens it below or above, at its real height
   function measure(): boolean {
     const element = textRef.current;
     const isCut = element !== null && element.scrollWidth > element.clientWidth;
@@ -87,6 +105,19 @@ function RowDescription({ text, ref }: RowDescriptionProps) {
       dispatch({ type: 'focus', value: focused });
     },
   }));
+
+  // A popover shows only through the API: its `open` follows the state
+  useEffect(() => {
+    const bubble = bubbleRef.current;
+    if (!TOP_LAYER || !bubble) {
+      return;
+    }
+    if (open && !bubble.matches(':popover-open')) {
+      bubble.showPopover();
+    } else if (!open && bubble.matches(':popover-open')) {
+      bubble.hidePopover();
+    }
+  }, [open]);
 
   useEffect(() => {
     if (!open) {
@@ -129,9 +160,9 @@ function RowDescription({ text, ref }: RowDescriptionProps) {
 
   const placement = state.placement;
   return (
-    // The bubble opens below the description where it fits, otherwise above it (the rows
-    // scroll inside the card, whose edges it stays between), and across the row where 280px
-    // don't fit beside it
+    // The bubble opens below the description where it fits, otherwise above it, and across the
+    // window where 280px don't fit beside it. Without the top layer, it stays between the card's
+    // edges, inside the row
     <div
       ref={wrapperRef}
       onPointerEnter={(event) => handleHover(event, true)}
@@ -140,14 +171,16 @@ function RowDescription({ text, ref }: RowDescriptionProps) {
         pressedWith.current = event.pointerType;
       }}
       onClick={handleClick}
-      className={`flex min-w-0 flex-col ${popupWrapperClass(open ? placement.side : null)}`}
+      className={`flex min-w-0 flex-col ${ROW_DESCRIPTION_ANCHOR} ${TOP_LAYER ? '' : popupWrapperClass(open ? placement.side : null)}`}
     >
       <p ref={textRef} className={`${SMALL_TEXT} text-kern-layout-text-muted truncate`}>
         {text}
       </p>
       <span
+        ref={bubbleRef}
         aria-hidden="true"
-        className={`absolute z-40 ${bubblePlacementClass('button', placement)} ${open ? 'flex' : 'hidden'}`}
+        popover={TOP_LAYER ? 'manual' : undefined}
+        className={rowBubbleClass(placement, open, TOP_LAYER)}
       >
         <span className={TOOLTIP_BOX}>{text}</span>
       </span>
