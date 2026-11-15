@@ -502,6 +502,12 @@ write raw hex/px values or a separate ad-hoc CSS file for it.
 - **The reverse also holds: `.kern-btn:has(.kern-sr-only)` is 48px wide.** Any `.kern-sr-only`
   inside a KERN button makes it icon-sized, so text that only screen readers should hear in a
   labelled button ("View <name>") uses another visually-hidden class, such as Tailwind's `sr-only`.
+- **An `overflow: hidden` box hides `sr-only` text only if it is positioned.** `sr-only` and
+  `kern-sr-only` are `position: absolute`, and a clip only applies to an absolute descendant when
+  it lies on that descendant's containing-block chain. In a collapsed box that isn't positioned,
+  the hidden texts escape to the nearest positioned ancestor at their unclipped positions and can
+  make the page taller than its content, which unsticks a `sticky bottom-0` footer. Add
+  `relative` while the box clips, as `DetailAccordion`'s body does (`accordionBodyClassesOf()`).
 - **Checkboxes**: `.kern-form-check .kern-label` has a 4px top padding, while the KERN Figma
   checkbox uses the label baseline padding of 6px/2px; there is no indeterminate style (this
   project draws a dash in `index.css`), and the focus ring shows on any `:focus` (turned off for

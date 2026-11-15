@@ -3,6 +3,7 @@ import { useId, useState } from 'react';
 import expandLessIcon from '../../assets/icons/expand-less-action-small.svg';
 import expandMoreIcon from '../../assets/icons/expand-more-action-small.svg';
 import type { DetailAccordionProps } from './types';
+import { accordionBodyClassesOf } from './utils';
 
 function prefersReducedMotion(): boolean {
   return window.matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -15,7 +16,9 @@ function prefersReducedMotion(): boolean {
  * action blue. Its body's height animates over 200ms (design-notes §4: `grid-template-rows`
  * 0fr → 1fr, `.motion`). The body is clipped only while it is closed or moving, so that open, a
  * tooltip or the full URL's bubble can reach past the card (V6); closed, it is inert, so its
- * controls leave the tab order and the accessibility tree. Used by the Links (T078), the Summary
+ * controls leave the tab order and the accessibility tree. While it clips it is also positioned,
+ * so that the clip holds the visually hidden texts inside it, which would otherwise lengthen the
+ * page below the sticky footer (`accordionBodyClassesOf()`). Used by the Links (T078), the Summary
  * (T079) and, since spec 010, the Activity card (FR-022); the page keeps one open at a time
  * (`toggleAccordion()`).
  *
@@ -102,7 +105,8 @@ export default function DetailAccordion({
         }}
         className={`motion grid grid-cols-[minmax(0,1fr)] transition-[grid-template-rows] duration-(--duration-height) ease-out ${open ? 'grid-rows-[1fr]' : 'grid-rows-[0fr]'}`}
       >
-        <div id={bodyId} inert={!open} className={`min-h-0 ${clipped ? 'overflow-hidden' : ''}`}>
+        {/* Positioned while it clips, or its sr-only texts escape the clip */}
+        <div id={bodyId} inert={!open} className={accordionBodyClassesOf(clipped)}>
           {children}
         </div>
       </div>

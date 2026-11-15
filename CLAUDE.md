@@ -121,8 +121,9 @@ The UI says "connection" for form connection and "variant" for branch, and calls
 - **Pages**: route in `App.tsx`, path in `ROUTES` (`src/constants.ts`), tab title with
   `useDocumentTitle()`, exactly one `h1`. Which layout a page uses: ARCHITECTURE, "frontend".
 - **Popups**: menus, tooltips and popovers are placed by `placementFrom()`'s class sets (side,
-  direction, max-height step; `src/utils/popupPlacement.ts`), never with inline coordinates
-  (ARCHITECTURE, "frontend").
+  direction, max-height step; `src/utils/popupPlacement.ts`), never with inline coordinates;
+  one inside a box that scrolls or clips opens in the top layer, a `popover` anchored by CSS
+  anchor positioning classes where `supportsAnchoredPopups()` holds (ARCHITECTURE, "frontend").
 - **Dialogs**: a scrim click closes a dialog unless it deletes or publishes
   (`ConfirmDialog`'s `dismissOnScrim={false}`; ARCHITECTURE, "frontend").
 - **Toasts**: every toast closes after 6 seconds (`TOAST_DURATION_MS`), with or without an

@@ -5,6 +5,7 @@ import documentInk from '../../assets/icons/document-ink.svg';
 import factCheckInk from '../../assets/icons/fact-check-ink.svg';
 import publicInk from '../../assets/icons/public-ink.svg';
 import scienceInk from '../../assets/icons/science-ink.svg';
+import type { PopupPlacement } from '../../utils/popupPlacement';
 import type {
   BulkDeleteState,
   DeletionState,
@@ -461,7 +462,8 @@ export const CHECKBOX_CLASSES = {
  * the parts, which keep the row's whole width (W16)
  */
 export const ROW_CLASSES = {
-  row: 'relative flex items-start gap-x-24 gap-y-4 border-(--kern-color-decorative-border-default) px-24 py-16 not-first:border-t narrow:flex-col narrow:items-stretch @min-[63rem]:items-center',
+  // The row scopes its description's anchor name, so that each bubble finds its own row's
+  row: '[anchor-scope:--row-description] relative flex items-start gap-x-24 gap-y-4 border-(--kern-color-decorative-border-default) px-24 py-16 not-first:border-t narrow:flex-col narrow:items-stretch @min-[63rem]:items-center',
   check: '-mt-2 narrow:self-start @min-[63rem]:mt-0',
   parts: 'flex min-w-0 flex-1 flex-wrap items-center gap-x-24 gap-y-8 @min-[63rem]:flex-nowrap',
   name: 'flex min-w-0 shrink-0 basis-full flex-col @min-[63rem]:w-280 @min-[63rem]:basis-auto',
@@ -486,6 +488,31 @@ export const SELECTION_BAR_CLASSES = {
     'text-kern-static-medium text-kern-layout-text-default min-w-0 flex-1 basis-192 leading-(--kern-typography-line-height-medium-static) font-semibold break-words',
   cancel: 'kern-btn kern-btn--tertiary kern-btn--small my-0!',
   delete: 'kern-btn kern-btn--primary kern-btn--danger min-h-40!',
+};
+
+/** The description a row's bubble is anchored to (CSS anchor positioning) */
+export const ROW_DESCRIPTION_ANCHOR = '[anchor-name:--row-description]';
+
+/** The bubble's width in the top layer, never wider than the window less its gutters */
+const ROW_BUBBLE_WIDTH = 'w-280 max-w-[calc(100vw-32px)]';
+
+/**
+ * A row's description bubble in the top layer (bug connection-tooltip-clipped): drawn over the
+ * card, whose rows scroll and would cut it off, and over the page. It is anchored to its
+ * description: below it, or above it where the window has no room below (`flip-block`), or at
+ * the window's top where neither side has room (`--row-description-top`, index.css). The 8px gap
+ * is padding on both sides, so that the mouse crosses it without leaving the bubble whichever
+ * side it opens to. The side is placementFrom()'s: lined up with the description's left edge
+ * (`start`), its right edge (`end`), or across the window less its gutters (`full`). The browser's
+ * own popover box goes: its inset, margin, border, padding, background and fit-content width
+ */
+const ROW_BUBBLE =
+  'm-0 inset-auto top-[anchor(bottom)] overflow-visible border-0 bg-transparent px-0 py-8 open:flex [position-anchor:--row-description] [position-try-fallbacks:flip-block,--row-description-top]';
+
+export const ROW_BUBBLE_CLASSES: Record<PopupPlacement, string> = {
+  start: `${ROW_BUBBLE} left-[anchor(left)] ${ROW_BUBBLE_WIDTH}`,
+  end: `${ROW_BUBBLE} right-[anchor(right)] ${ROW_BUBBLE_WIDTH}`,
+  full: `${ROW_BUBBLE} inset-x-16 w-auto`,
 };
 
 /** A skeleton row's bars (§3 "Skeleton", U74 7062:51211): name, description, status, date */

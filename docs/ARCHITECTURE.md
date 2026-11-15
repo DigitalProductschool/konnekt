@@ -283,7 +283,17 @@ frontend/
   (160–480 px, the list scrolling inside); the component maps each to a fixed set of
   Tailwind classes, and the wrapper takes `popupWrapperClass()`. No inline coordinates: a
   fixed-width popup anchored with `left-0` or `right-0` alone runs off the screen at 320 px
-  and 200 % zoom
+  and 200 % zoom. A popup inside a box that scrolls or hides its overflow, which would cut
+  it off (the overview's description bubble in the list card's rows, bug
+  connection-tooltip-clipped), opens in the top layer instead: a `popover="manual"` that an
+  effect shows and hides with its open state, anchored to its control by CSS anchor
+  positioning in classes (`[anchor-name:…]` on the control, `[anchor-scope:…]` on the item
+  that repeats it, `[position-anchor:…]`, `top-[anchor(bottom)]` and
+  `[position-try-fallbacks:flip-block,…]` on the popup), so that the browser opens it below
+  or above at its real height and moves it with a scrolling box; `placementFrom()` still
+  gives the side. It stays the wrapper's child in the DOM, so hovering into it, the outside
+  press and Escape work as before. Where `supportsAnchoredPopups()` is false (no anchor
+  positioning), it stays positioned inside the page as before
 - **Dialogs** are `ConfirmDialog`, a native modal `<dialog class="kern-dialog">` that fades
   in and out with its scrim. The ×, Escape and a click on the scrim close it, except for the
   dialogs that delete or publish (`dismissOnScrim={false}`: deleting a connection or a

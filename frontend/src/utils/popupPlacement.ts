@@ -27,6 +27,22 @@ export function popupWrapperClass(placement: PopupPlacement | null): string {
   return placement === 'start' || placement === 'end' ? 'relative' : 'static';
 }
 
+/**
+ * Whether a popup can open in the top layer, anchored to its control by CSS anchor positioning
+ * (the Popover API, `anchor-scope`, `position-try-fallbacks`): there, a box around the control
+ * that scrolls or hides its overflow no longer cuts it off (bug connection-tooltip-clipped).
+ * Where one of them is missing, the popup stays positioned inside the page, as before
+ */
+export function supportsAnchoredPopups(): boolean {
+  return (
+    typeof HTMLElement !== 'undefined' &&
+    'showPopover' in HTMLElement.prototype &&
+    typeof CSS !== 'undefined' &&
+    CSS.supports('anchor-scope', '--popup') &&
+    CSS.supports('position-try-fallbacks', 'flip-block')
+  );
+}
+
 /** The horizontal extent of the control that opens a popup, as getBoundingClientRect() gives it */
 export interface PopupAnchor {
   left: number;

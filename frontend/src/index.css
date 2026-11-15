@@ -795,6 +795,16 @@
   }
 }
 
+/*
+ * The overview's description bubble where the window has room for it neither below its
+ * description nor above it (FormConnectionList ROW_BUBBLE_CLASSES, bug
+ * connection-tooltip-clipped): at the window's top, over the description, so that the pointer
+ * stays on it and it shows whole wherever it is no taller than the window
+ */
+@position-try --row-description-top {
+  top: 0;
+}
+
 @layer base {
   html {
     /*

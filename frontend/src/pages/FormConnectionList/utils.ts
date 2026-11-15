@@ -9,6 +9,8 @@ import { formatDate } from '@connection-portal/rules/dates';
 import type { Language } from '@connection-portal/rules/language';
 
 import { ApiError, errorNoticeOf } from '../../api/client';
+import type { TooltipPlacement } from '../../components/InfoTooltip/types';
+import { bubblePlacementClass } from '../../components/InfoTooltip/utils';
 import type { ToastContent } from '../../components/Toast/types';
 import { matchesSearch } from '../../components/ValuesPicker/utils';
 import type { Homepage } from '../../hooks/types';
@@ -18,6 +20,7 @@ import {
   EXAMPLE_DIALOG_COPY,
   INITIAL_DELETION_STATE,
   LIST_COPY,
+  ROW_BUBBLE_CLASSES,
   ROW_DATE_FORMAT,
   STEP_LABELS,
 } from './constants';
@@ -200,6 +203,24 @@ export function filterConnections<T extends Pick<FormConnectionSummary, 'name' |
 /** The line under a row's name: its description as written, or `null` when it is empty (FR-005). */
 export function descriptionOf(summary: FormConnectionSummary): string | null {
   return summary.description === '' ? null : summary.description;
+}
+
+/**
+ * The position classes of a row's description bubble: in the top layer, anchored to the
+ * description, by its side alone (ROW_BUBBLE_CLASSES; the browser picks below or above, and
+ * shows it while it is open as a popover); otherwise, where the browser lacks anchor positioning,
+ * inside the row, as an ⓘ's bubble beside a button, by the side and the direction, and shown
+ * while `open`
+ */
+export function rowBubbleClass(
+  placement: TooltipPlacement,
+  open: boolean,
+  topLayer: boolean
+): string {
+  if (topLayer) {
+    return ROW_BUBBLE_CLASSES[placement.side];
+  }
+  return `absolute z-40 ${bubblePlacementClass('button', placement)} ${open ? 'flex' : 'hidden'}`;
 }
 
 /**
