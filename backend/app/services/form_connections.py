@@ -83,7 +83,7 @@ from ..schemas import (
     to_iso_utc,
 )
 from ..schemas import FormConnection as FormConnectionView
-from . import activity, dcql, rules, start_dates
+from . import activity, dcql, rules, start_dates, versions
 from .activity import SYSTEM, Actor
 from .document_requests import cancel_open_requests
 from .eudiplo import EudiploError, get_eudiplo_client
@@ -513,15 +513,23 @@ def _view(
     published_at = form_connection.published_at
     if state == 'draft' or published_at is None:
         raise _not_published()
+    # In the stored order (spec 010, FR-050); the revision's stays catalog order
+    documents_in_order = ordered_documents(documents, form_connection.document_order)
     return FormConnectionView(
         id=form_connection.id,
         name=form_connection.name,
         description=form_connection.description,
-        is_active=form_connection.is_active,
-        # In the stored order (spec 010, FR-050); the revision's stays catalog order
-        documents=documents_view(
-            ordered_documents(documents, form_connection.document_order)
+        # Of the content as answered: the documents in the stored order, the
+        # current rule set's branches (spec 011, data-model 1)
+        version_fingerprint=versions.version_fingerprint(
+            form_connection_id=form_connection.id,
+            name=form_connection.name,
+            description=form_connection.description,
+            documents=documents_in_order,
+            branches=branches,
         ),
+        is_active=form_connection.is_active,
+        documents=documents_view(documents_in_order),
         trigger_url=trigger_url_of(form_connection.id),
         # The main branch's, which is spec 001's; serviceBW puts the request
         # reference in place of the placeholder

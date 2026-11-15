@@ -215,6 +215,8 @@ German column is the one translation of the term everywhere it appears.
 | selected (overview rows); "2 selected" | ausgewählt; "2 ausgewählt" | as "chosen" for data items (added 2026-11-11, spec 010, T002) |
 | restore, restored (a deleted connection) | wiederherstellen, wiederhergestellt | (added 2026-11-11, spec 010, T002) |
 | "Move up" / "Move down"; position | "Nach oben" / "Nach unten"; Position | the documents' reorder menu (added 2026-11-11, spec 010, T002) |
+| version (the content's fingerprint, "Version 62D0-715F-01D1") | Version | the details page and the connection PDF; the same word as "revision" above, which no screen shows (added 2026-11-12, spec 011, T003) |
+| "Not live" / "Not live yet" (a draft); "it isn’t live" | "Nicht aktiv" / "Noch nicht aktiv"; "er ist nicht aktiv" | "live" is "aktiv", as "live connections" and "never live" above; "Draft · Not live" → "Entwurf · Nicht aktiv" (added 2026-11-12, spec 011, T003) |
 
 ## 3. The operators and composed phrases of the rules (FR-006)
 

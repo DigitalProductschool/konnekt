@@ -151,7 +151,8 @@ frontend/
 │   ├── api/              # client.ts (apiFetch, ApiError, setRequestLanguage), one module per
 │   │                     # resource: auth.ts, document-types.ts, form-connections.ts,
 │   │                     # option-sets.ts; spec 007: agent-access.ts, approvals.ts, oauth.ts
-│   ├── assets/           # From the Figma design: icons/ (SVG glyphs), illustrations/
+│   ├── assets/           # From the Figma design: icons/ (SVG glyphs), illustrations/;
+│   │                     # fonts/: the PDF's Fira TTFs with OFL.txt (spec 011)
 │   ├── components/       # App shell (AppLayout, TopBar with the header pills, UserMenu,
 │   │                     # PageTitle), the wizard's frame (WizardLayout, WizardProgress), the
 │   │                     # signed-out screens' frame (AuthLayout), route guards, sign-in state
@@ -170,7 +171,8 @@ frontend/
 │   │                     # useTodayInGermany (spec 004), useLocalDraftStore, useLocalDraft,
 │   │                     # useLocalDrafts (spec 005), useRememberedHomepage (spec 008),
 │   │                     # usePinned, useUndoShortcut; useLanguage with useCopy (spec 009);
-│   │                     # useRowDrag (dragging the documents, spec 010)
+│   │                     # useRowDrag (dragging the documents, spec 010); useConnectionPdf
+│   │                     # (the PDF's download and its worker, spec 011)
 │   ├── pages/            # One folder per screen: Login, ForgotPassword, FormConnectionList
 │   │                     # (the overview and the welcome page at /), FirstConnection
 │   │                     # (/get-started), FormConnectionEditor (the wizard, with
@@ -181,9 +183,12 @@ frontend/
 │   ├── utils/            # Shared helpers: menuNavigation.ts (arrow keys in menus),
 │   │                     # popupPlacement.ts (where a popup opens), stickyPin.ts,
 │   │                     # undoShortcut.ts, messageField.ts; localDrafts/: the local drafts'
-│   │                     # pure modules (spec 005); language/: the language's resolver (spec 009)
-│   ├── workers/          # The browser Worker entries: checks.ts (the rule checks) and
-│   │                     # personas.ts (the test personas)
+│   │                     # pure modules (spec 005); language/: the language's resolver (spec 009);
+│   │                     # connectionPdf/: the PDF's pure modules, and connectionSummary.ts,
+│   │                     # the Summary's numbers that the PDF shares (spec 011)
+│   ├── workers/          # The browser Worker entries: checks.ts (the rule checks),
+│   │                     # personas.ts (the test personas) and pdf.ts (the connection PDF,
+│   │                     # with pdfFonts.ts, the fonts' URLs; spec 011)
 │   ├── constants.ts      # App name (Konnekt), routes, the wizard's steps and their labels, the
 │   │                     # KERN kit's texts in both languages (KERN_TRANSLATIONS)
 │   ├── copy.test.ts      # Every copy table complete in both languages (spec 009)
@@ -421,7 +426,10 @@ frontend/
   "Deactivated by …"; open, the entries newest first, 50 at a time, loaded again after an
   action on the page changed the connection; see [The activity](#the-activity-spec-010)). A
   stored draft's details show the Summary first, then the Links card without URLs, then the
-  Activity, with "Delete draft" in the band
+  Activity, with "Delete draft" in the band. A card's header takes controls of its own through
+  `DetailAccordion`'s `actions` slot, between the heading and the toggle (wrapping under the
+  heading on a narrow window): the Summary's holds "Version …" and "Download PDF"
+  (`PdfDownload`, spec 011; see [The connection PDF](#the-connection-pdf-spec-011))
 - **The documents step** (spec 010, S8): the documents stay in the team's order. A row is
   dragged to its place with a mouse, a pen or, after a 400 ms hold, a touch (`useRowDrag`
   feeding the pure `rowDragReducer`; no library and no HTML drag and drop; Escape or a
@@ -1553,6 +1561,116 @@ dependency, and no response field: a `label` or `message` is a string in the req
   is stale. It is generated: never edit it by hand. `tests/unit/test_texts.py` checks that every
   `Text` in `app/` has two non-empty, different columns.
 
+### The connection PDF (spec 011)
+
+The details of a published connection and of a stored draft have "Download PDF" in the Summary
+card's header and, beside it, the connection's **version**. One click fetches the connection as
+stored and saves a tagged A4 PDF of its details in the website's language, made entirely in the
+browser. The decisions are research R1 to R14 in `specs/011-connection-pdf/`, the shapes in its
+`data-model.md` and `contracts/` (`api-version.md`, `pdf-worker.md`, `pdf-document.md`), the
+decisions taken while building it in its `design-notes.md` §8.2 (D1 to D12). The PDF adds no
+endpoint, table or setting; it adds one dependency, `pdfkit` 0.20.2, and five font files.
+
+- **The version** (R6, `contracts/api-version.md`): `version_fingerprint`, such as
+  `62D0-715F-01D1`, the first 12 hex digits, upper case in groups of four, of the SHA-256 of a
+  canonical JSON of the content: the id, name and description, the documents in the answer's
+  (the team's) order with their field keys, and the variants with their rules and groups, the
+  conditions in their publishable form (`publishable_condition()` in `services/rules.py`, which
+  `_clean_condition()` returns too, so that a draft published unchanged keeps its version). No
+  status, URL, counter, time, label or language. It is computed only by `version_fingerprint()`
+  in `app/services/versions.py`, for every answer and never stored, which `_view()` and
+  `draft_view()` call: so `FormConnection` and `FormConnectionDraft` carry it in every answer
+  (the details, the writes, an approval request's preview), and `FormConnectionSummary` does
+  not. The frontend and the MCP server only read it: `get_connection` shows it as "Version …,
+  as the details page and the PDF show it" (R12), and the MCP's texts call a draft's save
+  number (`draft.version`) "save {n}" (D11). The UI never calls the save number a version.
+- **The button**: `pages/FormConnectionDetail/PdfDownload.tsx`, in the Summary's header through
+  `DetailAccordion`'s `actions` slot: "Version <code>" and KERN's secondary button, its busy
+  label "Creating PDF…" (`aria-disabled`), its own polite live region ("Creating the PDF…",
+  "PDF saved.") and `PdfFailure`'s alert with the server's message or "Check your connection and
+  try again.", a 5xx's error ID and "Try again".
+- **The run** (R9, R13, `contracts/pdf-worker.md`): `hooks/useConnectionPdf.ts`.
+  - **Where it lives** (D5): `pages/FormConnectionDetail/index.tsx` calls it beside
+    `useFormConnection`, above both details, so that a run survives the swap from
+    `DraftDetails` to `ConnectionDetails` when its fetch finds the draft published meanwhile;
+    `state` and `download` go down as one prop. The page hands it no option sets or catalog:
+    the first run fetches them in the run's language, and later runs reuse the hook's copy.
+  - **The steps**: `download()` captures the language and the moment, which hold for the run;
+    fetches the connection again (`getFormConnection(id, { language })`, FR-005) and hands it
+    to the page, which replaces the shown connection only when `isShownConnection()` finds it
+    different (D10); takes the option sets and, for a draft, the catalog; builds the content
+    model on the main thread (`connectionPdfModelOf()`; the model's, file name's and texts'
+    modules load with dynamic `import()` during the fetch, so the main bundle stays small);
+    posts it to the worker; and saves the bytes it answers as a `Blob` through an object URL and
+    a detached anchor's `download`, with `fileNameOf(model)`.
+  - **The states**: `idle`, `fetching`, `rendering`, `failed` (`pdfDownloadReducer` in
+    `hooks/utils.ts`). A click while busy does nothing (FR-003). A 401 signs out, a 404 shows
+    "Page not found", any other failure ends in `failed` with no file (FR-004). The watchdog
+    (`PDF_WATCHDOG_MS`, 120 s) fails a run the worker never answers. A failed fetch keeps the
+    worker; the worker's own failure, `error`, `messageerror` or the watchdog terminate it, and
+    the next try starts a new one. Unmounting terminates the worker and ignores late answers.
+  - **The worker**: `frontend/src/workers/pdf.ts`, a module worker (`worker: { format: 'es' }`
+    in `vite.config.ts`, R2), started on first use and kept for later runs on the page. On its
+    first run it loads PDFKit's browser build and `workers/pdfFonts.ts` (the five TTFs' `?url`
+    imports) with dynamic `import()`, fetches the fonts and keeps them; a failed load is tried
+    again on the next run. It calls `renderConnectionPdf()` and posts `rendered` with the bytes
+    transferred, or `failed` with no reason. None of it is in the main bundle or loaded before
+    the first click.
+  - **The page stays responsive** (D10): the Summary's body is `RulesSummaryBody`, a `memo`
+    component that doesn't take the run's state, so a run's changes render only the header
+    (`PdfDownload`, `PdfFailure`), not the largest connection's 20 variants of 200 items.
+- **The pure modules** (R3): `frontend/src/utils/connectionPdf/`, every module with its
+  `*.test.ts` and no browser API: `model.ts` (everything the PDF says, in its language, from
+  the connection, the option sets and the catalog; the counts from `utils/connectionSummary.ts`,
+  which the details' Summary uses too), `gaps.ts` (a draft's gaps: everything publishing would
+  refuse, through `publishProblems()` of `rules/src/validation.ts`), `blocks.ts`, `paginate.ts`,
+  `wrapUrl.ts` (`urlLines()`: a URL breaks only after "/"), `fileName.ts`, `render.ts`,
+  `constants.ts` (`PDF_TEXTS` as `defineTexts(en, de)`, the layout, styles and colours),
+  `types.ts` (the shapes and our own declaration of the PDFKit calls we use, D1) and
+  `testData.ts` (the test connections A to E). `render.ts` receives PDFKit's constructor and
+  the fonts' bytes: the worker passes the browser build, the Node smoke test in
+  `render.test.ts` the Node build and the same TTFs.
+- **Measured equals drawn** (R11): `layoutOf()` in `blocks.ts` is the one function that
+  computes where a block's texts and shapes go. `blocksOf()` calls it for each block's height,
+  through a `Measure` over PDFKit's `heightOfString` and `widthOfString` with the drawing's
+  options, and `render.ts` calls it again to draw, so the paginator's heights are the drawn
+  ones. Faded text is struck through by PDFKit's own `strike`, per drawn line (D3).
+- **Pagination** (R4, `paginate.ts`, ported from the prototype): the blocks are placed before
+  anything is drawn, so the page count is known for "Page n of N". A block never splits; a chain
+  (`keepWithNext`) keeps a heading with what follows and breaks inside only where a block would
+  run past the page; a unit that fits on a fresh page but not on the rest of this one moves
+  there whole, and a taller one flows and splits between its blocks; a gap is dropped at a
+  page's top. A rule taller than a page arrives already cut at value boundaries (FR-027), and
+  long lists (a draft's gaps, the result links) are a block per entry. Every page's band says the
+  name, the connection ID, a draft's "Draft · Not live" pill, the version and the date; its
+  bottom "Page n of N" and, from page 2, the place: "3 Rules per variant › Variant Taxi
+  (continued)". A place that doesn't fit its box cuts only the variant's name with "…"
+  (`placeLabelOf()` with `cutToFit()`, given the drawing's own width test, D9), so the section
+  and "(continued)" stay whole. A draft gets a "DRAFT" watermark.
+- **Tagging** (R5): PDF/UA-1. `Document` › `Sect` with `H1`–`H6`, `P`, `L`/`LI`/`LBody`, and
+  the details box as a `Table`; frames, bars, pills' shapes, chips, the band, the bottom and the
+  watermark are artifacts; `/Lang` (`en-GB`, `de-DE`), the title shown, and an outline with the
+  sections and the variants. PDFKit's PDF/UA mode writes an incomplete `CIDSet`, which fails
+  veraPDF, so `withoutCidSet()` in `render.ts` finalises each font with the subset level hidden:
+  the one function that touches PDFKit's internals, which is why `pdfkit` is pinned exactly. The
+  smoke test fails if a `/CIDSet` comes back or `pdfuaid:part` goes.
+- **The fonts** (R7): Fira Sans Regular, Medium and SemiBold and Fira Mono Regular and Medium as
+  TTFs in `frontend/src/assets/fonts/`, with `OFL.txt`: KERN's WOFF2 files break fontkit's
+  subsetting and KERN has no Fira Mono. Vite fingerprints them as assets; PDFKit subsets them per
+  document. `frontend/nginx.conf`'s `gzip_types` includes `font/ttf` (about 1.7 MB raw,
+  0.75 MB compressed, on the first click only).
+- **Never stored, sent or logged** (FR-041, FR-042): the run makes only the requests the page
+  makes anyway (the connection, and the option sets and catalog when not yet fetched), the
+  worker only its own chunks and the five fonts, the same for every connection; the file exists
+  as a `Blob` until the browser saves it. The model holds no finding, persona or citizen data,
+  and a draft's no URL. No `console.*` in `utils/connectionPdf/`, `workers/pdf.ts` or
+  `useConnectionPdf` (ESLint's `no-console` for these paths), the worker's errors are handled so
+  that the browser doesn't log them, and `versions.py` logs nothing. Only the worker and the
+  hook touch browser APIs.
+- **The body limit**: saving a connection at the product's limits needs nginx's larger body
+  limit on `/api/` (D12), see [Frontend container (production
+  nginx)](#frontend-container-production-nginx).
+
 ### Background worker
 
 `app/services/worker.py` runs a daemon thread, started and stopped by the FastAPI
@@ -1933,6 +2051,10 @@ Read at container start, not at build time, so one image serves every environmen
 (`allow` rules, then `deny all`) and `/etc/nginx/real-ip.conf` (`set_real_ip_from`,
 `real_ip_header X-Forwarded-For`, `real_ip_recursive on`). An entry with anything
 but an address or a range stops the container.
+
+`location /api/` accepts request bodies of up to 4 MB (`client_max_body_size 4m`):
+a connection at the product's limits (spec 011, FR-045) saves a body of about 1.56 MB,
+which nginx's default of 1 MB would refuse with `413`.
 
 ## Docker Development
 

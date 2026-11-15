@@ -50,7 +50,7 @@ from ..schemas import (
     to_iso_utc,
 )
 from ..schemas import FormConnection as FormConnectionView
-from . import activity, form_connections, rules
+from . import activity, form_connections, rules, versions
 from .activity import Actor
 from .form_connections import (
     DRAFT_CHANGED_DETAIL,
@@ -80,21 +80,31 @@ def draft_view(db: Session, form_connection: FormConnection) -> FormConnectionDr
     listed in the stored order (spec 010, research R6, FR-050). Answers 409
     `draft_published` for a published row. `last_activity` is the entry the
     activity card's closed line shows (spec 010, data-model 2.5).
+    `version_fingerprint` is the version of that content, the documents in that
+    order, which publishing the draft unchanged keeps (spec 011, FR-031).
     """
     if form_connection.draft is None or form_connection.draft_version is None:
         raise _draft_published()
     content = DRAFT_CONTENT.validate_python(form_connection.draft)
+    # In the stored order; the content keeps catalog order (spec 010, R6)
+    documents = form_connections.ordered_documents(
+        content.documents, form_connection.document_order
+    )
     return FormConnectionDraft(
         state='draft',
         id=form_connection.id,
         name=form_connection.name,
         description=form_connection.description,
-        # In the stored order; the content keeps catalog order (spec 010, R6)
-        documents=form_connections.documents_view(
-            form_connections.ordered_documents(
-                content.documents, form_connection.document_order
-            )
+        # Of the content as answered, as the published connection's: publishing
+        # the draft unchanged keeps it (spec 011, FR-031)
+        version_fingerprint=versions.version_fingerprint(
+            form_connection_id=form_connection.id,
+            name=form_connection.name,
+            description=form_connection.description,
+            documents=documents,
+            branches=content.branches,
         ),
+        documents=form_connections.documents_view(documents),
         branches=content.branches,
         next_rule_number=form_connection.next_rule_number,
         next_group_number=form_connection.next_group_number,

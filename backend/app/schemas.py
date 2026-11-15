@@ -441,6 +441,10 @@ class FormConnection(BaseModel):
     id: str
     name: str
     description: str
+    # The version the details page and the PDF show, `XXXX-XXXX-XXXX`: a
+    # fingerprint of the content, computed for every answer (spec 011, data-model
+    # section 1, `services/versions.py`)
+    version_fingerprint: str
     is_active: bool
     documents: list[RequestedDocumentView]
     trigger_url: str
@@ -587,6 +591,10 @@ class FormConnectionDraft(BaseModel):
     name: str
     # '' possible
     description: str
+    # The version the details page and the PDF show, as on a FormConnection: a
+    # fingerprint of the content, which publishing the draft unchanged keeps (spec
+    # 011, FR-031). Not `version`, the save number
+    version_fingerprint: str
     # May be empty, and a document's fields may be empty. A type or field the
     # catalog dropped keeps its key as its label
     documents: list[RequestedDocumentView]

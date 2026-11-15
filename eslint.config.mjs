@@ -73,6 +73,16 @@ export default defineConfig([
     },
   },
 
+  // The connection's PDF: nothing about a PDF is logged (FR-042; spec 011)
+  {
+    files: [
+      'frontend/src/utils/connectionPdf/**/*.ts',
+      'frontend/src/workers/pdf.ts',
+      'frontend/src/hooks/useConnectionPdf.ts',
+    ],
+    rules: { 'no-console': 'error' },
+  },
+
   // The shared packages: pure TypeScript, no globals. Nothing in them logs: the checks, the
   // personas and the evaluator run on findings and applicants (research R18)
   {

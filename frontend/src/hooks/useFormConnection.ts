@@ -1,4 +1,4 @@
-import type { FormConnection } from '@connection-portal/api-types/form-connections';
+import type { FormConnectionOrDraft } from '@connection-portal/api-types/form-connections';
 import type { Language } from '@connection-portal/rules/language';
 import { useEffect, useReducer, useRef } from 'react';
 
@@ -15,7 +15,9 @@ import { formConnectionReducer, INITIAL_FORM_CONNECTION_STATE } from './utils';
  * (its details, or the create flow at its step). A 404 means it doesn't exist or was deleted; a
  * 401 signs out; any other failure keeps the server's answer as a notice, with a 5xx answer's
  * error ID, for `FormConnectionLoadState` (W2). `retry` loads it again, such as after a draft turned out to be published.
- * `replace` takes a newer version of a published connection, such as an action's answer.
+ * `replace` takes a newer version of a published connection, such as an action's answer, or the
+ * connection or draft as the PDF's run fetched it (spec 011, FR-005): a draft published meanwhile
+ * then shows as the published connection.
  *
  * A switch of the website's language loads it again, for the labels the server words in the
  * request's language (spec 009, research R6): the loaded connection stays on screen meanwhile, a
@@ -25,7 +27,7 @@ import { formConnectionReducer, INITIAL_FORM_CONNECTION_STATE } from './utils';
 export function useFormConnection(id: string): {
   state: FormConnectionState;
   retry: () => void;
-  replace: (formConnection: FormConnection) => void;
+  replace: (formConnection: FormConnectionOrDraft) => void;
 } {
   const [state, dispatch] = useReducer(formConnectionReducer, INITIAL_FORM_CONNECTION_STATE);
   const handleUnauthorized = useSignOutOnUnauthorized();

@@ -8,11 +8,14 @@ import { CONTEXT, mainBranch, US1_RULES } from '@connection-portal/rules/testDat
 import { renameItem } from '@connection-portal/rules/tree';
 import { describe, expect, it } from 'vitest';
 
+import { SAMPLE_DRAFT, SAMPLE_PUBLISHED } from '../utils/connectionPdf/testData';
+import type { PdfDownloadAction, PdfDownloadState } from '../utils/connectionPdf/types';
 import { emptyContent } from '../utils/localDrafts/content';
 import type { CatalogCacheAction, CatalogCacheState, CheckableBranch } from './types';
 import {
   actionOf,
   byBranchFor,
+  cachedListOf,
   catalogCacheReducer,
   catalogListOf,
   catalogViewOf,
@@ -20,9 +23,11 @@ import {
   fetchLanguageOf,
   formConnectionReducer,
   INITIAL_FORM_CONNECTION_STATE,
+  INITIAL_PDF_DOWNLOAD_STATE,
   initialCatalogCacheState,
   isLocalDraftChange,
   localDraftActionOf,
+  pdfDownloadReducer,
   prefetchLanguageOf,
   runBranchesOf,
   sameChange,
@@ -386,6 +391,131 @@ describe('formConnectionReducer', () => {
         refresh: true,
       })
     ).toEqual({ status: 'failed', attempt: 0, notice: null });
+  });
+});
+
+describe('formConnectionReducer with the PDF’s fetch (spec 011, FR-005)', () => {
+  const published = formConnectionReducer(INITIAL_FORM_CONNECTION_STATE, {
+    type: 'loaded',
+    formConnection: SAMPLE_PUBLISHED,
+  });
+  const draft = formConnectionReducer(INITIAL_FORM_CONNECTION_STATE, {
+    type: 'loaded',
+    formConnection: SAMPLE_DRAFT,
+  });
+
+  it('stores a draft that `replace` hands it, as it stores a published connection', () => {
+    expect(draft).toEqual({ status: 'loaded', attempt: 0, formConnection: SAMPLE_DRAFT });
+    expect(
+      formConnectionReducer(published, { type: 'loaded', formConnection: SAMPLE_DRAFT })
+    ).toEqual(draft);
+  });
+
+  it('shows a draft published meanwhile as the published connection', () => {
+    expect(
+      formConnectionReducer(draft, { type: 'loaded', formConnection: SAMPLE_PUBLISHED })
+    ).toEqual(published);
+  });
+});
+
+describe('pdfDownloadReducer', () => {
+  const notice = { message: 'Check your connection and try again.' };
+  const run = (state: PdfDownloadState, ...actions: PdfDownloadAction[]) =>
+    actions.reduce(pdfDownloadReducer, state);
+  const fetching = run(INITIAL_PDF_DOWNLOAD_STATE, { type: 'start', runId: 1 });
+  const rendering = run(fetching, { type: 'fetched', runId: 1 });
+  const failed = run(fetching, { type: 'failed', runId: 1, notice });
+
+  it('starts idle with nothing to announce', () => {
+    expect(INITIAL_PDF_DOWNLOAD_STATE).toEqual({ status: 'idle', announcement: null });
+  });
+
+  it('goes from idle through fetching and rendering back to idle, saying "PDF saved."', () => {
+    expect(fetching).toEqual({ status: 'fetching', runId: 1, announcement: 'creating' });
+    expect(rendering).toEqual({ status: 'rendering', runId: 1, announcement: 'creating' });
+    expect(run(rendering, { type: 'rendered', runId: 1 })).toEqual({
+      status: 'idle',
+      announcement: 'saved',
+    });
+  });
+
+  it('starts nothing while fetching or rendering (FR-003)', () => {
+    expect(run(fetching, { type: 'start', runId: 2 })).toBe(fetching);
+    expect(run(rendering, { type: 'start', runId: 2 })).toBe(rendering);
+  });
+
+  it('fails a fetching or a rendering run with its notice, and starts again from failed', () => {
+    expect(failed).toEqual({ status: 'failed', notice, announcement: null });
+    expect(run(rendering, { type: 'failed', runId: 1, notice })).toEqual(failed);
+    expect(run(failed, { type: 'start', runId: 2 })).toEqual({
+      status: 'fetching',
+      runId: 2,
+      announcement: 'creating',
+    });
+  });
+
+  it('starts again after a saved file', () => {
+    const saved = run(rendering, { type: 'rendered', runId: 1 });
+    expect(run(saved, { type: 'start', runId: 2 })).toEqual({
+      status: 'fetching',
+      runId: 2,
+      announcement: 'creating',
+    });
+  });
+
+  it('ends a fetch in idle, saying nothing, when the connection is gone or the session ended', () => {
+    expect(run(fetching, { type: 'gone', runId: 1 })).toEqual(INITIAL_PDF_DOWNLOAD_STATE);
+    expect(run(fetching, { type: 'signedOut', runId: 1 })).toEqual(INITIAL_PDF_DOWNLOAD_STATE);
+  });
+
+  it('ignores the actions of another run', () => {
+    const late: PdfDownloadAction[] = [
+      { type: 'fetched', runId: 2 },
+      { type: 'gone', runId: 2 },
+      { type: 'signedOut', runId: 2 },
+      { type: 'rendered', runId: 2 },
+      { type: 'failed', runId: 2, notice },
+    ];
+    for (const action of late) {
+      expect(pdfDownloadReducer(fetching, action)).toBe(fetching);
+      expect(pdfDownloadReducer(rendering, action)).toBe(rendering);
+    }
+  });
+
+  it('ignores an action that doesn’t fit the step', () => {
+    expect(run(fetching, { type: 'rendered', runId: 1 })).toBe(fetching);
+    expect(run(rendering, { type: 'fetched', runId: 1 })).toBe(rendering);
+    expect(run(rendering, { type: 'gone', runId: 1 })).toBe(rendering);
+    expect(run(rendering, { type: 'signedOut', runId: 1 })).toBe(rendering);
+  });
+
+  it('ignores every answer while idle or failed', () => {
+    const answers: PdfDownloadAction[] = [
+      { type: 'fetched', runId: 1 },
+      { type: 'rendered', runId: 1 },
+      { type: 'failed', runId: 1, notice },
+    ];
+    for (const action of answers) {
+      expect(pdfDownloadReducer(INITIAL_PDF_DOWNLOAD_STATE, action)).toBe(
+        INITIAL_PDF_DOWNLOAD_STATE
+      );
+      expect(pdfDownloadReducer(failed, action)).toBe(failed);
+    }
+  });
+});
+
+describe('cachedListOf', () => {
+  const english = [{ id: 'en' }];
+  const german = [{ id: 'de' }];
+
+  it('takes the first cache that holds the language', () => {
+    expect(cachedListOf('de', { en: english, de: german }, { de: [] })).toBe(german);
+    expect(cachedListOf('de', undefined, { en: english }, { de: german })).toBe(german);
+  });
+
+  it('never takes the other language’s list', () => {
+    expect(cachedListOf('de', { en: english }, undefined)).toBeNull();
+    expect(cachedListOf('en')).toBeNull();
   });
 });
 

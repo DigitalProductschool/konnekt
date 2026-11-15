@@ -29,7 +29,7 @@ import uuid
 from collections.abc import Iterator, Mapping, Sequence
 from dataclasses import dataclass
 from datetime import date, datetime, timezone
-from typing import cast
+from typing import cast, overload
 
 from fastapi import HTTPException, status
 from sqlalchemy import func, select
@@ -674,6 +674,76 @@ def _enum_set(field: CatalogField, target: RuleTarget) -> str | None:
     return field.option_set
 
 
+@overload
+def publishable_condition(condition: Condition) -> Condition: ...
+
+
+@overload
+def publishable_condition(condition: None) -> None: ...
+
+
+def publishable_condition(condition: Condition | None) -> Condition | None:
+    """A condition with only the keys its operator uses, as publishing stores it.
+
+    The key selection of `_clean_condition`, without any check (spec 011,
+    data-model.md section 1, "The publishable form of a condition"), so that a
+    complete draft and the connection publishing makes of it have one version:
+
+    - `contains`, `not_contains`, and `equal_to`, `not_equal_to` with a text
+      `value`: `operator`, `value` and `match_case`, false when absent;
+    - `greater_than`, `less_than`, and `equal_to`, `not_equal_to` with a number
+      `value` (a bool isn't one): `operator` and `value`;
+    - `includes_one_of`, `includes_none_of`: `operator` and `values`, in order;
+    - `before`, `after`, `on`: `operator` and `date`;
+    - the years-ago operators: `operator` and `years`, a whole float as an int;
+    - the from-now operators: `operator`, `amount`, a whole float as an int, and
+      `unit`.
+
+    Any other condition, such as a draft's unfinished one, and no condition stay
+    as they are.
+    """
+    if condition is None:
+        return None
+    operator = condition.operator
+    value = condition.value
+    if operator in TEXT_OPERATORS and (
+        operator not in NUMBER_OPERATORS or isinstance(value, str)
+    ):
+        return Condition(
+            operator=operator, value=value, match_case=bool(condition.match_case)
+        )
+    if operator in NUMBER_OPERATORS and (
+        operator not in TEXT_OPERATORS or _is_number(value)
+    ):
+        return Condition(operator=operator, value=value)
+    if operator in ENUM_OPERATORS:
+        values = None if condition.values is None else list(condition.values)
+        return Condition(operator=operator, values=values)
+    if operator in FIXED_DATE_OPERATORS:
+        return Condition(operator=operator, date=condition.date)
+    if operator in YEARS_AGO_OPERATORS:
+        return Condition(operator=operator, years=_int_if_whole(condition.years))
+    if operator in FROM_NOW_OPERATORS:
+        return Condition(
+            operator=operator,
+            amount=_int_if_whole(condition.amount),
+            unit=condition.unit,
+        )
+    return condition
+
+
+def _is_number(value: object) -> bool:
+    """Whether `value` is a number; True and False are not, though bool is an int."""
+    return isinstance(value, float | int) and not isinstance(value, bool)
+
+
+def _int_if_whole(value: float | None) -> float | None:
+    """A whole float as an int (`5.0` → `5`); any other value as it is."""
+    if isinstance(value, float) and value.is_integer():
+        return int(value)
+    return value
+
+
 def _clean_condition(
     condition: Condition,
     kind: FieldKind,
@@ -681,48 +751,41 @@ def _clean_condition(
     target: RuleTarget,
     subject: _Subject,
 ) -> Condition:
-    """Check a condition against its target's kind; keep only its operator's keys."""
+    """Check a condition against its target's kind; keep only its operator's keys.
+
+    The keys kept are `publishable_condition()`'s, applied to the condition the
+    checks accepted, so that the condition publishing stores and the one a draft's
+    version hashes can't drift (spec 011, data-model.md section 1).
+    """
     operator = condition.operator
     if kind == 'number' and operator in NUMBER_OPERATORS:
         value = condition.value
         if not isinstance(value, float | int) or not math.isfinite(value):
             raise _condition_problem(subject, 'enter_number')
-        return Condition(operator=operator, value=value)
-    if kind == 'text' and operator in TEXT_OPERATORS:
+    elif kind == 'text' and operator in TEXT_OPERATORS:
         if not isinstance(condition.value, str) or not condition.value.strip():
             raise _condition_problem(subject, 'enter_text')
-        return Condition(
-            operator=operator,
-            value=condition.value,
-            match_case=bool(condition.match_case),
-        )
-    if kind == 'enum' and operator in ENUM_OPERATORS:
-        return Condition(
-            operator=operator,
-            values=_enum_values(condition, entry.field, target, subject),
-        )
-    if kind == 'date' and operator in FIXED_DATE_OPERATORS:
+    elif kind == 'enum' and operator in ENUM_OPERATORS:
+        _enum_values(condition, entry.field, target, subject)
+    elif kind == 'date' and operator in FIXED_DATE_OPERATORS:
         if not _is_date(condition.date):
             raise _condition_problem(subject, 'enter_date')
-        return Condition(operator=operator, date=condition.date)
-    if kind == 'date' and operator in YEARS_AGO_OPERATORS:
-        years = _whole_number(condition.years)
-        if years is None:
+    elif kind == 'date' and operator in YEARS_AGO_OPERATORS:
+        if _whole_number(condition.years) is None:
             raise _condition_problem(subject, 'years_at_least_1')
-        return Condition(operator=operator, years=years)
-    if kind == 'date' and operator in FROM_NOW_OPERATORS:
+    elif kind == 'date' and operator in FROM_NOW_OPERATORS:
         unit = condition.unit
         if unit not in ('years', 'months'):
             raise _condition_problem(subject, 'choose_unit')
-        amount = _whole_number(condition.amount)
-        if amount is None:
+        if _whole_number(condition.amount) is None:
             raise _validation_error(
                 texts.condition_problem(
                     subject.item, subject.branch, texts.amount_at_least_1(unit)
                 )
             )
-        return Condition(operator=operator, amount=amount, unit=unit)
-    raise _condition_problem(subject, 'choose_check')
+    else:
+        raise _condition_problem(subject, 'choose_check')
+    return publishable_condition(condition)
 
 
 def _enum_values(

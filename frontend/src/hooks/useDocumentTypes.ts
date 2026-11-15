@@ -2,7 +2,7 @@ import type { DocumentType } from '@connection-portal/api-types/document-types';
 import { useEffect, useReducer } from 'react';
 
 import { getDocumentTypes } from '../api/document-types';
-import type { DocumentTypesState } from './types';
+import type { CatalogByLanguage, DocumentTypesState } from './types';
 import { useLanguage } from './useLanguage';
 import { useSignOutOnUnauthorized } from './useSignOutOnUnauthorized';
 import {
@@ -25,6 +25,11 @@ import {
 export function useDocumentTypes(): {
   status: DocumentTypesState['status'];
   documentTypes: DocumentType[];
+  /**
+   * The answers so far, per language, for a run that needs a given language's list and never the
+   * other one's shown during a switch (the PDF's, spec 011)
+   */
+  byLanguage: CatalogByLanguage<DocumentType>;
   retry: () => void;
 } {
   const { language } = useLanguage();
@@ -78,6 +83,7 @@ export function useDocumentTypes(): {
   return {
     status: view.status,
     documentTypes: view.items,
+    byLanguage: state.loaded,
     retry: () => dispatch({ type: 'retry' }),
   };
 }

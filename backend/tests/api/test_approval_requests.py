@@ -48,6 +48,8 @@ from app.services.activity import Actor
 from app.services.eudiplo import NOT_CONFIGURED_MESSAGE as NOT_CONFIGURED_MESSAGE_TEXT
 from app.services.evaluation import GERMANY
 from tests.api.test_form_connection_drafts import (
+    CONNECTION_KEYS,
+    DRAFT_KEYS,
     editor_publish_body,
     published_shape,
     rows,
@@ -462,6 +464,7 @@ def test_the_page_reads_the_request_with_the_draft(
 
     assert preview.keys() == {'request', 'draft', 'connection', 'urls'}
     assert preview['request'] == request
+    assert preview['draft'].keys() == DRAFT_KEYS
     assert preview['draft'] == _connection(signed_in_client, draft_id)
     assert preview['connection'] is None
     assert preview['urls'] is None
@@ -731,8 +734,11 @@ def test_approving_publishes_the_draft_as_the_editor_does(
     connection = _connection(signed_in_client, draft_id)
     # The connection it made, with its state (spec 010, research R9, FR-065)
     assert preview['connection'] == connection
+    assert connection.keys() == CONNECTION_KEYS
     assert (connection['state'], connection['start_date']) == ('live', None)
     assert connection['status'] == 'published'
+    # The draft's version: what goes live is what was reviewed (spec 011, FR-031)
+    assert connection['version_fingerprint'] == draft['version_fingerprint']
     assert published_shape(connection) == published_shape(
         _publish_in_the_editor(signed_in_client, twin_id)
     )

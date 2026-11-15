@@ -3,11 +3,14 @@ import { useLocation, useNavigate, useParams } from 'react-router';
 
 import FormConnectionLoadState from '../../components/FormConnectionLoadState';
 import { SKELETON_BARS } from '../../components/FormConnectionLoadState/constants';
+import type { FormConnectionState } from '../../hooks/types';
+import { useConnectionPdf } from '../../hooks/useConnectionPdf';
 import { useFormConnection } from '../../hooks/useFormConnection';
 import ConnectionDetails from './ConnectionDetails';
 import DetailFooter from './DetailFooter';
 import DraftDetails from './DraftDetails';
-import { arrivalOf } from './utils';
+import type { PdfGoneMark } from './types';
+import { arrivalOf, isShownConnection } from './utils';
 
 /**
  * An accordion's closed header as a skeleton (U80 6809:46486: the card radius 12 with its 1px
@@ -68,12 +71,32 @@ function DetailsSkeleton() {
  * - While it loads, the details' skeleton; a deleted or unknown connection shows "Page not found"
  *   and a failed load the error state with the server's error ID and "Try again" (W2), both with
  *   the way back to the overview, in the same frame.
+ * - "Download PDF" (spec 011) is kept here, above both details, so that a run survives the swap
+ *   when its fetch finds a draft published meanwhile (FR-005): the fetched connection replaces the
+ *   loaded one (unless it is equal, `isShownConnection()`), and a 404 shows "Page not found". The
+ *   option sets and the catalog aren't handed to it: they live in the Summary's own hooks, so the
+ *   run fetches them once per language.
  */
 export default function FormConnectionDetailPage() {
   const { id = '' } = useParams();
   const location = useLocation();
   const navigate = useNavigate();
   const { state, retry, replace } = useFormConnection(id);
+  const loaded = state.status === 'loaded' ? state.formConnection : null;
+  // Set when a PDF run found the connection gone; it counts only for what was shown then
+  const [gone, setGone] = useState<PdfGoneMark | null>(null);
+  const pdf = useConnectionPdf({
+    id,
+    // An unchanged answer keeps what the page shows: E's Summary isn't rendered again (T050)
+    onFetched: (connection) => {
+      if (!isShownConnection(loaded, connection)) replace(connection);
+    },
+    onGone: () => setGone({ id, formConnection: loaded }),
+  });
+  const shown: FormConnectionState =
+    gone !== null && gone.id === id && gone.formConnection === loaded
+      ? { status: 'notFound', attempt: state.attempt }
+      : state;
   // Read once: the router state is cleared below, so that a reload shows the plain links
   const [arrival] = useState(() => arrivalOf(location.state));
 
@@ -83,23 +106,28 @@ export default function FormConnectionDetailPage() {
     }
   }, [arrival, navigate, location.pathname]);
 
-  if (state.status !== 'loaded') {
+  if (shown.status !== 'loaded') {
     return (
       <FormConnectionLoadState
-        state={state}
+        state={shown}
         onRetry={retry}
         variant="details"
         skeleton={<DetailsSkeleton />}
         // While it loads, the loaded page's "Go to connections", where it will stay; the error
         // state and "Page not found" hold their own way back (W2), so no second one
-        footer={state.status === 'loading' ? <DetailFooter /> : null}
+        footer={shown.status === 'loading' ? <DetailFooter /> : null}
       />
     );
   }
-  if (state.formConnection.status === 'draft') {
-    return <DraftDetails draft={state.formConnection} onReload={retry} />;
+  if (shown.formConnection.status === 'draft') {
+    return <DraftDetails draft={shown.formConnection} onReload={retry} pdf={pdf} />;
   }
   return (
-    <ConnectionDetails formConnection={state.formConnection} arrival={arrival} onChange={replace} />
+    <ConnectionDetails
+      formConnection={shown.formConnection}
+      arrival={arrival}
+      onChange={replace}
+      pdf={pdf}
+    />
   );
 }

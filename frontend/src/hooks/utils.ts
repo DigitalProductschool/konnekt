@@ -11,9 +11,11 @@ import type {
 } from '@connection-portal/rules/checks/types';
 import type { Language } from '@connection-portal/rules/language';
 
+import type { PdfDownloadAction, PdfDownloadState } from '../utils/connectionPdf/types';
 import { sameContent } from '../utils/localDrafts/content';
 import type { LocalDraftContent } from '../utils/localDrafts/types';
 import type {
+  CatalogByLanguage,
   CatalogCacheAction,
   CatalogCacheState,
   CatalogView,
@@ -164,6 +166,69 @@ export function formConnectionReducer(
     case 'retry':
       return { status: 'loading', attempt: state.attempt + 1 };
   }
+}
+
+// useConnectionPdf() (specs/011-connection-pdf, data-model section 6, research R13): what it
+// decides without React
+
+export const INITIAL_PDF_DOWNLOAD_STATE: PdfDownloadState = { status: 'idle', announcement: null };
+
+/** Whether the download is busy: its fetch or its worker runs (FR-003) */
+function isBusy(
+  state: PdfDownloadState
+): state is Extract<PdfDownloadState, { status: 'fetching' | 'rendering' }> {
+  return state.status === 'fetching' || state.status === 'rendering';
+}
+
+/**
+ * The download's state (data-model section 6): `start` leaves idle or failed for fetching and
+ * does nothing while busy (FR-003, one file per activation); `fetched` moves the current run to
+ * rendering; `gone` and `signedOut` end its fetch in idle, `rendered` its rendering with "PDF
+ * saved.", and `failed` either with its notice. An action of another run than the current one,
+ * or one that doesn't fit the current step, changes nothing
+ */
+export function pdfDownloadReducer(
+  state: PdfDownloadState,
+  action: PdfDownloadAction
+): PdfDownloadState {
+  if (action.type === 'start') {
+    return isBusy(state)
+      ? state
+      : { status: 'fetching', runId: action.runId, announcement: 'creating' };
+  }
+  if (!isBusy(state) || state.runId !== action.runId) {
+    return state;
+  }
+  switch (action.type) {
+    case 'fetched':
+      return state.status === 'fetching'
+        ? { status: 'rendering', runId: action.runId, announcement: 'creating' }
+        : state;
+    case 'gone':
+    case 'signedOut':
+      return state.status === 'fetching' ? { status: 'idle', announcement: null } : state;
+    case 'rendered':
+      return state.status === 'rendering' ? { status: 'idle', announcement: 'saved' } : state;
+    case 'failed':
+      return { status: 'failed', notice: action.notice, announcement: null };
+  }
+}
+
+/**
+ * The first of `caches` that holds the list in `language`, or null when none does (the run then
+ * fetches it): the list of exactly that language, never the other one's
+ */
+export function cachedListOf<T>(
+  language: Language,
+  ...caches: (CatalogByLanguage<T> | undefined)[]
+): T[] | null {
+  for (const cache of caches) {
+    const list = cache?.[language];
+    if (list) {
+      return list;
+    }
+  }
+  return null;
 }
 
 // useRuleChecks() (specs/003-rule-consistency-checks, research R10): what it does without React

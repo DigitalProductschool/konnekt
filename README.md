@@ -52,6 +52,7 @@ draft or to deactivate, reactivate or delete a live connection. See
 | `@kern-ux/native` | frontend | KERN's CSS, design tokens and Fira Sans font files. KERN is the design system for German public administration ([docs/KERN-DESIGN-SYSTEM.md](docs/KERN-DESIGN-SYSTEM.md)) |
 | `@kern-ux-annex/kern-react-kit` | frontend | KERN's React components, built for WCAG 2.1 AA, which the management UI must meet. Its own stylesheet is not imported, see [docs/KERN-DESIGN-SYSTEM.md](docs/KERN-DESIGN-SYSTEM.md) §2 |
 | `@digitalservicebund/kern-ux-tailwind-theme` | frontend | Maps KERN's design tokens to Tailwind classes |
+| `pdfkit` 0.20.2 | frontend | Draws the connection's details as a tagged PDF in the browser, in a module worker (spec 011, research R1; [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md#the-connection-pdf-spec-011)). One package for both the drawing and the tagging: it measures and wraps text for our own pagination, embeds and subsets TrueType fonts, and writes the structure tree, artifacts, `/Lang` and the PDF/UA identification that PDF/UA-1 needs; `@react-pdf/renderer` writes no tags, pdf-lib neither wraps text nor tags, jsPDF with html2canvas draws images of pages. Its browser build loads on the first "Download PDF" only, as a chunk of its own, and its Node build runs the same drawing in the Vitest smoke test. Its own dependencies (fontkit, fflate, linebreak, @noble) arrive with it and are never imported by our code. It ships no types: `utils/connectionPdf/types.ts` declares the calls we use (spec 011, design-notes D1). MIT |
 | `vitest` | frontend and rules, `devDependencies` | Runs the unit tests of `frontend/` and `rules/` (`npm test`). Some pure logic runs only in the browser, such as the rules' propagation between the variants of a form connection, so its tests in Node are a quality gate (constitution v1.1.0). Configured in the `test` block of `frontend/vite.config.ts` and in `rules/vitest.config.ts`, in the `node` environment, without a DOM. Version 4, because Vitest 5 needs Node 22.12, and the frontend still supports Node 20 |
 | `@modelcontextprotocol/server` 2.4.0 | mcp | The MCP protocol, transport and schemas: the official TypeScript SDK's server, with the Skills extension |
 | `@modelcontextprotocol/node` 2.1.2 | mcp | Serves the MCP endpoint from `node:http` |
@@ -64,6 +65,14 @@ The three KERN packages and `react-router` are pinned to exact versions; for KER
 mismatch between the packages is the most likely cause of visual breakage.
 The MCP SDK's packages, `zod` and `vite-node` are pinned to exact versions too: the SDK's
 Skills extension is marked experimental in 2.4.0.
+`pdfkit` is pinned exactly as well: `withoutCidSet()` in
+`frontend/src/utils/connectionPdf/render.ts` works around PDFKit's incomplete `CIDSet` through
+its private `_fontFamilies`, and the smoke test fails if a new version breaks it.
+
+The PDF's fonts are files, not a package: Fira Sans (Regular, Medium, SemiBold) and Fira Mono
+(Regular, Medium) as five TTFs in `frontend/src/assets/fonts/`, from Google Fonts' release,
+under the SIL Open Font License 1.1, whose text is `OFL.txt` beside them. KERN's WOFF2 files
+break fontkit's subsetting, and KERN 2.8.2 ships no Fira Mono (spec 011, research R7).
 
 ## Project Structure
 

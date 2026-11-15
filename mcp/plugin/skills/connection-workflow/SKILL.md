@@ -58,13 +58,21 @@ which countries) rather than guessing. Read the guide's topics before working on
   day in Germany it becomes active), and a draft with its `step`.
 - `get_connection` reads one connection: its documents and fields, its variants with how many
   rules and groups each has (read the rules themselves with `get_variant`), its connection URLs
-  once published, and for a draft its version, its `step` and `dropped`: requested data the
-  wallet no longer offers, which must be removed before publishing. A published connection also
-  carries its dates, as the details page in Konnekt shows them: `published_at`, when it was first
-  published, which nothing changes afterwards; `active_since`, when it last became active, which
-  reactivating moves (left out while it has never been active); and `deactivated_since`, only
-  while it is deactivated. Saving, renaming or reordering moves none of them. The dates are
-  timestamps in UTC; the text says "Draft at the rules step." for a draft.
+  once published, its version (below), and for a draft its save number, its `step` and
+  `dropped`: requested data the wallet no longer offers, which must be removed before publishing.
+  A published connection also carries its dates, as the details page in Konnekt shows them:
+  `published_at`, when it was first published, which nothing changes afterwards; `active_since`,
+  when it last became active, which reactivating moves (left out while it has never been active);
+  and `deactivated_since`, only while it is deactivated. Saving, renaming or reordering moves none
+  of them. The dates are timestamps in UTC; the text says "Draft at the rules step." for a draft.
+- The version: `get_connection` answers `version_fingerprint`, such as `62D0-715F-01D1`, for a
+  draft and a published connection alike: the "Version" that the details page in Konnekt and the
+  connection's PDF show. It is a fingerprint of the content (name, description, documents and
+  fields, variants and rules), not a counter: equal content has an equal version, and a change of
+  the content gives another; the step, the start date and deactivating or reactivating don't
+  change it. When the team member asks whether a printout is current, compare the version on it
+  with `version_fingerprint`. It is not `draft.version`, the draft's save number, which grows
+  with every save.
 - `get_activity` reads a connection's activity, as the Activity card on its page in Konnekt
   shows it: what happened and when, newest first, 50 entries at a time; pass its `next_cursor` to
   read earlier ones. Each entry has `at` (a timestamp in UTC), `event` (the card's sentence, such
@@ -126,7 +134,8 @@ A draft remembers how far its content reaches, as the editor's wizard does: the 
 (name and description), the documents step, the rules step and the test step. The team member who
 opens the draft in Konnekt continues there. Every change stores the furthest step the
 content reaches: the rules step once any variant has a rule, the documents step once a document is
-requested, the connection step otherwise. Each answer's text says the draft's version and step.
+requested, the connection step otherwise. Each answer's text says the draft's save number
+and step.
 
 ## What to tell the team member
 

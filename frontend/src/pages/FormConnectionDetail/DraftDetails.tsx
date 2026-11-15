@@ -42,10 +42,13 @@ import {
  * unchecked), the Links card without links and without a toggle: the draft isn't live, so no
  * connection URL shows anywhere (FR-006), and the Activity card (spec 010 S16, FR-022; U93
  * 7362:54915): Summary and Activity are one accordion, one open at a time, or none. The footer's
- * "Edit connection" opens its flow at the step it was saved in, for every team member (F31). No
- * PDF (F53); the view-only variant (U93 7362:54923) isn't built (F12, spec 010 F31).
+ * "Edit connection" opens its flow at the step it was saved in, for every team member (F31). The
+ * Summary's header shows the draft's version and "Download PDF" (spec 011, FR-001, FR-032; U93
+ * #10), the page's download (`pdf`) as on a published connection's details: the draft's PDF,
+ * "Draft for review" with no URL in it (FR-013). The view-only variant (U93 7362:54923) isn't
+ * built (F12, spec 010 F31).
  */
-export default function DraftDetails({ draft, onReload }: DraftDetailsProps) {
+export default function DraftDetails({ draft, onReload, pdf }: DraftDetailsProps) {
   const { language } = useLanguage();
   const copy = CONNECTION_DETAIL_COPY[language];
   const deleteCopy = DELETE_CONNECTION_COPY[language];
@@ -142,6 +145,8 @@ export default function DraftDetails({ draft, onReload }: DraftDetailsProps) {
           branches={draft.branches}
           documents={draft.documents}
           draft
+          version={draft.version_fingerprint}
+          pdf={pdf}
           open={openAccordion === 'summary'}
           onToggle={() => setOpenAccordion((open) => toggleAccordion(open, 'summary'))}
         />

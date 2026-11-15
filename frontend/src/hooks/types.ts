@@ -7,6 +7,8 @@ import type { buildCheckedBranch, KeyedBranch } from '@connection-portal/rules/c
 import type { RunBranch } from '@connection-portal/rules/checks/types';
 import type { Language } from '@connection-portal/rules/language';
 
+import type { PdfDownloadState } from '../utils/connectionPdf/types';
+
 /** Whether a list of the catalog, in the website's language, is there (spec 009, research R6) */
 export type CatalogStatus = 'loading' | 'loaded' | 'failed';
 
@@ -25,13 +27,21 @@ export interface CatalogCacheState<T> {
   /** Counts the loads; a retry starts the next one */
   attempt: number;
   /** The answers so far, per language */
-  loaded: Partial<Record<Language, T[]>>;
+  loaded: CatalogByLanguage<T>;
   /**
    * The other language's background fetch failed since the last switch: it isn't tried again
    * until the next switch, which fetches the language it lacks first
    */
   prefetchFailed: boolean;
 }
+
+/**
+ * A catalog list's answers so far, per language (`CatalogCacheState.loaded`). The catalog hooks
+ * hand it on as `byLanguage`, so that a run that needs the list in a given language, such as the
+ * PDF's in the language captured at "Download PDF" (spec 011, research R9), reads the list of that
+ * language and never the other one's shown during a switch
+ */
+export type CatalogByLanguage<T> = Partial<Record<Language, T[]>>;
 
 /**
  * What a catalog hook reports (spec 009, FR-003): `'loaded'` with a list once one has been on
@@ -126,6 +136,67 @@ export interface ActiveRun {
   worker: Worker | null;
   /** The watchdog's timer, or null without a worker */
   watchdog: number | null;
+}
+
+// useConnectionPdf() (specs/011-connection-pdf, contracts/pdf-worker.md section 2)
+
+/** What the details page hands the PDF's download */
+export interface ConnectionPdfOptions {
+  /** The connection's or draft's id */
+  id: string;
+  /**
+   * The connection or draft as the run fetched it (FR-005), so that the page shows what the file
+   * shows: `useFormConnection()`'s `replace`
+   */
+  onFetched: (connection: FormConnectionOrDraft) => void;
+  /** The run's fetch answered 404: the page shows its not-found state */
+  onGone: () => void;
+  /**
+   * The value sets the page already holds, per language (`useOptionSets().byLanguage`); a
+   * language that isn't there is fetched by the run
+   */
+  optionSets?: CatalogByLanguage<OptionSet>;
+  /**
+   * The catalog the page already holds, per language (`useDocumentTypes().byLanguage`), read for a
+   * draft only; a language that isn't there is fetched by the run
+   */
+  documentTypes?: CatalogByLanguage<DocumentType>;
+}
+
+/** The download's state and its start, which does nothing unless idle or failed (FR-003) */
+export interface ConnectionPdf {
+  state: PdfDownloadState;
+  download: () => void;
+}
+
+/** The PDF's run that the worker is making, with what saving its file or failing needs */
+export interface ActivePdfRun {
+  runId: number;
+  /** The language captured at "Download PDF": a failure's notice is in it */
+  language: Language;
+  /** `fileNameOf(model)` */
+  fileName: string;
+  /** The watchdog's timer */
+  watchdog: number;
+}
+
+/** What `useConnectionPdf()` keeps between renders, in one ref */
+export interface PdfRunRefs {
+  /** Counts the runs, for the next `runId` */
+  runCount: number;
+  /** The run in flight, from `download()` to its end; null when none is */
+  current: number | null;
+  /** The run the worker is making; null before the model is posted and after the run's end */
+  rendering: ActivePdfRun | null;
+  /** The worker of every run on the page, started on first use; null after a failure */
+  worker: Worker | null;
+  /** The lists the runs fetched themselves, kept for the next runs on the page */
+  fetched: {
+    optionSets: CatalogByLanguage<OptionSet>;
+    documentTypes: CatalogByLanguage<DocumentType>;
+  };
+  /** False once unmounted: a late fetch or answer does nothing (edge case: leaving the page) */
+  mounted: boolean;
 }
 
 // useRememberedHomepage() (spec 008, research R6, FR-027)

@@ -41,6 +41,7 @@ import {
   urlsTextOf,
   variantLineOf,
   variantRefOf,
+  versionLineOf,
 } from '../views';
 import { registerTool, toolResult } from './registry';
 
@@ -159,10 +160,11 @@ registerTool({
     'Reads one connection: its name, description and status, the documents and fields it ' +
     'requests, its variants with their number of rules and groups (never the rules: use ' +
     'get_variant), its connection URLs once published, when it was published, became active ' +
-    'and was deactivated, the day a scheduled one becomes active, and for a draft its version, ' +
-    'its step, the requested data the wallet no longer offers and, for the example a team ' +
-    "member created in Konnekt, its mark example: 'unchanged' or 'changed'. Every part comes " +
-    'with its link.',
+    'and was deactivated, the day a scheduled one becomes active, its version_fingerprint (the ' +
+    'Version the details page and the PDF show) and, for a draft, its save number ' +
+    '(draft.version), its step, the requested data the wallet no longer offers and, for the ' +
+    "example a team member created in Konnekt, its mark example: 'unchanged' or 'changed'. " +
+    'Every part comes with its link.',
   input: z.object({ connection: CONNECTION }),
   handler: async (_caller, input, { backend }) => {
     const fc = await connectionOf(backend, input.connection);
@@ -204,8 +206,9 @@ registerTool({
       summaryTextOf(
         connectionLineOf(ref, facts.start_date),
         fc.description && `Description: ${fc.description}`,
+        versionLineOf(facts.version_fingerprint),
         fc.status === 'draft'
-          ? `${stepLineOf(fc.step)} Version ${fc.version}, last saved ${fc.updated_at}.`
+          ? `${stepLineOf(fc.step)} Save ${fc.version}, last saved ${fc.updated_at}.`
           : connectionDatesLineOf(facts),
         facts.example && EXAMPLE_LINE,
         documents.length === 0

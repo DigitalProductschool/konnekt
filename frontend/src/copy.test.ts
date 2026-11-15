@@ -25,6 +25,7 @@ const EQUAL_IN_BOTH_LANGUAGES = new Set([
   'Region',
   'serviceBW',
   'EUDI Wallet',
+  'Version',
   '/',
   '…',
 ]);

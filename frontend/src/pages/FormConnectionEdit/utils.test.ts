@@ -33,6 +33,7 @@ const DRAFT: FormConnectionDraft = {
   next_group_number: 1,
   step: 'documents',
   version: 2,
+  version_fingerprint: '62D0-715F-01D1',
   created_at: '2026-11-04T10:00:00Z',
   updated_at: '2026-11-04T10:30:00Z',
   last_activity: null,

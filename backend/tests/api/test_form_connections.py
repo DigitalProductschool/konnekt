@@ -17,11 +17,22 @@ from app.models import (
     FormConnectionRuleSet,
 )
 from app.routers.form_connections import CONFIG_FAILED as CONFIG_FAILED_TEXT
+from app.schemas import RequestedDocument, SnapshotBranch
+from app.services import start_dates
 from app.services.dcql import config_hash
 from app.services.eudiplo import NOT_CONFIGURED_MESSAGE as NOT_CONFIGURED_MESSAGE_TEXT
 from app.services.form_connections import state_of
-from tests.api.test_form_connection_drafts import create_draft
+from app.services.versions import version_fingerprint
+from tests.api.test_form_connection_drafts import (
+    VERSION,
+    create_draft,
+    documents_of,
+    editor_publish_body,
+    get,
+    version_content,
+)
 from tests.fake_eudiplo import FAKE_TRUST_LIST_ID, FakeEudiplo
+from tests.helpers import AGE_RULE, US1_RULES, main_branch, rules_input
 
 # The messages as answered without a German header (spec 009)
 CONFIG_FAILED = CONFIG_FAILED_TEXT.en
@@ -298,10 +309,34 @@ def test_creating_returns_the_form_connection_with_its_urls(
     form_connection_id = data['id']
     trigger_url = f'{BASE_URL}/api/connect/{form_connection_id}/requests'
     pull_url = f'{trigger_url}/{{reference}}'
+    main_branch_id = data['branches'][0]['id']
     assert data == {
         'id': form_connection_id,
         'name': 'Führerscheinantrag Test',
         'description': 'FS-20417',
+        # Of the content as answered: the documents in the order sent, each with
+        # its fields in catalog order (spec 011, data-model.md section 1)
+        'version_fingerprint': version_fingerprint(
+            form_connection_id=form_connection_id,
+            name='Führerscheinantrag Test',
+            description='FS-20417',
+            documents=[
+                RequestedDocument.model_validate(NEW_FORM_CONNECTION['documents'][0]),
+                RequestedDocument(
+                    document_type='mdl',
+                    fields=['expiry_date', 'document_number', 'driving_privileges'],
+                ),
+            ],
+            branches=[
+                SnapshotBranch(
+                    id=main_branch_id,
+                    name='Standard',
+                    origin='main',
+                    operator='and',
+                    items=[],
+                )
+            ],
+        ),
         'is_active': True,
         # Fields in catalog order: expiry_date comes before document_number
         'documents': [PID_VIEW, MDL_VIEW],
@@ -309,7 +344,7 @@ def test_creating_returns_the_form_connection_with_its_urls(
         'pull_url': pull_url,
         'branches': [
             {
-                'id': data['branches'][0]['id'],
+                'id': main_branch_id,
                 'name': 'Standard',
                 'description': None,
                 'origin': 'main',
@@ -1195,3 +1230,155 @@ def test_state_changes_need_a_json_body(
 
     assert response.status_code == 415
     assert response.json()['error'] == 'Unsupported media type'
+
+
+# The version (spec 011, data-model.md section 1; FR-028 to FR-031, SC-004): what
+# isn't content leaves it, and each change of content gives another one. Its
+# canonical form is tests/unit/test_versions.py's
+
+# The day the tests run on in Germany, and two start dates after it (spec 010)
+TODAY = date(2026, 11, 11)
+START = date(2026, 12, 1)
+LATER = date(2027, 1, 15)
+
+
+@pytest.fixture
+def today(monkeypatch: pytest.MonkeyPatch) -> date:
+    """Pin the day in Germany to `TODAY`."""
+    monkeypatch.setattr(start_dates, 'today_in_germany', lambda: TODAY)
+    return TODAY
+
+
+def _day(start_date: date | None) -> str | None:
+    return None if start_date is None else start_date.isoformat()
+
+
+# Each status change, with what it sends and the state it leaves (spec 010,
+# data-model 1.3)
+STATUS_STEPS: list[tuple[str, dict[str, Any], str]] = [
+    ('deactivate', {}, 'deactivated'),
+    ('activate', {}, 'live'),
+    ('start-date', {'start_date': _day(START)}, 'scheduled'),
+    ('start-date', {'start_date': _day(LATER)}, 'scheduled'),
+    ('deactivate', {}, 'deactivated'),
+    ('activate', {'start_date': _day(START)}, 'scheduled'),
+    ('start-date', {'start_date': None}, 'live'),
+]
+
+
+def test_status_changes_and_start_dates_keep_the_version(
+    signed_in_client: TestClient, fake_eudiplo: FakeEudiplo, today: date
+) -> None:
+    """Deactivating, activating, scheduling, changing and clearing the start date."""
+    created = _create(signed_in_client)
+    assert VERSION.fullmatch(created['version_fingerprint'])
+
+    for action, body, state in STATUS_STEPS:
+        url = f'/api/form-connections/{created["id"]}/{action}'
+        if action == 'start-date':
+            response = signed_in_client.put(url, json=body)
+        else:
+            response = signed_in_client.post(url, json=body)
+
+        assert response.status_code == 200, (action, body, response.json())
+        data = response.json()['data']
+        assert data['state'] == state, (action, body)
+        assert data['version_fingerprint'] == created['version_fingerprint']
+
+
+def test_publishing_on_a_date_keeps_the_drafts_version(
+    signed_in_client: TestClient, fake_eudiplo: FakeEudiplo, today: date
+) -> None:
+    draft = get(signed_in_client, create_draft(signed_in_client, **version_content()))
+
+    response = signed_in_client.post(
+        f'/api/form-connections/{draft["id"]}/publish',
+        json=editor_publish_body(draft, documents_of(draft))
+        | {'start_date': _day(START)},
+    )
+
+    assert response.status_code == 200, response.json()
+    published = response.json()['data']
+    assert (published['state'], published['start_date']) == ('scheduled', '2026-12-01')
+    assert published['version_fingerprint'] == draft['version_fingerprint']
+
+
+def _rules_edit(answer: dict[str, Any], message: str) -> dict[str, Any]:
+    """An edit of `answer`'s rules, as the rules step sends it, that gives its first
+    rule `message`."""
+    [standard] = answer['branches']
+    first, *others = standard['items']
+    items = [first | {'message': message}, *others]
+    return {
+        'rules': rules_input(
+            [main_branch(items, branch_id=standard['id'])],
+            rule_base=answer['next_rule_number'],
+            group_base=answer['next_group_number'],
+            base_version=answer['rule_set_version'],
+        )
+    }
+
+
+def test_an_edit_of_a_rules_message_changes_the_version(
+    signed_in_client: TestClient, fake_eudiplo: FakeEudiplo
+) -> None:
+    """And undoing it gives the version back (spec 011, edge cases)."""
+    created = _create(signed_in_client, rules=US1_RULES)
+    url = f'/api/form-connections/{created["id"]}'
+
+    edited = signed_in_client.put(url, json=_rules_edit(created, 'Too young.'))
+    assert edited.status_code == 200, edited.json()
+    undone = signed_in_client.put(
+        url, json=_rules_edit(edited.json()['data'], AGE_RULE['message'])
+    )
+    assert undone.status_code == 200, undone.json()
+
+    assert edited.json()['data']['rule_set_version'] == 2
+    assert (
+        edited.json()['data']['version_fingerprint'] != (created['version_fingerprint'])
+    )
+    assert undone.json()['data']['rule_set_version'] == 3
+    assert (
+        undone.json()['data']['version_fingerprint'] == (created['version_fingerprint'])
+    )
+
+
+def test_a_save_that_only_reorders_the_documents_changes_the_version(
+    signed_in_client: TestClient, fake_eudiplo: FakeEudiplo
+) -> None:
+    """The order is content although it creates no revision (spec 011,
+    Clarifications 2026-11-12); moving the documents back gives the version back."""
+    created = _create(signed_in_client)
+    url = f'/api/form-connections/{created["id"]}'
+    documents = NEW_FORM_CONNECTION['documents']
+
+    moved = signed_in_client.put(url, json={'documents': documents[::-1]})
+    assert moved.status_code == 200, moved.json()
+    back = signed_in_client.put(url, json={'documents': documents})
+    assert back.status_code == 200, back.json()
+
+    assert [d['document_type'] for d in moved.json()['data']['documents']] == [
+        'mdl',
+        'pid',
+    ]
+    assert len(_revisions(created['id'])) == 1
+    assert (
+        moved.json()['data']['version_fingerprint'] != (created['version_fingerprint'])
+    )
+    assert (
+        back.json()['data']['version_fingerprint'] == (created['version_fingerprint'])
+    )
+
+
+def test_the_version_is_the_same_in_german(
+    signed_in_client: TestClient, fake_eudiplo: FakeEudiplo
+) -> None:
+    """FR-030: the labels follow the language, the version doesn't."""
+    created = _create(signed_in_client)
+
+    german = signed_in_client.get(
+        f'/api/form-connections/{created["id"]}', headers={'Accept-Language': 'de'}
+    ).json()['data']
+
+    assert german['documents'][0]['label'] == 'Personalausweis'
+    assert german['version_fingerprint'] == created['version_fingerprint']

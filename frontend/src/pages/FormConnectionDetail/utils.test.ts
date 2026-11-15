@@ -12,7 +12,7 @@ import type {
   RuleTreeItem,
 } from '@connection-portal/api-types/form-connections';
 import type { BranchCheck, ItemFinding } from '@connection-portal/rules/checks/types';
-import { mainBranch, MDL, PID, rule, US1_RULES } from '@connection-portal/rules/testData';
+import { mainBranch, rule, US1_RULES } from '@connection-portal/rules/testData';
 import { describe, expect, it, vi } from 'vitest';
 
 import { ApiError } from '../../api/client';
@@ -40,12 +40,12 @@ import {
   deleteDraftNoticeOf,
   dialogCopyOf,
   draftDeleteReducer,
-  draftRuleDocumentsOf,
   editedLineOf,
   editEntryCopyOf,
   hasOlderActivity,
   initialAccordionOf,
   isNoAnswer,
+  isShownConnection,
   keyedBranchesOf,
   linksCountsOf,
   overviewStateAfterDeletion,
@@ -94,6 +94,7 @@ function connection(branches: Branch[]): FormConnection {
     pull_url: 'https://connect.example/api/connect/fc/requests/{reference}',
     branches,
     rule_set_version: 1,
+    version_fingerprint: '62D0-715F-01D1',
     next_rule_number: 1,
     next_group_number: 1,
     created_at: '2026-10-25T10:00:00Z',
@@ -155,11 +156,13 @@ function variant(origin: BranchInput['origin'], items: RuleTreeItem[]): BranchIn
 
 describe('rulesCountsOf (Figma 10.11, B8)', () => {
   it('counts Standard as a variant, and no rules as 0 rules', () => {
-    expect(rulesCountsOf([mainBranch([])], 'en')).toBe('1 variant · 0 rules');
+    expect(rulesCountsOf([mainBranch([])], 'en')).toBe('1\u00a0variant · 0\u00a0rules');
   });
 
   it('uses the singular for one rule', () => {
-    expect(rulesCountsOf([mainBranch([rule(1, null, null)])], 'en')).toBe('1 variant · 1 rule');
+    expect(rulesCountsOf([mainBranch([rule(1, null, null)])], 'en')).toBe(
+      '1\u00a0variant · 1\u00a0rule'
+    );
   });
 
   it('counts the rules in groups and sub-groups one by one, not the groups', () => {
@@ -167,7 +170,7 @@ describe('rulesCountsOf (Figma 10.11, B8)', () => {
       rule(1, null, null),
       group(1, [rule(2, null, null), group(2, [rule(3, null, null), rule(4, null, null)])]),
     ];
-    expect(rulesCountsOf([mainBranch(items)], 'en')).toBe('1 variant · 4 rules');
+    expect(rulesCountsOf([mainBranch(items)], 'en')).toBe('1\u00a0variant · 4\u00a0rules');
   });
 
   it('counts a rule that variants inherit, change or remove once, and their own rules too', () => {
@@ -180,64 +183,24 @@ describe('rulesCountsOf (Figma 10.11, B8)', () => {
     ]);
     const taxi = variant('empty', [rule(5, null, null), rule(6, null, null)]);
     expect(rulesCountsOf([mainBranch(standard), ambulance, taxi], 'en')).toBe(
-      '3 variants · 6 rules'
+      '3\u00a0variants · 6\u00a0rules'
     );
   });
 
   it('skips a rule that only a removed item holds', () => {
     const removedGroup = marked(group(1, [rule(1, null, null), rule(2, null, null)]), 'removed');
     const items = [removedGroup, marked(rule(3, null, null), 'removed'), rule(4, null, null)];
-    expect(rulesCountsOf([variant('empty', items)], 'en')).toBe('1 variant · 1 rule');
+    expect(rulesCountsOf([variant('empty', items)], 'en')).toBe('1\u00a0variant · 1\u00a0rule');
   });
 
   it('counts in German with one and other forms (spec 009)', () => {
-    expect(rulesCountsOf([mainBranch([rule(1, null, null)])], 'de')).toBe('1 Variante · 1 Regel');
+    expect(rulesCountsOf([mainBranch([rule(1, null, null)])], 'de')).toBe(
+      '1\u00a0Variante · 1\u00a0Regel'
+    );
     const items = [rule(1, null, null), rule(2, null, null)];
     expect(rulesCountsOf([mainBranch(items), variant('empty', [])], 'de')).toBe(
-      '2 Varianten · 2 Regeln'
+      '2\u00a0Varianten · 2\u00a0Regeln'
     );
-  });
-});
-
-describe('draftRuleDocumentsOf (S6; FR-004)', () => {
-  const [familyName, birthdate] = PID.fields;
-  const dropped = { ...familyName, key: 'eye_colour_old', label: 'eye_colour_old' };
-
-  it('names data that rules check but the draft doesn’t request, from the catalog', () => {
-    const documents = draftRuleDocumentsOf(
-      [{ document_type: 'pid', label: 'Personal ID', fields: [birthdate] }],
-      [PID, MDL]
-    );
-
-    expect(documents.map((document) => document.key)).toEqual(['pid', 'mdl']);
-    expect(documents[0].fields[0]).toBe(birthdate);
-    expect(documents[0].fields.map((field) => field.key).sort()).toEqual(
-      PID.fields.map((field) => field.key).sort()
-    );
-    expect(documents[1]).toBe(MDL);
-  });
-
-  it('keeps what the catalog dropped, with its key as its label', () => {
-    const documents = draftRuleDocumentsOf(
-      [
-        { document_type: 'pid', label: 'Personal ID', fields: [dropped] },
-        { document_type: 'old_permit', label: 'old_permit', fields: [] },
-      ],
-      [PID]
-    );
-
-    expect(documents.map((document) => document.key)).toEqual(['pid', 'old_permit']);
-    expect(documents[0].fields[0]).toBe(dropped);
-    expect(documents[0].fields).toHaveLength(PID.fields.length + 1);
-  });
-
-  it('names only the requested documents without the catalog', () => {
-    expect(
-      draftRuleDocumentsOf(
-        [{ document_type: 'pid', label: 'Personal ID', fields: [birthdate] }],
-        []
-      )
-    ).toEqual([{ key: 'pid', label: 'Personal ID', fields: [birthdate] }]);
   });
 });
 
@@ -693,6 +656,8 @@ function field(key: string, label: string): DocumentField {
 }
 
 describe('summaryCountsOf (FR-046 (i))', () => {
+  // Each number joined to its noun by a no-break space, so that a line never ends in a bare
+  // number (T046, D8); `rulesCountsOf` above the same
   const personalId = {
     document_type: 'pid',
     label: 'Personal ID',
@@ -714,7 +679,7 @@ describe('summaryCountsOf (FR-046 (i))', () => {
       { ...main, name: 'School transport', origin: 'based' as const, items: [added] },
     ];
     expect(summaryCountsOf([personalId, drivingLicence], branches, 'en')).toBe(
-      '2 documents · 9 data items · 3 variants · 4 rules'
+      '2\u00a0documents · 9\u00a0data items · 3\u00a0variants · 4\u00a0rules'
     );
   });
 
@@ -725,16 +690,16 @@ describe('summaryCountsOf (FR-046 (i))', () => {
         [mainBranch([rule(1, null, null)])],
         'en'
       )
-    ).toBe('1 document · 1 data item · 1 variant · 1 rule');
+    ).toBe('1\u00a0document · 1\u00a0data item · 1\u00a0variant · 1\u00a0rule');
     expect(summaryCountsOf([], [mainBranch([])], 'en')).toBe(
-      '0 documents · 0 data items · 1 variant · 0 rules'
+      '0\u00a0documents · 0\u00a0data items · 1\u00a0variant · 0\u00a0rules'
     );
   });
 
   it('counts in German, a data item as a field (spec 009; G§2 "data item")', () => {
     const main = mainBranch([rule(1, null, null), rule(2, null, null)]);
     expect(summaryCountsOf([personalId, drivingLicence], [main], 'de')).toBe(
-      '2 Dokumente · 9 Felder · 1 Variante · 2 Regeln'
+      '2\u00a0Dokumente · 9\u00a0Felder · 1\u00a0Variante · 2\u00a0Regeln'
     );
     expect(
       summaryCountsOf(
@@ -742,7 +707,7 @@ describe('summaryCountsOf (FR-046 (i))', () => {
         [mainBranch([rule(1, null, null)])],
         'de'
       )
-    ).toBe('1 Dokument · 1 Feld · 1 Variante · 1 Regel');
+    ).toBe('1\u00a0Dokument · 1\u00a0Feld · 1\u00a0Variante · 1\u00a0Regel');
   });
 });
 
@@ -1552,5 +1517,26 @@ describe('overviewStateAfterDeletion (spec 010, FR-033)', () => {
     expect(
       overviewStateAfterDeletion('Fishing licence', { id: null, restorable_until: null })
     ).toEqual({ deleted: { names: ['Fishing licence'], deletionId: null } });
+  });
+});
+
+describe('isShownConnection', () => {
+  const shown = connection([branch('b-1', 'Standard', true), branch('b-2', 'Taxi')]);
+
+  it('is true for an equal answer, a copy of the shown connection', () => {
+    expect(isShownConnection(shown, structuredClone(shown))).toBe(true);
+  });
+
+  it('is false when anything differs: the content, a label, the status or the state', () => {
+    const renamed = structuredClone(shown);
+    renamed.branches[1].name = 'Hire car';
+    expect(isShownConnection(shown, renamed)).toBe(false);
+    expect(isShownConnection(shown, { ...shown, name: `${shown.name} (edited)` })).toBe(false);
+    expect(isShownConnection(shown, { ...shown, state: 'deactivated' })).toBe(false);
+    expect(isShownConnection(shown, { ...shown, updated_at: '2026-11-15T12:00:00Z' })).toBe(false);
+  });
+
+  it('is false while nothing is shown', () => {
+    expect(isShownConnection(null, shown)).toBe(false);
   });
 });

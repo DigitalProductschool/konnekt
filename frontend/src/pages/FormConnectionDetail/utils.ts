@@ -1,5 +1,4 @@
 import type { ErrorNotice } from '@connection-portal/api-types/api';
-import type { DocumentType } from '@connection-portal/api-types/document-types';
 import type {
   ActivityActor,
   ActivityEntry,
@@ -8,24 +7,23 @@ import type {
   ConnectionState,
   Deletion,
   FormConnection,
+  FormConnectionOrDraft,
   RequestedDocument,
   RequestedDocumentView,
-  RuleTreeItem,
 } from '@connection-portal/api-types/form-connections';
 import type {
   DetailLocationState,
   OverviewLocationState,
 } from '@connection-portal/api-types/routing';
 import type { RuleChecks } from '@connection-portal/rules/checks/types';
-import { ruleDocumentsOf } from '@connection-portal/rules/conditions';
 import { formatDate } from '@connection-portal/rules/dates';
 import type { Language } from '@connection-portal/rules/language';
 import { countRules } from '@connection-portal/rules/tree';
-import type { RuleDocument } from '@connection-portal/rules/types';
 
 import { ApiError, errorNoticeOf } from '../../api/client';
 import type { ActiveFrom } from '../../components/ActiveFromChoice/types';
 import { startDateOf } from '../../components/ActiveFromChoice/utils';
+import { summaryNumbersOf } from '../../utils/connectionSummary';
 import { EDIT_ENTRY_DIALOG_COPY } from '../FormConnectionEdit/constants';
 import { PUBLISH_DIALOG_COPY } from '../FormConnectionEditor/constants';
 import type { BannerItem, RulesBranch } from '../FormConnectionEditor/RulesStep/types';
@@ -418,16 +416,6 @@ export function toggleAccordion(
   return open === name ? null : name;
 }
 
-/** The identifiers of the rules that count in a tree, as `countRules` counts them. */
-function countableRuleIds(items: RuleTreeItem[]): string[] {
-  return items.flatMap((item) => {
-    if (item.mark === 'removed') {
-      return [];
-    }
-    return item.type === 'rule' ? [item.id] : countableRuleIds(item.items);
-  });
-}
-
 /**
  * The closed rules card's counts (Figma 10.11, B8): every variant, Standard included, and every
  * distinct rule once. A based variant keeps the main branch's identifiers for inherited rules
@@ -435,25 +423,26 @@ function countableRuleIds(items: RuleTreeItem[]): string[] {
  * still counts, in Standard. Grouped rules count one by one, groups don't.
  */
 export function rulesCountsOf(branches: Pick<BranchInput, 'items'>[], language: Language): string {
-  const ruleIds = new Set(branches.flatMap((branch) => countableRuleIds(branch.items)));
-  return CONNECTION_DETAIL_COPY[language].rulesCounts(branches.length, ruleIds.size);
+  const { variants, rules } = summaryNumbersOf([], branches);
+  return CONNECTION_DETAIL_COPY[language].rulesCounts(variants, rules);
 }
 
 /**
  * The Summary accordion's counts (FR-046 (i); U82 6396:48195): "2 documents · 9 data items · 3
  * variants · 4 rules", every requested field counted once and the rules as `rulesCountsOf()`
- * counts them.
+ * counts them, from `summaryNumbersOf()`, which the PDF counts with too (spec 011, FR-008).
  */
 export function summaryCountsOf(
   documents: Pick<RequestedDocumentView, 'fields'>[],
   branches: Pick<BranchInput, 'items'>[],
   language: Language
 ): string {
-  const dataItems = documents.reduce((count, document) => count + document.fields.length, 0);
-  return CONNECTION_DETAIL_COPY[language].summaryCounts(
-    documents.length,
-    dataItems,
-    rulesCountsOf(branches, language)
+  const numbers = summaryNumbersOf(documents, branches);
+  const copy = CONNECTION_DETAIL_COPY[language];
+  return copy.summaryCounts(
+    numbers.documents,
+    numbers.dataItems,
+    copy.rulesCounts(numbers.variants, numbers.rules)
   );
 }
 
@@ -489,29 +478,6 @@ export function summaryFindingsOf(
   return [...lines]
     .sort((a, b) => Number(b.tone === 'warning') - Number(a.tone === 'warning'))
     .map((line) => ({ key: line.key, tone: line.tone, kindText: null, parts: [line.text] }));
-}
-
-/**
- * What a draft's rules summary names (S6): the requested documents as the draft holds them (a type
- * or field the catalog dropped keeps its key as its label), each followed by the catalog's fields
- * it doesn't request, then the catalog's documents it doesn't request. A draft may keep rules on
- * data that isn't requested (FR-004), and the summary names that data as the rules step does,
- * which looks rules up in the whole catalog. Without the catalog, only the requested documents.
- */
-export function draftRuleDocumentsOf(
-  documents: RequestedDocumentView[],
-  documentTypes: DocumentType[]
-): RuleDocument[] {
-  const requested = ruleDocumentsOf(documents).map((document) => {
-    const known = new Set(document.fields.map((field) => field.key));
-    const others = documentTypes.find((type) => type.key === document.key)?.fields ?? [];
-    return {
-      ...document,
-      fields: [...document.fields, ...others.filter((field) => !known.has(field.key))],
-    };
-  });
-  const keys = new Set(requested.map((document) => document.key));
-  return [...requested, ...documentTypes.filter((type) => !keys.has(type.key))];
 }
 
 /**
@@ -859,4 +825,17 @@ export function overviewStateAfterDeletion(
   deletion: Deletion
 ): OverviewLocationState {
   return { deleted: { names: [name], deletionId: deletion.id } };
+}
+
+/**
+ * Whether a PDF run's fetched connection is the one the details show, field for field (spec
+ * 011, T050; design-notes 8.2 D10). The page then keeps what it shows, so that the largest
+ * connection's Summary doesn't render again for an unchanged answer (FR-003); a changed one
+ * replaces it (FR-005). Both come from the same endpoint, so their keys are in the same order
+ */
+export function isShownConnection(
+  shown: FormConnectionOrDraft | null,
+  fetched: FormConnectionOrDraft
+): boolean {
+  return shown !== null && JSON.stringify(shown) === JSON.stringify(fetched);
 }

@@ -60,19 +60,21 @@ export const CONNECTION_DETAIL_COPY = defineTexts(
     resultLinkInfo:
       'Your service gets the citizen’s shared data from this link. Each variant has its own.',
     // The Summary accordion (U82 6396:48191; FR-046 (i)): "2 documents · 9 data items · 3 variants ·
-    // 4 rules", its Documents and Rules parts headed in action blue (U03 #28)
+    // 4 rules", its Documents and Rules parts headed in action blue (U03 #28). Each number is
+    // joined to its noun with a no-break space here, in `items` and in `rulesCounts`, so that a
+    // line never ends in a bare number (T045, D8); the PDF draws the same strings
     summaryTitle: 'Summary',
     summaryCounts: (documents: number, dataItems: number, rulesCounts: string) =>
-      `${documents} ${documents === 1 ? 'document' : 'documents'} · ${dataItems} ${dataItems === 1 ? 'data item' : 'data items'} · ${rulesCounts}`,
+      `${documents}\u00a0${documents === 1 ? 'document' : 'documents'} · ${dataItems}\u00a0${dataItems === 1 ? 'data item' : 'data items'} · ${rulesCounts}`,
     viewSummary: 'View summary',
     hideSummary: 'Hide summary',
     documentsTitle: 'Documents',
     // A document's count, "7 data items" (U82 6396:48204)
-    items: (count: number) => `${count} ${count === 1 ? 'data item' : 'data items'}`,
+    items: (count: number) => `${count}\u00a0${count === 1 ? 'data item' : 'data items'}`,
     rulesTitle: 'Rules',
     // The rules part of the counts, e.g. "3 variants · 4 rules" (B8)
     rulesCounts: (variants: number, rules: number) =>
-      `${variants} ${variants === 1 ? 'variant' : 'variants'} · ${rules} ${rules === 1 ? 'rule' : 'rules'}`,
+      `${variants}\u00a0${variants === 1 ? 'variant' : 'variants'} · ${rules}\u00a0${rules === 1 ? 'rule' : 'rules'}`,
     // The variant tabs' list, as on the rules and test steps
     variants: 'Variants',
     // Proposed, after the Rules step's empty state (design-notes.md §2)
@@ -160,6 +162,19 @@ export const CONNECTION_DETAIL_COPY = defineTexts(
     openConnection: 'Open the connection',
     draftAlreadyDeleted: 'This draft has already been deleted.',
     toOverview: 'Go to overview',
+    // "Download PDF" in the Summary's header (spec 011, design-notes §2, §3; U82 6396:48196): the
+    // button, its busy label, its live region's two sentences, the failure's alert (its text when
+    // the server gave no message, D2; "Try again" is `retry`) and the content's version beside it
+    // (FR-032). The German label and failure text carry a soft hyphen at the compound's seam
+    // ("herunter-laden", "Internet-verbindung"; spec 009's R9 step 3), where a narrow window
+    // breaks them (T045, D8); the button's name leaves it out
+    downloadPdf: 'Download PDF',
+    creatingPdf: 'Creating PDF…',
+    creatingPdfAnnouncement: 'Creating the PDF…',
+    pdfSaved: 'PDF saved.',
+    pdfFailedTitle: 'Couldn’t create the PDF',
+    pdfFailedText: 'Check your connection and try again.',
+    version: (code: string) => `Version ${code}`,
   },
   {
     editConnection: 'Anbindung bearbeiten',
@@ -194,14 +209,14 @@ export const CONNECTION_DETAIL_COPY = defineTexts(
       'Über diesen Link erhält Ihr Dienst die geteilten Daten der antragstellenden Person. Jede Variante hat einen eigenen.',
     summaryTitle: 'Zusammenfassung',
     summaryCounts: (documents: number, dataItems: number, rulesCounts: string) =>
-      `${documents} ${documents === 1 ? 'Dokument' : 'Dokumente'} · ${dataItems} ${dataItems === 1 ? 'Feld' : 'Felder'} · ${rulesCounts}`,
+      `${documents}\u00a0${documents === 1 ? 'Dokument' : 'Dokumente'} · ${dataItems}\u00a0${dataItems === 1 ? 'Feld' : 'Felder'} · ${rulesCounts}`,
     viewSummary: 'Zusammenfassung ansehen',
     hideSummary: 'Zusammenfassung ausblenden',
     documentsTitle: 'Dokumente',
-    items: (count: number) => `${count} ${count === 1 ? 'Feld' : 'Felder'}`,
+    items: (count: number) => `${count}\u00a0${count === 1 ? 'Feld' : 'Felder'}`,
     rulesTitle: 'Regeln',
     rulesCounts: (variants: number, rules: number) =>
-      `${variants} ${variants === 1 ? 'Variante' : 'Varianten'} · ${rules} ${rules === 1 ? 'Regel' : 'Regeln'}`,
+      `${variants}\u00a0${variants === 1 ? 'Variante' : 'Varianten'} · ${rules}\u00a0${rules === 1 ? 'Regel' : 'Regeln'}`,
     variants: 'Varianten',
     noRules:
       'Keine Regeln. Alle, die die angeforderten Dokumente teilen, können einen Antrag stellen.',
@@ -264,6 +279,13 @@ export const CONNECTION_DETAIL_COPY = defineTexts(
     openConnection: 'Anbindung öffnen',
     draftAlreadyDeleted: 'Dieser Entwurf wurde bereits gelöscht.',
     toOverview: 'Zur Übersicht',
+    downloadPdf: 'PDF herunter\u00ADladen',
+    creatingPdf: 'PDF wird erstellt …',
+    creatingPdfAnnouncement: 'Das PDF wird erstellt …',
+    pdfSaved: 'PDF gespeichert.',
+    pdfFailedTitle: 'Das PDF konnte nicht erstellt werden',
+    pdfFailedText: 'Prüfen Sie Ihre Internet\u00ADverbindung und versuchen Sie es erneut.',
+    version: (code: string) => `Version ${code}`,
   }
 );
 

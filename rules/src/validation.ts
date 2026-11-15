@@ -482,6 +482,65 @@ function itemNameProblem(
 }
 
 /**
+ * The problems that refuse publishing or saving, in the server's order (FR-006, FR-010; spec
+ * 011, R10): the number of branches and the main branch, which end the walk when either fails;
+ * then branch by branch its own first problem (name, description, size, identifiers), followed
+ * by its items in display order, each item's first problem (its name before its content, a
+ * group before its members). An item's name counts as taken for the items after it whether or
+ * not the item had a problem; a name already taken stays its first owner's. Lazy, so that
+ * `firstProblem` stops at the first.
+ */
+function* problemsOf(branches: BranchInput[], context: RuleContext): Generator<RulesProblem, void> {
+  const language = context.language ?? DEFAULT_LANGUAGE;
+  const messages = RULES_MESSAGES[language];
+  const tooMany = branches.length > MAX_BRANCHES;
+  if (tooMany) {
+    yield {
+      code: 'tooManyBranches',
+      message: messages.tooManyBranches,
+      branchIndex: null,
+      itemId: null,
+    };
+  }
+  const mainBranches = branches.filter((branch) => branch.origin === 'main');
+  const noMain = mainBranches.length !== 1 || branches[0].origin !== 'main';
+  if (noMain) {
+    yield { code: 'mainBranch', message: messages.mainBranch, branchIndex: null, itemId: null };
+  }
+  if (tooMany || noMain) {
+    // Nothing below can be judged
+    return;
+  }
+  const branchNames = new Set<string>();
+  for (const [branchIndex, branch] of branches.entries()) {
+    const problem = branchProblem(branch, branchIndex, branchNames, language);
+    if (problem) {
+      yield problem;
+    }
+    branchNames.add(foldName(branch.name));
+    const branchName = branch.name.trim();
+    // The server starts a branch's names from those an undo gives back
+    const taken = new Map(
+      namesGivenBackByUndo(branches[0], branch).map((entry) => [foldName(entry.name), entry])
+    );
+    for (const entry of itemsWithNouns(branch.items)) {
+      const found =
+        itemNameProblem(entry, branchName, taken, language) ??
+        contentProblem(entry, branch, context);
+      if (found) {
+        yield { ...found, branchIndex, itemId: entry.item.id };
+      }
+      const name = entry.item.name.trim();
+      const folded = foldName(name);
+      const owner = taken.get(folded);
+      if (!owner || owner.ownerId === entry.item.id) {
+        taken.set(folded, { name, noun: entry.noun, ownerId: entry.item.id });
+      }
+    }
+  }
+}
+
+/**
  * The first problem that refuses publishing or saving, or null (FR-006). The checks run in the
  * server's order: the number of branches and the main branch; then branch by branch its name,
  * description, size and identifiers, followed by its items in display order, each group before
@@ -496,42 +555,25 @@ function itemNameProblem(
  * (`requestedRuleDocuments`).
  */
 export function firstProblem(branches: BranchInput[], context: RuleContext): RulesProblem | null {
-  const language = context.language ?? DEFAULT_LANGUAGE;
-  const messages = RULES_MESSAGES[language];
-  if (branches.length > MAX_BRANCHES) {
-    return {
-      code: 'tooManyBranches',
-      message: messages.tooManyBranches,
-      branchIndex: null,
-      itemId: null,
-    };
-  }
-  const mainBranches = branches.filter((branch) => branch.origin === 'main');
-  if (mainBranches.length !== 1 || branches[0].origin !== 'main') {
-    return { code: 'mainBranch', message: messages.mainBranch, branchIndex: null, itemId: null };
-  }
-  const branchNames = new Set<string>();
-  for (const [branchIndex, branch] of branches.entries()) {
-    const problem = branchProblem(branch, branchIndex, branchNames, language);
-    if (problem) {
-      return problem;
-    }
-    branchNames.add(foldName(branch.name));
-    const branchName = branch.name.trim();
-    // The server starts a branch's names from those an undo gives back
-    const taken = new Map(
-      namesGivenBackByUndo(branches[0], branch).map((entry) => [foldName(entry.name), entry])
-    );
-    for (const entry of itemsWithNouns(branch.items)) {
-      const found =
-        itemNameProblem(entry, branchName, taken, language) ??
-        contentProblem(entry, branch, context);
-      if (found) {
-        return { ...found, branchIndex, itemId: entry.item.id };
-      }
-      const name = entry.item.name.trim();
-      taken.set(foldName(name), { name, noun: entry.noun, ownerId: entry.item.id });
-    }
-  }
-  return null;
+  const first = problemsOf(branches, context).next();
+  return first.done ? null : first.value;
+}
+
+/**
+ * Every problem that refuses publishing or saving, for a draft's gaps (FR-010, FR-018; spec
+ * 011, R10): the checks of `firstProblem`, in its order, collected instead of stopping, so that
+ * the first is `firstProblem`'s. A wrong number of branches or a missing main branch ends the
+ * list, as nothing below them can be judged; both are listed when both fail. Then branch by
+ * branch, in their order: at most one problem of the branch's own (name, description, size,
+ * identifiers), followed by at most one problem per item in display order (its name before its
+ * content, a group before its members), each with the branch's index and the item's id. An
+ * item's name counts as taken for the items after it whether or not it had a problem. Every
+ * problem has its code and the server's message in the context's language. `[]` when publishing
+ * would accept the rules.
+ *
+ * `context.documents` are the requested documents with only their requested fields
+ * (`requestedRuleDocuments`).
+ */
+export function publishProblems(branches: BranchInput[], context: RuleContext): RulesProblem[] {
+  return [...problemsOf(branches, context)];
 }

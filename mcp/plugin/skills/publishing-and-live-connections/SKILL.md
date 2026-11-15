@@ -35,6 +35,12 @@ rule complete (field, condition and message), every variant named once. A draft 
 is refused at once with the editor's message, before any link is made. Run the rule checks and the
 tests first: the team member sees the same findings on the approval page.
 
+A draft published unchanged keeps its version: the published connection carries the same
+`version_fingerprint` that `get_connection` answered for the draft, the "Version" on the details
+page and on the PDF. If the version the team member reviewed, on screen or on a printout, still
+matches the draft's when you ask, tell them that what goes live is what they reviewed; a change
+to the draft gives it another version.
+
 ## Asking for approval: `request_approval`
 
 `request_approval` takes the `connection` (its id or link), the `action` and, for `publish`,

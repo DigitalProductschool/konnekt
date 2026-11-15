@@ -13,16 +13,17 @@ import serverMessages from './fixtures/server-messages.json';
 import type { Language } from './language';
 import { CONTEXT, mainBranch, MDL, OPTION_SETS, PID, rule, target, US1_RULES } from './testData';
 import { findItem, foldName } from './tree';
-import type { ItemNoun, RuleContext, RulesProblemCode } from './types';
+import type { ItemNoun, RuleContext, RulesProblem, RulesProblemCode } from './types';
 import {
   checkedInBranch,
   checksUnrequestedData,
-  firstProblem,
+  firstProblem as firstProblemAlone,
   groupProblem,
   groupProblemOf,
   isConditionProblem,
   nameProblem,
   nameProblemOf,
+  publishProblems,
   reservedNameProblem,
   ruleProblem,
   ruleProblemOf,
@@ -31,6 +32,16 @@ import {
   variantNameProblem,
   variantNameProblemOf,
 } from './validation';
+
+/**
+ * `firstProblem`, checking on every call that `publishProblems` starts with the same problem
+ * (spec 011, R10): every case below that calls `firstProblem` is also a case of the two agreeing
+ */
+function firstProblem(branches: BranchInput[], context: RuleContext): RulesProblem | null {
+  const first = firstProblemAlone(branches, context);
+  expect(publishProblems(branches, context)[0] ?? null).toEqual(first);
+  return first;
+}
 
 function group(number: number, items: RuleTreeItem[], name = `Group 0${number}`): GroupItem {
   return {
@@ -1523,5 +1534,173 @@ describe('variantNameProblem (W3)', () => {
       'There’s already a variant called "Standard".'
     );
     expect(variantNameProblem('School transport', others)).toBeNull();
+  });
+});
+
+describe('publishProblems (spec 011, R10)', () => {
+  const ambulance = (items: RuleTreeItem[]) => branch('Ambulance', items);
+  const where = ({ code, branchIndex, itemId }: RulesProblem) => [code, branchIndex, itemId];
+
+  it('finds nothing in a clean connection, in either language', () => {
+    for (const context of [CONTEXT, GERMAN]) {
+      expect(publishProblems([mainBranch()], context)).toEqual([]);
+      expect(publishProblems([mainBranch([])], context)).toEqual([]);
+      expect(publishProblems([mainBranch(), ambulance(US1_RULES)], context)).toEqual([]);
+    }
+  });
+
+  it('lists two incomplete rules in two variants, in display order', () => {
+    const branches = [
+      mainBranch([US1_RULES[0], { ...US1_RULES[1], target: null }, US1_RULES[2]]),
+      ambulance([US1_RULES[0], US1_RULES[1], { ...US1_RULES[2], message: ' ' }]),
+    ];
+    expect(publishProblems(branches, CONTEXT)).toEqual([
+      {
+        code: 'chooseData',
+        message: 'Rule 02 in Standard: choose the data to check.',
+        branchIndex: 0,
+        itemId: 'rule-2',
+      },
+      {
+        code: 'noMessage',
+        message: 'Rule 03 in Ambulance has no error message.',
+        branchIndex: 1,
+        itemId: 'rule-3',
+      },
+    ]);
+    expect(publishProblems(branches, GERMAN).map(({ message }) => message)).toEqual([
+      'Rule 02 in Standard: Wählen Sie die zu prüfenden Daten.',
+      'Rule 03 in Ambulance hat keine Fehlermeldung.',
+    ]);
+  });
+
+  it('gives a rule without a name and without a check one problem, its name', () => {
+    const nameless = ageRule({ name: '  ', condition: null });
+    expect(publishProblems([mainBranch([nameless, US1_RULES[1]])], CONTEXT)).toEqual([
+      {
+        code: 'itemNameMissing',
+        message: 'Enter a name for every rule in Standard.',
+        branchIndex: 0,
+        itemId: 'rule-1',
+      },
+    ]);
+  });
+
+  it('lists a group’s problem before its members’', () => {
+    const items = [group(1, [{ ...US1_RULES[0], target: null }]), US1_RULES[1]];
+    expect(publishProblems([mainBranch(items)], CONTEXT).map(where)).toEqual([
+      ['tooFewMembers', 0, 'group-1'],
+      ['chooseData', 0, 'rule-1'],
+    ]);
+  });
+
+  it('counts a name as taken whether or not its item had another problem', () => {
+    const items = [
+      ageRule({ name: 'Old enough', message: '' }),
+      { ...US1_RULES[1], name: 'old enough' },
+      { ...US1_RULES[2], name: 'OLD ENOUGH ' },
+    ];
+    expect(publishProblems([mainBranch(items)], CONTEXT)).toEqual([
+      {
+        code: 'noMessage',
+        message: 'Old enough in Standard has no error message.',
+        branchIndex: 0,
+        itemId: 'rule-1',
+      },
+      {
+        code: 'nameTaken',
+        message: 'There’s already a rule called "Old enough" in Standard.',
+        branchIndex: 0,
+        itemId: 'rule-2',
+      },
+      // The name stays its first owner's
+      {
+        code: 'nameTaken',
+        message: 'There’s already a rule called "Old enough" in Standard.',
+        branchIndex: 0,
+        itemId: 'rule-3',
+      },
+    ]);
+  });
+
+  it('lists a variant’s own problem, then its items’', () => {
+    const branches = [
+      mainBranch(),
+      branch('  ', [{ ...US1_RULES[0], target: null }]),
+      ambulance([]),
+      branch(' AMBULANCE ', [{ ...US1_RULES[1], message: '' }]),
+    ];
+    expect(publishProblems(branches, CONTEXT).map(where)).toEqual([
+      ['branchNameMissing', 1, null],
+      ['chooseData', 1, 'rule-1'],
+      ['branchNameTwice', 3, null],
+      ['noMessage', 3, 'rule-2'],
+    ]);
+  });
+
+  it('checks what a based variant inherits once, in the main variant', () => {
+    const broken = mainBranch([{ ...US1_RULES[0], message: '' }, US1_RULES[1]]);
+    const based = newBranch(broken, 'based', 'Ambulance', null);
+    const added = must(addRuleToBranch(based, rule(9, null, null)));
+    expect(publishProblems([broken, added], CONTEXT).map(where)).toEqual([
+      ['noMessage', 0, 'rule-1'],
+      ['chooseData', 1, 'rule-9'],
+    ]);
+  });
+
+  it.each([
+    [
+      'too many variants',
+      [mainBranch(), ...Array.from({ length: 20 }, () => ambulance([]))],
+      ['tooManyBranches'],
+    ],
+    ['no main variant', [ambulance([{ ...US1_RULES[0], target: null }])], ['mainBranch']],
+    [
+      'too many variants and no main variant',
+      Array.from({ length: 21 }, () => ambulance([{ ...US1_RULES[0], target: null }])),
+      ['tooManyBranches', 'mainBranch'],
+    ],
+  ] as [string, BranchInput[], RulesProblemCode[]][])(
+    'ends the list after %s, as nothing below can be judged',
+    (_name, branches, codes) => {
+      const problems = publishProblems(branches, CONTEXT);
+      expect(problems.map(({ code }) => code)).toEqual(codes);
+      expect(problems.every(({ branchIndex, itemId }) => branchIndex === null && !itemId)).toBe(
+        true
+      );
+    }
+  );
+
+  it('keeps the server’s messages word for word, in both languages', () => {
+    const items = [
+      group(1, [rule(1, null, null)]),
+      ageRule({ id: 'rule-2', name: ' ', condition: null }),
+      ageRule({ id: 'rule-3', name: 'Lives in Stuttgart' }),
+      ageRule({ id: 'rule-4', name: 'Lives in Stuttgart', message: '' }),
+    ];
+    const expected: [RulesProblemCode, ParityParams][] = [
+      ['tooFewMembers', { group: 'Group 01', branch: 'Standard' }],
+      ['chooseData', { rule: 'Rule 01', branch: 'Standard' }],
+      ['itemNameMissing', { noun: 'rule', branch: 'Standard' }],
+      ['nameTaken', { noun: 'rule', branch: 'Standard', name: 'Lives in Stuttgart' }],
+    ];
+    const cases = expected.map(([key, params]) =>
+      must(
+        SERVER_MESSAGES.cases.find(
+          (parity) =>
+            parity.key === key &&
+            Object.keys(parity.params).length === Object.keys(params).length &&
+            Object.entries(params).every(([name, value]) => parity.params[name] === value)
+        ) ?? null
+      )
+    );
+    for (const language of ['en', 'de'] as const) {
+      const context = language === 'en' ? CONTEXT : GERMAN;
+      const problems = publishProblems([mainBranch(items)], context);
+      expect(problems.map(({ code }) => code)).toEqual(expected.map(([code]) => code));
+      expect(problems.map(({ message }) => message)).toEqual(
+        cases.map((parity) => parity[language])
+      );
+    }
   });
 });

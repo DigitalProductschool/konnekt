@@ -126,6 +126,11 @@ const ACTIVITY_PAGE_SIZE = 50;
 // The server's limits on a connection's name and description (form_connections.py)
 const NAME_MAX_LENGTH = 200;
 const DESCRIPTION_MAX_LENGTH = 500;
+/**
+ * The version every connection of the fake shows: the fake doesn't fingerprint contents, and
+ * publishing keeps the draft's (spec 011, contracts/api-version.md)
+ */
+const FAKE_FINGERPRINT = '62D0-715F-01D1';
 
 /** An approval request and the bearer that made it (a bearer reads only its own). */
 export interface StoredApproval {
@@ -411,6 +416,7 @@ export function fixtureStore(): FakeStore {
     next_group_number: 1,
     step: 'rules',
     version: 1,
+    version_fingerprint: FAKE_FINGERPRINT,
     created_at: '2026-11-01T09:00:00Z',
     updated_at: '2026-11-03T09:00:00Z',
     last_activity: lastActivityOf(activity.get(IDS.draft) ?? [], false),
@@ -442,6 +448,7 @@ export function fixtureStore(): FakeStore {
       pull_url: pullUrl,
       branches: [standard],
       rule_set_version: 1,
+      version_fingerprint: FAKE_FINGERPRINT,
       next_rule_number: 2,
       next_group_number: 1,
       created_at: '2026-10-01T09:00:00Z',
@@ -530,6 +537,7 @@ export function publishedOf(draft: FormConnectionDraft): FormConnection {
     pull_url: branches[0].pull_url,
     branches,
     rule_set_version: 1,
+    version_fingerprint: draft.version_fingerprint,
     next_rule_number: draft.next_rule_number,
     next_group_number: draft.next_group_number,
     created_at: draft.created_at,
@@ -698,6 +706,7 @@ export async function startFakeBackend(options: { portalUrl?: string } = {}): Pr
       ),
       step: body.step,
       version,
+      version_fingerprint: FAKE_FINGERPRINT,
       created_at: created,
       updated_at: new Date().toISOString(),
       last_activity: previous?.last_activity ?? null,
