@@ -377,6 +377,43 @@ describe('the statements', () => {
     }
   );
 
+  it('read, joined, as statementOf() with the catalog, for every rule of C with a check (de)', () => {
+    const connection = answeredIn(SAMPLE_DRAFT_GAPS, 'de');
+    const model = modelOf(connection, 'de');
+    const context = {
+      documents: draftRuleDocumentsOf(connection.documents, SAMPLE_DOCUMENT_TYPES.de),
+      optionSets: SAMPLE_OPTION_SETS.de,
+      language: 'de' as const,
+    };
+    const unchecked: string[] = [];
+    let compared = 0;
+    connection.branches.forEach((branch, index) => {
+      for (const item of flattenItems(branch.items)) {
+        if (item.type !== 'rule') {
+          continue;
+        }
+        const expected = statementOf(item, context);
+        const statement = pdfRuleOf(model.variants[index], item.id).statement;
+        if (!expected) {
+          unchecked.push(item.id);
+          continue;
+        }
+        expect(statement).not.toBeNull();
+        if (statement) {
+          expect(joined(statement)).toBe(expected.text);
+          compared += 1;
+        }
+      }
+    });
+    // Hire car's rule-12 has no check yet: only its subject, in German too
+    expect(unchecked).toEqual(['rule-12']);
+    expect(compared).toBe(16);
+    const english = pdfRuleOf(variantOf(modelOf(SAMPLE_DRAFT_GAPS), 'Hire car'), 'rule-12');
+    const german = pdfRuleOf(variantOf(model, 'Hire car'), 'rule-12');
+    expect(german.statement?.words).toBeNull();
+    expect(german.statement?.subject).not.toBe(english.statement?.subject);
+  });
+
   it('are in the language of the model, with the value sets’ labels', () => {
     const model = modelOf(answeredIn(SAMPLE_PUBLISHED, 'de'), 'de');
     const taxi = variantOf(model, 'Taxi');
@@ -551,6 +588,115 @@ describe('C and D, drafts', () => {
     expect(model.gaps).toEqual(gaps.gaps);
     expect(model.variants).toEqual(gaps.variants);
   });
+});
+
+/** The texts a person typed, from every variant and item of a model, in reading order */
+function enteredTextsOf(model: ConnectionPdfModel): unknown[] {
+  return [
+    model.id,
+    model.name,
+    model.description,
+    model.version,
+    ...model.variants.flatMap((variant) => [
+      variant.name,
+      variant.description,
+      ...flatten(variant.items).map((item) => [item.id, item.name, item.message]),
+    ]),
+  ];
+}
+
+describe('A and C in German (FR-034, FR-035)', () => {
+  const CASES = [
+    ['A', SAMPLE_PUBLISHED],
+    ['C', SAMPLE_DRAFT_GAPS],
+  ] as const;
+
+  it.each(CASES)(
+    '%s names its documents and data items with the German catalog’s labels',
+    (_name, connection) => {
+      const german = modelOf(answeredIn(connection, 'de'), 'de');
+      const english = modelOf(connection);
+      const catalog = SAMPLE_DOCUMENT_TYPES.de;
+      expect(german.documents).toEqual(
+        connection.documents.map((document) => {
+          const known = catalog.find((entry) => entry.key === document.document_type)!;
+          return {
+            name: known.label,
+            dataItems: document.fields.map(
+              (field) => known.fields.find((entry) => entry.key === field.key)!.label
+            ),
+          };
+        })
+      );
+      // Not the English labels: every document's name differs, and most data items' do
+      german.documents.forEach((document, index) => {
+        expect(document.name).not.toBe(english.documents[index].name);
+      });
+      const sameItems = german.documents
+        .flatMap((document) => document.dataItems)
+        .filter((item, index) => item === english.documents.flatMap((d) => d.dataItems)[index]);
+      expect(sameItems).toEqual([]);
+    }
+  );
+
+  it.each(CASES)('%s keeps names, descriptions and messages as entered', (_name, connection) => {
+    const german = modelOf(answeredIn(connection, 'de'), 'de');
+    const english = modelOf(connection);
+    expect(enteredTextsOf(german)).toEqual(enteredTextsOf(english));
+    expect(german).toMatchObject({
+      language: 'de',
+      id: connection.id,
+      name: connection.name,
+      description: connection.description,
+    });
+    expect(german.variants.map((variant) => variant.name)).toEqual(
+      connection.branches.map((branch) => branch.name)
+    );
+    const taxi = connection.branches[1];
+    expect(pdfRuleOf(variantOf(german, 'Taxi'), 'rule-1').message).toBe(
+      ruleIn(taxi, 'rule-1').message
+    );
+    expect(
+      flatten(variantOf(german, 'Taxi').items).find((item) => item.id === 'group-2')
+    ).toMatchObject({
+      name: groupIn(taxi, 'group-2').name,
+      message: groupIn(taxi, 'group-2').message,
+    });
+  });
+
+  it.each(CASES)(
+    '%s keeps a value typed as text as entered, in the German quotes',
+    (_name, connection) => {
+      const entered = ruleIn(connection.branches[1], 'rule-6').condition?.value;
+      expect(typeof entered).toBe('string');
+      const german = pdfRuleOf(
+        variantOf(modelOf(answeredIn(connection, 'de'), 'de'), 'Taxi'),
+        'rule-6'
+      );
+      const english = pdfRuleOf(variantOf(modelOf(connection), 'Taxi'), 'rule-6');
+      expect(german.statement?.values).toHaveLength(1);
+      // The same characters between the quotes, which are the language's
+      const unquoted = (value: string | undefined) => value?.slice(1, -1);
+      expect(unquoted(german.statement?.values[0])).toBe(entered);
+      expect(unquoted(english.statement?.values[0])).toBe(entered);
+      expect(german.statement?.values[0]).not.toBe(english.statement?.values[0]);
+    }
+  );
+
+  it.each(CASES)(
+    '%s’s generatedAt and lastSaved.at are the English strings',
+    (_name, connection) => {
+      const german = modelOf(answeredIn(connection, 'de'), 'de');
+      const english = modelOf(connection);
+      expect(german.generatedAt).toBe(english.generatedAt);
+      expect(german.generatedAt).toBe('09.11.2026, 16:45');
+      expect(german.lastSaved).toEqual(english.lastSaved);
+      expect(german.lastSaved?.at).toBe(
+        connection.status === 'draft' ? '09.11.2026, 14:10' : undefined
+      );
+      expect(german.startDate).toBe(english.startDate);
+    }
+  );
 });
 
 describe('"Not complete" on a based variant’s copies', () => {

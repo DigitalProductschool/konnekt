@@ -1,16 +1,21 @@
 // The Node smoke test of the drawing (research R14): PDFKit's Node build, the committed TTFs
 // inlined by Vite, `compress: false` so that the raw bytes can be read, and `recordingDocument()`
 // for what each page draws. The assertions hold per page and per kind, never for a fixed page count
+import type { Language } from '@connection-portal/rules/language';
 import PDFKit from 'pdfkit';
 import { beforeAll, describe, expect, it } from 'vitest';
 
 import { BRANCH_MARK_COPY } from '../../components/BranchMark/constants';
+import { STATUS_PILL_COPY } from '../../components/ConnectionStatusBadge/constants';
 import { CONNECTOR_COPY } from '../../components/Connector/constants';
+import { RULE_ROW_COPY } from '../../components/RuleRow/constants';
+import { CONNECTION_DETAIL_COPY } from '../../pages/FormConnectionDetail/constants';
 import { JOIN_OVERLAP } from './blocks';
 import { PDF_COLOURS, PDF_LAYOUT, PDF_STYLES, PDF_TEXTS } from './constants';
 import { connectionPdfModelOf } from './model';
 import { recordingDocument, renderConnectionPdf } from './render';
 import {
+  documentViewsOf,
   largestConnection,
   SAMPLE_DOCUMENT_TYPES,
   SAMPLE_DRAFT,
@@ -629,7 +634,8 @@ describe('renderConnectionPdf, the tagged text of A’s headings (contracts/pdf-
         '1 Links for your service',
         '2 Documents and data items',
         '3 Rules per variant',
-        'Personal ID 7 data items',
+        // The count's number and noun joined by a no-break space (T046, D8)
+        'Personal ID 7\u00a0data items',
         'Variant Standard',
         'Variant Taxi',
         'rule-1 Minimum age',
@@ -1003,5 +1009,299 @@ describe('renderConnectionPdf, a draft with 80 gaps (T037a)', () => {
       expect(bottom).toBeLessThanOrEqual(PDF_LAYOUT.body.y + PDF_LAYOUT.body.height + 1e-6);
     }
     expect(seamsOf(rendered.recording)).toEqual([]);
+  });
+});
+
+// ---------------------------------------------------------------------------------------------
+// A and C in German (FR-034, FR-035; T042). The assertions name the tables, never German words,
+// so that a later correction of the copy doesn't break them
+
+/** A connection's model as the hook builds it in `language`: its answer's documents labelled so */
+function modelIn<T extends Parameters<typeof connectionPdfModelOf>[0]>(
+  connection: T,
+  language: Language
+): ConnectionPdfModel {
+  const requested = connection.documents.map((document) => ({
+    document_type: document.document_type,
+    fields: document.fields.map((field) => field.key),
+  }));
+  const answered: T = {
+    ...structuredClone(connection),
+    documents: documentViewsOf(requested, language),
+  };
+  return connectionPdfModelOf(
+    answered,
+    {
+      optionSets: SAMPLE_OPTION_SETS[language],
+      documentTypes: connection.status === 'draft' ? SAMPLE_DOCUMENT_TYPES[language] : null,
+    },
+    { language, now: NOW }
+  );
+}
+
+/** Stands for a function's arguments, so that its fixed words fall out between them */
+const ARGUMENT = '\u0000';
+
+/**
+ * The words a table can put into the PDF: every text, also in capitals (the eyebrow and the draft
+ * pill are drawn so), and every function's fixed words around its arguments, its singular and its
+ * list of names too
+ */
+function wordsOfTable(table: unknown): string[] {
+  if (typeof table === 'string') {
+    return [table, table.toUpperCase()];
+  }
+  if (typeof table === 'function') {
+    const call = table as (...args: unknown[]) => unknown;
+    // A text, a count (1 for the singular) or a list of names
+    return [ARGUMENT, 1, [ARGUMENT, ARGUMENT]].flatMap((argument) => {
+      let text: unknown;
+      try {
+        text = call(...Array.from({ length: call.length }, () => argument));
+      } catch {
+        return [];
+      }
+      return typeof text === 'string'
+        ? text
+            .split(ARGUMENT)
+            .map((part) => part.trim())
+            .filter((part) => part !== '')
+        : [];
+    });
+  }
+  if (table && typeof table === 'object') {
+    return Object.values(table).flatMap(wordsOfTable);
+  }
+  return [];
+}
+
+/** The own texts of the PDF in a language: its table and the details page's tables it reuses */
+function ownWordsIn(language: Language): string[] {
+  return [
+    PDF_TEXTS[language],
+    CONNECTION_DETAIL_COPY[language],
+    STATUS_PILL_COPY[language],
+    CONNECTOR_COPY[language],
+    RULE_ROW_COPY[language],
+    BRANCH_MARK_COPY[language],
+  ].flatMap(wordsOfTable);
+}
+
+/** What a person entered, as the model carries it: the PDF draws it in either language */
+function contentOf(model: ConnectionPdfModel): string[] {
+  const items = model.variants.flatMap((variant) => itemsInOrder(variant.items));
+  return [
+    model.name,
+    model.description ?? '',
+    model.id,
+    model.version,
+    model.generatedAt,
+    model.lastSaved?.at ?? '',
+    ...model.variants.flatMap((variant) => [variant.name, variant.description ?? '']),
+    ...items.flatMap(({ item }) => [item.id, item.name, item.message ?? '']),
+  ].filter((text) => text !== '');
+}
+
+/**
+ * The rules package's texts as the model carries them (pinned against `statementOf()`,
+ * `firstProblem()` and the create flow's instructions in model.test.ts): the statements' parts,
+ * the gaps and the "Not complete" instructions
+ */
+function rulesTextsOf(model: ConnectionPdfModel): string[] {
+  const rules = model.variants
+    .flatMap((variant) => itemsInOrder(variant.items))
+    .flatMap(({ item }) => (item.type === 'rule' ? [item] : []));
+  return [
+    ...rules.flatMap((rule) =>
+      rule.statement
+        ? [rule.statement.subject, rule.statement.words ?? '', ...rule.statement.values]
+        : []
+    ),
+    ...rules.flatMap((rule) => [rule.statement?.tail ?? '', rule.missing ?? '']),
+    ...model.gaps.map((gap) => gap.text),
+  ].filter((text) => text !== '');
+}
+
+/** The catalog's labels in a language: the documents', their data items' and their parts' */
+function catalogLabelsIn(language: Language): string[] {
+  return SAMPLE_DOCUMENT_TYPES[language].flatMap((document) => [
+    document.label,
+    ...document.fields.flatMap((field) => [
+      field.label,
+      ...(field.parts ?? []).map((part) => part.label),
+    ]),
+  ]);
+}
+
+function escaped(text: string): string {
+  return text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
+/** `word` as a whole word: where it starts or ends in a letter or digit, not inside another word */
+function wholeWord(word: string): RegExp {
+  const alphanumeric = /[\p{L}\p{N}]/u;
+  const before = alphanumeric.test(word.at(0) ?? '') ? '(?<![\\p{L}\\p{N}])' : '';
+  const after = alphanumeric.test(word.at(-1) ?? '') ? '(?![\\p{L}\\p{N}])' : '';
+  return new RegExp(`${before}${escaped(word)}${after}`, 'gu');
+}
+
+/**
+ * What is left of `text` once every known text is taken out, longest first: empty, or numbers,
+ * spaces and punctuation, when the text is made of known texts only
+ */
+function unexplainedOf(text: string, known: readonly string[]): string {
+  const left = [...known]
+    .sort((a, b) => b.length - a.length)
+    .reduce((rest, word) => rest.replace(wholeWord(word), ' '), text);
+  return /^[\s\p{N}\p{P}\p{S}]*$/u.test(left) ? '' : left.trim();
+}
+
+/** Every recorded text, once each, with the pages it is on */
+function distinctTexts(recording: PdfRecording): RecordedText[] {
+  const seen = new Map<string, RecordedText>();
+  for (const page of recording.pages) {
+    for (const text of page.texts) if (!seen.has(text.text)) seen.set(text.text, text);
+  }
+  return [...seen.values()];
+}
+
+describe.each([
+  ['A', SAMPLE_PUBLISHED],
+  ['C', SAMPLE_DRAFT_GAPS],
+] as const)('renderConnectionPdf, %s in German', (name, connection) => {
+  const model = modelIn(connection, 'de');
+  const english = modelIn(connection, 'en');
+  const texts = PDF_TEXTS.de;
+  const draft = model.kind === 'draft';
+  let rendered: Rendered;
+
+  beforeAll(async () => {
+    rendered = await render(model);
+  });
+
+  it('is a German model of the same content', () => {
+    expect(model.language).toBe('de');
+    expect(draft).toBe(name === 'C');
+    expect(contentOf(model)).toEqual(contentOf(english));
+  });
+
+  it('declares its language as de-DE and its title in German', () => {
+    const { raw, recording } = rendered;
+    expect(raw).toContain('/Lang (de-DE)');
+    expect(raw).not.toContain('/Lang (en-GB)');
+    expect(recording.options).toMatchObject({ lang: 'de-DE', displayTitle: true });
+    expect(recording.options?.info?.Title).toBe(
+      draft ? texts.titleDraft(model.name) : texts.title(model.name)
+    );
+    expect(recording.options?.info?.Title).not.toBe(
+      draft ? PDF_TEXTS.en.titleDraft(model.name) : PDF_TEXTS.en.title(model.name)
+    );
+  });
+
+  it('carries the ID, the version and "Seite n von N" on every page, as Pagination artifacts', () => {
+    const { pages } = rendered.recording;
+    expect(pages.length).toBeGreaterThan(1);
+    pages.forEach((page, index) => {
+      const band = paginationTexts(page.texts).map((text) => text.text);
+      expect(band).toContain(texts.idLine(model.id));
+      expect(band).toContain(texts.versionLine(model.version));
+      expect(band).toContain(texts.generatedLine(model.generatedAt));
+      expect(band).toContain(texts.page(index + 1, pages.length));
+      expect(band).not.toContain(PDF_TEXTS.en.page(index + 1, pages.length));
+    });
+  });
+
+  it('draws the German watermark and pill on every page of a draft, and none on A', () => {
+    const { pages } = rendered.recording;
+    const pill = texts.draftNotLive.toUpperCase();
+    pages.forEach((page, index) => {
+      const marks = page.texts.filter((text) => text.text === texts.watermark);
+      const pills = paginationTextsReading(page, pill);
+      if (!draft) {
+        expect(marks, `page ${index + 1}`).toEqual([]);
+        expect(pills, `page ${index + 1}`).toEqual([]);
+        return;
+      }
+      expect(marks, `page ${index + 1}`).toHaveLength(1);
+      expect(page.texts.at(-1)).toBe(marks[0]);
+      expect(marks[0]).toMatchObject({
+        font: PDF_STYLES.watermark.font,
+        opacity: PDF_COLOURS.watermarkOpacity,
+        role: { kind: 'artifact', type: 'Pagination' },
+      });
+      expect(pills, `page ${index + 1}`).toHaveLength(1);
+    });
+    const drawn = pages.flatMap((page) => page.texts.map((text) => text.text));
+    expect(drawn).not.toContain(PDF_TEXTS.en.watermark);
+  });
+
+  it('names the sections, the eyebrow and the status from the German tables', () => {
+    const { recording } = rendered;
+    const headings = elementsOfType(recording.structure, 'H2').map((heading) =>
+      textsOfElement(heading, recording)
+    );
+    expect(headings).toEqual(
+      expect.arrayContaining([
+        `1 ${CONNECTION_DETAIL_COPY.de.linksTitle}`,
+        `2 ${texts.section2}`,
+        `3 ${texts.section3}`,
+      ])
+    );
+    expect(recording.outline.map((item) => item.title)).toEqual([
+      `1 ${CONNECTION_DETAIL_COPY.de.linksTitle}`,
+      `2 ${texts.section2}`,
+      `3 ${texts.section3}`,
+    ]);
+    expect(recording.outline[2].children.map((item) => item.title)).toEqual(
+      model.variants.map((variant) => texts.variant(variant.name))
+    );
+    const drawn = recording.pages.flatMap((page) => page.texts.map((text) => text.text));
+    expect(drawn).toContain((draft ? texts.eyebrowDraft : texts.eyebrow).toUpperCase());
+    expect(drawn).toContain(draft ? STATUS_PILL_COPY.de.draft : STATUS_PILL_COPY.de.live);
+    expect(drawn).toContain(
+      CONNECTION_DETAIL_COPY.de.summaryCounts(
+        model.counts.documents,
+        model.counts.dataItems,
+        CONNECTION_DETAIL_COPY.de.rulesCounts(model.counts.variants, model.counts.rules)
+      )
+    );
+    if (draft) {
+      expect(drawn).toContain(
+        texts.lastSavedValue(model.lastSaved!.at, model.lastSaved!.saveNumber)
+      );
+      expect(drawn).toContain(texts.gapsTitle(model.gaps.length));
+    }
+  });
+
+  it('draws only content, German own texts, the rules package’s texts and the German catalog’s labels', () => {
+    const known = [
+      ...ownWordsIn('de'),
+      ...contentOf(model),
+      ...rulesTextsOf(model),
+      ...catalogLabelsIn('de'),
+    ];
+    const urls = model.links
+      ? [model.links.request, ...model.links.results.map((link) => link.url)]
+      : [];
+    const unexplained = distinctTexts(rendered.recording)
+      .filter((text) => !urls.some((url) => url.includes(text.text)))
+      .map((text) => [text.text, unexplainedOf(text.text, known)])
+      .filter(([, left]) => left !== '');
+    expect(unexplained).toEqual([]);
+  });
+
+  it('leaves no English own text and no English catalog label', () => {
+    const german = new Set([...ownWordsIn('de'), ...catalogLabelsIn('de')]);
+    const content = [...contentOf(model), ...rulesTextsOf(model)];
+    // English words that German shares, or that a person typed, can't tell the languages apart
+    const englishOnly = [...new Set([...ownWordsIn('en'), ...catalogLabelsIn('en')])].filter(
+      (word) =>
+        word.length > 2 && !german.has(word) && !content.some((text) => wholeWord(word).test(text))
+    );
+    expect(englishOnly.length).toBeGreaterThan(50);
+    const found = distinctTexts(rendered.recording).flatMap((text) =>
+      englishOnly.filter((word) => wholeWord(word).test(text.text)).map((word) => [text.text, word])
+    );
+    expect(found).toEqual([]);
   });
 });

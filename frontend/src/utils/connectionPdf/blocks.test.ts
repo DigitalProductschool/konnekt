@@ -261,8 +261,9 @@ describe('blocksOf: the order of kinds', () => {
         },
       ],
     });
+    // Each number kept with its noun by a no-break space, as on the page (T046, D8)
     expect(details.kind === 'details' && details.rows[3].value).toBe(
-      '2 documents · 12 data items · 3 variants · 12 rules'
+      '2\u00a0documents · 12\u00a0data items · 3\u00a0variants · 12\u00a0rules'
     );
   });
 
@@ -628,13 +629,13 @@ describe('layoutOf', () => {
     const document = sectionTwoOf(blocksOf(model, measure)).at(-1)!;
     expect(document.content).toMatchObject({
       kind: 'document',
-      count: '5 data items',
+      count: '5\u00a0data items',
       placeholder: null,
     });
     const texts = textsOf(layoutOf(document.content, measure));
     // One space in the tagged text, the separator's gap in the drawing (T026)
     const [name, count] = texts;
-    expect([name, count].map(wordsOf).join('')).toBe('Personal ID 5 data items');
+    expect([name, count].map(wordsOf).join('')).toBe('Personal ID 5\u00a0data items');
     expect(leafOf(name)).toBe(`${document.content.key}/name`);
     expect(leafOf(count)).toBe(`${document.content.key}/name`);
     expect(count.y).toBe(name.y);
@@ -662,7 +663,7 @@ describe('layoutOf', () => {
     const document = sectionTwoOf(blocksOf(model, measure)).at(-1)!;
     const [heading, count, item] = textsOf(layoutOf(document.content, measure));
     expect(wordsOf(heading)).toBe(`${name} `);
-    expect(wordsOf(count)).toBe('1 data item');
+    expect(wordsOf(count)).toBe('1\u00a0data item');
     expect(leafOf(count)).toBe(leafOf(heading));
     expect(count.y).toBe(heading.y + heading.height);
     expect(item.y).toBeGreaterThanOrEqual(count.y + count.height);

@@ -56,15 +56,18 @@ frame draws it, so this is the proposal):
 
 **Narrow screens** (320 px at 200 %, spec 008's rule for the header): the row wraps; the slot
 moves under the heading block as its own row (version, then the button) and the toggle stays
-last; nothing overlaps and the button keeps its full label and 48 px height. The version wraps
-before the button, never inside the code.
+last; nothing overlaps. The button keeps its full label but drops the glyph, and the label
+wraps between words ("Download / PDF") or at the German soft hyphen ("PDF / herunter- /
+laden"), so the button grows taller than 48 px (66 and 90), as spec 008's narrow rule lets
+pills grow (D8; it said "keeps its full label and 48 px height", which no label fits in the
+110–125 px row at 16 px). The version wraps before the button, never inside the code.
 
 ## 3. States without frames (build from KERN patterns, as spec 008's W# items)
 
 | State | What shows | Assistive technology |
 |---|---|---|
 | Idle | "Download PDF" with the glyph | a button |
-| Busy (fetching and rendering) | label "Creating PDF…", the glyph kept, `aria-disabled="true"`, clicks ignored (the pattern of `ConfirmDialog`'s busy button); the rest of the page responds (FR-003) | the polite live region says "Creating the PDF…" once |
+| Busy (fetching and rendering) | label "Creating PDF…", the glyph kept (on a narrow window hidden in every state, D8), `aria-disabled="true"`, clicks ignored (the pattern of `ConfirmDialog`'s busy button); the rest of the page responds (FR-003) | the polite live region says "Creating the PDF…" once |
 | Saved | back to idle; the browser's own download indicator shows the file | the live region says "PDF saved." |
 | Failed | a KERN danger alert inside the Summary card, under the header row, full width, open or closed: title "Couldn’t create the PDF", the text `ErrorNoticeText` gives (the server's message with a 5xx's error id, or "Check your connection and try again."), and a secondary "Try again" button that starts a new run (FR-004); it disappears when a run starts | the alert's `role="alert"` |
 | Gone (404 at activation) | the details' not-found state, as `FormConnectionLoadState` shows it | as today |
@@ -103,7 +106,7 @@ background each text sits on:
 | Faded AND/OR chip | `#8A8D9B` on `#F2F3F6` (**3.0**, artifact) | `#4A5468` on `#EEF1F6` | | 6.7 |
 | Gaps box | `#8A4500` on `#FFF5E6`, bar `#D98A1C` | `#9A4A00` on `#FFF4E0` (feedback-warning), bar the same hue | | 5.8 |
 | Lines, frames | `#D3D6E0` | `#D0D5DD` card-divider, `#E1E6F0` decorative-border | (no text) | |
-| Watermark | `#0284C7` at 6 % | the same | exempt (FR-039); text under it stays above 15:1 | |
+| Watermark | `#0284C7` at 6 % | the same | exempt (FR-039); body text under it stays above 15:1, the accent on `#EEF1F6` at 4.67 at worst (T043, §7.4) | |
 
 "Faded" therefore means the muted colour plus the strike-through and the "Removed here" badge,
 not a light grey: a light grey that keeps 4.5:1 on the removed tint can't be told from the muted
@@ -347,6 +350,127 @@ meanwhile" and "Deleted meanwhile" (quickstart §3, §6), in headless Chromium 1
   sat, so the button had KERN's hover tint. Since then the script moves the pointer away before
   it measures. Chromium's final run came before that line, with the same rows.
 
+**T045, 2026-11-15**, the header across languages and widths (quickstart §5 step 5, §6 "Narrow
+screen"; §2, §3), report-only, in headless Chromium 156 and Firefox 159 (Playwright MCP).
+- **The stack**: the dev SPA (5173) against the backend on 3000 (`template_db`, the tests' fake
+  EUDIPLO, the worker off), signed in as `t037`.
+- **The widths**: 1440 is a 1455 × 1000 window. The narrow width is §7.1's emulation, a 167 × 500
+  window standing for 320 px at 200 %. In it the header is 134 wide in Chromium and 149 in
+  Firefox (Chromium keeps a scrollbar gutter), so the controls' row is 110 and 125.
+- **The script**: `011/T045/sweep.js` in the chat's scratchpad, one `browser_run_code_unsafe`
+  call per browser. The language is set through its `localStorage` key and restored at the end.
+  Busy is the run's `GET` held by `page.route`; failed is that `GET` aborted
+  (`internetdisconnected`). The focus rows are after a click, after a pointer press on "Try
+  again" and after Tab.
+- **The files**: `chromium.csv` and `firefox.csv` (362 rows each), `*-summary.txt` and
+  `summary-both.txt`, and four screenshots per browser of failing English states
+  (`<browser>-A_*.png`). `run1-chromium/` is a first run whose word-break check took the alert's
+  title and text for one word.
+- **The states**: A open, A closed, B and C, in English and German, at both widths (16). Then busy,
+  saved and failed in German at both widths. B and C show the Summary open, as they arrive.
+- **Cited, not re-checked**: the run's behaviour (§7.2, T033) and C's English header (§7.2, T037).
+  The English header at 1440 and its narrow idle state are re-measured here only beside the new
+  states (marked "cited" in the CSV's `origin` column).
+
+| Check | States | Chromium | Firefox | Result |
+|---|---|---|---|---|
+| horizontal scroll, `h1` count, clipped or off-screen elements, overlaps | all 20 | none, one `h1`, none, none | the same | pass 20/20 |
+| button label | all 20 | "Download PDF", "PDF herunterladen", busy "PDF wird erstellt …" | the same | pass 20/20 |
+| version: one line, code never broken | all 20 | the code on one line everywhere. Narrow: "Version" / the code (2 lines), wrapping before the code as §2 asks | the same | pass 20/20 |
+| contrast: "Version", the code, the button's label | idle and failed | 7.61 (`#4a5468`), 18.72 (`#0b1220`), 5.77 (`#1d56f0`), on white | the same | pass |
+| contrast: the busy button's label | busy de, both widths | **3.17** (`#658cf5` on white) | the same | fail (defect 4). After T046: unchanged, 3.17 in both browsers; exempt as an inactive control (D8) |
+| contrast: the alert's title and text, "Erneut versuchen" | failed de, both widths | 16.99 (on `#fef1f0`), 18.72, 5.77 | the same | pass |
+| button 48 px high, label on one line in its box | 1440 (10 states) | 48, one line | the same | pass 10/10 |
+| button 48 px high, label on one line in its box | narrow (10 states) | en 110 × 66 ("Downlo / ad PDF"), de 110 × 90 ("PDF herunte / rladen"), busy de 110 × 114 (4 lines) | en 125 × 66 ("Download / PDF"), de 125 × 90 ("PDF herunterl / aden"), busy de 125 × 66 | fail 10/10 (defect 1). **After T046** (the row now asks for no break inside a word and no overflow, D8): no glyph; en 110 × 66 "Download / PDF", de 110 × 90 "PDF / herunter- / laden", busy de 110 × 66 "PDF wird / erstellt …"; Firefox the same at 125 wide. Pass 10/10 per browser |
+| no text broken inside a word | narrow | en: the button's label. de: the label, the heading "Zusammenfass / ung", the toggle "Zusamme / nfassung ausblend / en", the alert's "Internetver / bindung" | en: none. de: as Chromium, at other letters | fail: Chromium 10, Firefox 6 (defects 1, 3). **After T046**: spec 011's elements (version, button, alert, "Erneut versuchen") break inside no word; the button and the alert break at their soft hyphens ("herunter- / laden", "Internet- / verbindung"). The heading and the toggle still break inside "Zusammenfassung" (and "ausblend / en" in Chromium), accepted under spec 008's rule (D8) and reported as information. Pass 20/20 per browser |
+| no count split from its noun | A en 1440; narrow | "· 12 / rules" at 1440 (B and C break elsewhere: their codes are wider); narrow: 2 or 3 splits per state in both languages | the same at 1440; narrow 1 or 2 per state | fail 12/12 per browser (defect 2). **After T046**: none in any of the 20 states in either browser; at 1440 A's counts still take two lines, breaking before "12 rules"; narrow, four lines ("2 Dokumente · / 12 Felder · / 3 Varianten · / 12 Regeln"). Pass 20/20 per browser |
+| `:focus-visible` | busy, saved, failed de, both widths | after a click on the button, after saving, after the failure, while "Erneut versuchen" is pressed with the pointer and after its click (the focus on the button): no ring. After Tab, to the button and on to "Erneut versuchen": KERN's 4px solid ring | the same | pass 14/14 |
+| the live region | busy, saved, failed de, both widths | "Das PDF wird erstellt …", then "PDF gespeichert."; empty after the failure | the same | pass |
+| the alert's German texts | failed de, both widths | "Das PDF konnte nicht erstellt werden", "Prüfen Sie Ihre Internetverbindung und versuchen Sie es erneut.", "Erneut versuchen" | the same | pass |
+| FR-006: the create flow's last step with a local draft open | en 1440 | a local draft of D's content, seeded under `t037`, opened at step 4 ("Test rules with sample citizen data"): no element named "Download PDF", no "Version …"; the record removed afterwards | the same | pass |
+| FR-006: the edit flow of A | en 1440, steps 1 to 4 (the step line) | none on any step | the same | pass |
+| FR-006: the approval page | en 1440 | a request to publish a fresh copy of D, made with a personal access token (level drafts): the Summary card shows, with no "Download PDF" and no "Version …" | the same | pass |
+| console | all | only the browser's lines for the aborted requests, and the dev server's lines | the same | pass |
+
+**T032's open rows as measured now** (the decision stays with T046, or the designer where the
+layout is theirs):
+- **A's counts at 1440, English**: still 124 high. The counts wrap to two lines beside the version
+  (heading block 281.9 × 76), and the line breaks between "12" and "rules". B's and C's counts
+  wrap too, but break before "12 rules", because their codes are wider. After T046: still 124
+  high and two lines (the version's place stays the designer's), but every count breaks before
+  "12 rules" (no-break spaces, D8).
+- **German at 1440**: still 156 high. The heading takes the row (782 wide, counts on one line).
+  The version, the button (208.9 × 48) and the toggle (249.5 / 228.9 × 40) wrap together under
+  it, at the right, 8 apart, 24 from the edge. Nothing overlaps.
+- **The narrow width**: the order is heading, version (two lines, before the code), button,
+  toggle, with no overlap and no horizontal scroll. But the button's label still breaks, open and
+  closed: 66 high in English (inside "Download" in Chromium), 90 in German (inside
+  "herunterladen" in both browsers), 114 for the busy label in Chromium. This is against §2's
+  "keeps its full label and 48 px height". After T046: no glyph, the label wraps only between
+  words or at the soft hyphen (66 en, 90 de, 66 busy de, in both browsers), and §2 now says
+  so (D8).
+
+**Defects** (for T046; none fixed here):
+1. **The narrow button** (rows "button 48 px high", "label width against its box", "no text
+   broken inside a word" for `button`/`label`, narrow states). In `PdfDownload.tsx`: the button
+   is `max-w-full` with `narrow:px-7!`, in a 110 (125) px row. "Download PDF" with the glyph needs
+   about 150, so the label wraps, and spec 008's narrow `overflow-wrap: anywhere` (`index.css`)
+   breaks it inside a word. "PDF herunterladen" (`CONNECTION_DETAIL_COPY.downloadPdf`) is longer
+   still. This is carried from T032. **After T046: fixed** (the glyph dropped on narrow windows,
+   a soft hyphen in `herunter\u00ADladen`, §2 corrected; D8).
+2. **A count split from its noun** (row "no count split from its noun"; A en 1440 and every narrow
+   state). `summaryCountsOf` (`utils.ts`) builds the counts from
+   `CONNECTION_DETAIL_COPY.summaryCounts` / `rulesCounts`, which join each number and noun with a
+   plain space. At 1440 the wrap comes from spec 011's version beside the counts
+   (`DetailAccordion.tsx`, `basis-200`). This is carried from T032. **After T046: fixed** (a
+   no-break space between number and noun in `summaryCounts`, `items` and `rulesCounts`, both
+   columns; D8).
+3. **German words broken inside at the narrow width** (row "no text broken inside a word", de
+   narrow). "Zusammenfassung" in the heading and in the toggle (`DetailAccordion.tsx`, words from
+   `CONNECTION_DETAIL_COPY.summaryTitle`, `viewSummary`, `hideSummary`; spec 008's and 009's,
+   not spec 011's). "Internetverbindung" in the alert (`PdfFailure` in `PdfDownload.tsx`,
+   `pdfFailedText`). The cause is spec 008's `overflow-wrap: anywhere` with words wider than the
+   110 (125) px column. Spec 009's order would apply: the glossary's short form first.
+   **After T046**: "Internetverbindung" fixed with a soft hyphen in `pdfFailedText` (spec 009's
+   R9 step 3); "Zusammenfassung" not changed, accepted under spec 008's narrow rule (D8).
+4. **The busy button's contrast** (row "contrast: buttonLabel", busy). KERN's
+   `.kern-btn--secondary[aria-disabled=true]` sets an `opacity`, which turns `#1d56f0` into
+   `#658cf5` (3.17:1). `PdfDownload.tsx` sets `aria-disabled` while busy, as `ConfirmDialog`'s
+   busy button does (§3). WCAG 1.4.3 exempts inactive components. Whether the busy label counts
+   as one is for T046 to decide. **After T046: not changed**, exempt (D8).
+
+**T046, 2026-11-15**, the failing rows re-run after the fixes (D8), in headless Chromium 156 and
+Firefox 159 (Playwright MCP), on the same stack, account and widths as T045.
+- **The script**: `011/T046/sweep.js` in the chat's scratchpad, T045's script cut to the 16 idle
+  states and busy, saved and failed in German at both widths (FR-006's pages had no failing row
+  and are left out). Changed: the soft hyphen is left out of the texts it compares and counts as
+  a hyphenation point; each character's line is read from its last client rect (for the first
+  character of a line Chromium also gives one at the previous line's end, which made the first
+  runs report "herunter-l / aden" for a button that showed "herunter- / laden"); at the narrow
+  width the button's rows ask for no break inside a word and no overflow instead of 48 px and
+  one line. New rows: the glyph shown (1440) or hidden (narrow), the button's `aria-label`
+  ("PDF herunterladen" in German, none in English and while busy) and the alert's soft hyphen.
+- **Results**: 425 rows per browser, 423 pass, 2 fail: the busy label's contrast (3.17), which
+  D8 records as exempt. Every other row of T045's table that passed passes again, the focus and
+  live-region rows included.
+- **The files**: `chromium.csv`, `firefox.csv`, `*-summary.txt`, `*-summary.json`;
+  `run1-chromium/` to `run3-chromium/` are the runs before the glyph's `!` and before the
+  script's two corrections (the screenshots there show the button as built at each step).
+
+**Data made and removed**:
+- A copy of D (`b766d9ac-ae5b-49bd-b0e6-0f3a3f9eb70e`, draft, `DD13-CD62-579B`) made by
+  `setup-copy.ts`, then deleted (restorable deletion, 404).
+- Per run, a personal access token "T045 sweep <browser>" (level drafts; the secret kept only
+  in the run's memory) and an approval request to publish the copy. Each request was declined
+  and its token revoked: requests `60f38299-9cde-48f3-a58a-a63e6af6a0b4` (Chromium, run 1),
+  `bc82102b-bf30-4e63-9863-5a8f2ca3ce23` (Chromium) and `e029e14d-7b86-4cd5-b98c-9ff2de95cb14`
+  (Firefox); tokens `4ccae3b0-…`, `e8fb9ec3-…`, `c4486752-…`. Afterwards the account lists no
+  agent access.
+- Per run, one local draft in the browser's storage, removed in the same run.
+
+**Needs a person**: the 200 % zoom confirmed once with the browser's own zoom (Phase 8,
+"Needs a person"). The narrow width here is emulated with a narrow viewport.
+
 ### 7.3 The PDF's pages
 
 **A in English against the prototype's `published-ids-top.pdf`** (T026, 2026-11-12; quickstart §2
@@ -524,6 +648,179 @@ bar where the heading's slice meets the first gap's and the two gaps' slices mee
   German (106 rules, 0 failed checks each).
 
 ### 7.4 Tags, contrast and veraPDF
+
+**T043, 2026-11-15**, the PDF's structure and contrast (quickstart §5 steps 2–4; R5; FR-036 to
+FR-040, FR-043, SC-006), script-first and report-only.
+- **The script**: `011/T043/sweep.ts` (`npx vite-node` from `frontend/`). It renders 9 files at
+  09.11.2026, 16:45, each twice through `recordingDocument()`: uncompressed for the raw bytes and
+  the recording, compressed as the worker ships it for veraPDF.
+  - The files: A (`SAMPLE_PUBLISHED`), B (A deactivated, as `model.test.ts`'s `deactivated()`),
+    C (`SAMPLE_DRAFT_GAPS`) and D (`SAMPLE_DRAFT`) in English and German, and E
+    (`largestConnection()`) in English. The documents are re-labelled in the language, as
+    `render.test.ts`'s `modelIn()` does.
+  - The recorder is subclassed to give every text and painted shape its drawing order and every
+    text its alignment, so that the fill under a text and anything painted over it are known.
+  - veraPDF 1.28.1 runs in Docker (`verapdf/cli:v1.28.1 --flavour ua1`, no network).
+- **Pages**: A, B, C and D have 6 pages in both languages. E has 764 pages, 39,048 texts and
+  36,080 shapes.
+- **What it checks**:
+  - **Structure**: exactly one `H1`, holding the name, and heading levels that never skip going
+    down. Every text sits in a tag or an artifact, and each tagged text's marked content is in
+    the tree exactly once.
+  - **Artifacts**: every shape is an artifact except D3's strike lines. The band's and the
+    bottom's texts are `Pagination` artifacts, and so is the watermark. The body's only artifact
+    texts are the AND/OR chips and the marks inside artifact circles.
+  - **Tables and lists**: the details table has one `TH` (`scope: Row`) and one `TD` per row.
+    The data items and the gaps are `L` › `LI` › `LBody`, counted against the model. A draft's
+    links to create are two `P`s (D6).
+  - **The outline**: the three sections, and under the third one entry per variant, each
+    pointing to the page of its heading.
+  - **Properties, from the raw bytes**: `/Lang`, the Info `Title`, `/DisplayDocTitle`,
+    `pdfuaid:part`, no `/CIDSet`, `/StructTreeRoot` and `/MarkInfo`. Every font is embedded
+    (`FontFile2`) with a `ToUnicode` map, and no base-14 font is used.
+  - **Contrast**: every text against the fills painted under it, with the watermark's 6 %
+    composited over text and background on every page of a draft (worst case: as if it lay
+    under every text). A row is unsure when the background differs within the text's box, and
+    fails when something is painted over the text.
+  - **Edges**: no text or shape but the watermark within 14.17 pt of a page's edge.
+  - **Status**: the status word, tagged, on page 1.
+  - **Grey**: on A's pages with marks, the colours reduced to grey, and the meaning checked to
+    lie in words and strike-through.
+
+| Check | A en | A de | B en | B de | C en | C de | D en | D de | E en |
+|---|---|---|---|---|---|---|---|---|---|
+| One `H1`; levels never skip (headings) | 32 | 32 | 32 | 32 | 31 | 31 | 30 | 30 | 4,028 |
+| Every text in a tag or artifact (texts) | 274 | 274 | 275 | 275 | 275 | 275 | 272 | 272 | 39,048 |
+| Shapes artifacts, but strike lines (strike lines) | 4 | 4 | 4 | 4 | 4 | 4 | 4 | 4 | 3,724 |
+| Band, bottom, watermark `Pagination`; chips, step numbers, gaps' "!" the only body artifacts | pass | pass | pass | pass | pass | pass | pass | pass | pass |
+| Details table, `TH` `scope: Row` (rows) | 4 | 4 | 4 | 4 | 5 | 5 | 5 | 5 | 4 |
+| `L`/`LI`/`LBody` (data items + gaps) | 12 | 12 | 12 | 12 | 12 + 2 | 12 + 2 | 12 | 12 | 12 |
+| Links to create as two `P` (D6) | – | – | – | – | pass | pass | pass | pass | – |
+| Outline: sections + variants, on their headings' pages | 3 + 3 | 3 + 3 | 3 + 3 | 3 + 3 | 3 + 3 | 3 + 3 | 3 + 3 | 3 + 3 | 3 + 20 |
+| `/Lang`, `Title`, `/DisplayDocTitle`, `pdfuaid:part` 1, no `/CIDSet`, tagged | pass | pass | pass | pass | pass | pass | pass | pass | pass |
+| Fonts: 5 Type0, each with `FontFile2` and `ToUnicode` | pass | pass | pass | pass | pass | pass | pass | pass | pass |
+| Contrast ≥ 4.5 (colour and background pairs) | 42 | 42 | 42 | 42 | 48 | 48 | 43 | 43 | 55 |
+| Nothing within 5 mm of an edge | pass | pass | pass | pass | pass | pass | pass | pass | pass |
+| veraPDF PDF/UA-1: 106 rules, 0 failed checks | pass | pass | pass | pass | pass | pass | pass | pass | pass |
+
+- **Counts**: 616 CSV rows: 602 pass, 0 fail, 0 unsure, 14 information (A's grey rows and the
+  extra file's).
+- **The lowest contrasts**:
+  - Published: the "Active" pill's word, 4.89 (`#1D7A2E` on `#EAF7E6`; A and E), then the accent
+    on the neutral tint, 5.09.
+  - Drafts, with the watermark composited: the accent `#1D56F0` on `#EEF1F6`, 4.67 (5.09
+    without), on the chip's `#EEF3FE`, 4.76, and on the mark tint `#F8F1FC`, 4.78. §4's "above
+    15:1 under the watermark" holds for the body text only; the accent keeps 4.5:1 even in this
+    worst case.
+  - Faded text (muted, struck): 6.72 on `#EEF1F6`, 6.88 on `#F8F1FC`, 7.61 on white. E strikes
+    it in `H4` to `H6` and `P`.
+  - Every text lies on one background, and nothing is painted over a text.
+- **Grey (A, both languages)**: two pages carry marks, 4 and 5, not three as the task line
+  expected. In grey:
+  - "Changed here" and "Added here" share `#8A22B5` (→ `#595959`) and differ only in words.
+    "Removed here" is `#4A5468` (→ `#545454`), told apart by its words and its item's strike.
+  - Page 4's removed rule has 4 struck texts, each with its line. Its identifier, badge and
+    message label stay unstruck, as D3 says.
+  - The AND/OR chips (artifacts, accent or muted) are said in words on the variant's and the
+    groups' lines.
+  - Each status is a tagged word on page 1: "Active", "Aktiv", "Deactivated", "Deaktiviert",
+    "Draft", "Entwurf".
+- **The extra file "申請 🚕 Taxi"** (A renamed; the spec's edge case "Characters KERN's typeface
+  doesn't have"):
+  - It renders 6 pages without throwing. The Info `Title` (recorded and decoded from the raw
+    bytes) and `fileNameOf()` (`申請 🚕 Taxi_FA7E-47BB-5368.pdf`) keep the characters, and the
+    `H1`'s tagged text is "申請 🚕 Taxi".
+  - veraPDF, as information only: not compliant, 104 rules passed and 2 failed, 14 failed checks
+    in all. 7.21.7-2 (7 checks): `ToUnicode` values 0, `U+FEFF` or `U+FFFE`. 7.21.8-1 (7
+    checks): references to the `.notdef` glyph. Both come from glyphs Fira doesn't have.
+- **Cited, not re-checked**: `render.test.ts`.
+  - English A, C and D: "writes a tagged PDF/UA document … no CIDSet", "builds the structure
+    tree", "draws no text and no shape outside a tag or an artifact", "draws every shape as an
+    artifact, but for the strike lines", "lists the data items, and a draft's gaps, as L › LI ›
+    LBody", "points an outline entry to the page where each section starts".
+  - German A and C (T042): "declares its language as de-DE and its title in German", and "names
+    the sections … from the German tables" for the outline's titles.
+  - The script ran the same checks on these files too, and they agree.
+- **No defect**, so nothing for T046 from this sweep. No page image was needed (no failing or
+  unsure row), and nothing needs a person, since veraPDF ran.
+- **The files**: `sweep.csv`, `summary.txt`, `run.log`, the 10 PDFs under `files/` and
+  veraPDF's XML reports under `verapdf/`.
+- **After T046**: the counts now join number and noun with a no-break space, which the PDF draws
+  in the details table's "Contents" row and in each document's "{n} data items" (D8). The same
+  script, re-run as `011/T046/pdf/sweep.ts`, gives the same result: every row passes, veraPDF
+  ua1 compliant for the 9 files, and the same pages, texts and shapes per file (A to E); only
+  the byte counts change slightly (the subsets gain the U+00A0 glyph).
+
+**T044, 2026-11-15**, the PDF's German texts and dates (quickstart §5 step 1; FR-034, FR-035,
+SC-005), script-first and report-only.
+- **The script**: `011/T044/sweep.ts` (`npx vite-node` from `frontend/`), run under
+  `TZ=America/New_York`, `TZ=Asia/Tokyo` and the machine's UTC. It renders A
+  (`SAMPLE_PUBLISHED`) and C (`SAMPLE_DRAFT_GAPS`) in English and German at 09.11.2026, 16:45
+  through `recordingDocument()`. The German drafts are labelled as the hook's answer with
+  `documentViewsOf(requested, 'de')`, as `render.test.ts`' `modelIn()` does.
+- **Pairing**: each recorded text is tied to its block, its layout part and its span by replaying
+  `blocksOf()`/`paginate()`/`layoutOf()` with PDFKit's measuring. Every recorded text matched its
+  span, and the page counts matched. English and German are paired by block key, structure leaf
+  and index (the band and the bottom by page and slot).
+- **Rows**: 549 pairs, A 274 and C 275, as many as T026's and T037's English counts. Every text
+  has a partner, both files have 6 pages in both languages, and no text moves to another page.
+  The English wording is §7.3's (T026, T037) and isn't judged again here.
+
+| Check | A pass / fail / unsure (n/a) | C pass / fail / unsure (n/a) | Evidence besides the script |
+|---|---|---|---|
+| Own texts equal in both languages outside `copy.test.ts`' allowlist | 210 / 0 / 0 (64) | 221 / 0 / 0 (54) | `render.test.ts` "leaves no English own text …" (T042) |
+| Content equal across the languages | 64 / 0 / 0 | 54 / 0 / 0 | `model.test.ts` "keeps names, descriptions and messages as entered"; `render.test.ts` "is a German model of the same content" |
+| Dates "dd.mm.yyyy, hh:mm", equal in both languages | 9 / 0 / 0 | 8 / 0 / 0 | `model.test.ts` "generatedAt and lastSaved.at are the English strings", "dates and times in Germany's time" |
+| German statement equal to the rules package's | 61 / 0 / 0 (17 rules) | 60 / 0 / 0 (17 rules) | `model.test.ts` "the statements" (A 17, C 16 + rule-12) |
+| German text within its `layoutOf()` box | 254 / 0 / 0 | 251 / 0 / 0 | none (new here) |
+| The same text under New York and Tokyo as under UTC | 274 / 0 / 0 | 275 / 0 / 0 | none (new here) |
+| **Row** | **274 / 0 / 0** | **275 / 0 / 0** | |
+
+What each row means:
+- **Own texts**: the German texts equal to the English are "Version" and "Version <version>"
+  (allowlisted, D2), the section numbers, the "!" artifact before "Nicht vollständig:", and the
+  option sets' labels that read the same in both of their sets ("B", "Malta", "Portugal").
+  Nothing is left unexplained: each German text is content (A 64, C 54), a date (8, 8), the
+  rules package's (44, 46), the German catalog's (12, 12), a German table's own text (41, 53),
+  or composed of these (105, 102).
+- **Dates**: every date is "09.11.2026, 16:45" or C's "09.11.2026, 14:10" in both languages (the
+  band, the status note, the details' rows). The only other date is the day value of Hire car's
+  rule-12 in A, "09.11.2026": a rule's value, the same in both languages and in `statementOf()`.
+  All 549 texts are the same under all three time zones.
+- **Statements**: the drawn pieces of each rule are joined and compared with `statementOf()` with
+  the details' context, in the language. C's rule-12 has no check, so its subject is compared
+  with `statementPartsOf()`'s ("Führerschein · Ablaufdatum").
+- **Widths**: measured with PDFKit's `widthOfString`. The named boxes, German against English:
+
+| Box | German (widest) | Box | English |
+|---|---|---|---|
+| The band's right group (version, generated) | "Version 3D3C-F9EA-5FE0" 118.8; "Erstellt 09.11.2026, 16:45" 79.3 | 253.0; 196.1 pt from the name, 166.6 from the ID | 118.8; 90.4 |
+| The band's draft pill | "ENTWURF · NICHT AKTIV" 79.8 | sized by its word; 14.0 pt to the version, 102.3 from the name | 57.0 |
+| The band's ID line | "Anbindungs-ID …" 210.0 | 289.1 | 210.0 |
+| The status pill | "Entwurf" 31.9, "Aktiv" 20.7 | the word + 8 pt | 20.6, 25.0 |
+| The badges | "Basiert auf Standard" 70.2, "Hier hinzugefügt" 56.3, "Hauptvariante" 48.8, "Eigene Regeln" 47.6, "Hier geändert" 46.9, "Hier entfernt" 44.2 | sized by the word; inside the body, no text overlapped | 64.5, 39.2, 42.4, 34.1, 46.7, 48.8 |
+| The details' key column | "Zuletzt gespeichert" 78.6, "Anbindungs-ID" 60.5 | 110 (one line each) | 43.0, 57.0 |
+| The bottom's place label | "3 Regeln je Variante › Variante Taxi (Fortsetzung)" 174.3 | 337.3; 261.4 pt from "Seite 5 von 6" | 160.9 |
+
+  Every other one-line text is within its box, and no word of a wrapped text is wider than its
+  box. No two texts of a block overlap.
+  - 42 headings ("rule-1 ", "group-1 ", …, in both files) draw their trailing space 4.8 pt past
+    the identifier's box. That space is the separator from T026's heading fix (§7.3). It draws
+    nothing and is the same in English, so these rows count as pass.
+- **SC-005** on the German pages (`pages.csv`; T023's `expectChainsAndUnits()` and
+  `expectPagesKeepChains()`, copied from `blocks.test.ts` with a collecting `expect`): 0
+  failures in A and C, in German and English.
+  - No page ends with a heading or inside a chain.
+  - Every place label is drawn. Each page that starts inside a section or variant it doesn't open
+    says "(Fortsetzung)": A's and C's page 5, "3 Regeln je Variante › Variante Taxi
+    (Fortsetzung)".
+  - German breaks at the same blocks as English on every page. C's page 1 ends after the dashed
+    box, as §7.3 (T037) records.
+- **No page image** was needed, since no row fails or is unsure. The script's files: `sweep.csv`
+  (549 rows), `pages.csv` (24 pages), `summary.txt`, `summary.json`, `run-*.json` (the three
+  time zones) and the four PDFs under `files/`.
+
+No defect, so nothing for T046.
 
 ### 7.5 Version, limits, edge cases and privacy
 
@@ -744,6 +1041,57 @@ Hire car."), so there is no item to tag. The dashed box is tagged as two `P`s, i
 artifact. Rejected: an `L` with one `LI` per variant, which would need a layout the contract
 doesn't draw. FR-036's mention is read as met by those sentences; T051's converge run keeps
 it as decided, not as unbuilt work.
+
+**D7, the German copy's review** (T041, the user in the reviewer's place, 2026-11-15; spec,
+Assumptions; contracts/pdf-document.md §5 "to review"; FR-034). The user accepted the German
+column as it stands: `PDF_TEXTS` (`frontend/src/utils/connectionPdf/constants.ts`) and the seven
+keys spec 011 added to `CONNECTION_DETAIL_COPY` (`downloadPdf`, `creatingPdf`,
+`creatingPdfAnnouncement`, `pdfSaved`, `pdfFailedTitle`, `pdfFailedText`, `version`). No German
+speaker walked through C's and A's German PDFs from the running app.
+
+| where | english | german before | german after | glossary changed? |
+|---|---|---|---|---|
+| (none) | | | | no |
+
+- D2's open item is settled as proposed: "Connection ID" stays "Anbindungs-ID" (rejected: "ID der
+  Anbindung", the glossary's pattern for "connection <noun>"). The title stays
+  "… – Details der Anbindung" (D2).
+- `specs/009-language-toggle/contracts/glossary.md` is unchanged. T042 has no corrections to
+  apply and only pins the German with tests.
+
+**D8, T045's four defects** (T046, 2026-11-15; §2, §3, §7.2's T045 and T046 blocks; FR-034,
+SC-006). Each the smallest change that fixes it, or a reason to leave it:
+- **The narrow button (fixed)**. No 16 px label fits a 110–125 px row on one line with the glyph
+  (spec 008's narrow block leaves 94–109 px inside the button; "Download PDF" is about 105 px,
+  "herunterladen" alone about 105), and the type isn't made smaller. So on a narrow window the
+  glyph is hidden (`narrow:hidden!` in `PdfDownload.tsx`: KERN's button styles beat the plain
+  utility), which leaves "Download" its line, and the button grows taller as spec 008 lets pills
+  grow. German follows spec 009's R9: the glossary has no short form for "herunterladen", the
+  element already wraps, and step 3 puts a soft hyphen at the compound's seam (`PDF
+  herunter\u00ADladen`); the button takes an `aria-label` without it, as `ConfirmDialog`'s heading
+  does (spec 009, V9), so its name stays "PDF herunterladen". Built: 66 px in English, 90 in
+  German, 66 for the busy German label, in both browsers. §2's "keeps its full label and 48 px
+  height" is corrected to this.
+- **A count split from its noun (fixed)**. `summaryCounts`, `items` and `rulesCounts` in
+  `CONNECTION_DETAIL_COPY` join each number to its noun with a no-break space (U+00A0), both
+  columns, as `STATUS_PILL_COPY.scheduledOn` keeps its "·". The PDF reuses these strings (the
+  "Contents" row, the documents' counts), so it draws the U+00A0 too: Fira Sans has the glyph at
+  the space's width, PDFKit's line breaker doesn't break at it, and T043's sweep re-run gives
+  the same pages, texts, shapes, contrast and veraPDF result (§7.4). The tagged text reads "7 data
+  items" with a no-break space. The 1440 header's height and the version's place stay the
+  designer's (§7.2, "Needs a person").
+- **German words broken inside (fixed for spec 011's alert; accepted for the heading and toggle)**.
+  `pdfFailedText` gets a soft hyphen, `Internet\u00ADverbindung`, as the editor's failure texts
+  already have it (spec 009's R9 step 3); its visible words stay D2's, equal to
+  `rulesErrorText` (which keeps none: its alert wasn't swept). "Zusammenfassung" in the Summary's
+  heading and toggle (`summaryTitle`, `viewSummary`, `hideSummary`) belongs to spec 008's and
+  009's elements; the glossary has no short form, and a soft hyphen there would also need the
+  heading's and toggle's names handled (spec 009, V9). It stays as spec 008's last resort at this
+  width, for spec 008/009 to take up if wanted (R9 step 3 would fit it).
+- **The busy button's contrast (not changed, exempt)**. Busy, the button is `aria-disabled="true"`
+  in KERN's own disabled style, the pattern of `ConfirmDialog`'s busy button (§3), and the live
+  region announces the state. WCAG 1.4.3 exempts the text of inactive user-interface components,
+  and 3.17:1 is the level spec 008 chose for disabled labels (the 0.68 disabled opacity, T098).
 
 ### 8.3 The test connections
 
@@ -1188,5 +1536,77 @@ S.A.". The largest file is 473160 bytes, under the 500 KB (512000 bytes) of the
   T032's narrow check with the browser's own 200 % zoom; T027's look at A's page 1 in a real
   PDF reader; the designer's answer on the version's place in the header; SC-006's
   screen-reader walk (T006).
+
+**2026-11-15, T047 checkpoint of US4 (Phase 8).**
+- **Gates**: lint; 2675 / 1971 / 513 tests in `rules/`, `frontend/`, `mcp/` (+23 in `frontend/`
+  against T040, T042's German cases); the build, the main entry 933.06 kB (278.92 kB gzip,
+  +0.13 kB: T046's narrow glyph and `aria-label`), the worker's chunk 59.14 kB. Run by the
+  coordinator after T046. The backend is unchanged and its gates were not re-run.
+- **The stack**: as T040's (`template_db`, the tests' fake EUDIPLO, the worker off, the dev SPA on
+  5173), still running; signed in as `t037`.
+- **The German copy (T041, D7)**: the user, in the reviewer's place, accepted `PDF_TEXTS`' German
+  column and the seven new `CONNECTION_DETAIL_COPY` keys unchanged. No German speaker walked through
+  the German PDFs. T042 pinned the German with tests that read the tables (A and C in `model.test.ts`
+  and `render.test.ts`).
+- **§7.4**: no failing row.
+  - T043: the 9 files (A, B, C, D in both languages, E in English) pass every structure,
+    artifact, outline, property, font, edge and contrast check (602 rows; the lowest contrast
+    4.67, the draft accent under the watermark counted as lying under every text, which corrected
+    §4's watermark row). veraPDF 1.28.1's PDF/UA-1 profile, run in Docker, passes all 9 (106 rules,
+    0 failed checks), so veraPDF no longer waits for a person.
+  - T043's extra file, A named "申請 🚕 Taxi", is information only: it renders, its `Title`, file
+    name and H1 keep the characters, and veraPDF fails 7.21.7-2 and 7.21.8-1 for the characters Fira
+    lacks.
+  - T044: 549 English/German text pairs of A and C pass: own texts, content, dates (also under New
+    York's and Tokyo's time), statements, widths in their `layoutOf()` boxes, and SC-005 on the
+    German pages.
+  - T046 re-ran T043's script after its copy change: the same pages, texts, shapes, contrast and
+    veraPDF result.
+- **§7.2**: T045 found four defects in the header (20 states and FR-006's three pages per browser).
+  T046 fixed three and recorded one as exempt (D8):
+  - **Fixed**: the narrow button (glyph hidden, label wraps between words, 66 / 90 px); counts kept
+    with their nouns (U+00A0); "Internetverbindung" in the PDF's alert (soft hyphen).
+  - **Exempt**: the busy button's 3.17:1, an `aria-disabled` control in KERN's disabled style.
+  - The re-run gives 423 of 425 rows passing per browser; the two left are the exempt rows. §2's
+    narrow sentence and §3's busy row now say what is built.
+- **What the PDF draws differently**: the "Contents" row and the documents' "{n} data items" hold
+  a no-break space between number and noun (D8), which keeps a count with its noun in the PDF too.
+- **The coordinator's checks**: T046's source diff read (the U+00A0 and U+00AD written as escapes;
+  the soft hyphen only in spec 011's two German keys, kept out of the button's name); the gates
+  re-run; no helper left listening (T045's and T046's one-shot password server), `.playwright-mcp/`
+  empty, no veraPDF container left.
+- **Decisions the agents marked UNCERTAIN, accepted**:
+  - T042: the rules package's texts in the "fully explained" check taken from the model;
+    English strings that also occur in content, or have 2 characters or fewer, skipped in the
+    no-English check; `Subject` and `Keywords` English in a German PDF (contract §4).
+  - T043: the step numbers inside their circles counted as artifacts; A has two pages with marks,
+    not three; the watermark assumed under every draft text.
+  - T044: a heading's trailing space measured out; a rule's day value without a time; option-set
+    labels equal in both languages passed.
+  - T045: personal access tokens made to raise a real approval request (declined, tokens revoked);
+    B and C measured open only; the failure state a network abort (the 500 cited from T033).
+  - T046: soft hyphens (spec 009's R9 step 3) rather than accepting spec 008's break; U+00A0 in the
+    shared copy rather than page-only nowrap spans; "Zusammenfassung" left to spec 008/009; the busy
+    contrast exempt.
+- **State left behind**: T045 made a copy of D (`b766d9ac-ae5b-49bd-b0e6-0f3a3f9eb70e`, then
+  deleted) and three approval requests to publish it (declined), with their tokens revoked; A to F
+  are unchanged.
+- **Plan**: every wave kept its level and batch. One coordination rule was added for wave 3:
+  T043 and T044 stayed off the two Playwright browsers, which T045 drove (a tab of theirs would
+  have taken over T045's scripts), and were to list page images for the coordinator instead; none
+  was needed. T041 was decided by the user in the reviewer's place, without the walk through the
+  German PDFs.
+- **Carried**: nothing to a later task of this feature. Outside it: a soft hyphen in
+  "Zusammenfassung" (the Summary's heading and toggle, spec 008/009's) if those specs want it.
+- **Needs a person** (T047 stays unchecked until then):
+  - The screen-reader walk of quickstart §5 step 3 (NVDA with Acrobat Reader).
+  - A black-and-white printout of A (quickstart §2 step 7).
+  - The narrow width confirmed once with the browser's own 200 % zoom (T045 emulated it).
+  - Optional: a German-speaking team member reading C's and A's German PDFs (T041 was the user's
+    decision without one).
+  - Still open from earlier phases: SC-007's reading of C's PDF by a colleague (T038); the user
+    validates the MVP (T034); T027's look at A's page 1 in a real PDF reader; the designer's answer
+    on the version's place in the header (the header is still 124 px for A in English and 156 in
+    German at 1440).
 
 ## 9. Closing report

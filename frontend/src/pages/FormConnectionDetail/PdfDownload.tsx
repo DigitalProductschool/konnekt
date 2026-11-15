@@ -11,8 +11,9 @@ import type { PdfDownloadProps, PdfFailureProps } from './types';
  * `DetailAccordion`'s `actions` slot: "Version <code>" as plain text, the label small and muted,
  * the code medium weight with tabular figures in the text colour, one line that wraps before the
  * code on a narrow window but never inside it; then KERN's secondary button of the regular size
- * with the download glyph (U82 6396:48196, 177 × 48). Busy (the fetch and the worker), it reads
- * "Creating PDF…", keeps the glyph and is `aria-disabled`, its clicks ignored, as
+ * with the download glyph (U82 6396:48196, 177 × 48; on a narrow window without the glyph, its
+ * label wrapping between words and the button taller, D8). Busy (the fetch and the worker), it
+ * reads "Creating PDF…", keeps the glyph and is `aria-disabled`, its clicks ignored, as
  * `ConfirmDialog`'s busy button (FR-003). Its own polite live region, there from mount (the details
  * have no shared one), says "Creating the PDF…" once a run starts and "PDF saved." once the file
  * is saved; a failure is `PdfFailure`'s alert. Without `pdf`, the version alone (no caller does
@@ -25,6 +26,9 @@ export default function PdfDownload({ version, pdf, buttonRef }: PdfDownloadProp
   const at = text.lastIndexOf(version);
   const busy = pdf?.state.status === 'fetching' || pdf?.state.status === 'rendering';
   const announcement = pdf?.state.announcement ?? null;
+  const label = busy ? copy.creatingPdf : copy.downloadPdf;
+  // The German label's soft hyphen (D8) stays out of the button's name, as in `ConfirmDialog`
+  const plainLabel = label.replaceAll('\u00AD', '');
 
   return (
     <>
@@ -43,11 +47,14 @@ export default function PdfDownload({ version, pdf, buttonRef }: PdfDownloadProp
             type="button"
             onClick={busy ? undefined : pdf.download}
             aria-disabled={busy}
+            aria-label={plainLabel === label ? undefined : plainLabel}
             // KERN draws the 1px border outside its 16px; the frame inside them (177 wide)
             className="kern-btn kern-btn--secondary narrow:px-7! max-w-full px-15!"
           >
-            <img src={downloadIcon} alt="" className="size-24 shrink-0" />
-            <span className="kern-label">{busy ? copy.creatingPdf : copy.downloadPdf}</span>
+            {/* On a narrow window the glyph gives its 32px to the label, which then wraps only
+                between words (or at the German soft hyphen) and the button grows taller (D8) */}
+            <img src={downloadIcon} alt="" className="narrow:hidden! size-24 shrink-0" />
+            <span className="kern-label">{label}</span>
           </button>
           <p role="status" className="sr-only">
             {announcement === 'creating'
