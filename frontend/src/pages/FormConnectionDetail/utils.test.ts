@@ -23,6 +23,7 @@ import {
 } from './constants';
 import type { ActivityCardAction, ActivityCardState, DatePillSource } from './types';
 import {
+  accordionBodyClassesOf,
   actionsReducer,
   activityCardReducer,
   activityClosedLineOf,
@@ -258,6 +259,22 @@ describe('initialAccordionOf and toggleAccordion (FR-046, F50; spec 010 FR-022, 
     expect(toggleAccordion('activity', 'activity')).toBeNull();
     expect(toggleAccordion('activity', 'links')).toBe('links');
     expect(toggleAccordion('activity', 'summary')).toBe('summary');
+  });
+});
+
+// Bug published-sticky-bar: a clip that isn't positioned lets the closed cards' `sr-only` texts
+// out, and they lengthen the page below the sticky footer
+describe('accordionBodyClassesOf (FR-046, V6)', () => {
+  const classesOf = (clipped: boolean) => accordionBodyClassesOf(clipped).split(/\s+/);
+
+  it('positions the body whenever it clips, so the clip holds its absolute descendants', () => {
+    expect(classesOf(true)).toEqual(
+      expect.arrayContaining(['min-h-0', 'relative', 'overflow-hidden'])
+    );
+  });
+
+  it('neither clips nor positions the body once it is open and settled', () => {
+    expect(classesOf(false)).toEqual(['min-h-0']);
   });
 });
 

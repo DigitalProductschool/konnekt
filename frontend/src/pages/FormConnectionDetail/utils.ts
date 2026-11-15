@@ -417,6 +417,21 @@ export function toggleAccordion(
 }
 
 /**
+ * The classes of a details card's body (FR-046, V6). It clips only while closed or moving, and
+ * then it is also `relative` (bug published-sticky-bar): `overflow: hidden` clips an absolutely
+ * positioned descendant only when the clip lies on that descendant's containing-block chain. The
+ * cards' visually hidden texts (`sr-only`, `kern-sr-only`, the variant tabs' list) are
+ * `absolute`, and without a positioned body their containing block is `WizardLayout`'s content
+ * box: they escape the clip, sit below the closed card at their unclipped positions and lengthen
+ * the page past the sticky footer, leaving blank space under it. Open and settled, the body is
+ * neither clipped nor positioned, so a tooltip or the full URL's bubble still reaches past the
+ * card and a popup placed `full` still spans the content box.
+ */
+export function accordionBodyClassesOf(clipped: boolean): string {
+  return clipped ? 'relative min-h-0 overflow-hidden' : 'min-h-0';
+}
+
+/**
  * The closed rules card's counts (Figma 10.11, B8): every variant, Standard included, and every
  * distinct rule once. A based variant keeps the main branch's identifiers for inherited rules
  * (data-model.md), so summing the variants would count them twice; a rule a variant removes
