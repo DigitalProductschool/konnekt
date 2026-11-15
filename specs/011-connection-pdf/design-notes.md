@@ -527,6 +527,64 @@ bar where the heading's slice meets the first gap's and the two gaps' slices mee
 
 ### 7.5 Version, limits, edge cases and privacy
 
+**T039, 2026-11-14**, the version end to end (quickstart §4 steps 1–7, §6 "Changed meanwhile")
+on A and a fresh copy of D (§8.3) in headless Chromium 156 (Playwright MCP), a 1455 × 1000
+window.
+- **The stack**: the dev SPA on 5173 (`VITE_API_URL=http://localhost:3000`) against the backend
+  on 3000 (dev database `template_db`, the tests' fake EUDIPLO, the worker off), its code at HEAD,
+  signed in as the local account `t037`.
+- **The script**: `011/T039/version-sweep.js` in the chat's scratchpad, one
+  `browser_run_code_unsafe` call. Every download is saved and its bytes read in the script (as
+  latin-1); `Subject` and `Keywords` are read from the Info dictionary, following PDFKit's
+  indirect string objects (`/Subject 216 0 R`). Deactivating, activating, the two edits and the
+  publish go through the API, the edit as "tab 2" of §6: a `PUT /api/form-connections/{A}` of
+  the rules with `rule-12`'s message (Hire car, an empty variant, so nothing propagates) plus
+  " (T039 edit)", then the message as before. Tab 1 is A's details, opened before the edit.
+- **The files**: `chromium-version.csv` (59 rows, all pass), `chromium-version.json`,
+  `summary.txt` (grouped per state and per check) and the 8 saved files under `dl/`. The first
+  run (`run1/`) failed only on the script's own check: it read `Subject` and `Keywords` as
+  inline strings, found the references and wrote `null` (16 rows); the files themselves held the
+  right properties (checked after the run), and the run was repeated with a new copy of D.
+- **Cited, not re-checked**: every kind of content change, one by one, in
+  `backend/tests/unit/test_versions.py` (`test_each_kind_of_element_changes_the_version`, 30
+  kinds, among them the documents' order, a rule's message and the order of a rule's values;
+  `test_every_change_gives_a_version_of_its_own`; `test_an_edit_and_its_undo_give_the_same_version`;
+  `test_the_version_takes_only_the_content`; `test_labels_and_branch_urls_leave_the_version`;
+  `test_a_published_answers_other_fields_leave_the_version`;
+  `test_a_drafts_other_fields_leave_the_version`) and in the API tests of T007 and T008:
+  `tests/api/test_form_connections.py` (`test_status_changes_and_start_dates_keep_the_version`,
+  F's start date changed and cleared included; `test_publishing_on_a_date_keeps_the_drafts_version`;
+  `test_an_edit_of_a_rules_message_changes_the_version`;
+  `test_a_save_that_only_reorders_the_documents_changes_the_version`, quickstart §4 step 5's
+  second half; `test_the_version_is_the_same_in_german`) and
+  `tests/api/test_form_connection_drafts.py` (`test_a_draft_published_unchanged_keeps_its_version`,
+  `test_saving_a_draft_unchanged_keeps_its_version`,
+  `test_reordering_a_drafts_documents_changes_its_version`,
+  `test_a_draft_not_in_catalog_order_keeps_its_version_when_published`,
+  `test_a_drafts_version_is_the_same_in_german`). The band's "Version …" on every page: the
+  smoke test (`render.test.ts`, T024, T025). The PDF listing the documents in the new order
+  (step 5): `model.test.ts` ("lists the documents in the answer’s order with the answer’s
+  labels", whose reversed answer gives the reversed documents; the coordinator, T040).
+- **The drawn content** (the coordinator, T040): the saved files read as text with T037's
+  extractor (`011/T040/content.mjs`): every file's six pages each draw its own version in the
+  band and no other; "(T039 edit)" is drawn only in the file of `5811-AF23-7955`, not in
+  download 1 or in the file edited back. FR-005 holds in the content, not only in the name and
+  the properties.
+
+| State | What was checked | Chromium | Result |
+|---|---|---|---|
+| A, step 1 (EN) | API `published / live / 98C8-BFF0-B8E2`; the header's "Version …" before any click | `98C8-BFF0-B8E2` | pass 2/2 |
+| A, downloads 1 and 2 (EN) | header after the click, file name, `Subject`, `Keywords` all `98C8-BFF0-B8E2`; `%PDF`, no failure (FR-031, FR-032, FR-033) | `Taxi and private hire driver licence_98C8-BFF0-B8E2.pdf`, 86 969 bytes both times; `Connection cd98…d476, version 98C8-BFF0-B8E2`; `connection cd98…d476; version 98C8-BFF0-B8E2` | pass 10/10 |
+| A, in German (step 2) | the same five checks; `/Lang` | the same name and properties, `de-DE`, 88 594 bytes | pass 6/6 |
+| A, deactivated (step 3) | `POST /deactivate` 200 `deactivated`, its answer's version; the five checks on the reloaded details | `98C8-BFF0-B8E2` throughout | pass 7/7 |
+| A, activated again (step 3) | `POST /activate` 200 `live`, its answer's version | `98C8-BFF0-B8E2` | pass 2/2 |
+| Changed meanwhile (§6, step 4) | tab 1 opened before the edit shows `98C8-BFF0-B8E2`; the `PUT` answers 200 with a new version; tab 1 still shows the old one until the click | `5811-AF23-7955` from the `PUT`; tab 1 `98C8-BFF0-B8E2` before the click | pass 3/3 |
+| Changed meanwhile, tab 1 after "Download PDF" (FR-005) | header, file name, `Subject`, `Keywords` the new version; the Summary's Hire car tab shows the edited message | all `5811-AF23-7955`; "… (T039 edit)" shown | pass 6/6 |
+| Edited back (step 5) | the `PUT` answers the first version; tab 1 after the click: the five checks | `98C8-BFF0-B8E2` again, the file byte for byte as long as download 1 (86 969) | pass 6/6 |
+| D's copy, draft (step 6) | header = API; file name with `_draft_`, `Keywords` ending "; draft" | `931C-A869-BDBF`, `…_draft_931C-A869-BDBF.pdf` | pass 6/6 |
+| D's copy, published unchanged (step 6) | `POST /publish` 200 `live` with the draft's version; "Your connection is active"; header before and after the click, file name (no `_draft_`), `Subject`, `Keywords` | `931C-A869-BDBF` throughout, `…_931C-A869-BDBF.pdf` | pass 8/8 |
+| Restored | `GET /api/form-connections/{A}`; the language switch | `published / live / 98C8-BFF0-B8E2`; English current | pass 2/2 |
+
 ## 8. Decisions and history
 
 ### 8.1 Spec 009's API as built
@@ -749,6 +807,19 @@ script (not committed): `SEED_BODIES.A.body` with `start_date: '2026-11-20'`, po
 
 C and D themselves are unchanged: still drafts at their §8.3 versions. Publishing C was refused
 with 400 and wrote nothing (§7.2).
+
+**2026-11-14, T039.** Fresh copies of D for quickstart §4 step 6 (§7.5), made by a scratchpad
+script (`011/T039/seed-copy.ts`, not committed) that posted `SEED_BODIES.D.body` to
+`POST /api/form-connections/drafts` as `t037`; each was a draft at save 1 and was published
+unchanged by the sweep, keeping its version. Run 1 failed only on the script's own property
+check and was repeated with a new copy (§7.5). A was deactivated, activated and edited twice
+through the API and is back at its version (its rule set version is now 5); D itself is
+unchanged.
+
+| Run | Use | Id | Status / state | Version |
+|---|---|---|---|---|
+| Chromium, run 1 | published unchanged | `d234ab7f-0e09-4b31-a8f7-1ddcf5919a79` | published / live | `E878-D7F5-2455` |
+| Chromium, final | published unchanged | `dfde962c-a35f-4bd1-92a5-3436466b77b8` | published / live | `931C-A869-BDBF` |
 
 ### 8.4 History
 
@@ -1084,6 +1155,38 @@ S.A.". The largest file is 473160 bytes, under the 500 KB (512000 bytes) of the
   finish (T038 stays unchecked until then). Still open from earlier phases: the user validates the
   MVP (T034); T032's narrow check with the browser's own 200 % zoom; T027's look at A's page 1 in
   a real PDF reader; the designer's answer on the version's place in the header; SC-006's
+  screen-reader walk (T006).
+
+**2026-11-14, T040 checkpoint of US3 (Phase 7).**
+- **Gates**: no source file changed in this phase. Run anyway on the checkout: lint; 2675 / 1948
+  / 513 tests in `rules/`, `frontend/`, `mcp/` (as at T038); the build, the main entry 932.93 kB
+  (278.86 kB gzip) and the worker's chunk 59.09 kB, both unchanged. The backend is unchanged
+  since Phase 2 and its gates were not re-run.
+- **The stack**: as T038's (`template_db`, the tests' fake EUDIPLO, the worker off, the dev SPA
+  on 5173), still running from Phase 6's chat; signed in as `t037`.
+- **§7.5**: every version row passes (T039: 59 checks in Chromium 156, no fail and no unsure),
+  so SC-004 holds as far as a chat can check: the page, the file's name, its `Subject` and
+  `Keywords`, and its drawn bands agree; the version stays the same across a second download,
+  German, deactivating and activating, and publishing a draft unchanged; an edit changes it on
+  the page and in the file after the click in a tab opened before the edit (FR-005), and undoing
+  the edit gives the first version again. No defect, so no task was appended.
+- **The coordinator's checks**: the API's answers for A, D and D's published copy, and the
+  `Subject` of each saved file, read again outside the sweep; the drawn content of the files
+  (§7.5, "The drawn content"), which turned T039's check of FR-005 through the properties into a
+  check of the content; quickstart §4 step 5's second half cited from `model.test.ts` (§7.5).
+- **Decisions the agents marked UNCERTAIN, accepted**: T039 edited `rule-12`'s message (Hire car,
+  an empty variant, so nothing propagates to another variant); checked FR-005 through the
+  properties and the name (now through the drawn text too, above); made D's copy with a Node
+  script before the browser run; made §6's "tab 2" edit through the API, as the brief said.
+- **State left behind**: A is published / live at `98C8-BFF0-B8E2` again, its rule set at
+  version 5 after T039's two runs of two saves each; D is unchanged; two published copies of D
+  added (§8.3).
+- **Plan**: T039 [medium] as wave 1 and T040 [lead] as wave 2, as written; no change.
+- **Carried**: nothing new.
+- **Needs a person**: nothing for Phase 7 (the stack was running). Still open from earlier
+  phases: SC-007's reading of C's PDF by a colleague (T038); the user validates the MVP (T034);
+  T032's narrow check with the browser's own 200 % zoom; T027's look at A's page 1 in a real
+  PDF reader; the designer's answer on the version's place in the header; SC-006's
   screen-reader walk (T006).
 
 ## 9. Closing report
