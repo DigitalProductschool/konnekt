@@ -10,7 +10,7 @@ import ConnectionDetails from './ConnectionDetails';
 import DetailFooter from './DetailFooter';
 import DraftDetails from './DraftDetails';
 import type { PdfGoneMark } from './types';
-import { arrivalOf } from './utils';
+import { arrivalOf, isShownConnection } from './utils';
 
 /**
  * An accordion's closed header as a skeleton (U80 6809:46486: the card radius 12 with its 1px
@@ -73,8 +73,9 @@ function DetailsSkeleton() {
  *   the way back to the overview, in the same frame.
  * - "Download PDF" (spec 011) is kept here, above both details, so that a run survives the swap
  *   when its fetch finds a draft published meanwhile (FR-005): the fetched connection replaces the
- *   loaded one, and a 404 shows "Page not found". The option sets and the catalog aren't handed
- *   to it: they live in the Summary's own hooks, so the run fetches them once per language.
+ *   loaded one (unless it is equal, `isShownConnection()`), and a 404 shows "Page not found". The
+ *   option sets and the catalog aren't handed to it: they live in the Summary's own hooks, so the
+ *   run fetches them once per language.
  */
 export default function FormConnectionDetailPage() {
   const { id = '' } = useParams();
@@ -86,7 +87,10 @@ export default function FormConnectionDetailPage() {
   const [gone, setGone] = useState<PdfGoneMark | null>(null);
   const pdf = useConnectionPdf({
     id,
-    onFetched: replace,
+    // An unchanged answer keeps what the page shows: E's Summary isn't rendered again (T050)
+    onFetched: (connection) => {
+      if (!isShownConnection(loaded, connection)) replace(connection);
+    },
     onGone: () => setGone({ id, formConnection: loaded }),
   });
   const shown: FormConnectionState =

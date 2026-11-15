@@ -10,7 +10,7 @@ import type { Language } from '@connection-portal/rules/language';
 import { CONNECTION_DETAIL_COPY } from '../../pages/FormConnectionDetail/constants';
 import { blocksOf, layoutOf, reachOf } from './blocks';
 import { PDF_COLOURS, PDF_LAYOUT, PDF_STYLES, PDF_TEXTS } from './constants';
-import { paginate, placeLabelOf } from './paginate';
+import { cutToFit, paginate, placeLabelOf } from './paginate';
 import type {
   ArtifactType,
   Block,
@@ -52,6 +52,9 @@ const L = PDF_LAYOUT;
 const S = PDF_STYLES;
 const C = PDF_COLOURS;
 const BODY_WIDTH = L.body.width;
+
+/** The bottom's place label's box: its text is fitted to it and drawn in it (R11) */
+const PLACE_LABEL_WIDTH = BODY_WIDTH * L.bottom.labelWidthShare;
 
 /** The five fonts, registered under their `PdfFont` names (contracts/pdf-document.md section 1) */
 const FONTS: readonly PdfFont[] = ['regular', 'medium', 'semiBold', 'mono', 'monoMedium'];
@@ -209,17 +212,7 @@ interface Origin {
  * spaces dropped; "…" alone when nothing fits
  */
 function cutText(text: string, style: TextStyle, room: number, measure: Measure): string {
-  const characters = Array.from(text);
-  const cut = (count: number): string =>
-    `${characters.slice(0, count).join('').trimEnd()}${ELLIPSIS}`;
-  let fits = 0;
-  let fails = characters.length;
-  while (fails - fits > 1) {
-    const middle = Math.floor((fits + fails) / 2);
-    if (measure.width(cut(middle), style) <= room) fits = middle;
-    else fails = middle;
-  }
-  return cut(fits);
+  return cutToFit(text, (cut) => measure.width(cut, style) <= room);
 }
 
 /**
@@ -516,7 +509,7 @@ function paginationPartsOf(
       paginationText(
         page.place,
         S.bottomLabel,
-        { x: 0, y: textY, width: BODY_WIDTH * bottom.labelWidthShare },
+        { x: 0, y: textY, width: PLACE_LABEL_WIDTH },
         measure,
         { lines: 'cut' }
       )
@@ -679,6 +672,9 @@ export function renderConnectionPdf(
       variant: texts.variant,
       continued: texts.continued,
     };
+    // The test `cutSpans()` applies when the label is drawn: a label that passes it is drawn whole
+    const labelFits = (label: string): boolean =>
+      measure.width(label, S.bottomLabel) <= PLACE_LABEL_WIDTH;
     const tree = structureTreeOf(doc);
     const bookmark = outlineOf(doc);
     pages.forEach((placed, index) => {
@@ -688,7 +684,7 @@ export function renderConnectionPdf(
         { blocks, placed, number: index + 1 },
         {
           count: pages.length,
-          place: placeLabelOf(placed, blocks, labels),
+          place: placeLabelOf(placed, blocks, labels, labelFits),
           tree,
           measure,
           bookmark,

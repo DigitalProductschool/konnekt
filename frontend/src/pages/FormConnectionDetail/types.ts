@@ -347,6 +347,17 @@ export interface RulesSummaryProps {
   pdf?: ConnectionPdf;
 }
 
+/** `RulesSummaryBody`'s props: what the open part shows, never the page's download (T050) */
+export interface RulesSummaryBodyProps {
+  branches: BranchInput[];
+  documents: RequestedDocumentView[];
+  draft: boolean;
+  /** `RulesSummary`'s memoised context of the statements */
+  context: RuleContext;
+  /** `RulesSummary`'s memoised documents the checks read, or null */
+  checkDocuments: RuleDocument[] | null;
+}
+
 export interface RulesSummaryContentProps {
   branches: BranchInput[];
   context: RuleContext;

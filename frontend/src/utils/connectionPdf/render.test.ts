@@ -711,6 +711,35 @@ describe('renderConnectionPdf, the largest connection (E)', () => {
     expect(rest.filter((labels) => labels.length !== 1)).toEqual([]);
   });
 
+  it('keeps "(continued)" in the bottom’s label and cuts only a long variant name with "…" (T050)', () => {
+    const texts = PDF_TEXTS.en;
+    const width = PDF_LAYOUT.body.width * PDF_LAYOUT.bottom.labelWidthShare;
+    const head = `3 ${texts.section3} › `;
+    const labels = placeLabelsOf(rendered.recording)
+      .slice(1)
+      .map(([label]) => label);
+    const continued = ` ${texts.continued}`;
+    const names = model.variants.map((variant) => texts.variant(variant.name));
+    // Apart from Standard, each variant's name has FR-045's 100 characters
+    expect(
+      model.variants.filter((variant) => Array.from(variant.name).length === 100)
+    ).toHaveLength(model.variants.length - 1);
+    const wrong = labels.filter((label) => {
+      if (label.advance > width || label.width !== null) return true;
+      if (!label.text.startsWith(head)) return label.text.includes('…');
+      const name = label.text.slice(head.length).replace(continued, '');
+      if (names.includes(name)) return false;
+      return !name.endsWith('…') || !names.some((full) => full.startsWith(name.slice(0, -1)));
+    });
+    expect(wrong.map((label) => label.text)).toEqual([]);
+    expect(labels.filter((label) => label.text.includes('…')).length).toBeGreaterThan(0);
+    // Only a page that opens a section or a variant (each one an outline entry) lacks "(continued)"
+    const opening = labels.filter((label) => !label.text.endsWith(continued));
+    const entries = rendered.recording.outline.flatMap((item) => [item, ...item.children]);
+    expect(opening.length).toBeLessThanOrEqual(entries.length);
+    expect(labels.length - opening.length).toBeGreaterThan(model.variants.length);
+  });
+
   it('draws no text outside a tag or an artifact, and every shape as an artifact or a strike line', () => {
     const untagged = rendered.recording.pages.flatMap((page) =>
       page.texts.filter((text) => text.role === null)

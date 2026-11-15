@@ -253,7 +253,7 @@ export async function editDraft<R>(
   return { ok: false, error: toolError('conflict', DRAFT_EDIT_MESSAGES.conflict) };
 }
 
-/** The text block's line on a draft as saved: its version and its step (FR-017). */
+/** The text block's line on a draft as saved: its save number and its step (FR-017). */
 export function draftLineOf(draft: Pick<FormConnectionDraft, 'version' | 'step'>): string {
-  return `Saved as draft version ${draft.version}, at the ${draft.step} step.`;
+  return `Saved as save ${draft.version} of the draft, at the ${draft.step} step.`;
 }

@@ -681,9 +681,7 @@ describe('the reading tools', () => {
       expect(structured).not.toHaveProperty('published_at');
       expect(structured).not.toHaveProperty('active_since');
       expect(structured).not.toHaveProperty('deactivated_since');
-      expect(text).toContain(
-        'Draft at the rules step. Version 1, last saved 2026-11-03T09:00:00Z.'
-      );
+      expect(text).toContain('Draft at the rules step. Save 1, last saved 2026-11-03T09:00:00Z.');
       // Counts only, never the rules
       expect(JSON.stringify(structured)).not.toContain('rule-1');
       expect(structured.documents[0].fields[0]).toEqual({
@@ -1546,7 +1544,7 @@ describe('the draft tools', () => {
         version: 2,
         step: 'rules',
       });
-      expect(text).toContain('Saved as draft version 2, at the rules step.');
+      expect(text).toContain('Saved as save 2 of the draft, at the rules step.');
     });
 
     it("refuses a description over 500 characters with the server's message", async () => {
@@ -1809,7 +1807,7 @@ describe('the draft tools', () => {
       expect(storedDraft().branches.map((branch) => branch.items.length)).toEqual([2, 2, 0]);
       expect(text).toContain('Moved Driving licence (mdl) to position 1 of 2.');
       expect(text).toContain('1. Driving licence (mdl): issue_date\n2. Personal ID (pid):');
-      expect(text).toContain('Saved as draft version 3, at the rules step.');
+      expect(text).toContain('Saved as save 3 of the draft, at the rules step.');
 
       const back = await callTool(
         'move_document',

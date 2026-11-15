@@ -208,7 +208,7 @@ registerTool({
         fc.description && `Description: ${fc.description}`,
         versionLineOf(facts.version_fingerprint),
         fc.status === 'draft'
-          ? `${stepLineOf(fc.step)} Version ${fc.version}, last saved ${fc.updated_at}.`
+          ? `${stepLineOf(fc.step)} Save ${fc.version}, last saved ${fc.updated_at}.`
           : connectionDatesLineOf(facts),
         facts.example && EXAMPLE_LINE,
         documents.length === 0

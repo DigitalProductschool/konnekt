@@ -6,7 +6,7 @@ task touches its subject.
 
 | Document | Read it when |
 |---|---|
-| `docs/ARCHITECTURE.md` | You need to know how something works: data flow, sign-in, the EUDIPLO client and its transactions, form connections and revisions, rules and branches (spec 002), rule checks (spec 003), drafts and local drafts (spec 005), agent access, approval requests and the MCP server (spec 007), the languages (spec 009), scheduling, the activity, restorable deletions, the document order and the example (spec 010), the worker, serviceBW's URLs, error handling, database conventions, layouts and routing, environment variables, deployment |
+| `docs/ARCHITECTURE.md` | You need to know how something works: data flow, sign-in, the EUDIPLO client and its transactions, form connections and revisions, rules and branches (spec 002), rule checks (spec 003), drafts and local drafts (spec 005), agent access, approval requests and the MCP server (spec 007), the languages (spec 009), scheduling, the activity, restorable deletions, the document order and the example (spec 010), the connection PDF and its version (spec 011), the worker, serviceBW's URLs, error handling, database conventions, layouts and routing, environment variables, deployment |
 | `docs/KERN-DESIGN-SYSTEM.md` | You build or style UI: KERN's components, tokens, Tailwind classes and gotchas |
 | `docs/EUDIPLO.md` | You call or change anything that talks to EUDIPLO |
 | `docs/FIGMA-WORKFLOW.md` | A task comes with a Figma URL: follow it step by step |
@@ -127,13 +127,18 @@ The UI says "connection" for form connection and "variant" for branch, and calls
   (`ConfirmDialog`'s `dismissOnScrim={false}`; ARCHITECTURE, "frontend").
 - **Toasts**: every toast closes after 6 seconds (`TOAST_DURATION_MS`), with or without an
   action, the time held while the pointer or the focus is on it (ARCHITECTURE, "frontend").
+- **The connection PDF** (spec 011): no `console.*` in `utils/connectionPdf/`, `workers/pdf.ts`
+  or `useConnectionPdf`; only the worker and the hook touch browser APIs; `version_fingerprint`
+  is computed only in `backend/app/services/versions.py` (ARCHITECTURE, "The connection PDF
+  (spec 011)").
 - No `any` without a justification, no `require()`. Never add a `vitest.config.ts` to
   `frontend/`: it would replace the `test` block of `vite.config.ts`.
 
 ## Rules, rule checks and test personas (specs 002, 003, 004)
 
-- The pure rules logic lives in `rules/src/`, every module with its `*.test.ts`; the two browser
-  Worker entries are `frontend/src/workers/checks.ts` and `frontend/src/workers/personas.ts`.
+- The pure rules logic lives in `rules/src/`, every module with its `*.test.ts`; the three browser
+  Worker entries are `frontend/src/workers/checks.ts`, `frontend/src/workers/personas.ts` and
+  `frontend/src/workers/pdf.ts` (the connection PDF, spec 011).
 - Agents' edits go through `rules/src/edits.ts`, as the rules reducer does: a new editing action
   goes there, never into the reducer or an MCP tool alone (ARCHITECTURE, "Rules and branches").
 - **Propagation** of the main branch's changes lives only in `rules/src/branches.ts`

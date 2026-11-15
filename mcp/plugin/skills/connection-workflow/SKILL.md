@@ -135,7 +135,7 @@ A draft remembers how far its content reaches, as the editor's wizard does: the 
 opens the draft in Konnekt continues there. Every change stores the furthest step the
 content reaches: the rules step once any variant has a rule, the documents step once a document is
 requested, the connection step otherwise. Each answer's text says the draft's save number
-("version") and step.
+and step.
 
 ## What to tell the team member
 

@@ -1,14 +1,13 @@
 import { requestedRuleDocuments, ruleDocumentsOf } from '@connection-portal/rules/conditions';
-import { useId, useMemo, useRef, useState } from 'react';
+import { useMemo, useRef, useState } from 'react';
 
 import { useDocumentTypes } from '../../hooks/useDocumentTypes';
 import { useLanguage } from '../../hooks/useLanguage';
 import { draftRuleDocumentsOf } from '../../utils/connectionSummary';
 import { CONNECTION_DETAIL_COPY } from './constants';
 import DetailAccordion from './DetailAccordion';
-import DocumentsSummary from './DocumentsSummary';
 import PdfDownload, { PdfFailure } from './PdfDownload';
-import RulesSummaryContent from './RulesSummaryContent';
+import RulesSummaryBody from './RulesSummaryBody';
 import type { RulesSummaryProps } from './types';
 import { requestedDocumentsOf, summaryCountsOf } from './utils';
 
@@ -22,7 +21,8 @@ import { requestedDocumentsOf, summaryCountsOf } from './utils';
  * connection's and a stored draft's, pass `version` and the page's download (`pdf`), the approval
  * page neither (FR-006). A failed run's alert sits under the header row (`PdfFailure`). There is
  * no "Edit rules": the footer's "Edit connection" is the one way into editing (FR-046 (a); U83
- * #35).
+ * #35). The open part is `RulesSummaryBody`, memoised without `pdf`, so that a run's state changes
+ * render only the header (T050).
  *
  * The catalog names what the checks read on a published connection (FR-047: the requested
  * documents with their requested fields, as the approval page checks a draft), and, on a draft,
@@ -41,7 +41,6 @@ export default function RulesSummary({
 }: RulesSummaryProps) {
   // Without `open`, the accordion keeps its own state (both details pages pass `open` today)
   const [ownOpen, setOwnOpen] = useState(true);
-  const rulesTitleId = useId();
   // "Try again" goes with its alert: the focus moves to "Download PDF", busy, not to the page
   const pdfButtonRef = useRef<HTMLButtonElement>(null);
   const { status, documentTypes } = useDocumentTypes();
@@ -91,24 +90,13 @@ export default function RulesSummary({
         )
       }
     >
-      <div className="flex flex-col gap-24 px-24 pb-24">
-        <DocumentsSummary documents={documents} draft={draft} />
-        {/* U82 6396:48221: decorative, between the two parts */}
-        <div aria-hidden="true" className="bg-kern-action-default h-px opacity-30" />
-        <section aria-labelledby={rulesTitleId} className="flex flex-col gap-24">
-          <h3
-            id={rulesTitleId}
-            className="text-kern-static-medium text-kern-action-default leading-(--kern-typography-line-height-medium-static) font-semibold"
-          >
-            {copy.rulesTitle}
-          </h3>
-          <RulesSummaryContent
-            branches={branches}
-            context={context}
-            checkDocuments={checkDocuments}
-          />
-        </section>
-      </div>
+      <RulesSummaryBody
+        branches={branches}
+        documents={documents}
+        draft={draft}
+        context={context}
+        checkDocuments={checkDocuments}
+      />
     </DetailAccordion>
   );
 }

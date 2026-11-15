@@ -45,6 +45,7 @@ import {
   hasOlderActivity,
   initialAccordionOf,
   isNoAnswer,
+  isShownConnection,
   keyedBranchesOf,
   linksCountsOf,
   overviewStateAfterDeletion,
@@ -1516,5 +1517,26 @@ describe('overviewStateAfterDeletion (spec 010, FR-033)', () => {
     expect(
       overviewStateAfterDeletion('Fishing licence', { id: null, restorable_until: null })
     ).toEqual({ deleted: { names: ['Fishing licence'], deletionId: null } });
+  });
+});
+
+describe('isShownConnection', () => {
+  const shown = connection([branch('b-1', 'Standard', true), branch('b-2', 'Taxi')]);
+
+  it('is true for an equal answer, a copy of the shown connection', () => {
+    expect(isShownConnection(shown, structuredClone(shown))).toBe(true);
+  });
+
+  it('is false when anything differs: the content, a label, the status or the state', () => {
+    const renamed = structuredClone(shown);
+    renamed.branches[1].name = 'Hire car';
+    expect(isShownConnection(shown, renamed)).toBe(false);
+    expect(isShownConnection(shown, { ...shown, name: `${shown.name} (edited)` })).toBe(false);
+    expect(isShownConnection(shown, { ...shown, state: 'deactivated' })).toBe(false);
+    expect(isShownConnection(shown, { ...shown, updated_at: '2026-11-15T12:00:00Z' })).toBe(false);
+  });
+
+  it('is false while nothing is shown', () => {
+    expect(isShownConnection(null, shown)).toBe(false);
   });
 });

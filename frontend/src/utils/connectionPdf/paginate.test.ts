@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { paginate, placeLabelOf } from './paginate';
+import { cutToFit, paginate, placeLabelOf } from './paginate';
 import type { Block, Page, PagePlace, PlaceLabelTexts } from './types';
 
 const PAGE_HEIGHT = 100;
@@ -251,5 +251,98 @@ describe('placeLabelOf', () => {
     expect(labelOf({ section: 2, variant: null, opens: null }, german)).toBe(
       '2 Dokumente und Felder (Fortsetzung)'
     );
+  });
+
+  describe('with the drawing’s test of one line (T050)', () => {
+    /** FR-045's longest variant name: 100 characters */
+    const LONG_NAME = 'Variant 1 for applicants from a district of the city and the documents '
+      .repeat(2)
+      .slice(0, 100);
+    /** A made-up width: one unit per code point */
+    const within =
+      (room: number) =>
+      (label: string): boolean =>
+        Array.from(label).length <= room;
+
+    function fittedLabelOf(
+      place: PagePlace,
+      room: number,
+      texts: PlaceLabelTexts = english
+    ): string | null {
+      const blocks = [block(10), block(10, { place })];
+      return placeLabelOf([{ index: 1, y: 0 }], blocks, texts, within(room));
+    }
+
+    it('keeps "(continued)" and the section whole and cuts only the long variant name with "…"', () => {
+      const label = fittedLabelOf({ section: 3, variant: LONG_NAME, opens: null }, 80);
+      const head = '3 Rules per variant › Variant ';
+      const tail = '… (continued)';
+
+      expect(LONG_NAME).toHaveLength(100);
+      expect(label).not.toBeNull();
+      expect(label!.startsWith(head)).toBe(true);
+      expect(label!.endsWith(tail)).toBe(true);
+      expect(Array.from(label!).length).toBeLessThanOrEqual(80);
+      // As much of the name as fits: one more character would not
+      const kept = label!.slice(head.length, -tail.length);
+      expect(kept.length).toBeGreaterThan(0);
+      expect(LONG_NAME.startsWith(kept)).toBe(true);
+      expect(Array.from(`${head}${LONG_NAME.slice(0, kept.length + 1)}${tail}`).length).toBe(81);
+    });
+
+    it('does the same in German', () => {
+      const german: PlaceLabelTexts = {
+        sections: {
+          1: 'Links für Ihren Dienst',
+          2: 'Dokumente und Felder',
+          3: 'Regeln je Variante',
+        },
+        variant: (name) => `Variante ${name}`,
+        continued: '(Fortsetzung)',
+      };
+      const label = fittedLabelOf({ section: 3, variant: LONG_NAME, opens: null }, 80, german);
+
+      expect(label!.startsWith('3 Regeln je Variante › Variante Variant 1')).toBe(true);
+      expect(label!.endsWith('… (Fortsetzung)')).toBe(true);
+      expect(Array.from(label!).length).toBeLessThanOrEqual(80);
+    });
+
+    it('cuts a variant’s opening label at the name too, and leaves a label that fits whole', () => {
+      expect(fittedLabelOf({ section: 3, variant: LONG_NAME, opens: 'variant' }, 60)).toBe(
+        `3 Rules per variant › Variant ${LONG_NAME.slice(0, 29).trimEnd()}…`
+      );
+      expect(fittedLabelOf({ section: 3, variant: 'Taxi', opens: null }, 80)).toBe(
+        '3 Rules per variant › Variant Taxi (continued)'
+      );
+      expect(fittedLabelOf({ section: 2, variant: null, opens: null }, 10)).toBe(
+        '2 Documents and data items (continued)'
+      );
+    });
+
+    it('keeps "…" alone for the name when no part of it fits', () => {
+      expect(fittedLabelOf({ section: 3, variant: LONG_NAME, opens: null }, 20)).toBe(
+        '3 Rules per variant › Variant … (continued)'
+      );
+    });
+  });
+});
+
+describe('cutToFit', () => {
+  const within =
+    (room: number) =>
+    (text: string): boolean =>
+      Array.from(text).length <= room;
+
+  it('keeps the longest start that fits with "…", trailing spaces dropped', () => {
+    expect(cutToFit('Hire car licence', within(10))).toBe('Hire car…');
+    expect(cutToFit('Hire car licence', within(6))).toBe('Hire…');
+  });
+
+  it('counts code points, so that a surrogate pair is never split', () => {
+    expect(cutToFit('ab😀cd', within(4))).toBe('ab😀…');
+  });
+
+  it('gives "…" alone when nothing fits', () => {
+    expect(cutToFit('Taxi', within(0))).toBe('…');
   });
 });

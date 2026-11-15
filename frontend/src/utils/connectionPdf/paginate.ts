@@ -84,22 +84,53 @@ export function paginate(blocks: readonly Block[], pageHeight: number): Page[] {
   return pages;
 }
 
+const ELLIPSIS = '…';
+
+/**
+ * `text`'s longest start, cut between characters with its trailing spaces dropped and "…" after
+ * it, for which `fits` holds; "…" alone when none does. `fits` is assumed to hold for shorter
+ * starts whenever it holds for a longer one (a width bound does)
+ */
+export function cutToFit(text: string, fits: (cut: string) => boolean): string {
+  const characters = Array.from(text);
+  const cut = (count: number): string =>
+    `${characters.slice(0, count).join('').trimEnd()}${ELLIPSIS}`;
+  let fitting = 0;
+  let failing = characters.length;
+  while (failing - fitting > 1) {
+    const middle = Math.floor((fitting + failing) / 2);
+    if (fits(cut(middle))) fitting = middle;
+    else failing = middle;
+  }
+  return cut(fitting);
+}
+
 /**
  * The bottom's place label of a page (FR-021): where its first block is, "2 Documents and data
  * items" or "3 Rules per variant › Variant Taxi", plus " (continued)" unless that block opens the
  * section or variant named. Null on page 1 (the page that holds the first block), on a page that
- * starts outside the sections (the gaps), and on an empty page
+ * starts outside the sections (the gaps), and on an empty page.
+ *
+ * `fits`, when given, is the drawing's test of one line (its width in the label's style within the
+ * label's box, design-notes 8.2 D9): a label that fails it has only the variant's name cut with
+ * "…" (`cutToFit()`), so that the section and "(continued)" stay whole (FR-025, SC-005)
  */
 export function placeLabelOf(
   page: Page,
   blocks: readonly Block[],
-  texts: PlaceLabelTexts
+  texts: PlaceLabelTexts,
+  fits?: (label: string) => boolean
 ): string | null {
   if (page.length === 0 || page[0].index === 0) return null;
   const { section, variant, opens } = blocks[page[0].index].place;
   if (section === null) return null;
-  let label = `${section} ${texts.sections[section]}`;
-  if (variant !== null) label += ` › ${texts.variant(variant)}`;
   const opened = variant !== null ? opens === 'variant' : opens === 'section';
-  return opened ? label : `${label} ${texts.continued}`;
+  const labelWith = (name: string | null): string => {
+    let label = `${section} ${texts.sections[section]}`;
+    if (name !== null) label += ` › ${texts.variant(name)}`;
+    return opened ? label : `${label} ${texts.continued}`;
+  };
+  const label = labelWith(variant);
+  if (fits === undefined || variant === null || fits(label)) return label;
+  return labelWith(cutToFit(variant, (name) => fits(labelWith(name))));
 }

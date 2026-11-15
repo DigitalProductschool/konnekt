@@ -33,7 +33,7 @@ integration work below doesn't need to be re-discovered from scratch.
 
 | Package | Version (at research time) | What it is | License |
 |---|---|---|---|
-| `@kern-ux/native` | `^2.8.2` | Core: compiled CSS (`kern.css`/`kern.min.css`), a CSS grid (`kern-grid.css`), utility classes (`kern-utilities.css`), fonts (Fira Sans, Noto Sans, Fira Mono), SCSS sources, and **every design token as CSS custom properties** (colors in OKLCH, spacing/metrics, typography, radii). Ships exactly **one** native Web Component, `<kern-kopfzeile>` (header strip). Everything else is plain BEM-style CSS classes (`.kern-button`, `.kern-input`, `.kern-accordion`, `.kern-summary-group`, …) meant to be applied to plain HTML — **framework-agnostic, no React bindings of its own.** | EUPL-1.2 |
+| `@kern-ux/native` | `^2.8.2` | Core: compiled CSS (`kern.css`/`kern.min.css`), a CSS grid (`kern-grid.css`), utility classes (`kern-utilities.css`), fonts (Fira Sans and Noto Sans as WOFF2; **no Fira Mono** in 2.8.2, see below), SCSS sources, and **every design token as CSS custom properties** (colors in OKLCH, spacing/metrics, typography, radii). Ships exactly **one** native Web Component, `<kern-kopfzeile>` (header strip). Everything else is plain BEM-style CSS classes (`.kern-button`, `.kern-input`, `.kern-accordion`, `.kern-summary-group`, …) meant to be applied to plain HTML — **framework-agnostic, no React bindings of its own.** | EUPL-1.2 |
 | `@kern-ux-annex/kern-react-kit` | `^2.40.0` | **The actual React component library.** Community-maintained (not published under the main `@kern-ux` npm scope, but under a "KERN annex/community" GitLab namespace; contributors include official KERN strategic partners such as OneBitAhead GmbH). 46 components (33 core + 13 addons) as typed TSX, compiled ESM+CJS with full `.d.ts` types, plus a bundled stylesheet (an older copy of the native CSS with inlined fonts — leave it out, see "Global CSS" below). React 18 **and** 19 supported via peerDependencies. Treat it as "community, but close to official" — there is **no first-party `@kern-ux/react` package**; dead-end package names seen in older docs/search indexes: `@kern-ux/react`, `@kern-ux/components` (do not install either). | EUPL-1.2 |
 | `@digitalservicebund/kern-ux-tailwind-theme` | `^4.0.0` | A single `theme.css` that uses **Tailwind v4's `@theme inline`** directive to remap every `@kern-ux/native` CSS-variable token into Tailwind's own theme namespace (see §5). CSS-only, not React-specific — works with any Tailwind v4 project, even non-React ones. Peer-depends on `@kern-ux/native@^2.8.0` and `tailwindcss@^4.1.12`. Maintained by DigitalService Bund engineers, published via GitHub Actions on a rolling basis, kept in sync with `@kern-ux/native` token renames. | MIT |
 
@@ -399,7 +399,11 @@ Tailwind utility families become usable directly in `className`:
     `kern-form-input-background`, `kern-form-input-border`
     `kern-white`, `kern-black`
 - **Fonts** (`--font-kern-*`): `font-kern-default`, `font-kern-sans` (Fira Sans), `font-kern-mono`
-  (Fira Mono) — no serif is defined.
+  (Fira Mono) — no serif is defined. `@kern-ux/native` 2.8.2 ships no Fira Mono file (its
+  `dist/fonts/` holds Fira Sans and Noto Sans only), so `font-kern-mono` shows an installed
+  Fira Mono or else the system's monospace font. The connection PDF (spec 011) therefore commits its own Fira TTFs in
+  `frontend/src/assets/fonts/` with `OFL.txt`, Fira Mono included; KERN's WOFF2 files would not
+  do either, as fontkit can't subset them (spec 011, research R7).
 - **Spacing** (`--spacing-kern-*`, usable as `p-`/`m-`/`gap-`/`w-`/`h-`/etc. with the `kern-` prefix
   preserved after the dash):
   - `space-{none,2x-small,x-small,small,default,large,x-large}` → 0/2/4/8/16/24/32px (e.g. `p-kern-space-default`, `gap-kern-space-large`)

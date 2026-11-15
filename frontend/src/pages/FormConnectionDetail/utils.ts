@@ -7,6 +7,7 @@ import type {
   ConnectionState,
   Deletion,
   FormConnection,
+  FormConnectionOrDraft,
   RequestedDocument,
   RequestedDocumentView,
 } from '@connection-portal/api-types/form-connections';
@@ -824,4 +825,17 @@ export function overviewStateAfterDeletion(
   deletion: Deletion
 ): OverviewLocationState {
   return { deleted: { names: [name], deletionId: deletion.id } };
+}
+
+/**
+ * Whether a PDF run's fetched connection is the one the details show, field for field (spec
+ * 011, T050; design-notes 8.2 D10). The page then keeps what it shows, so that the largest
+ * connection's Summary doesn't render again for an unchanged answer (FR-003); a changed one
+ * replaces it (FR-005). Both come from the same endpoint, so their keys are in the same order
+ */
+export function isShownConnection(
+  shown: FormConnectionOrDraft | null,
+  fetched: FormConnectionOrDraft
+): boolean {
+  return shown !== null && JSON.stringify(shown) === JSON.stringify(fetched);
 }

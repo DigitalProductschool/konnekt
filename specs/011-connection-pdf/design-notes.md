@@ -882,6 +882,266 @@ window.
 | D's copy, published unchanged (step 6) | `POST /publish` 200 `live` with the draft's version; "Your connection is active"; header before and after the click, file name (no `_draft_`), `Subject`, `Keywords` | `931C-A869-BDBF` throughout, `…_931C-A869-BDBF.pdf` | pass 8/8 |
 | Restored | `GET /api/form-connections/{A}`; the language switch | `published / live / 98C8-BFF0-B8E2`; English current | pass 2/2 |
 
+**T049, 2026-11-15**, the remaining edge cases and privacy (quickstart §6 "Language switched
+while busy", "Leaving while busy", "Odd name", "Long name", "Privacy"; FR-034, FR-042, FR-044,
+SC-008) on A and E (§8.3) in headless Chromium 156 and Firefox 159 (Playwright MCP), a 1455 ×
+1000 window.
+- **The stack**: the dev SPA on 5173 (`VITE_API_URL=http://localhost:3000`) against the backend
+  on 3000 (dev database `template_db`, the tests' fake EUDIPLO, the worker off), its code at
+  HEAD, signed in as the local account `t037`. The timings are the dev server's (T033's
+  production timings stand, §7.2).
+- **The scripts**, in the chat's scratchpad (`011/T049/`):
+  - `sweep.js`, one `browser_run_code_unsafe` call per browser, loaded through `helper.mjs`, a
+    local server on 127.0.0.1:47049 that hands over the password once, counts the rows of every
+    table with `psql`, reads what the backend's log gained, and writes the CSV and the JSON. It
+    records every request of the context (the worker's included) and every `download` event.
+    A's renames go through the API (`PUT /api/form-connections/{A}` with `{name}`), and the name
+    goes back in a `finally`.
+  - `files.mjs` reads the saved files: `/Lang`, the Info dictionary's `/Title` (an indirect,
+    UTF-16BE string) and the drawn text through T037's ToUnicode extractor (`pdftext.mjs`).
+- **The files**: `chromium.csv`, `firefox.csv` (43 rows each), `t049.csv` (both plus the 26 file
+  rows, 112 rows, all pass), `summary.txt` (grouped per state and per check), `*.json` (the
+  requests, the counts, the log's new bytes) and the 18 saved files under `dl/`. Chromium ran
+  three times; the first two runs (`run1-chromium/`, `run2-chromium/`) failed only on the
+  script's own checks:
+  - run 1 expected E's file name unshortened (E's name has 200 code points and a `:`; the file
+    name was right);
+  - runs 1 and 2 looked for "PDF herunterladen" without D8's soft hyphen ("herunter­laden").
+  The oracle was then written from data-model §7, the soft hyphen stripped before every
+  comparison, and Chromium and Firefox ran the same script.
+- **Cited, not re-checked**:
+  - the double activation and offline (§7.2, T033);
+  - published and deleted meanwhile (§7.2, T037);
+  - changed meanwhile (§7.5, T039);
+  - the narrow screen (§7.2, T045);
+  - the band's "…" for a long name (`render.test.ts`, T024: "cuts the name in the band to one
+    line ending in "…", no wider than its box"; the files here have a "…" in the band of pages
+    2–6, recorded, not judged);
+  - the file name's rules one by one (`fileName.test.ts`, among them "keeps 100 code points of a
+    200-character name …", "counts emoji as code points …");
+  - the requests of the first run after loading the page, on the production build (§7.2,
+    T033). On the dev server the first run fetches the modules one by one (51 distinct URLs),
+    with only the GET naming the connection.
+- **The backend's log**: the backend runs `uvicorn.run(…, log_level='warning')` with stdout and
+  stderr in one file. The app configures no logging (no `basicConfig`, and the app doesn't load
+  Alembic's `fileConfig`). Its loggers (`app.*`) are therefore at WARNING with no handler, and
+  reach the file through Python's `lastResort` handler.
+  - **What the log can show**: the app's warnings and errors, and uvicorn's (`uvicorn.error`).
+  - **What it can't show**: INFO and DEBUG lines, and uvicorn's access lines (`uvicorn.access`
+    at WARNING), so no request line.
+  - This was checked by building the same logging configuration in a separate process
+    (`uvicorn.config.Config(app, log_level='warning').configure_logging()`), not by restarting
+    the backend.
+  - **The static check**: `backend/app/` has 65 log calls (42 info, 15 warning, 8 error). None
+    names a PDF. One names a "version": `services/rules.py`'s `logger.info('Form connection %s:
+    rule set %s saved', …)`, the rule set's save number on a save. That number isn't the
+    content's version, and it is logged at INFO. `services/versions.py` logs nothing, and no
+    route makes or receives a PDF.
+- **Left behind**: the four runs' renames (12 `PUT`s, the renames back included) left one
+  `connection_activity` row on A (52 → 53), which the API can't remove. The four sign-ins added
+  four `login_sessions` (47 → 51). A ends as before (`published / live / 98C8-BFF0-B8E2`, its
+  name restored), and E is unchanged. The site is in English in both browsers (both were in
+  German at the start). No test connection was made.
+
+| State | What was checked | Chromium | Firefox | Result |
+|---|---|---|---|---|
+| E, language switched while busy (FR-034) | "Deutsch" clicked while busy: `html lang` `de`, the button "PDF wird erstellt …" | switched 1947 ms after the click | 1959 ms | pass 2/2 |
+| the same, the file | saved (E's 764 pages), its name; `/Lang`; `/Title`; "Page 1 of 764" … "Page 764 of 764" drawn | 10.1 s; `A connection at the product's limits- twenty … and the_8402-3F5B-32B3.pdf` (100 code points, the `:` replaced); `en-GB`; "A connection at the product's limits: … – Connection details" | 14.2 s; the same name, `/Lang`, `/Title` and band | pass 12/12: the file is in the language at activation |
+| the same, afterwards | the idle button in German, then back to English | "PDF herunterladen" 146 ms after the file; `en` | 160 ms; `en` | pass 4/4 |
+| E, leaving for the overview while busy | "Your connections" clicked while "Creating PDF…" | 2035 ms after the click (the worker's files already requested: the run was in the worker) | 777 ms after the click (the worker not yet started: the run was in the fetch) | pass 2/2 |
+| the same | `download` events within 90 s; tabs | 0; 1 | 0; 1 | pass 4/4: nothing saved later |
+| Setup | sign-in; A and E at the start | 200; A `published / live / 98C8-BFF0-B8E2`, E `published / live / 8402-3F5B-32B3` | the same | pass 6/6 |
+| A, the warm-up download (the first after loading) | saved, its name | 1154 ms | 1268 ms | pass 2/2 |
+| A, five downloads with a warm cache (SC-008, FR-042) | each download's requests: one GET of A; no other | exactly `GET /api/form-connections/{A}`, nothing else, 5 of 5 (487–578 ms) | the same (611–788 ms) | pass 20/20 |
+| the same | file name, no failure | `Taxi and private hire driver licence_98C8-BFF0-B8E2.pdf` | the same | pass 10/10 |
+| around the five downloads | row counts of all 14 tables (`psql`) before and after | unchanged | unchanged | pass 2/2 |
+| the same | the backend log's new lines; any naming a PDF or a version | 0 bytes; 0 | 0 bytes; 0 | pass 2/2; the log shows only warnings and errors (above) |
+| the same | requests to another host | 0 | 0 | pass 2/2 |
+| A renamed to `A/B: "test" <1>?` (FR-044) | `PUT` 200; the header's version = the `PUT`'s; file name | `EFEF-D462-520F`; `A-B- -test- -1--_EFEF-D462-520F.pdf` (each of `/ : " < > ?` replaced) | the same | pass 10/10 |
+| the same, the file | `/Title` and page 1 hold the name as entered; `/Lang`; the band | "A/B: "test" <1>? – Connection details"; found on page 1; `en-GB`; "Page 1 of 6" … "Page 6 of 6" | the same | pass 10/10 |
+| A renamed to a 200-character name (FR-044) | `PUT` 200 (200 code points); the header's version; file name | `8E71-ED63-BCB1`; the first 100 code points (`Führerschein … Verlängerung ode_8E71-ED63-BCB1.pdf`) | the same | pass 8/8 |
+| the same, the file | `/Title` and page 1 hold the full name; `/Lang`; the band | the full 200 characters in both; `en-GB`; "Page n of 6" | the same | pass 10/10 |
+| Restored | A: name, status, state, version; E; the site's language | `Taxi and private hire driver licence / published / live / 98C8-BFF0-B8E2`; E `published / live / 8402-3F5B-32B3`; `en` | the same | pass 6/6 |
+| every state | console | only React's development entries (`console.timeStamp` tracks, the DevTools hint); none from the app, none naming a PDF or a version | the same | pass |
+
+No defect. Nothing for T050 from T049.
+
+**T048, 2026-11-15**, the limits (quickstart §6 "Limits"; FR-023 to FR-027, FR-045, SC-001,
+SC-005): E (§8.3) in Node in English and German, and downloaded from its details in headless
+Chromium 156 and Firefox 159 (Playwright MCP), a 1455 × 1000 window.
+- **The stack**: the dev SPA on 5173 (`VITE_API_URL=http://localhost:3000`) against the backend
+  on 3000 (dev database `template_db`, the tests' fake EUDIPLO, the worker off), its code at HEAD,
+  signed in as the local account `t037`. Every browser timing is from the dev server, so it is an
+  upper bound (T033 timed on the production build, §7.2). The Node renders ran while T049 drove
+  the browsers (load average 0.6 at the start, 2.1 at the end, 8 CPUs).
+- **The scripts**, in `011/T048/` of the chat's scratchpad:
+  - `sweep.ts` (`npx vite-node` from `frontend/`) renders `largestConnection()` through
+    `recordingDocument()` and checks every page against the blocks `paginate()` put on it. It uses
+    copies of `expectChainsAndUnits()` and `expectPagesKeepChains()` from `blocks.test.ts`, the
+    drawn texts against the blocks' layout spans, the bottom's label as drawn, each variant's
+    nationality rule, and every unit (FR-025, FR-026).
+  - `page-sweep.js` is one `browser_run_code_unsafe` call per browser. It makes 5 downloads of E:
+    runs 1–4 in English (run 1 the first after loading the page) and run 5 in German. For each run
+    it records the click to the `download` event, the longest gap between ticks of a 50 ms
+    `setInterval` on the page, a wheel scroll and a toggle of "View links" while the button is
+    busy, and the saved file: `%PDF`, size, page count, `/Lang` and name.
+  - One more Chromium download with a CDP profile and a `longtask` observer (the probe below).
+- **The files**:
+  - `pages.csv`: 1528 rows, one per language and page, a column per check.
+  - `tall-rules.csv` (40 rows), `units.csv` (1482 rows) and `labels.csv` (the bottom's label as
+    computed and as drawn).
+  - `chromium-page.csv`, `firefox-page.csv`, `*-page.json` and `summary.txt`, grouped per check.
+  - The 10 saved files under `dl/`, the Node files under `files/`, and 4 page images under
+    `images/` (pdf.js 3.11.174 in the Firefox MCP, from the files Firefox saved).
+- **Cited, not re-checked**: E in English in Node, `render.test.ts` ("the largest connection
+  (E)": the band on every page, everything tagged or an artifact, the tall rule's Div and P over
+  pages, the groups' marks, the outline, no URL) and `blocks.test.ts` ("the largest connection
+  (E) over paginate()'s pages", "a rule taller than a page", in both languages). The browser
+  run's states and its requests are cited from §7.2 (T033), and the file name and the language at
+  activation from T049 above.
+
+| State | What was checked | Node / Chromium | Firefox | Result |
+|---|---|---|---|---|
+| E in Node, EN and DE | pages (`paginate()` and recorded), blocks; the invariants of `blocks.test.ts` | 764 and 764, 8052 blocks in each language; 0 failures | — | pass |
+| the same, every page | blocks whole; only the nationality rule continues; no page ends with a heading or inside a chain; a group's header with its first member, a connector with its item, a group's end with its last member (FR-023, FR-024, FR-027) | 764/764 per language; 20 pages begin with a continuation, each of a nationality rule | — | pass 1528/1528 |
+| the same | the label as computed: "(continued)" on every page after a variant's, group's or section's first (FR-025) | 763 labels per language; 399 pages begin inside a group begun earlier | — | pass 1528/1528 |
+| the same | the band: ID, version, "Page n of N" / "Seite n von N" | 764/764 per language | — | pass |
+| the same | the texts drawn on each page = its blocks' layout spans, in order (nothing drawn on another page) | 764/764 per language | — | pass |
+| the same | **the bottom's label as drawn** (FR-021, FR-025, SC-005) | 42 pages (sections 1 and 2, Standard) drawn in full; on 722 the 100-character variant name cuts the label with "…" and "(continued)" / "(Fortsetzung)" isn't drawn | the same in the downloaded files (page images of p. 45) | **fail 1444/1528: defect 1**; fixed by T050, see below |
+| E's nationality rule, 20 variants × 2 languages (FR-027) | pieces; values in order; cut between values; each continuation at the top of the next page; the message in the last piece only | 2 pieces each (EN 225 + 24 values, DE 214 + 35); all 249 drawn whole in order; the computed label "(continued)" | — | pass 40/40 (as drawn, the label lacks "(continued)": defect 1) |
+| E's units (FR-025, FR-026) | a unit that fits on a page lies on one page | 741 per language, 340 fit, each on one page; the 401 taller ones flow | — | pass 1482/1482 |
+| E rendered in Node | time (plain / recorded), size | EN 8.5 s / 9.5 s, 5 837 247 B; DE 8.4 s / 9.8 s, 5 915 964 B; the model about 0.1 s | — | pass (alongside T049) |
+| E, 5 downloads (runs 1–4 EN, 5 DE) | click → `download` under 60 s (SC-001) | 7.1, 6.3, 6.5, 6.4, 6.5 s (7.6, 6.8, 7.0, 6.9, 6.7 s from before the click) | 12.1, 8.8, 8.8, 8.5, 8.9 s (12.6, 10.2, 9.3, 9.3, 9.3 s) | pass 10/10 (dev server) |
+| the same | the file: `%PDF`, no failure, pages, `/Lang`, size; the name ends `_8402-3F5B-32B3.pdf`, name part ≤ 100 code points | 764 pages; `en-GB` 6 040 723 B, `de-DE` 6 124 991 B | 764 pages; 6 044 603 B, 6 124 988 B | pass 30/30 |
+| the same | busy 500 ms after the click; still busy after the scroll and the toggle | `aria-disabled="true"`; busy | the same | pass 20/20 |
+| the same | a wheel scroll answered during the run | 38, 38, 27, 36, 25 ms | 602 (run 1), 35, 47, 31, 21 ms | pass 9/10, unsure 1 (Firefox's first run) |
+| the same | "View links" toggled during the run (`aria-expanded` false → true by the next frame) | 156, 407, 416, 410, 144 ms | 255, 353, 184, 170, 207 ms | pass 10/10 |
+| the same | **longest gap between 50 ms ticks** (FR-003; the script's bound 200 ms) | 440, 449, 451, 472, 432 ms | 414, 382, 409, 393, 435 ms | **fail 10/10 on the dev server: finding 2**; fixed by T050, see below |
+| Restored | E `published / live / 8402-3F5B-32B3`; the site in English | the same | the same | pass 4/4 |
+
+**Defect 1, for T050: the bottom's label loses "(continued)" in variants with long names.**
+- **The rows**: `pages.csv`, column `labelDrawn`, 722 of 764 pages in each language. For example,
+  EN page 43 is computed as "3 Rules per variant › Variant Variant 1 for applicants … see be
+  (continued)" and drawn as "3 Rules per variant › Variant Variant 1 for applicants from a district
+  of the city and the docu…".
+- **The images**: `images/ff-en-p45.png` and `ff-de-p45-bottom.png` show the nationality rule's
+  continuation, from "Trinidad and Tobago" on, under a label that ends in "…" and never says
+  "(continued)" / "(Fortsetzung)".
+- **The file**: `render.ts`, the bottom's `paginationText(page.place, S.bottomLabel, …, { lines:
+  'cut' })`.
+- **The suspected cause**: `cutSpans()` cuts the label's one span at its end. With a variant name
+  at FR-045's 100 characters, the suffix is what falls off. `placeLabelOf()` computes the label
+  right, but as drawn the page breaks FR-025 and SC-005.
+- **A possible fix**: cut only the variant's name and keep the suffix, either as a span of its own
+  or with the label built from parts.
+
+**Finding 2, for T050 to judge: the click re-renders the whole details page.**
+- **What the probe saw** (Chromium, one more download): `longtask` entries at −7 ms (588 ms long),
+  634 ms (169 ms), 805 ms (89 ms) and 937 ms (132 ms) from the click, and none later during the
+  roughly 8 s that the worker renders.
+- **The profile**: React's `jsxDEV` with 783 ms of self time and `react-dom` with 306 ms;
+  `connectionPdf/model.ts` 4 ms and `useConnectionPdf` 13 ms.
+- **In Firefox**: the console logged React's development render marks for every Summary component
+  during the runs (`ValueChip` 635 times, `SummaryItem` 192, `Connector` 163, `RuleRow` 131 …).
+- **The suspected cause**: `useConnectionPdf` lives in `pages/FormConnectionDetail/index.tsx`, and
+  `RulesSummary` takes `pdf` without memoisation. So each state change of the hook (busy, the
+  fetched connection, done) renders E's Summary again: 20 variants of 200 items.
+- **Unknown**: the production build, which drops `jsxDEV` and React's development checks, wasn't
+  measured, since the 5173 server stays the dev one. T050 or a person should measure E's longest
+  gap on the build before deciding. A 50 ms tick gap of about 0.45 s is a freeze a person may
+  notice, while the scroll (compositor) and the toggle were still answered during the run.
+- **The files**: `useConnectionPdf.ts`, `pages/FormConnectionDetail/index.tsx` and
+  `RulesSummary.tsx`.
+
+**T050, 2026-11-15**, the fixes of T048's defect 1 and finding 2 (FR-003, FR-021, FR-025, FR-045,
+SC-001, SC-005). T049 reported nothing.
+- **The stack**: as T048's, with the 5173 server switched for the timings:
+  - first the production build (`VITE_API_URL=http://localhost:3000 npm run build -w frontend`,
+    served by `vite preview` on 127.0.0.1:5173, as T033 measured);
+  - then the dev server again, as it was before.
+  - Headless Chromium 156 and Firefox 159 (Playwright MCP), a 1455 × 1000 window, signed in as
+    `t037`.
+- **The scripts**, in `011/T050/` of the chat's scratchpad:
+  - `sweep.ts` is T048's Node sweep with one check changed, `labelDrawn` (below).
+  - `page-sweep.js` is T048's browser script with a tag per build and a `longtask` observer
+    (Chromium only).
+  - `helper.mjs` is T048's helper on port 47050.
+  - `T044-rerun/` holds T044's German sweep re-run.
+- **Defect 1, what changed**: the bottom's place label is now fitted when the page is placed, and
+  only the variant's name is cut (D9).
+  - `placeLabelOf()` (`paginate.ts`) takes the drawing's test of one line. A label that fails it
+    keeps its section and "(continued)" / "(Fortsetzung)" whole, and the variant's name is cut
+    with "…" to the longest start that fits (`cutToFit()`).
+  - `render.ts` passes `measure.width(label, S.bottomLabel) <= PLACE_LABEL_WIDTH`. That is the
+    width test `cutSpans()` applies when it draws, so the fitted label is drawn as it is (R11).
+    `cutText()` now calls `cutToFit()`, the same search as before.
+  - The band's name (`render.ts`, the other `lines: 'cut'`) is left as it is. Contract §2 cuts it at
+    its end, and nothing follows it.
+- **Defect 1, the tests**:
+  - `paginate.test.ts`: a 100-character variant name whose page continues ends "… (continued)",
+    fits its width, keeps as much of the name as fits, and does the same in German. Also covered:
+    a variant's opening label, a label that fits whole, "…" alone, and `cutToFit()` by code
+    points.
+  - `render.test.ts`: on E, every drawn place label lies within its box, and the cut ones cut only
+    the variant's name. Only pages that open a section or a variant lack "(continued)", at most as
+    many as the outline's entries. Without the fix the test fails: 722 labels lack it.
+- **Finding 2, the bound**: 200 ms for the longest gap between 50 ms ticks. That is INP's "good"
+  bound and T048's.
+- **Finding 2, the judgement**: the production build first ran without a change for finding 2
+  (only D9 in it), and stayed above the bound once. Chromium's runs were within it (93–180 ms).
+  Firefox's first run gave 215 ms, and runs 2–5 gave 150–175 ms. So the finding isn't a
+  dev-server artefact alone, and T050 fixed it (D10):
+  - `RulesSummaryBody` (new) is the Summary's open part, memoised, and doesn't take `pdf`. A
+    run's state changes now render only the header's `PdfDownload`.
+  - `index.tsx` hands a fetched connection to `replace` only when it differs from the one shown
+    (`isShownConnection()` in `utils.ts`, tested in `utils.test.ts`). An unchanged answer no
+    longer renders E's Summary again, and a changed one still replaces it (FR-005). On E the
+    comparison takes 10–20 ms (1.47 MB of JSON), measured in Chromium.
+  - The hook stays in `index.tsx`, and `state` and `download` still go down as one prop (D5).
+- **Finding 2, the first run after loading**: Firefox's run 1 stays above the bound (294 ms on the
+  build). Run 1 starts the moment the button appears, while the page is still settling after the
+  load: E's rule checks come back from their worker and render.
+  - **The probe** loads E, waits 3 s or 8 s, then downloads.
+  - **Without a click**, the first seconds after the load already show gaps of 96–115 ms in
+    Firefox and 103–139 ms in Chromium.
+  - **After the wait**, the first download's longest gap is 106 and 99 ms in Firefox, and 92 and
+    77 ms in Chromium.
+  - So the download's own first run (the module imports, the worker's start, the option sets) is
+    within the bound. The excess comes from the overlap with the page's load (spec 003's checks),
+    which T050 doesn't change.
+- **The production timings of E**, on the fixed build: click → `download`, and the longest gap.
+
+| Run | Chromium | Firefox |
+|---|---|---|
+| 1, EN, first after loading | 7.0 s; 154 ms | 10.6 s; 294 ms (overlaps the load, above) |
+| 2, EN | 7.0 s; 99 ms | 9.0 s; 123 ms |
+| 3, EN | 6.4 s; 82 ms | 9.2 s; 76 ms |
+| 4, EN | 6.9 s; 127 ms | 9.5 s; 97 ms |
+| 5, DE | 7.1 s; 87 ms | 9.9 s; 103 ms |
+
+  For comparison, the build with only D9 gave 6.5–8.6 s with 93–180 ms in Chromium, and 9.0–12.3 s
+  with 150–215 ms in Firefox. The build with the memoised body alone gave 81–199 ms and 95–301 ms.
+  In that build, Chromium's first run took 20.4 s, an outlier not seen again.
+- **The rows replaced** (T048's two failing rows, and the rows a fix could move):
+
+| State | What was checked | Node / Chromium | Firefox | Result |
+|---|---|---|---|---|
+| E in Node, EN and DE, every page | **the bottom's label as drawn** (FR-021, FR-025, SC-005): whole when it fits its box; otherwise the variant's name cut with "…", the section and the suffix whole, the drawn width ≤ the box, and one more character of the name too wide | per language: 41 whole, 722 with the name cut and "(continued)" / "(Fortsetzung)" kept, page 1 none; e.g. EN p. 385 "3 Rules per variant › Variant Variant 10 for applicants from a district of the city… (continued)", 332.5 of 337.3 pt | — | pass 1528/1528 |
+| the same | the other columns of `pages.csv`, `tall-rules.csv`, `units.csv` | as T048: 764 pages and 8052 blocks per language, 0 invariant failures; the tall rules 40/40, units 1482/1482 | — | pass |
+| E rendered in Node | time (plain / recorded), size | EN 7.7 s / 9.0 s, 5 844 594 B; DE 8.5 s / 9.8 s, 5 922 542 B | — | pass |
+| T044's German widths (§7.4), re-run | the German texts within their `layoutOf()` boxes; the bottom's place label | A 254/0/0, C 251/0/0, as T044; "3 Regeln je Variante › Variante Taxi (Fortsetzung)" 174.3 of 337.3 pt, drawn whole | — | pass (the time-zone runs weren't repeated; T050 doesn't touch dates) |
+| E, 5 downloads, build | **longest gap between 50 ms ticks** (FR-003; bound 200 ms) | 154, 99, 82, 127, 87 ms | 294, 123, 76, 97, 103 ms | pass 9/10; Firefox's run 1 is above the bound because it overlaps the page's load (above) |
+| the same, build | a wheel scroll answered during the run | 35, 35, 31, 29, 28 ms | 381 (run 1), 38, 36, 33, 36 ms | pass 10/10 |
+| the same, build | "View links" toggled during the run | 11, 14, 10, 9, 16 ms | 129, 16, 16, 18, 33 ms (before the fix: 116, 78, 89, 82, 125) | pass 10/10 |
+| the same, build | click → `download` under 60 s; the file: `%PDF`, 764 pages, `/Lang`, name; busy, and still busy after the scroll and the toggle | the timings above; as T048 | the same | pass 60/60 |
+| E, 5 downloads, dev server | **longest gap between 50 ms ticks** | 448, 138, 150, 181, 133 ms | 579, 162, 150, 132, 124 ms | pass 8/10; run 1 above the bound in both browsers (the dev server's first-run module fetches and the page's load) |
+| the same, dev server | a wheel scroll; "View links" toggled | 487, 26, 29, 29, 28 ms; 36, 96, 90, 79, 80 ms | 655 (run 1: unsure), 45, 32, 31, 36 ms; 433, 52, 48, 60, 56 ms | pass 19/20, unsure 1 |
+| Restored | E `published / live / 8402-3F5B-32B3`; the site in English | the same | the same | pass 4/4 |
+
+- **Left behind**: the dev server again on 5173, as before. Each browser has one tab on
+  `http://localhost:5173/`, in English and signed in. No helper is listening, and `.playwright-mcp/`
+  is empty. Eight more sign-ins of `t037` were recorded (one per script run), and E is unchanged.
+
 ## 8. Decisions and history
 
 ### 8.1 Spec 009's API as built
@@ -1092,6 +1352,69 @@ SC-006). Each the smallest change that fixes it, or a reason to leave it:
   in KERN's own disabled style, the pattern of `ConfirmDialog`'s busy button (§3), and the live
   region announces the state. WCAG 1.4.3 exempts the text of inactive user-interface components,
   and 3.17:1 is the level spec 008 chose for disabled labels (the 0.68 disabled opacity, T098).
+
+**D9, how the bottom's place label is cut** (T050, 2026-11-15; FR-021, FR-025, FR-045, SC-005;
+§7.5's T048 defect 1; R11).
+- **The rule**: a label that doesn't fit its box (70 % of the body, 337.3 pt, 8 pt Regular) cuts
+  only the variant's name with "…". The section ("3 Rules per variant › Variant") and
+  "(continued)" / "(Fortsetzung)" stay whole.
+- **How it is built**: `placeLabelOf()` builds the label from its parts. It takes the drawing's
+  test of one line as an argument, so `paginate.ts` stays free of PDFKit, and it shortens the name
+  with `cutToFit()`, by code points and with trailing spaces dropped, as the band's name is cut.
+- **Measured equals drawn**: `render.ts` passes the same width test that `cutSpans()` applies
+  when it draws, in the same style and box (`PLACE_LABEL_WIDTH`). A fitted label is therefore
+  drawn exactly as computed, and `lines: 'cut'` stays only as a guard.
+- **Where it applies**: a label without a variant is never cut, since section labels stay far
+  inside the box. On E, "1 Links for your service (continued)" draws 126.7 pt and "1 Links für
+  Ihren Dienst (Fortsetzung)" 132.6 pt. T044 measured "2 Documents and data items" at 103.3 pt.
+- **Rejected**:
+  - Spans of their own for the name and the suffix, with a cut that knows which span may shrink.
+    That would add a "shrinkable" flag to `TextSpan` for one text.
+  - A smaller size or a second line. The bottom has one 8 pt line beside "Page n of N"
+    (contract §2).
+
+**D10, the page's responsiveness during a run** (T050, 2026-11-15; FR-003, SC-001; §7.5's T048
+finding 2 and T050).
+- **The bound**: the longest gap between 50 ms ticks on the page is at most 200 ms (INP's "good"
+  bound), measured on the production build. The dev server's numbers are recorded, not judged:
+  React's development build renders several times slower.
+- **The fix, the Summary's body**: the body is `RulesSummaryBody`, a `memo` component that
+  doesn't take `pdf`. Its props are the connection's `branches` and `documents` and
+  `RulesSummary`'s memoised `context` and `checkDocuments`. Only the header (`PdfDownload` and
+  `PdfFailure`) reads the run's state.
+- **The fix, the fetched connection**: `index.tsx` hands it to `replace` only when
+  `isShownConnection()` finds it different from the one shown, compared field for field through
+  `JSON.stringify` (10–20 ms on E). A changed connection still replaces the shown one (FR-005,
+  §7.5 T039).
+- **D5 holds**: the hook stays in `index.tsx`, and `state` and `download` go down as one prop.
+- **Rejected**:
+  - Comparing only `version_fingerprint` or `updated_at`. The version leaves out the status, the
+    labels and the URLs (§7.5, T039), so a draft published meanwhile would keep the draft's
+    details.
+  - Making `useFormConnection`'s `replace` compare. That would change it for every caller (the
+    actions' answers too), where a replaced object is expected.
+- **Not covered by the fix**: a click within the first second after the page has loaded E still
+  overlaps the page's own settling (the rule checks' results), which spec 003's checks own.
+- **Accepted by the coordinator** (T050's UNCERTAIN 1): the two runs above the bound are each the
+  first click right after loading E. They are Firefox's 294 ms on the build, and 448 / 579 ms on
+  the dev server. Each overlaps the page's load, not the download: with no click, the load alone
+  shows 96–139 ms, and a click after 3–8 s gives at most 106 ms. Not a failing row of this
+  feature.
+
+**D11, the draft's save number in the MCP's texts** (T051, decided by the coordinator
+2026-11-15; R12; carried from T010). Since T010, `get_connection`'s text for a draft has said
+"Version 62D0-…, as the details page and the PDF show it." and then "Version 7, last saved …",
+and every draft tool's answer says "Saved as draft version 7 …". The "Avoid" list (tasks.md,
+Notes) rules out a `version` label on the save number. An agent that reads two "Version"s may
+tell a team member the wrong one when they compare a printout. The texts therefore say
+"save {n}" (T055). The structured field stays `draft.version`, the API's name, which
+`get_connection`'s description and the skill explain.
+
+**D12, nginx's body limit** (T051, the user, 2026-11-15; FR-045; carried from T018). nginx's
+default `client_max_body_size` of 1 MB refuses a save of a connection near the product's limits
+with `413`: E's body is 1.56 MB. The user chose `client_max_body_size 4m` on `location /api/`
+(T056), about 2.5 times E. The limit is outside the PDF; spec 011 found it because E is the first
+connection at the limits saved anywhere.
 
 ### 8.3 The test connections
 
@@ -1609,4 +1932,150 @@ S.A.". The largest file is 473160 bytes, under the 500 KB (512000 bytes) of the
     on the version's place in the header (the header is still 124 px for A in English and 156 in
     German at 1440).
 
+**2026-11-15, T054 final checkpoint (Phases 9 and 10).**
+- **Gates**, run by the coordinator after T053:
+  - Node: lint passes; 2675 / 1982 / 513 tests pass in `rules/`, `frontend/`, `mcp/` (+11 in
+    `frontend/` against T047: T050's label and `isShownConnection` cases); the build passes.
+  - The bundle: the main entry is 933.35 kB (278.96 kB gzip, +0.29 kB: `RulesSummaryBody`, `isShownConnection`), the worker's chunk 59.31 kB.
+  - The backend: Ruff, its format check and mypy clean; pytest 2643 passed (14 min). It is unchanged since Phase 2.
+  - The first full `npm test` failed on `rules/src/personas/performance.test.ts` ("… within 1.5 s",
+    5.3 s) while T053 ran veraPDF in Docker. `rules/` is unchanged by spec 011; re-run on a quiet
+    machine, 2675 / 2675 passed (§9.5).
+- **The stack**: as T047's (`template_db`, the tests' fake EUDIPLO, the worker off), still
+  running; the dev SPA on 5173 was restarted by T050 after its production-build timings (pid
+  862600, the same command). A, B, C, D, E and F are as §8.3 lists them. T049's renames of A left
+  one activity row.
+- **Wave 1** (T048 ∥ T049, report-only):
+  - **T049**: 112 rows, all pass in Chromium 156 and Firefox 159: the language at activation,
+    leaving while busy, the odd and the long name, and privacy (one GET per warm download, row
+    counts unchanged, nothing in the log).
+  - **T048**: the limits; E's 764 pages per language keep every chain, unit and split rule.
+    - **Defect 1**: the bottom label lost "(continued)" on 722 pages per language (FR-021,
+      FR-025).
+    - **Finding 2**: the page froze about 0.45 s per download on the dev server (FR-003).
+- **Wave 2** (T050): fixed both. D9 cuts only the variant's name in the bottom label: 764 / 764
+  per language. D10 memoises the Summary's body and keeps an unchanged fetch: on the build, the
+  longest gap is 76–154 ms in Chromium and 76–123 ms in Firefox after the first click. Firefox's
+  first click right after the load gave 294 ms, accepted in D10.
+  - E saved in 6.4–7.1 s in Chromium and 9.0–10.6 s in Firefox on the build, within SC-001's
+    60 s.
+  - The coordinator read the diff and reflowed one comment line in `index.tsx`.
+- **Wave 3** (T051, `/speckit-converge`): 45 FRs, 8 SCs, the plan's decisions and the constitution's rules checked. Two findings, decided before the run, appended as Phase 10:
+  - T055: the MCP's draft texts say "save {n}" (D11).
+  - T056: nginx's `client_max_body_size 4m` on `/api/`, agreed by the user (D12).
+  - One [medium] agent did both. `nginx -t` couldn't run: there is no nginx image here.
+- **Waves 4 and 5**:
+  - T052: README, ARCHITECTURE's "The connection PDF (spec 011)", CLAUDE.md's rule and third
+    worker, KERN's missing Fira Mono, deferred.md's Q37 (b). CI needs no new check.
+  - T053: §9, `pr.md`, and `pdfkit-cidset-issue.md`, whose two upstream bugs it reproduced
+    against veraPDF in Docker.
+- **Quickstart §1 to §6**: each has its rows in §7 or §8.4: §1 the gates (every checkpoint
+  above), §2 §7.3 and T034's read, §3 T037's blocks in §7.2 and §7.3, §4 §7.5's T039, §5 §7.2's
+  T045 and T046 and §7.4, §6 §7.2 and §7.5.
+- **Decisions the agents marked UNCERTAIN, accepted**:
+  - T048: run 5 of each browser a German download; the 200 ms bound; a slow scroll "unsure".
+  - T049: the file-name oracle written from data-model §7; the counts taken after signing in.
+  - T050: Firefox's first-click overlap (D10); `JSON.stringify`'s field order; `placeLabelOf`'s
+    `fits` test; T044's time-zone runs not repeated (no date code changed).
+  - T055 and T056: the paragraph's place in ARCHITECTURE; `/api/connect/` keeps nginx's 1 MB (no save bodies).
+  - T052: the section's place; the hook's unused options undocumented; the KERN §2 row corrected
+    too.
+  - T053: items 9–12 of §9.4 held by T054; SC-004's "another computer" argued from R6; FR-041's
+    "no finding or persona" cited from the model's types.
+- **Plan**: every wave kept its level and batch. Two changes, both for shared resources, not
+  levels:
+  - **Wave 1 shared the browsers**: T049 drove both browsers first, and T048 rendered in Node and
+    then waited for a `BROWSERS_FREE` flag. Its browser part ran after T049's, resumed by the
+    coordinator: two agents in one Playwright browser take over each other's tab, and T048's
+    timings needed a quiet browser.
+  - **Phase 10's two [medium] tasks** ran as one batch, one agent.
+- **State left behind**: `.playwright-mcp/` empty (two console logs moved to the scratchpad); no
+  helper listening; no veraPDF container.
+- **Needs a person** (§9.4 is the full list): E's timing by stopwatch; a save of E through nginx;
+  telling the designer; filing `pdfkit-cidset-issue.md`; committing and opening the PR. Still
+  open from earlier phases, with their checkpoints: T006, T027, T034, T038, T047.
+
 ## 9. Closing report
+
+**T053, 2026-11-15.** The success criteria against the evidence of §7 and §8.4, the deviation the
+designer is to be told about, the decisions, and what only a person can do. Phase 9's checkpoint
+(T054) follows in §8.4.
+
+### 9.1 The success criteria
+
+| SC | Result | Evidence |
+|---|---|---|
+| **SC-001** one activation; the sample within 3 s; the limits within 60 s, the page responding | met in the chat; a hand timing of E waits for a person (§9.4) | **A and B** on the production build (§7.2, T033), click → `download`: A 442–953 ms in Chromium 156, 564–867 ms in Firefox 159; B 471–914 ms and 601–1137 ms; a double click and two `click()`s in one task save one file. **E** (764 pages): T048 on the dev server 6.3–7.1 s (Chromium) and 8.5–12.1 s (Firefox), an upper bound (§7.5); T050 on the fixed build 6.4–7.1 s and 9.0–10.6 s (§7.5). **Responding** (FR-003): T050's bound, the longest gap between 50 ms ticks at most 200 ms on the build (D10): 9 of 10 runs within it (Chromium 82–154 ms in all five runs, Firefox 76–123 ms in runs 2–5); Firefox's first click right after loading E gives 294 ms, the overlap with the page's own load that D10 accepts (no click: 96–139 ms; a click after 3–8 s: at most 106 ms). Scroll and "View links" are answered during every run |
+| **SC-002** everything the details show, in order and nesting; no finding, persona or draft URL | met for A–F | **§7.3**: A against the prototype (T026, 0 unsure, 0 defects after its fixes), C and D (T037, 0 unsure, 0 defects; T037a's seams fixed); **§8.4**: A, B and F from the page read against quickstart §2 (T034); **§7.5**: E's drawn texts equal its blocks' layout spans on all 764 pages in both languages (T048, T050). **Tests**: `model.test.ts` ("holds the request link and each variant’s result link in the details’ order", "lists the documents in the answer’s order …", "shows the variants in the details’ order …", "shows the items in the Summary’s order and nesting with Taxi’s marks") and `render.test.ts` (A's section 3 in the Summary's order; E and the drafts "hold no URL …"). No URL in C's and D's files from the page (§7.2, T037's `files.csv`); the model's types carry no finding, persona or citizen data (`types.ts`, `model.ts`, `gaps.ts`: FR-041) |
+| **SC-003** every page names the connection, ID, version, date; the bottom its place and "Page n of N" | met | **Smoke test** `render.test.ts`: "carries the ID, the version and "Page n of N" on every page, as Pagination artifacts" (A), "names the page’s place at the bottom from page 2 on, and none on page 1", the same for E's 764 pages and in German ("Seite n von N"), "cuts the name in the band to one line ending in "…"". **§7.5**: T048's band check 764/764 per language; T050's drawn place labels 1528/1528 (D9); T049's long and odd names. **§8.4**: T034's read of every page's band (name, ID, version, "Generated …") |
+| **SC-004** the version stays when the content stays, and changes with any one element | met | **pytest**: `backend/tests/unit/test_versions.py` (`test_each_kind_of_element_changes_the_version`, 30 kinds; `test_an_edit_and_its_undo_give_the_same_version`; `test_the_version_takes_only_the_content` and the others listed in §7.5) and the API tests of T007 and T008 (`test_status_changes_and_start_dates_keep_the_version`, `test_a_draft_published_unchanged_keeps_its_version`, `test_saving_a_draft_unchanged_keeps_its_version`, `test_the_version_is_the_same_in_german` …). **§7.5, T039**: 59 checks in Chromium, all pass: a second download, German, deactivating and activating, an edit (new version on the page, in the name, the properties and the drawn bands), the edit undone (the first version again), a draft published unchanged. "Another computer" isn't a test of its own: the backend computes the version (R6) and every browser reads it from the same answer |
+| **SC-005** no split rule, group header, link or document; no page ending with a heading; "(continued)" | met | **Smoke test and pure tests**: `blocks.test.ts` (the invariants `expectChainsAndUnits()`, `expectPagesKeepChains()`, "a rule taller than a page", E over `paginate()`'s pages in both languages), `paginate.test.ts` (D9's label cases), `render.test.ts` ("keeps "(continued)" in the bottom’s label and cuts only a long variant name with "…" (T050)", "continues a rule taller than a page in its own Div …"). **§7.4**: T044, 0 failures on A's and C's German and English pages. **§7.5**: T048, E 1528/1528 pages for the units, chains and the computed label; the drawn label failed on 722 pages per language (defect 1), fixed by T050 with D9's cut (1528/1528) |
+| **SC-006** PDF/UA-1 validator without failure, both languages; a screen-reader walk | validator met; the walk waits for a person | **§7.4, T043**: veraPDF 1.28.1, `--flavour ua1`, 106 rules, 0 failed checks on 9 files (A, B, C, D in English and German, E in English), again after T046 (`011/T046/pdf/sweep.ts`); 602 structure, artifact, outline, property, font, edge and contrast rows pass, the lowest contrast 4.67. Earlier runs: §7.2 (T037: six files from the page), §7.3 (T026, T037a), §8.4 (T034: A, B, F from PDFKit's browser build). `withoutCidSet()` keeps PDFKit's incomplete `CIDSet` out (R5; §9.4 for the upstream report). **Waits**: the screen-reader walk (quickstart §5 step 3) and, optionally, PAC 2024 (§9.4) |
+| **SC-007** a colleague reads a draft's PDF alone | waits for a person | prepared by T038 (C's PDF from the page read against quickstart §3, §8.4); the team's reading is §9.4's item |
+| **SC-008** no stored record, no extra request naming a connection, no log line | met | **§7.2, T033**: the first run after loading the page makes the GET, `GET /api/option-sets` (D5, names no connection) and the static files of FR-042, each once; every later run exactly the GET. **§7.5, T049**: five warm downloads in each browser, exactly one `GET /api/form-connections/{id}` each, the row counts of all 14 tables unchanged, 0 new bytes in the backend's log, 0 requests to another host; the static check of `backend/app/`'s log calls (none names a PDF; the one "version" is the rule set's save number) |
+
+### 9.2 The deviation for the designer
+
+The version is in the Summary card's header, which the frames don't draw (§2; the spec's
+clarification of 2026-11-09 put it beside the button; D4 sets its type).
+- **Where**: left of "Download PDF", 8 px apart, on one line: "Version" 14/24 muted, the code
+  14/24 medium, `tabular-nums`, default colour. Shown open and closed, on published and draft
+  details.
+- **What it costs at 1440 px**: the header is 124 px high for A in English, not the frames' 100,
+  since the counts wrap to two lines beside the version (since D8 they break before "12 rules").
+  In German it is 156 px: the heading takes the row, and the version, the button and the toggle
+  wrap under it as one group at the right (§7.1, §7.2's T045). C's header is 124 like A's.
+- **On a narrow window** (D8): the slot moves under the heading as its own row; the button hides
+  its glyph and wraps its label between words, 66 px high in English and 90 in German.
+- **Rejected places** (§2): in the counts line, in the status band, under the button.
+- **The question**: does the designer accept this place, or draw another? Until then the version
+  stays where it is (§9.4).
+
+### 9.3 The decisions
+
+| D | Decision |
+|---|---|
+| D1 | PDFKit typed by our own `PdfKitDocument` interface and one `declare module 'pdfkit'`, no `@types/pdfkit` |
+| D2 | German terms settled against spec 009's code ("Feld", "nicht aktiv", "Version", "Details der Anbindung" …) |
+| D3 | Faded text struck with PDFKit's own `strike`, inside the tag, not as `PlacedLine` artifacts |
+| D4 | The header's version 14 px, set apart by weight and colour; the closed header measured on node `6809:46487` |
+| D5 | `useConnectionPdf` lives in `index.tsx`; no option sets passed; dynamic imports; a failed fetch keeps the worker |
+| D6 | A draft's links to be created tagged as two `P`s, not a list |
+| D7 | The German copy accepted as it stands (the user in the reviewer's place) |
+| D8 | T045's defects: the narrow button (glyph hidden, wraps between words), no-break spaces in the counts, a soft hyphen in "Internetverbindung" fixed; the busy label's 3.17:1 exempt; "Zusammenfassung" left to specs 008/009 |
+| D9 | The bottom's place label cuts only the variant's name with "…", keeping the section and "(continued)" |
+| D10 | Responsiveness: a 200 ms bound on the build; the Summary's body memoised, an unchanged fetched connection not replaced; the first-click overlap with the page's load accepted |
+| D11 | The MCP's texts call a draft's save number "save", not "version" (T055) |
+| D12 | nginx's `client_max_body_size 4m` on `/api/` (T056) |
+
+### 9.4 Waits for a person
+
+Each item names the checkpoint that stays unchecked until it is done. T006, T027, T034, T038 and
+T047 are unchecked for these items only; T054 is the final checkpoint.
+
+| # | What | Who and how | Waits |
+|---|---|---|---|
+| 1 | Validate the MVP: download A's and B's PDF from the details page and read them against quickstart §2 | the user | **T034** |
+| 2 | Open A's PDF once in a real PDF reader (Acrobat Reader or the system's viewer) and read page 1 (`011/T027/A-en.pdf`, or a download) | a team member | **T027** |
+| 3 | SC-007: a colleague who has never opened the website reads C's PDF and says, per variant, what is asked for, which rules apply, what a citizen is told and what is left to finish | a colleague of the team | **T038** |
+| 4 | SC-006's screen-reader walk of one PDF (quickstart §5 step 3: NVDA with Acrobat Reader): title, headings, lists, the details box as a table, nothing of the band, the bottom or the watermark. Asked on 2026-11-12 who does it; the answer is still pending | to be named | **T006**, **T047** |
+| 5 | Optional with item 4: PAC 2024 on a Windows machine (R5) | the same person | T047 (optional) |
+| 6 | A black-and-white printout of A (quickstart §2 step 7): marks, statuses, AND/OR and removed items readable without colour | a team member | **T047** |
+| 7 | The narrow width once with the browser's own 200 % zoom on a 320 px window (T032 and T045 emulated it) | a team member | **T047** (listed since T034) |
+| 8 | Optional: a German-speaking team member reads C's and A's German PDFs (D7 was decided without one) | a German speaker | T047 (optional) |
+| 9 | E's timing confirmed once by hand in a real Chromium and Firefox: a stopwatch from the click to the saved file (Phase 9's Delegation) | a team member | T054 |
+| 10 | A save of E through nginx (`docker compose -f docker-compose.prod.yml`): T056 set the limit, but no nginx image was on this machine to check the configuration | a team member with the production stack | T054 (T056 is done) |
+| 11 | Tell the designer about the version's place in the header (§9.2) and record the answer here | the user | T054; the answer is open since T034 |
+| 12 | File `pdfkit-cidset-issue.md` with PDFKit (foliojs/pdfkit), after searching its issues for an existing report | a team member with a GitHub account | T054 |
+| 13 | Commit the feature and open the pull request with `pr.md` | the user | after T054 |
+
+### 9.5 Observations outside spec 011
+
+- **Two timing tests flaked under load** during Phase 9's gates and passed on the re-run, with no
+  change between the runs: `rules/src/personas/performance.test.ts` ("… within 1.5 s", the budget
+  T006, T011, T021 and T027 already saw trip while suites ran side by side) and
+  `mcp/src/checks.test.ts` ("keeps the results the worker posted …"). Neither file is spec 011's.
+  A red run of either is worth re-running alone before it counts.
+- **"Zusammenfassung"** in the Summary's heading and toggle breaks inside the word on a narrow
+  window (spec 008's last resort). A soft hyphen (spec 009's R9 step 3) would fit; it is spec
+  008's and 009's to decide (D8; §8.4, Phase 8).
