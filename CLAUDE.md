@@ -112,7 +112,9 @@ The UI says "connection" for form connection and "variant" for branch, and calls
   ships its own before using it (`docs/KERN-DESIGN-SYSTEM.md` §2). Inside a labelled `kern-btn`,
   hide text with `sr-only`, not `kern-sr-only`.
 - **Light only**: keep `data-kern-theme="light"` in `index.html` and `color-scheme: only light`
-  in `index.css`, and never use Tailwind's `dark:` variant.
+  in `index.css`, and never use Tailwind's `dark:` variant. The one exception is the favicon
+  (`src/assets/illustrations/favicon.svg`), which follows the browser's theme (ARCHITECTURE,
+  "frontend").
 - **Focus rings** show for keyboard focus only: `focus-visible:` on your own elements, never
   `focus:`, and keep the `:focus:not(:focus-visible)` rules in `index.css`.
 - **Links** between the app's routes are React Router `Link`s with KERN's classes (`kern-link`,

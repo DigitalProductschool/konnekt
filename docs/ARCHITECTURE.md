@@ -335,7 +335,10 @@ frontend/
   theme with `data-kern-theme="light"` on `<html>`, which `kern.css` would otherwise
   switch to dark with the browser's preference, and `index.css` sets
   `color-scheme: only light` for the browser's own controls and against Chromium's auto
-  dark theme (`docs/KERN-DESIGN-SYSTEM.md` §7)
+  dark theme (`docs/KERN-DESIGN-SYSTEM.md` §7). The one exception is the favicon
+  (`src/assets/illustrations/favicon.svg`): the browser draws its tab bar in its own theme,
+  so the SVG's own `prefers-color-scheme` rule makes the logo's squares blue (`#1D56F0`) on a
+  light theme and white on a dark one, without a background (Figma "logo for website")
 - The visual design comes from Figma ("Middleware – V5" on the KERN Revamp). Its decisions
   are recorded in `specs/008-kern-revamp-redesign/`: `spec.md` (what decides what, and the
   Clarifications), `contracts/ui-screens.md` (the layouts L1–L4 and screens S1–S22 with
