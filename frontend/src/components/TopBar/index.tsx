@@ -7,6 +7,7 @@ import { useCopy } from '../../hooks/useLanguage';
 import LanguageSwitch from '../LanguageSwitch';
 import { FOCUS_RING_CLASSES, PILL_CLASSES, SMALL_TEXT_CLASSES, TOP_BAR_COPY } from './constants';
 import type { TopBarProps } from './types';
+import { headerBackgroundClasses } from './utils';
 
 /**
  * Figma "Shell/Header" (U11 6699:44242, U17 7173:52658, U10 6401:27994; build notes U03
@@ -14,8 +15,9 @@ import type { TopBarProps } from './types';
  * page scrolls. Left the Konnekt pill, light blue on the signed-in screens, white on the sign-in
  * screens (#33); right the account pill (UserMenu), none when signed out. Inside a connection a
  * second pill, "Your connections / <name> · <status>", grows out of the Konnekt pill (#34, #40),
- * the name cut with "…" (#38). The header area, 64px, turns white once the page scrolls under it
- * (#39). The product name and "Your connections" go home, or in a flow call `onLeave` (FR-026).
+ * the name cut with "…" (#38). The header area, 64px, turns white at once when the page scrolls
+ * under it and fades back at the top (#39, `headerBackgroundClasses`). The product name and "Your
+ * connections" go home, or in a flow call `onLeave` (FR-026).
  * The language switch (spec 009, R2) sits in the right group before the account pill. Below
  * `md`, which the design has no frame for, the second pill and the description take rows of
  * their own (W2). In a window under 320 CSS px or 480px tall (such as
@@ -46,7 +48,7 @@ export default function TopBar({
 
   return (
     <header
-      className={`motion top-0 z-30 flex flex-wrap items-center gap-y-8 px-16 pt-16 transition-colors duration-(--duration-colour) md:flex-nowrap [@media(width>=20rem)_and_(height>=30rem)]:sticky ${title ? 'gap-x-8' : 'gap-x-16'} ${scrolled ? 'bg-kern-layout-background-default' : ''}`}
+      className={`motion top-0 z-30 flex flex-wrap items-center gap-y-8 px-16 pt-16 md:flex-nowrap [@media(width>=20rem)_and_(height>=30rem)]:sticky ${title ? 'gap-x-8' : 'gap-x-16'} ${headerBackgroundClasses(scrolled)}`}
     >
       {logoTo ? (
         <Link to={logoTo} onClick={handleLeave} className={`${logoPill} ${FOCUS_RING_CLASSES}`}>
