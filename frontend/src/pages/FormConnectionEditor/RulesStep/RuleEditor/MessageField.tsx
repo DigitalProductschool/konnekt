@@ -32,7 +32,7 @@ export default function MessageField({ id, message, errorId, onChange }: Message
   return (
     <div
       onMouseDown={focusMessageOnPress}
-      className={`rounded-kern-small has-[:focus-visible]:outline-kern-action-focus-default flex w-full flex-wrap items-center gap-8 py-8 has-[:focus-visible]:outline-4 has-[:focus-visible]:outline-offset-2 ${
+      className={`rounded-kern-small has-[:focus-visible]:outline-kern-action-focus-default flex w-full flex-wrap items-center gap-8 py-8 has-[:focus-visible]:outline-2 has-[:focus-visible]:outline-offset-2 ${
         empty
           ? `border border-dashed px-16 ${flagged ? 'border-kern-feedback-danger' : 'border-(--kern-color-decorative-border-default)'}`
           : 'bg-kern-layout-background-hued pr-8 pl-16'

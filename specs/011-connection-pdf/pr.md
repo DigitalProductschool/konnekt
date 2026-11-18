@@ -8,7 +8,9 @@ the same answer the page shows. Nothing is stored, sent or logged. Spec, plan an
 `specs/011-connection-pdf/`.
 
 **US1, a published connection's PDF (P1, the MVP)**
-- "Download PDF" in the Summary card's header (Figma node `6396:48196`). While busy it reads
+- "Download PDF" and the version in a strip under the Summary card's header row (Figma's final
+  frame `7603:61494`; first built in the header row after `6396:48196`, moved on 2026-11-18 by
+  bug v5-ui-fixes (B3)). While busy it reads
   "Creating PDF…", with a polite live region. On failure, a KERN alert with "Try again".
 - The PDF follows the prototype's agreed layout in KERN's colours: page 1 (details, status, the
   links), 2 "Documents and data items", 3 "Rules per variant", with the Summary's marks, groups
@@ -58,7 +60,8 @@ All of it is recorded in `design-notes.md` §7, summed up per success criterion 
 - **PDF/UA-1** (§7.4): veraPDF 1.28.1 passes 9 files (A–D in English and German, E): 106 rules,
   0 failed checks. Structure, contrast (lowest 4.67:1) and the German texts and dates pass.
 - **In Chromium 156 and Firefox 159** (§7.1, §7.2, §7.5):
-  - the header against Figma at 1440 px and narrow;
+  - the header against Figma at 1440 px and narrow (as first built; the strip of 2026-11-18 is
+    still to verify, `design-notes.md` §7.1);
   - the run's states, keyboard, offline, 500 and retry;
   - the version end to end;
   - the edge cases (odd and long names, the language switched or the page left while busy);
@@ -76,9 +79,9 @@ Full list with the task each item holds open: `design-notes.md` §9.4.
 - A black-and-white printout, and the browser's own 200 % zoom (T047). Optional: PAC 2024, and a
   German speaker reading the German PDFs.
 - E's timing by hand with a stopwatch, and a save of E through nginx (no nginx image here).
-- **Designer**: the version sits left of "Download PDF" in the Summary header, which no frame
-  draws. The header is 124 px high for A in English and 156 in German at 1440, against the
-  frames' 100 (§9.2).
+- **Designer**: answered on 2026-11-18 by the final frame `7603:61494` (bug v5-ui-fixes (B3)):
+  the version and "Download PDF" sit in a strip under the header row. The browser check of the
+  built strip against the V5 frames is still to do (§7.1, §9.2).
 - Filing `pdfkit-cidset-issue.md` with foliojs/pdfkit.
 
 🤖 Generated with [Claude Code](https://claude.com/claude-code)

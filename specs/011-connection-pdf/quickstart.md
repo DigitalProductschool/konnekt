@@ -50,8 +50,9 @@ the button and the model (compare with the size before the change; research, spi
 
 ## 2. US1: a published connection
 
-1. Open A's details. Expected: the Summary card's header shows "Version XXXX-XXXX-XXXX" and
-   "Download PDF", open and closed.
+1. Open A's details. Expected: in the Summary card, under its header row, the strip shows
+   "Version XXXX-XXXX-XXXX" and "Download PDF", open and closed (since 2026-11-18, bug
+   v5-ui-fixes (B3)).
 2. Activate "Download PDF". Expected: the button reads "Creating PDF…" and ignores clicks; the
    page scrolls and the accordions open meanwhile; within 3 s the browser saves
    "Taxi and private hire driver licence_XXXX-XXXX-XXXX.pdf" with no dialog.
@@ -76,7 +77,8 @@ the button and the model (compare with the size before the change; research, spi
 
 ## 3. US2: a draft
 
-1. C's details. Expected: the version and "Download PDF" in the Summary card's header.
+1. C's details. Expected: the version and "Download PDF" in the strip under the Summary card's
+   header row.
 2. Download. Expected: "Taxi and private hire driver licence_draft_XXXX-XXXX-XXXX.pdf"; every page
    carries the faint diagonal "DRAFT" and "Draft · Not live" in the band; page 1 reads "Connection
    details · Draft for review", "Draft Not live yet", "Last saved <date> (draft save n)".
@@ -115,8 +117,9 @@ the button and the model (compare with the size before the change; research, spi
    the details box reads as a table with row headers; the data items as lists; the band, the
    bottom and the watermark are never read.
 4. The reader's bookmarks panel lists the three sections and, under the third, the variants.
-5. Keyboard only on the details page: Tab reaches "Download PDF" after the counts, Enter and Space
-   start it, focus stays on it while busy and after.
+5. Keyboard only on the details page: Tab reaches "Download PDF" in the strip under the header
+   row, after the Summary's toggle (since 2026-11-18), Enter and Space start it, focus stays on it
+   while busy and after.
 
 ## 6. Edge cases
 
@@ -132,4 +135,4 @@ the button and the model (compare with the size before the change; research, spi
 | Long name | a 200-character name | the band cuts it with "…"; page 1, the title and the file name (first 100 characters) show it |
 | Limits | E | saved within 60 s (Chromium and Firefox); the page responds meanwhile; no rule, header or link split; the nationality rule continues on the next page between values, with "(continued)" at the bottom |
 | Privacy | any download with devtools' network tab and the backend log open | one `GET /api/form-connections/{id}` (plus option sets and catalog if not cached); nothing else; no log line about a PDF |
-| Narrow screen | 320 px wide at 200 % zoom | the version and the button wrap below the heading, nothing overlaps, the button works |
+| Narrow screen | 320 px wide at 200 % zoom | the strip stays under the header row and the button wraps under the version (since 2026-11-18), nothing overlaps, the button works |

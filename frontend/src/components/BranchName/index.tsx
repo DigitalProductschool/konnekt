@@ -10,11 +10,11 @@ import type { BranchIconProps, BranchNameProps, BranchTabButtonProps } from './t
  * The icon after a variant's name (FR-041, build note 26): with findings or a problem, their icon
  * (the warning triangle, the blue ⓘ, the red error diamond), named "Ambulance has findings", its
  * tooltip the description, if any, then the findings segment (U46 6758:43524); without them, the
- * grey ⓘ of the description (F31), or, with `noFindingsInfo`, reading "No findings." when there
- * is no description (FR-041b); nothing otherwise (Standard without a description, FR-035c). The
- * tooltip opens on hover, keyboard focus and a tap (T022)
+ * grey ⓘ of the description (F31); nothing without a description (FR-035c; FR-041 as clarified on
+ * 2026-11-18, which drops FR-041b's "No findings." ⓘ). The tooltip opens on hover, keyboard focus
+ * and a tap (T022)
  */
-function BranchIcon({ label, description, findings, noFindingsInfo }: BranchIconProps) {
+function BranchIcon({ label, description, findings }: BranchIconProps) {
   const { language } = useLanguage();
   const copy = BRANCH_NAME_COPY[language];
   if (findings) {
@@ -32,8 +32,9 @@ function BranchIcon({ label, description, findings, noFindingsInfo }: BranchIcon
       />
     );
   }
-  const text = description || (noFindingsInfo ? copy.noFindings : '');
-  return text ? <InfoTooltip label={copy.about(label)} text={text} iconSize="small" /> : null;
+  return description ? (
+    <InfoTooltip label={copy.about(label)} text={description} iconSize="small" />
+  ) : null;
 }
 
 /**
@@ -82,19 +83,13 @@ export default function BranchName({
   description,
   findings,
   tab,
-  noFindingsInfo = false,
   actions,
   children,
 }: BranchNameProps) {
   const { language } = useLanguage();
   const label = name.trim();
   const icon = (
-    <BranchIcon
-      label={label}
-      description={description?.trim() ?? ''}
-      findings={findings}
-      noFindingsInfo={noFindingsInfo}
-    />
+    <BranchIcon label={label} description={description?.trim() ?? ''} findings={findings} />
   );
   if (!tab) {
     return (

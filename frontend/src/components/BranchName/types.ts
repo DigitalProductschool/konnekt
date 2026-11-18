@@ -55,12 +55,6 @@ export interface BranchNameProps {
    * `children` (or a plain text) show the name
    */
   tab?: BranchTabControl;
-  /**
-   * The grey ⓘ shows without a description too, its tooltip reading "No findings." (FR-041b):
-   * the rules step's variant tabs other than Standard, whose ⓘ shows only with a description
-   * (FR-035c)
-   */
-  noFindingsInfo?: boolean;
   /** Controls after the icon in the tab's label row, such as the active tab's ⋯ (F28) */
   actions?: ReactNode;
   /** The element that shows the name, such as a heading; a plain text by default */
@@ -85,7 +79,6 @@ export interface BranchIconProps {
   /** The description, trimmed; empty when there is none */
   description: string;
   findings?: BranchFindings | null;
-  noFindingsInfo?: boolean;
 }
 
 export type BranchTabButtonProps = BranchTabControl & {

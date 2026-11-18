@@ -207,6 +207,13 @@ export interface ValueRowProps {
   changed: boolean;
 }
 
+/** `CardScrollArea`: a card's rows under its head, scrolling on their own where the cards do */
+export interface CardScrollAreaProps {
+  /** The id of the card's heading, which names the area */
+  labelledBy: string;
+  children: ReactNode;
+}
+
 /** `ResultSection` (S8.6; T034): the selected persona's results for the shown variant */
 export interface ResultSectionProps {
   /** `null` when the evaluator gave the variant no result */
@@ -416,6 +423,12 @@ export interface ValueFieldProps {
   kind: PersonaField['kind'];
   error: string | null;
   onChange: (text: string) => void;
+}
+
+/** A date field's text after a change and where its caret goes (`dateEntryOf()`) */
+export interface DateEntry {
+  text: string;
+  caret: number;
 }
 
 /** `DateOfBirthField` (S8.5; F10, T044): the date and "Age today" side by side */

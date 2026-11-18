@@ -34,7 +34,7 @@ export default function GroupMessage({ message, field, faded = false }: GroupMes
     >
       <div
         onMouseDown={field ? focusMessageOnPress : undefined}
-        className="rounded-kern-small has-[:focus-visible]:outline-kern-action-focus-default flex flex-wrap items-center gap-8 py-8 pr-8 pl-16 has-[:focus-visible]:outline-4 has-[:focus-visible]:outline-offset-2"
+        className="rounded-kern-small has-[:focus-visible]:outline-kern-action-focus-default flex flex-wrap items-center gap-8 py-8 pr-8 pl-16 has-[:focus-visible]:outline-2 has-[:focus-visible]:outline-offset-2"
       >
         {field ? (
           <>

@@ -22,14 +22,14 @@ function prefersReducedMotion(): boolean {
  * (T079) and, since spec 010, the Activity card (FR-022); the page keeps one open at a time
  * (`toggleAccordion()`).
  *
- * `actions` sit between the heading block and the toggle, 8px apart and vertically centred (the
- * Summary's version and "Download PDF", spec 011; U80 6809:46487, U82 6396:48192). They and the
- * toggle stay together: in the 832 column the heading keeps its row from 200px on, its counts
- * wrapping (the frames draw the row without the version, which doesn't fit beside the counts'
- * one line); narrower, the actions and the toggle wrap under it as one group, at the right while
- * it fits on one row and from the left once it wraps itself; on a narrow window the actions are a
- * row of their own under the heading, the toggle last.
- * `notice` (the PDF's failure) is under the header row, full width, open or closed.
+ * The header row is the heading block and the toggle, which wraps under it when it doesn't fit.
+ * `strip` sits under that row, inside the header, so that it shows open and closed (the
+ * Summary's version and "Download PDF", spec 011 as clarified on 2026-11-18; V5 7603:61502,
+ * 7603:61521, replacing the controls between the heading and the toggle, §7.1). With it, the
+ * header has 24px at the sides and 16 above and below, the strip 12 under the row (16 + 52 + 12
+ * + 44 + 16: the closed card 142px high), and the open body starts 8 lower, so that its first
+ * line stays 24 from the strip, as without one; without it, the header keeps 24 around.
+ * `notice` (the PDF's failure) is under the header, full width, open or closed.
  */
 export default function DetailAccordion({
   title,
@@ -38,7 +38,7 @@ export default function DetailAccordion({
   hideLabel,
   open,
   onToggle,
-  actions,
+  strip,
   notice,
   children,
 }: DetailAccordionProps) {
@@ -72,29 +72,22 @@ export default function DetailAccordion({
       aria-labelledby={titleId}
       className={`rounded-kern-large bg-kern-layout-background-default motion border transition-colors duration-(--duration-colour) ${open ? 'border-kern-action-default' : 'border-(--kern-color-decorative-border-default)'}`}
     >
-      <div className="flex flex-wrap items-center gap-8 p-24">
-        {/* With actions, the heading's counts wrap before the actions leave its row (§7.1) */}
-        <div className={`flex min-w-0 flex-auto flex-col gap-4 ${actions ? 'basis-200' : ''}`}>
-          <h2
-            id={titleId}
-            className="text-kern-static-medium text-kern-layout-text-default leading-(--kern-typography-line-height-medium-static) font-semibold break-words"
-          >
-            {title}
-          </h2>
-          <p className="text-kern-static-small text-kern-layout-text-muted leading-(--kern-typography-line-height-medium-static)">
-            {counts}
-          </p>
-        </div>
-        {actions ? (
-          <div className="narrow:basis-full ml-auto flex max-w-full flex-wrap items-center gap-8">
-            <div className="narrow:basis-full flex max-w-full flex-wrap items-center gap-8">
-              {actions}
-            </div>
-            {toggle}
+      <div className={strip ? 'flex flex-col gap-12 px-24 py-16' : 'p-24'}>
+        <div className="flex flex-wrap items-center gap-8">
+          <div className="flex min-w-0 flex-auto flex-col gap-4">
+            <h2
+              id={titleId}
+              className="text-kern-static-medium text-kern-layout-text-default leading-(--kern-typography-line-height-medium-static) font-semibold break-words"
+            >
+              {title}
+            </h2>
+            <p className="text-kern-static-small text-kern-layout-text-muted leading-(--kern-typography-line-height-medium-static)">
+              {counts}
+            </p>
           </div>
-        ) : (
-          toggle
-        )}
+          {toggle}
+        </div>
+        {strip}
       </div>
       {notice && <div className="px-24 pb-24">{notice}</div>}
       <div
@@ -107,7 +100,8 @@ export default function DetailAccordion({
       >
         {/* Positioned while it clips, or its sr-only texts escape the clip */}
         <div id={bodyId} inert={!open} className={accordionBodyClassesOf(clipped)}>
-          {children}
+          {/* Inside the clipped box: padding on it would hold the closed row open by 8px */}
+          {strip ? <div className="pt-8">{children}</div> : children}
         </div>
       </div>
     </section>

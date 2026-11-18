@@ -82,7 +82,7 @@ export type DocumentsViewAction =
    * `documentId`, only when the pending removal is that document's
    */
   | { type: 'expireRemoval'; documentId?: string }
-  /** A list item's trash: asks before removing (F72) */
+  /** A list item's "Remove document" in its ⋯ menu: asks before removing (F72) */
   | { type: 'askRemoval'; documentId: string; rules: RemovedDataRule[] }
   /** "Keep document", the ×, Escape or the scrim: the question closes, nothing is removed */
   | { type: 'keepDocument' }
@@ -207,7 +207,7 @@ export interface DocumentsStepProps {
   dispatchView: Dispatch<DocumentsViewAction>;
   /** A pick in the search card: the editor adds the document, then shows it */
   onAdd: (documentType: DocumentType) => void;
-  /** A list item's trash */
+  /** A list item's "Remove document" in its ⋯ menu */
   onRemove: (documentType: DocumentType) => void;
   /**
    * Moves a listed document to `toIndex` of the list (0 is the first row; FR-046, FR-047): the
@@ -249,13 +249,20 @@ export interface DocumentsListProps {
   onMove: (documentType: string, toIndex: number) => void;
 }
 
+/** The words of a row's ⋯ menu (`documentMenuOf()`), from `DOCUMENTS_COPY` */
+export interface DocumentMenuCopy {
+  moveUp: string;
+  moveDown: string;
+  removeDocument: string;
+}
+
 export interface DocumentListItemProps {
   documentType: DocumentType;
   /** It is the document shown on the right */
   selected: boolean;
   /**
    * It was flagged on "Set rules →" and still has no data (U25 7298:62832): the light-red tile,
-   * the danger glyph, the red semibold name and the error icon in the trash's place
+   * the danger glyph, the red semibold name and the error icon before the ⋯
    */
   needsData: boolean;
   /** The id of "1 document needs data", which describes a flagged item */

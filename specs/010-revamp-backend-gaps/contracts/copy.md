@@ -116,8 +116,8 @@ use it."), in the list's order; there is no combined line.
 
 | Where | English | German |
 |---|---|---|
-| The row's ⋯ button, for screen readers | "Move <document>" | "<document> verschieben" |
-| Its entries (FR-047) | "Move up", "Move down" | "Nach oben", "Nach unten" |
+| The row's ⋯ button, for screen readers (changed 2026-11-18, bug v5-ui-fixes (B4): was "Move <document>" / "<document> verschieben") | "Actions for <document>" | "Aktionen für <document>" |
+| Its entries (FR-047) | "Move up", "Move down", then, after the divider, "Remove document" (spec 008's, the removal question's button; added 2026-11-18, bug v5-ui-fixes (B4)) | "Nach oben", "Nach unten", "Dokument entfernen" |
 | The announcement after a move, by menu or by drag (the spec's) | "“<document>” moved to position <n> of <m>." | "„<document>“ auf Position <n> von <m> verschoben." |
 | The question before a group's data that a rule checks is cleared: the title (FR-079) | "Stop requesting “<group>” data from <document>?" | "Daten der Gruppe „<group>“ aus „<document>“ nicht mehr anfordern?" |
 

@@ -2,6 +2,7 @@ import type { DocumentType } from '@connection-portal/api-types/document-types';
 import type { RequestedDocument } from '@connection-portal/api-types/form-connections';
 import type { Language } from '@connection-portal/rules/language';
 
+import type { MenuAction } from '../../../components/ActionMenu/types';
 import { matchesSearch } from '../../../components/ValuesPicker/utils';
 import type { RulesBranch } from '../RulesStep/types';
 import type { PendingRemoval, RemovedDataRule } from '../types';
@@ -10,12 +11,15 @@ import {
   DOCUMENT_GLYPHS,
   DOCUMENTS_COPY,
   GENERIC_DOCUMENT_GLYPHS,
+  MOVE_ICONS,
   REMOVAL_DIALOG_COPY,
+  REMOVE_ICON,
   SEARCH_CARD_HEIGHTS,
 } from './constants';
 import type {
   DataCount,
   DocumentGlyphs,
+  DocumentMenuCopy,
   DocumentsPager,
   DragListBox,
   DragPoint,
@@ -245,7 +249,8 @@ export function documentsNeedingData(
 
 /**
  * The rules, in every branch, that check a document's data (F72, 002-S1.1), as the editor's
- * removal dialog names them ("Rule 02 in Standard"): what decides which question its trash asks.
+ * removal dialog names them ("Rule 02 in Standard"): what decides which question its "Remove
+ * document" asks.
  */
 export function rulesCheckingDocument(
   branches: RulesBranch[],
@@ -427,17 +432,49 @@ export function searchCardHeight({ available, added, noMatches }: SearchGroups):
 /**
  * Where a row's ⋯ menu moves its document (S8 "Without dragging", FR-047; W13): "Move up" to
  * the row above, except on the first row, and "Move down" to the row below, except on the last;
- * null for an entry the row doesn't offer. With one document there is no menu (`hasMoveMenu`).
+ * null for an entry the row doesn't offer (both with one document).
  */
 export function moveTargetsOf(
   index: number,
   count: number
-): { hasMoveMenu: boolean; up: number | null; down: number | null } {
+): { up: number | null; down: number | null } {
   return {
-    hasMoveMenu: count > 1,
     up: index > 0 && index < count ? index - 1 : null,
     down: index >= 0 && index < count - 1 ? index + 1 : null,
   };
+}
+
+/**
+ * A row's ⋯ menu (W13; bug v5-ui-fixes B4, 2026-11-18): "Move up" and "Move down" where the row
+ * offers them (`moveTargetsOf()`), then, after the divider, the red "Remove document", which
+ * asks first (F72). Every row has it, a single document's too, where it holds only the removal.
+ */
+export function documentMenuOf(
+  index: number,
+  count: number,
+  copy: DocumentMenuCopy,
+  handlers: { onMove: (toIndex: number) => void; onRemove: () => void }
+): MenuAction[] {
+  const { up, down } = moveTargetsOf(index, count);
+  const actions: MenuAction[] = [];
+  if (up !== null) {
+    actions.push({ label: copy.moveUp, icon: MOVE_ICONS.up, onSelect: () => handlers.onMove(up) });
+  }
+  if (down !== null) {
+    actions.push({
+      label: copy.moveDown,
+      icon: MOVE_ICONS.down,
+      onSelect: () => handlers.onMove(down),
+    });
+  }
+  actions.push({
+    label: copy.removeDocument,
+    icon: REMOVE_ICON,
+    danger: true,
+    separated: true,
+    onSelect: handlers.onRemove,
+  });
+  return actions;
 }
 
 /**

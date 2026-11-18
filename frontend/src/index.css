@@ -500,6 +500,19 @@
 }
 
 /*
+ * Text fields' focus ring at 2px instead of KERN 2.8.2's fixed 4px (V5 "New design changes", the
+ * reporter, 2026-11-18; bug v5-ui-fixes B7): the text inputs, the text areas (the same class), the
+ * error state, whose rule sets only the colour, and the selects. Only the width changes: KERN's
+ * colour, `outline-offset: 0` and its padding in place of the border stay. Same selectors as
+ * KERN's, later in the cascade. The app's own text fields draw 2px with Tailwind; buttons, links,
+ * tabs and radios keep 4px, the checkboxes their 3px (below)
+ */
+.kern-form-input__input:focus,
+.kern-form-input__select:focus {
+  outline-width: var(--kern-metric-border-width-default);
+}
+
+/*
  * KERN draws its button focus ring on any :focus, so a click or a tap leaves the ring on the
  * button until focus moves on. Like the browser's own ring, show it for keyboard focus only.
  * !important, because KERN's selector is more specific than this one.

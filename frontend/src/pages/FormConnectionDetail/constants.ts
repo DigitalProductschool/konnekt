@@ -375,6 +375,25 @@ export const ACTIVITY_COPY = defineTexts(
 export const INITIAL_ACTIVITY_CARD_STATE: ActivityCardState = { kind: 'closed' };
 
 /**
+ * The Summary card's version strip (spec 011 as clarified on 2026-11-18; V5 7603:61502 "Strip ·
+ * version + PDF", 782 × 44 at 832): the hued background, radius 8, 16px left of the version and 8
+ * right of the button, which sits 6 from the top; under 320 CSS px or in German where both don't
+ * fit, the button wraps under the version, 8 apart
+ */
+export const PDF_STRIP_CLASSES =
+  'bg-kern-layout-background-hued rounded-kern-default flex flex-wrap items-center justify-between gap-8 py-6 pr-8 pl-16';
+
+/**
+ * "Download PDF" (V5 7603:61502, 156 × 32): KERN's secondary small button, whose label is
+ * label/small with 4px above and below and 8 at the sides, brought down from KERN's 40px to the
+ * frame's 32 without the small button's 4px margins. The frame's 12px at the sides include the
+ * 1px border, which KERN draws outside its padding, hence 11 (7 on a narrow window, where the
+ * global narrow rules halve the side paddings)
+ */
+export const PDF_BUTTON_CLASSES =
+  'kern-btn kern-btn--secondary kern-btn--small narrow:px-7! my-0! min-h-32! max-w-full px-11!';
+
+/**
  * The open card's list (U86 6396:48527, U95 7246:54525, U97 7246:56965): the body 24 from the
  * card's sides and 16 above its bottom; an entry 8 above and below its line, body/small muted
  * (#4a5468), the date and time 160 wide, the event label/small and the rest of the row, the

@@ -61,11 +61,12 @@ import VariantTabs from './VariantTabs';
  * and when frame 18 ends with the focus on its status, to the selected chip.
  *
  * Where the wizard pins its step header (`wizard-pinned:`, from 768 × 640 px), the step fills the
- * visible part of the window, its variant area ending 64px above the footer, and only the panel
- * scrolls, as a whole (F43, FR-043; CLAR #31 (c); U72 7058:61648 with 12 rules); the header, the
- * step header, the test-day line, the tabs, the citizens row and the footer stay put, and the
- * cards fill the panel's height (`PANEL_CLASSES`, `PANEL_CONTENT_CLASSES`). The page scrolls
- * elsewhere (research R4). The variant tabs show the variant that no citizen can meet with a ⚠ and
+ * visible part of the window, its variant area ending 64px above the footer; the header, the step
+ * header, the test-day line, the tabs, the citizens row and the footer stay put. There, with the
+ * cards side by side (`lg`), each card is as high as the panel and scrolls its own rows under its
+ * head (FR-043 as clarified on 2026-11-18; V5 frame 15 7599:57529 with 12 rules, reversing CLAR
+ * #31 (c)'s single scrolling panel; `CardScrollArea`); with the cards stacked, the panel scrolls
+ * as a whole (`PANEL_CLASSES`, `PANEL_CONTENT_CLASSES`). The page scrolls elsewhere (research R4). The variant tabs show the variant that no citizen can meet with a ⚠ and
  * its tooltip (F38, FR-041), and nothing repeats it above the result heading (CLAR #50). The step
  * lives only in the signed-in wizard, with no route of its own (W13).
  *
@@ -246,7 +247,8 @@ export default function TestStep({
                 onSelect={(slot: PersonaSlot) => dispatch({ type: 'select', slot })}
                 onGenerateAll={generateAll}
               />
-              {/* The only part that scrolls (K3, F43) */}
+              {/* Scrolls as a whole where the cards are stacked; side by side, each card's rows
+                  scroll on their own (`CardScrollArea`) */}
               <div
                 id={persona ? ELEMENT_IDS.personaPanel(persona.id) : undefined}
                 role={persona ? 'tabpanel' : undefined}
@@ -255,9 +257,10 @@ export default function TestStep({
                 className={PANEL_CLASSES}
               >
                 {/*
-                 * Figma "Data and result" (7058:61705, 7062:51017) in the scrolling "Citizen
-                 * panel": its own box, at least as high as the panel, and as high as its taller
-                 * card, so that the other card stretches to it (F43)
+                 * Figma "Data and result" (7599:57587, 7062:51017) in the "Applicant panel": its
+                 * own box, at least as high as the panel; side by side under the pinned step
+                 * header no higher either, and elsewhere as high as its taller card, so that the
+                 * other card stretches to it
                  */}
                 <div className={PANEL_CONTENT_CLASSES}>
                   {shown && ready ? (

@@ -67,55 +67,52 @@ export default function ConnectionStep({
             </p>
           </div>
         </div>
-        {/* U19 6699:45335: the fields one under the other, 24px apart, 726px wide */}
+        {/* V5 7609:62173 (replacing U19's 726px): the fields one under the other, filling the
+            card's column, 24px around and between (1070 wide at 1440) */}
         <div className="flex flex-col gap-24 p-24">
-          <div className="w-full max-w-726">
-            <TextField
-              id={ELEMENT_IDS.name}
-              label={copy.nameLabel}
-              requiredMark
-              labelAddon={
-                <InfoTooltip
-                  label={copy.nameInfoLabel}
-                  text={
-                    <>
-                      {copy.nameInfo}
-                      <br />
-                      {copy.nameInfoAdvice}
-                    </>
-                  }
-                  iconSize="small"
-                />
-              }
-              placeholder={copy.namePlaceholder}
-              value={name}
-              maxLength={NAME_MAX_LENGTH}
-              required
-              autoComplete="off"
-              error={errors.name}
-              onChange={(event) => onChangeName(event.target.value)}
-            />
-          </div>
-          <div className="w-full max-w-726">
-            <TextField
-              multiline
-              id={ELEMENT_IDS.description}
-              label={copy.descriptionLabel}
-              optional
-              labelAddon={
-                <InfoTooltip
-                  label={copy.descriptionInfoLabel}
-                  text={copy.descriptionInfo}
-                  iconSize="small"
-                />
-              }
-              placeholder={copy.descriptionPlaceholder}
-              value={description}
-              maxLength={DESCRIPTION_MAX_LENGTH}
-              error={errors.description}
-              onChange={(event) => onChangeDescription(event.target.value)}
-            />
-          </div>
+          <TextField
+            id={ELEMENT_IDS.name}
+            label={copy.nameLabel}
+            requiredMark
+            labelAddon={
+              <InfoTooltip
+                label={copy.nameInfoLabel}
+                text={
+                  <>
+                    {copy.nameInfo}
+                    <br />
+                    {copy.nameInfoAdvice}
+                  </>
+                }
+                iconSize="small"
+              />
+            }
+            placeholder={copy.namePlaceholder}
+            value={name}
+            maxLength={NAME_MAX_LENGTH}
+            required
+            autoComplete="off"
+            error={errors.name}
+            onChange={(event) => onChangeName(event.target.value)}
+          />
+          <TextField
+            multiline
+            id={ELEMENT_IDS.description}
+            label={copy.descriptionLabel}
+            optional
+            labelAddon={
+              <InfoTooltip
+                label={copy.descriptionInfoLabel}
+                text={copy.descriptionInfo}
+                iconSize="small"
+              />
+            }
+            placeholder={copy.descriptionPlaceholder}
+            value={description}
+            maxLength={DESCRIPTION_MAX_LENGTH}
+            error={errors.description}
+            onChange={(event) => onChangeDescription(event.target.value)}
+          />
         </div>
         {/* The info strip (T048; U19 6699:45346, U98 6731:39846): the info background, the blue
             ⓘ (build note 35), 14/24 text; the draft's note in a new connection's or a stored

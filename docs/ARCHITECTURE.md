@@ -439,16 +439,17 @@ frontend/
   "Deactivated by …"; open, the entries newest first, 50 at a time, loaded again after an
   action on the page changed the connection; see [The activity](#the-activity-spec-010)). A
   stored draft's details show the Summary first, then the Links card without URLs, then the
-  Activity, with "Delete draft" in the band. A card's header takes controls of its own through
-  `DetailAccordion`'s `actions` slot, between the heading and the toggle (wrapping under the
-  heading on a narrow window): the Summary's holds "Version …" and "Download PDF"
-  (`PdfDownload`, spec 011; see [The connection PDF](#the-connection-pdf-spec-011))
+  Activity, with "Delete draft" in the band. A card's header row is its heading and the toggle;
+  `DetailAccordion`'s `strip` slot adds a strip under that row, inside the header, so that it
+  shows open and closed: the Summary's holds "Version …" and "Download PDF" (`PdfDownload`,
+  spec 011, as clarified on 2026-11-18; see [The connection PDF](#the-connection-pdf-spec-011))
 - **The documents step** (spec 010, S8): the documents stay in the team's order. A row is
   dragged to its place with a mouse, a pen or, after a 400 ms hold, a touch (`useRowDrag`
   feeding the pure `rowDragReducer`; no library and no HTML drag and drop; Escape or a
   release outside the list changes nothing), and its ⋯ menu offers "Move up" and "Move down"
   as the keyboard's way, announced in a status region; both go through `moveDocument()` of
-  `rules/src/edits.ts`. A new document goes to the end; "Undo" after a removal puts it back
+  `rules/src/edits.ts`. The same ⋯, on every row, a single document's too, ends with "Remove
+  document", which asks first (`documentMenuOf()`; the row has no trash since 2026-11-18). A new document goes to the end; "Undo" after a removal puts it back
   at its place. A document with more than 10 data items shows them under the catalog's data
   groups (`groupedFieldsOf()`: the catalog's `field_groups`, each group's items in catalog
   order; `null`, the flat list, for a document without groups or with an item outside them),
@@ -1597,8 +1598,9 @@ endpoint, table or setting; it adds one dependency, `pdfkit` 0.20.2, and five fo
   not. The frontend and the MCP server only read it: `get_connection` shows it as "Version …,
   as the details page and the PDF show it" (R12), and the MCP's texts call a draft's save
   number (`draft.version`) "save {n}" (D11). The UI never calls the save number a version.
-- **The button**: `pages/FormConnectionDetail/PdfDownload.tsx`, in the Summary's header through
-  `DetailAccordion`'s `actions` slot: "Version <code>" and KERN's secondary button, its busy
+- **The button**: `pages/FormConnectionDetail/PdfDownload.tsx`, in the strip under the Summary's
+  header row through `DetailAccordion`'s `strip` slot: "Version <code>" and KERN's secondary
+  button, compact (32px), its busy
   label "Creating PDF…" (`aria-disabled`), its own polite live region ("Creating the PDF…",
   "PDF saved.") and `PdfFailure`'s alert with the server's message or "Check your connection and
   try again.", a 5xx's error ID and "Try again".

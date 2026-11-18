@@ -172,8 +172,9 @@ Each scenario names the screens of [contracts/ui-screens.md](contracts/ui-screen
 4. Contradicting rules → the ⚠ on the tab with its tooltip on hover and focus, no line above the
    heading (CLAR #50); a variant without rules → "<variant> has no rules yet, so every citizen
    meets it."; generation failed → "Couldn't create sample citizens" with "Try again".
-5. With 12 rules only the panel scrolls (F43). Arrow keys move between chips; the focus follows
-   004-ACC.
+5. With 12 rules the page doesn't scroll (F43): at ≥ 1024 × 640 each card's rows scroll on their
+   own, its head staying; narrower but pinned, the panel scrolls (bug v5-ui-fixes, 2026-11-18).
+   Arrow keys move between chips; the focus follows 004-ACC.
 
 ### V7. Publishing, the details and the confirmations (US4; S14, S15, S17)
 

@@ -19,6 +19,7 @@ import {
   dataRowGroupsOf,
   dataRowLabelOf,
   dataRowTextOf,
+  dateEntryOf,
   dateOfBirthForAge,
   documentGroupsOf,
   draftsInLanguage,
@@ -442,6 +443,121 @@ describe('runStatusTextOf and createsAll', () => {
     expect(createsAll(run(['free', 'free', 'free']))).toBe(true);
     expect(createsAll(run(['free', 'kept', 'free']))).toBe(false);
     expect(createsAll(run(['filled', 'filled', 'filled']))).toBe(false);
+  });
+});
+
+describe('dateEntryOf (dots as you type dd.mm.yyyy; bug v5-ui-fixes B5)', () => {
+  /** Types `keys` one by one at the end of `start`, as the browser hands each change over */
+  function typed(start: string, keys: string): string[] {
+    const shown: string[] = [];
+    let text = start;
+    for (const key of keys) {
+      const next = text + key;
+      text = dateEntryOf(text, next, next.length).text;
+      shown.push(text);
+    }
+    return shown;
+  }
+
+  it('puts in the dots as the digits come', () => {
+    expect(typed('', '08072007')).toEqual([
+      '0',
+      '08',
+      '08.0',
+      '08.07',
+      '08.07.2',
+      '08.07.20',
+      '08.07.200',
+      '08.07.2007',
+    ]);
+  });
+
+  it('puts the caret after the digit just typed, past a dot the mask added', () => {
+    expect(dateEntryOf('08', '080', 3)).toEqual({ text: '08.0', caret: 4 });
+    expect(dateEntryOf('08.07', '08.072', 6)).toEqual({ text: '08.07.2', caret: 7 });
+  });
+
+  it('drops a 9th digit', () => {
+    expect(dateEntryOf('08.07.2007', '08.07.20071', 11)).toEqual({
+      text: '08.07.2007',
+      caret: 10,
+    });
+  });
+
+  it('takes a pasted date with or without its dots', () => {
+    expect(dateEntryOf('', '08072007', 8)).toEqual({ text: '08.07.2007', caret: 10 });
+    expect(dateEntryOf('', '08.07.2007', 10)).toEqual({ text: '08.07.2007', caret: 10 });
+  });
+
+  it('keeps a dot typed after the day or the month, and the caret after it', () => {
+    expect(dateEntryOf('08', '08.', 3)).toEqual({ text: '08.', caret: 3 });
+    expect(dateEntryOf('08.07', '08.07.', 6)).toEqual({ text: '08.07.', caret: 6 });
+  });
+
+  it('lets Backspace take a trailing dot without adding it back', () => {
+    expect(dateEntryOf('08.07.', '08.07', 5)).toEqual({ text: '08.07', caret: 5 });
+    expect(dateEntryOf('08.', '08', 2)).toEqual({ text: '08', caret: 2 });
+  });
+
+  it('turns Backspace over a dot into the digit before it, and Delete into the digit after it', () => {
+    // 08.|07.2007, Backspace: the browser takes the dot
+    expect(dateEntryOf('08.07.2007', '0807.2007', 2, 'backward')).toEqual({
+      text: '0.07.2007',
+      caret: 1,
+    });
+    // then 9 at 0|.07.2007
+    expect(dateEntryOf('0.07.2007', '09.07.2007', 2)).toEqual({ text: '09.07.2007', caret: 2 });
+    // 08|.07.2007, Delete
+    expect(dateEntryOf('08.07.2007', '0807.2007', 2, 'forward')).toEqual({
+      text: '08.7.2007',
+      caret: 3,
+    });
+  });
+
+  it('treats a deletion that doesn’t say its direction as Backspace', () => {
+    expect(dateEntryOf('08.07.2007', '08.072007', 5)).toEqual({ text: '08.0.2007', caret: 4 });
+  });
+
+  it('leaves an edit in the middle as typed until the part is complete', () => {
+    // 08.07.2007 with "07" selected, then 1, then 2
+    expect(dateEntryOf('08.07.2007', '08.1.2007', 4)).toEqual({ text: '08.1.2007', caret: 4 });
+    expect(dateEntryOf('08.1.2007', '08.12.2007', 5)).toEqual({ text: '08.12.2007', caret: 5 });
+    expect(dateEntryOf('08.07.2007', '081.07.2007', 3)).toEqual({
+      text: '081.07.2007',
+      caret: 3,
+    });
+  });
+
+  it('puts the caret past a dot it adds right after it', () => {
+    // "08" pasted in front of "07"
+    expect(dateEntryOf('07', '0807', 2)).toEqual({ text: '08.07', caret: 3 });
+  });
+
+  it('empties the field', () => {
+    expect(dateEntryOf('08.07.2007', '', 0)).toEqual({ text: '', caret: 0 });
+  });
+
+  it('leaves anything but digits and dots as typed, for the check to refuse', () => {
+    expect(dateEntryOf('', '2007-07-08', 10)).toEqual({ text: '2007-07-08', caret: 10 });
+    expect(dateEntryOf('', 'abc', 3)).toEqual({ text: 'abc', caret: 3 });
+    expect(dateEntryOf('', ' 08072007', 9)).toEqual({ text: ' 08072007', caret: 9 });
+    expect(dateEntryOf('08.07.2007', '08.07.2007.', 11)).toEqual({
+      text: '08.07.2007.',
+      caret: 11,
+    });
+  });
+
+  it('gives dates that parseDisplayDate takes', () => {
+    for (const digits of ['08072007', '29022008', '31122099', '01010001']) {
+      const { text } = dateEntryOf('', digits, digits.length);
+      expect(text).toMatch(/^\d{2}\.\d{2}\.\d{4}$/);
+      const iso = `${digits.slice(4)}-${digits.slice(2, 4)}-${digits.slice(0, 2)}`;
+      expect(parseDisplayDate(text, 'en')).toEqual({ ok: true, value: iso });
+    }
+    expect(parseDisplayDate(typed('', '08072007').at(-1) ?? '', 'de')).toEqual({
+      ok: true,
+      value: '2007-07-08',
+    });
   });
 });
 

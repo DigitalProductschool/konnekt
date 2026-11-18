@@ -59,15 +59,13 @@ export const DOCUMENTS_COPY = defineTexts(
     removeDocumentsMany: (count: number) => `Remove ${count} documents`,
     // "Set rules →" while no document is added (U20 #14; FR-031)
     addDocumentFirst: 'Add a document first',
-    // The removal question (U23 #22, U24 #24; F72)
+    // The removal question (U23 #22, U24 #24; F72); "Remove document" is the ⋯ menu's entry too
     keepDocument: 'Keep document',
     removeDocument: 'Remove document',
     // The list card (U20 7290:60377, U21 7290:61198) and its search card (U20 7290:60525)
     addDocument: 'Add document',
     findDocument: 'Find a document',
     addedTag: 'Added',
-    // The trash's accessible name (U21 #11)
-    removeDocumentLabel: (document: string) => `Remove ${document}`,
     // The empty panel (U20 7290:60384)
     emptyTitle: 'No documents yet',
     emptyText: 'Documents you add show up here, with the data you can choose.',
@@ -76,10 +74,10 @@ export const DOCUMENTS_COPY = defineTexts(
     // The pager's arrows (U21 7290:61258, 7290:61260), named for screen readers
     previousDocument: 'Previous document',
     nextDocument: 'Next document',
-    // Moving without dragging (S8 "Without dragging", FR-047; W13, copy.md §5): the row's ⋯
-    // button, named for screen readers, its entries, and the polite announcement after a move,
-    // by the menu or by a drag (`moveAnnouncementOf()`)
-    moveDocumentLabel: (document: string) => `Move ${document}`,
+    // The row's ⋯ button, named for screen readers as every ⋯ in the app (bug v5-ui-fixes B4),
+    // and moving without dragging (S8 "Without dragging", FR-047; W13, copy.md §5): its entries,
+    // and the polite announcement after a move, by the menu or by a drag (`moveAnnouncementOf()`)
+    documentActionsLabel: (document: string) => `Actions for ${document}`,
     moveUp: 'Move up',
     moveDown: 'Move down',
     movedTo: (document: string, position: number, count: number) =>
@@ -111,13 +109,12 @@ export const DOCUMENTS_COPY = defineTexts(
     addDocument: 'Dokument hinzufügen',
     findDocument: 'Dokument suchen',
     addedTag: 'Hinzugefügt',
-    removeDocumentLabel: (document) => `${document} entfernen`,
     emptyTitle: 'Noch keine Dokumente',
     emptyText: 'Hinzugefügte Dokumente erscheinen hier, mit den Daten, die Sie auswählen können.',
     allDataItems: 'Alle Felder',
     previousDocument: 'Vorheriges Dokument',
     nextDocument: 'Nächstes Dokument',
-    moveDocumentLabel: (document) => `${document} verschieben`,
+    documentActionsLabel: (document) => `Aktionen für ${document}`,
     moveUp: 'Nach oben',
     moveDown: 'Nach unten',
     movedTo: (document, position, count) =>
@@ -204,7 +201,7 @@ export const DOCUMENTS_STEP_IDS = {
   addedGroup: 'add-document-added',
   // A list item's button that shows the document
   listItem: (documentType: string) => `document-item-${documentType}`,
-  // A list item's row (`li`), which holds that button, the trash and the ⋯ that moves it (W13)
+  // A list item's row (`li`), which holds that button and its ⋯ menu (W13)
   listRow: (documentType: string) => `document-row-${documentType}`,
   // The polite region that announces a move (FR-047)
   moveStatus: 'documents-move-status',
@@ -241,7 +238,7 @@ export const ROW_DRAG_COPY = { inset: 8, minWidth: 40 } as const;
 /**
  * What `useRowDrag` looks for in the list's scroll area: the rows, in list order (the dragged
  * one too, hidden while it is dragged), and the parts of a row on which no drag starts (the
- * trash, the ⋯ and its open menu)
+ * ⋯ and its open menu)
  */
 export const ROW_DRAG_SELECTORS = {
   row: 'li[data-drag-row]',
@@ -257,8 +254,11 @@ export const MOVE_ICONS = {
   down: { kern: 'kern-icon--arrow-down' },
 } as const;
 
+/** The icon of the ⋯ menu's red "Remove document": KERN's trash, as the rules' "Delete rule" */
+export const REMOVE_ICON = { kern: 'kern-icon--delete' } as const;
+
 /**
- * The trash's and the ⋯'s wrapper, around the ⋯ menu: below 320 CSS px (`narrow:`), where the
+ * The wrapper of the error icon and the ⋯, around the ⋯ menu: below 320 CSS px (`narrow:`), where the
  * menu spans the card less its gutters (97px at 160 CSS px beside Chromium's scrollbar), the
  * menu's and its entries' side paddings are 4px instead of 8, so that the text column keeps
  * "unten" of "Nach unten" whole (T092, T098); spec 008's `ActionMenu` stays as it is elsewhere

@@ -44,8 +44,9 @@ function storeEffectOf(origin: EditorOrigin['kind']): LeaveEffect {
  *   changes" leaves without saving. The ×, Escape and the scrim stay in the flow.
  * - **Logging out** with unsaved work: "Save before you log out?" (`logoutAsked`); "Save and log
  *   out" stores the flow as above and then logs out, "Log out anyway" forgets the flow's local
- *   draft and logs out, and "Cancel" and the × stay, with the focus back on the account pill
- *   (F20). Without unsaved work, "Log out" logs out at once.
+ *   draft and logs out, and the ×, Escape and the scrim stay, with the focus back on the account
+ *   pill (U17 6408:72919, two buttons; bug v5-ui-fixes B8 drops F20's "Cancel"). Without unsaved
+ *   work, "Log out" logs out at once.
  * - **The rule editor**: only an answer that stores goes through "Save changes to Rule 01?"
  *   (`store`; Q8 (c)): a rule is saved or dropped before the flow is stored, and no editor state
  *   is stored. Discarding and logging out anyway store nothing, so they don't ask.

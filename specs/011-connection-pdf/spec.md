@@ -22,8 +22,10 @@ Spec 008 ported the redesigned management UI and deferred the "Download PDF" but
 draws on the details: `specs/008-kern-revamp-redesign/deferred.md`, group A, item Q37 (b). Figma
 ("Middleware – V5", file `s8mU9oJDq3411e8bxMjQO9`) draws it as a secondary button with a download
 icon in the header of the details' Summary card (`6396:48196`, `6809:46423`), and on a draft's
-details too (U93 #10). Spec 002's clarifications (2026-10-24) left the PDF export for a spec of
-its own. This feature builds it.
+details too (U93 #10). Its final frame (`7603:61494`, read 2026-11-18 for bug v5-ui-fixes (B3))
+moves the button, with the version beside it, into a strip under the card's header row
+(Clarifications, 2026-11-18). Spec 002's clarifications (2026-10-24) left the PDF export for a
+spec of its own. This feature builds it.
 
 It supersedes:
 
@@ -74,13 +76,26 @@ Spec 010 was implemented after this spec was written; these answers align the tw
 - Q: Does the example draft (spec 010) get a PDF? → A: Yes, as any stored draft, without a mark
   of its own; that a draft is the example never changes the version (FR-001, FR-029).
 
+### Session 2026-11-18 (bug fixes)
+
+Decided by Figma's final frame for the Summary card, which the reporter of
+`.specify/bugs/v5-ui-fixes` calls final (B3; "Middleware – V5", `7603:61494`).
+
+- Q: Where do the version and "Download PDF" sit, now that a frame draws the version? → A: In a
+  strip of their own inside the Summary card, under its header row (the heading with its counts,
+  and the toggle), open or closed, on the published and the draft details: the version at the
+  strip's left, the button at its right. "Download PDF" is a compact secondary button, 32 px high,
+  with the download glyph and a 14 px label. The version's code is semibold, no longer medium.
+  This supersedes the 2026-11-09 answer's place in the header row: the version stays beside the
+  button, open or closed, on both details, but in the strip under the row (FR-001, FR-032).
+
 ## User Scenarios & Testing *(mandatory)*
 
 ### User Story 1 - Download a published connection's details (Priority: P1)
 
 A team member of DO.IT opens the details of a published connection, scheduled, active or
-deactivated, to hand it over to a colleague or to keep it. In the header of the Summary card they
-activate
+deactivated, to hand it over to a colleague or to keep it. In the Summary card, under its header
+row, they activate
 "Download PDF". The button shows that the file is being made, and a moment later the browser
 saves it as "<connection name>_<version>.pdf". The PDF holds everything a colleague needs to add
 the connection to serviceBW and to understand it: page 1 with the name, description, status and a
@@ -290,8 +305,9 @@ validator and a screen reader.
   because none of them is shown by colour alone.
 - **Midnight and daylight saving time**: the date and time of the download and of the draft's
   last save are Germany's (CET or CEST), whatever the team member's computer is set to.
-- **A narrow screen** (320 px at 200 % zoom): the button and the version follow spec 008's rules
-  for the Summary card's header, wrap rather than overlap, and the button stays usable.
+- **A narrow screen** (320 px at 200 % zoom): the button and the version follow spec 008's narrow
+  rules in the strip under the Summary card's header row, wrap rather than overlap (the button
+  under the version), and the button stays usable.
 
 ## Requirements *(mandatory)*
 
@@ -300,11 +316,11 @@ validator and a screen reader.
 **Downloading**
 
 - **FR-001**: The details of a published connection (scheduled, active or deactivated) and the
-  details of a stored draft, the example draft included, MUST offer "Download PDF" as a secondary
-  button with a download icon in the header
-  of the Summary card, as Figma draws it (`6396:48196`, `6809:46423`; the draft's details U93
-  #10), whether the Summary is open or closed. Every signed-in team member who can open the
-  details MUST be able to use it.
+  details of a stored draft, the example draft included, MUST offer "Download PDF" as a compact
+  secondary button with a download icon in the Summary card, in a strip under its header row, as
+  Figma's final frame draws it (`7603:61494`; Clarifications 2026-11-18; first drawn in the
+  header row, `6396:48196`, `6809:46423`; the draft's details U93 #10), whether the Summary is
+  open or closed. Every signed-in team member who can open the details MUST be able to use it.
 - **FR-002**: One activation MUST make the file and save it, with no further step: no dialog, no
   preview, no choice of options.
 - **FR-003**: While the file is being made, the button MUST show that it is busy, to sight and to
@@ -438,8 +454,9 @@ validator and a screen reader.
 - **FR-031**: A draft published without changes MUST keep the version its review PDF showed.
 - **FR-032**: The details page of a published connection and of a stored draft MUST show the
   current version, labelled "Version" and written as in the PDF ("Version 62D0-715F-01D1"), in
-  the Summary card's header beside "Download PDF", whether the Summary is open or closed, so that
-  a reader can compare it with a printout without opening anything.
+  the Summary card, in the strip under its header row, beside "Download PDF" (Clarifications
+  2026-11-18), whether the Summary is open or closed, so that a reader can compare it with a
+  printout without opening anything.
 - **FR-033**: The version MUST also be in the file's document properties and in its file name
   (FR-044).
 
