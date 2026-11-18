@@ -106,7 +106,9 @@ button can wrap under the version.
 brought down to the frame's 32 px (`min-h-32!`; KERN's small is 40), without the small button's
 4 px margins (`my-0!`), side padding `px-11!` (the frame's 12 includes the 1 px border;
 `narrow:px-7!`), the 24 px download glyph (`download-action.svg`, §1) and KERN small's
-label/small label (4 px above and below, 8 at the sides): 156 × 32 in English, wider in German
+label/small label, 8 at the sides but 3 px above and below (`PDF_BUTTON_LABEL_CLASSES`: the
+frame's 32 includes the 1 px border, so 1 + 3 + 24 + 3 + 1; KERN's 4 made the button 34 and the
+strip 46, found by the v5-ui-fixes bug test): 156 × 32 in English, wider in German
 ("PDF herunterladen"). The 32 px size is new in the app and stays local to `PdfDownload`. Busy
 state, live region, `aria-disabled`, the German soft hyphen and the `aria-label` without it are
 as before (§3, D8).
@@ -297,7 +299,7 @@ and C, and fills the last column. "Built" names the classes, not a measurement.
 | `7603:61502` | A, closed | header row | "Summary" and its counts `7536:58868`; the toggle `7536:58871`, 145 × 48 | the heading block and the toggle, as on the Links and Activity cards; no `basis-200`, no wrapping group | to verify |
 | `7603:61502` | A, closed | strip | `7536:58887`, 782 × 44 at 24, 80 (12 under the row); `layout/background-hued` #f2f5fb, radius 8 | `PDF_STRIP_CLASSES`: `bg-kern-layout-background-hued rounded-kern-default`, `py-6 pr-8 pl-16`, `flex-wrap justify-between gap-8` | to verify |
 | `7603:61502` | A, closed | version | `7536:58888`, 156 × 24 at 16, 10; "Version" body/small 14/24 400 `layout-text-muted`; the code label/small 14/24 600 `layout-text-default` | "Version" `text-kern-static-small`, muted; the code `font-semibold tabular-nums`, default colour | to verify |
-| `7603:61502` | A, closed | button | `7536:58891`, 156 × 32 at 618, 6 (8 from the strip's right); 1 px action-blue border; `icon-download-small` (a 24 box, the 16 glyph); label/small | `PDF_BUTTON_CLASSES`: `kern-btn kern-btn--secondary kern-btn--small`, `min-h-32! my-0! px-11!`; `download-action.svg` at 24 (the same paths); KERN small's label, 4 above and below, 8 at the sides; 156 × 32 expected | to verify |
+| `7603:61502` | A, closed | button | `7536:58891`, 156 × 32 at 618, 6 (8 from the strip's right); 1 px action-blue border; `icon-download-small` (a 24 box, the 16 glyph); label/small | `PDF_BUTTON_CLASSES`: `kern-btn kern-btn--secondary kern-btn--small`, `min-h-32! my-0! px-11!`; `download-action.svg` at 24 (the same paths); KERN small's label at 8 on the sides, 3 above and below (`PDF_BUTTON_LABEL_CLASSES`, the border included in the 32); 156 × 32 expected | to verify |
 | `7603:61521` EN 832 | A, open | header, body | 832 × 370; the header instance 830 × 140; "Documents" 8 into the body, 24 under the strip; the toggle "Hide summary", 144 × 48 | the same header; the body's `pt-8` wrapper inside the clipped body | to verify |
 | `7603:61510` EN 640 | A, closed | strip | the card at 640 | `flex-wrap`: one row while the version and the button fit | to verify |
 | `7603:61506` DE 832, `7603:61514` DE 640, `7603:61548` DE 640 open (640 × 408) | A, German | strip, button | "PDF herunterladen" wider than 156; the DE 640 strip on one row | the button as wide as its label; it wraps under the version only where both don't fit | to verify, and where it wraps first |

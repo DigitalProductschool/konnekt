@@ -384,14 +384,22 @@ export const PDF_STRIP_CLASSES =
   'bg-kern-layout-background-hued rounded-kern-default flex flex-wrap items-center justify-between gap-8 py-6 pr-8 pl-16';
 
 /**
- * "Download PDF" (V5 7603:61502, 156 × 32): KERN's secondary small button, whose label is
- * label/small with 4px above and below and 8 at the sides, brought down from KERN's 40px to the
- * frame's 32 without the small button's 4px margins. The frame's 12px at the sides include the
- * 1px border, which KERN draws outside its padding, hence 11 (7 on a narrow window, where the
- * global narrow rules halve the side paddings)
+ * "Download PDF" (V5 7603:61502, 156 × 32): KERN's secondary small button, brought down from
+ * KERN's 40px to the frame's 32 without the small button's 4px margins. The frame's 32 and its
+ * 12px at the sides include the 1px border, which KERN draws outside its padding: hence 11 at the
+ * sides (7 on a narrow window, where the global narrow rules halve the side paddings) and the
+ * label's 3px above and below (`PDF_BUTTON_LABEL_CLASSES`). `min-h-32!` is a minimum, so that a
+ * label wrapping on a narrow window makes the button taller (D8)
  */
 export const PDF_BUTTON_CLASSES =
   'kern-btn kern-btn--secondary kern-btn--small narrow:px-7! my-0! min-h-32! max-w-full px-11!';
+
+/**
+ * Its label, label/small 14/24 with 8 at the sides as KERN's small label, but 3px above and below
+ * instead of KERN's 4: 1 + 3 + 24 + 3 + 1 = 32 (bug v5-ui-fixes test, 2026-11-18: with KERN's 4
+ * the button was 34 and the strip 46)
+ */
+export const PDF_BUTTON_LABEL_CLASSES = 'kern-label py-3!';
 
 /**
  * The open card's list (U86 6396:48527, U95 7246:54525, U97 7246:56965): the body 24 from the

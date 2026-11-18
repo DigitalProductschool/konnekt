@@ -896,8 +896,14 @@ describe('documentMenuOf (a row’s ⋯ menu; W13, bug v5-ui-fixes B4)', () => {
     expect(labelsOf(2, 3)).toEqual(['Move up', 'Remove document']);
   });
 
-  it('holds only "Remove document" for a single document', () => {
+  it('holds only "Remove document" for a single document, without a divider above it', () => {
     expect(labelsOf(0, 1)).toEqual(['Remove document']);
+    const [remove] = documentMenuOf(0, 1, copy, { onMove: () => {}, onRemove: () => {} });
+    expect(remove).toMatchObject({
+      danger: true,
+      separated: false,
+      icon: { kern: 'kern-icon--delete' },
+    });
   });
 
   it('draws the removal red, after the divider, with KERN’s trash; the moves plain', () => {

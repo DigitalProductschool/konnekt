@@ -447,7 +447,8 @@ export function moveTargetsOf(
 /**
  * A row's ⋯ menu (W13; bug v5-ui-fixes B4, 2026-11-18): "Move up" and "Move down" where the row
  * offers them (`moveTargetsOf()`), then, after the divider, the red "Remove document", which
- * asks first (F72). Every row has it, a single document's too, where it holds only the removal.
+ * asks first (F72). Every row has it, a single document's too, where it holds only the removal,
+ * without the divider, which only separates it from the moves above it.
  */
 export function documentMenuOf(
   index: number,
@@ -471,7 +472,7 @@ export function documentMenuOf(
     label: copy.removeDocument,
     icon: REMOVE_ICON,
     danger: true,
-    separated: true,
+    separated: actions.length > 0,
     onSelect: handlers.onRemove,
   });
   return actions;

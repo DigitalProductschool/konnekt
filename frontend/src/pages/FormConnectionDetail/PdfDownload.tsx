@@ -3,7 +3,12 @@ import { KernAlert } from '@kern-ux-annex/kern-react-kit';
 import downloadIcon from '../../assets/icons/download-action.svg';
 import ErrorNoticeText from '../../components/ErrorNoticeText';
 import { useCopy } from '../../hooks/useLanguage';
-import { CONNECTION_DETAIL_COPY, PDF_BUTTON_CLASSES, PDF_STRIP_CLASSES } from './constants';
+import {
+  CONNECTION_DETAIL_COPY,
+  PDF_BUTTON_CLASSES,
+  PDF_BUTTON_LABEL_CLASSES,
+  PDF_STRIP_CLASSES,
+} from './constants';
 import type { PdfDownloadProps, PdfFailureProps } from './types';
 
 /**
@@ -15,7 +20,8 @@ import type { PdfDownloadProps, PdfFailureProps } from './types';
  *   600) with tabular figures in the text colour, one line that wraps before the code on a narrow
  *   window but never inside it.
  * - KERN's secondary button in the frame's compact size, 32px high (KERN's small is 40), with the
- *   24px download glyph and the label/small label (`PDF_BUTTON_CLASSES`): 156 × 32 in English.
+ *   24px download glyph and the label/small label (`PDF_BUTTON_CLASSES`,
+ *   `PDF_BUTTON_LABEL_CLASSES`): 156 × 32 in English, border included.
  *   On a narrow window it goes without the glyph, its label wrapping between words and the button
  *   taller (D8); the strip wraps the button under the version where both don't fit on one row.
  *
@@ -60,7 +66,7 @@ export default function PdfDownload({ version, pdf, buttonRef }: PdfDownloadProp
             {/* On a narrow window the glyph gives its 24px to the label, which then wraps only
                 between words (or at the German soft hyphen) and the button grows taller (D8) */}
             <img src={downloadIcon} alt="" className="narrow:hidden! size-24 shrink-0" />
-            <span className="kern-label">{label}</span>
+            <span className={PDF_BUTTON_LABEL_CLASSES}>{label}</span>
           </button>
           <p role="status" className="sr-only">
             {announcement === 'creating'
