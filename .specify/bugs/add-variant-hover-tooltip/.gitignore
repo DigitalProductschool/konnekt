@@ -1,0 +1,3 @@
+# The screenshots taken while assessing, fixing and testing this bug stay local:
+# the reports (assessment.md, fix.md, test.md) record the measurements in text
+*.png

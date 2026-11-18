@@ -31,9 +31,10 @@ import {
 import { GROUP_FRAME_COPY } from '../../../components/GroupFrame/constants';
 import type { ValueChoice } from '../../../components/ValuesPicker/types';
 import type { RulesBranch } from '../RulesStep/types';
-import { EDIT_DATA_COPY, ISSUE_DATE_PART, TEST_STEP_COPY } from './constants';
+import { DATE_ENTRY_DIGITS, EDIT_DATA_COPY, ISSUE_DATE_PART, TEST_STEP_COPY } from './constants';
 import type {
   DataRowGroup,
+  DateEntry,
   DocumentGroup,
   DraftsAction,
   DraftsState,
@@ -222,6 +223,102 @@ export function runStatusTextOf(
  */
 export function createsAll(run: GenerationRun | null): boolean {
   return run !== null && run.slots.every((kind) => kind === 'free');
+}
+
+/**
+ * A date field's entry after a change, with the dots put in as the user types `dd.mm.yyyy` (bug
+ * v5-ui-fixes B5, 2026-11-18), and where the caret goes. `previous` is the field's text before the
+ * change, `next` the browser's after it, `caret` the browser's caret in `next`, and `deletion`
+ * which way a deletion went (Delete is `forward`; Backspace, and a keyboard that doesn't say, are
+ * `backward`). The rules, in this order:
+ * 1. A deletion that removed only a dot (not the last character) removes the digit beside it
+ *    instead and keeps the dot: Backspace the digit before it, Delete the digit after it; the caret
+ *    goes where that digit was.
+ * 2. Text that isn't only digits and dots (letters, `-`, spaces, a pasted ISO date) stays as typed,
+ *    for `parseDisplayDate()` to refuse.
+ * 3. When every part but the last (split at the dots, at most three) has exactly two digits, the
+ *    text is rebuilt from its digits as `dd.mm.yyyy`: a dot before the 3rd and the 5th digit, at
+ *    most 8 digits (a 9th is dropped), and a dot typed right after the 2nd or 4th digit stays. The
+ *    caret goes after as many digits as before, and past a dot the rebuild put right after it.
+ * 4. Otherwise (an edit in the middle left a part short or long: `08.1.2007`) the text stays as
+ *    typed until the user completes it.
+ */
+export function dateEntryOf(
+  previous: string,
+  next: string,
+  caret: number,
+  deletion: 'backward' | 'forward' = 'backward'
+): DateEntry {
+  const removedDot = removedDotOf(previous, next, caret, deletion);
+  if (removedDot) {
+    return removedDot;
+  }
+  const parts = next.split('.');
+  const fits =
+    /^[\d.]*$/.test(next) &&
+    parts.length <= 3 &&
+    parts.slice(0, -1).every((part) => /^\d{2}$/.test(part));
+  if (!fits) {
+    return { text: next, caret };
+  }
+  const digits = next.replaceAll('.', '').slice(0, DATE_ENTRY_DIGITS);
+  let text = digits.slice(0, 2);
+  if (digits.length > 2) {
+    text += `.${digits.slice(2, 4)}`;
+  }
+  if (digits.length > 4) {
+    text += `.${digits.slice(4)}`;
+  }
+  if (next.endsWith('.') && (digits.length === 2 || digits.length === 4)) {
+    text += '.';
+  }
+  const digitsBefore = next.slice(0, caret).replaceAll('.', '').length;
+  let at = indexAfterDigits(text, digitsBefore);
+  if (text[at] === '.' && next[caret] !== '.') {
+    at += 1;
+  }
+  return { text, caret: at };
+}
+
+/** Rule 1 of `dateEntryOf()`: a deletion that took only a dot takes the digit beside it instead */
+function removedDotOf(
+  previous: string,
+  next: string,
+  caret: number,
+  deletion: 'backward' | 'forward'
+): DateEntry | null {
+  const tookOneDot =
+    next.length === previous.length - 1 &&
+    previous[caret] === '.' &&
+    caret < previous.length - 1 &&
+    previous.slice(0, caret) + previous.slice(caret + 1) === next;
+  if (!tookOneDot) {
+    return null;
+  }
+  if (deletion === 'backward' && /\d/.test(previous[caret - 1] ?? '')) {
+    return { text: previous.slice(0, caret - 1) + previous.slice(caret), caret: caret - 1 };
+  }
+  if (deletion === 'forward' && /\d/.test(previous[caret + 1] ?? '')) {
+    return { text: previous.slice(0, caret + 1) + previous.slice(caret + 2), caret: caret + 1 };
+  }
+  return null;
+}
+
+/** The index right after the `count`th digit of `text`: 0 for none, the end when it has fewer */
+function indexAfterDigits(text: string, count: number): number {
+  if (count === 0) {
+    return 0;
+  }
+  let seen = 0;
+  for (let index = 0; index < text.length; index += 1) {
+    if (/\d/.test(text[index])) {
+      seen += 1;
+      if (seen === count) {
+        return index + 1;
+      }
+    }
+  }
+  return text.length;
 }
 
 /**

@@ -216,8 +216,10 @@ further questions; Clarifications 2026-11-10 #27 to #37 settle them.
 - Q: Reordering without dragging (WCAG 2.5.7), and in the edit flow: build from the spec, or
   have it drawn first? (Figma audit Q14, P4, S21, S22) → A: Build it without frames. A ⋯ menu
   button on each document row (spec 008's menu pattern) holds "Move up" and "Move down". The
-  first row has no "Move up" and the last no "Move down" (FR-047). With one document there is no
-  menu (as A5 shows, U21 `7290:61204`). Focus stays on the moved row, and the move is announced:
+  first row has no "Move up" and the last no "Move down" (FR-047). ~~With one document there is no
+  menu (as A5 shows, U21 `7290:61204`).~~ Superseded by Clarification 2026-11-18 (bug
+  v5-ui-fixes (B4)): every row has the ⋯, a single document's too, and it also holds "Remove
+  document". Focus stays on the moved row, and the move is announced:
   "“<document>” moved to position <n> of <m>.". Escape, or a drop outside the list, restores
   the order. E1b gets the same drag and menu (FR-049; User Story 6, scenario 5). Surfaces: the
   document rows of the create flow (U22 `7290:62348`, `7290:62349`; U23 `7298:61782`,
@@ -462,6 +464,29 @@ further questions; Clarifications 2026-11-10 #27 to #37 settle them.
   only, as in Clarification #35. Surfaces: the Personal ID's data item panel (U21
   `7290:61214`–`7290:61255`, `7290:61956`); the catalog and its mirror for the frontend
   (FR-078); agents' read of the catalog (FR-080) (FR-077, FR-078).
+
+### Session 2026-11-18 (bug fixes)
+
+Decisions taken with the reporter of `.specify/bugs/v5-ui-fixes` (B4).
+
+- Q: A document's trash sits on its row, and a ⋯ named "Move <document>" stands beside it only
+  with two documents or more. Should the removal move into the ⋯? (bug v5-ui-fixes (B4)) → A:
+  Yes. The row has no trash. Every row has the ⋯, a single document's too, named "Actions for
+  <document>" ("Aktionen für <document>"), like every other ⋯ in the app; it replaces "Move
+  <document>". The ⋯ holds "Move up" (not on the first row) and "Move down" (not on the last),
+  then, after a divider, the red "Remove document" with KERN's delete icon, as the rules step's
+  "Delete rule". A single document's ⋯ holds only "Remove document". "Remove document" asks
+  first, with the same question as before (F72); "Keep document", Escape, × and the scrim give
+  the focus back to the ⋯. After a confirmed removal the focus goes where it went before: to the
+  shown document's list item, or to "Add document" when none is left. A document that needs data
+  keeps KERN's error icon, now just before the ⋯ and decorative; "1 document needs data" still
+  describes the item. The row stays 40 px, a press on the ⋯ starts no drag, and below 320 CSS px
+  the ⋯ wraps under the name. Removing a document now takes the ⋯, the entry and the question,
+  as removing a rule or a variant does. This supersedes Clarification 2026-11-10 #16's "With one
+  document there is no menu"; the trash that R3 `7298:64157` draws on the shown row is not
+  followed. Surfaces: the document rows of the create flow (U21 `7290:61204`; U22 `7290:62348`,
+  `7290:62349`; U23 `7298:61782`, `7298:61783`; U24 `7298:62391`, `7298:62392`; U27; U28
+  `7298:64174`, `7298:64175`) and of the edit flow (E1b, U98 `7298:63260`) (FR-047, FR-049).
 
 ## User Scenarios & Testing *(mandatory)*
 
@@ -839,7 +864,8 @@ flow, clearing a group whose data a rule checks, and reading the catalog as an a
   selection, and the count follows.
 - **A long selection**: the bulk dialog lists every selected connection and scrolls inside
   itself; its buttons stay in view.
-- **Only one document**: nothing can be reordered and no reorder control shows.
+- **Only one document**: nothing can be reordered and no reorder control shows; its ⋯ holds only
+  "Remove document" (Clarification 2026-11-18).
 - **A drag is dropped outside the list or ended with Escape**: the order is unchanged.
 - **A removed document is brought back with the documents step's "Undo"** (spec 008): it returns
   to the place it had.
@@ -1099,8 +1125,11 @@ flow, clearing a group whose data a rule checks, and reading the catalog as an a
   up" and the last no "Move down". After a move the focus MUST stay with the moved document and
   the move MUST be announced with the document's name and new position: "“<document>” moved to
   position <n> of <m>.". The design names this need without drawing it (build note 37), so the
-  controls follow spec 008's menu pattern: a ⋯ menu button on each document row holds "Move up"
-  and "Move down", and with one document there is no menu (Clarification 2026-11-10 #16).
+  controls follow spec 008's menu pattern: a ⋯ menu button on each document row, a single
+  document's too, named "Actions for <document>", holds "Move up" and "Move down" and, after a
+  divider, the red "Remove document", which asks first; a single document's ⋯ holds only "Remove
+  document", and the row has no trash (Clarification 2026-11-10 #16, amended by Clarification
+  2026-11-18).
 - **FR-048**: Reordering MUST NOT change which document is open, and the pager ("Document n of
   m") MUST count in the list's order.
 - **FR-049**: Reordering MUST work in the create flow, in a draft and in the edit flow of a

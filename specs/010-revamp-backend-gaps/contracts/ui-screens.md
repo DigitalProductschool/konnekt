@@ -169,10 +169,16 @@ No route is added or changed. Every new page state keeps one `h1` and its tab ti
   copy of the row follows the pointer. Releasing inside the list moves the document; releasing
   outside the list, Escape, a lost pointer or a second pointer ends the drag with the order
   unchanged. With reduced motion nothing transitions and the drop just updates the list (F22).
-- **Without dragging** (FR-047; W13): a ⋯ button on each row, named "Move <document>", with "Move
-  up" and "Move down"; the first row has no "Move up", the last no "Move down"; with one document
-  there is no ⋯. After a move, by menu or by drag, the focus is on the moved row's button and a
-  polite region says "“<document>” moved to position <n> of <m>.".
+- **Without dragging** (FR-047; W13): a ⋯ button on each row, a single document's too, named
+  "Actions for <document>", with "Move up" and "Move down" (the first row has no "Move up", the
+  last no "Move down") and, after a divider, the red "Remove document", which asks first (F72);
+  a single document's ⋯ holds only "Remove document". The row has no trash. Changed 2026-11-18
+  (bug v5-ui-fixes (B4); spec Clarification 2026-11-18): the ⋯ was named "Move <document>", was
+  missing with one document, and a trash beside it removed the document. After a move, by menu
+  or by drag, the focus is on the moved row's button and a polite region says "“<document>”
+  moved to position <n> of <m>.". After the question's "Keep document", Escape, × or the scrim,
+  the focus is back on the ⋯; after a confirmed removal it is on the shown document's list item,
+  or on "Add document" when none is left.
 - **Data groups** (FR-077, FR-079; F41, W18): a document whose `field_groups` is not empty shows
   its data items under the group headings, in the catalog's group order, flowing down the three
   columns; a group never splits across columns. Each heading is a checkbox: ticked when all of its

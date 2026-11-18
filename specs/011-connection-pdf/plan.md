@@ -198,7 +198,8 @@ frontend/
     ├── assets/icons/download-*.svg         + the Figma glyph of 6396:48196
     └── pages/FormConnectionDetail/
         ├── PdfDownload.tsx                 + version, button, failure alert (uses the hook)
-        ├── DetailAccordion.tsx  types.ts   ~ optional actions slot
+        ├── DetailAccordion.tsx  types.ts   ~ optional actions slot; since 2026-11-18 a strip slot
+        │                                     under the header row (bug v5-ui-fixes (B3))
         ├── RulesSummary.tsx                ~ passes PdfDownload to the Summary card
         ├── ConnectionDetails.tsx DraftDetails.tsx index.tsx  ~ wire onFetched / onGone
         ├── constants.ts                    ~ DETAIL_COPY: the button's and the version's texts

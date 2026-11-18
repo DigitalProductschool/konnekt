@@ -24,6 +24,10 @@ to; nothing here is re-decided.
   S17. With "On a date" the dialog is 432 px high against 392 drawn. The same applies to
   "Activate this connection again?" (P16b `7173:52959`, T027). A compact variant of the
   component would be a change to C2, for the designer to ask for.
+- **The documents list's rows have no trash** (bug v5-ui-fixes (B4), 2026-11-18; spec
+  Clarification 2026-11-18): R3 `7298:64157` draws the trash on the shown row; the build puts the
+  removal into the row's ⋯ ("Remove document", after the divider), which every row has, a single
+  document's too. Applies to T058, T059.
 - **The dragged copy's opacity is 0.85 in every position** (T059a; the user, 2026-11-11): R1
   `7298:63317` draws 0.85, R2 `7298:63736` 0.75; the build keeps R1's 0.85 while the copy moves.
   Applies to T059, T061.
@@ -1042,7 +1046,7 @@ Browser: the `playwright-chrome` MCP (Chromium), Vite 5176 against the backend o
 
 | frame | state | width | element | property | Figma | actual | result |
 |---|---|---|---|---|---|---|---|
-| none (W13; ActionMenu pattern) | draft, two documents | 1440 | each row | ⋯ button | — (W13: ⋯ on each row) | 32×32 `kern-icon--more-vert` 20 px, ink `#0b1220`, after the trash, both boxes touching; the row stays 40 px | W13 |
+| none (W13; ActionMenu pattern) | draft, two documents | 1440 | each row | ⋯ button | — (W13: ⋯ on each row) | 32×32 `kern-icon--more-vert` 20 px, ink `#0b1220`, after the trash, both boxes touching; the row stays 40 px; since bug v5-ui-fixes (B4), 2026-11-18: no trash, the ⋯ alone at the row's end on every row, a single document's too (a document that needs data: KERN's error icon just before it), the row still 40 px (not re-measured) | W13 |
 | none (W13) | draft, two documents | 1440 | ⋯ | accessible name | "Move <document>" (copy.md §5) | "Move Personal ID", "Move Driving licence" | match |
 | none (W13) | draft, two documents | 1440 | row's name | room for the name | A9 row, 230 px | 110 px: "Driving licence", "Personal ID", "Personalausweis" (also semibold), "Führerschein" not cut | match |
 | none (W13) | menu open, first row (keyboard: Tab, Enter) | 1440 | menu | entries | first row has no "Move up" (FR-047) | "Move down" only; the focus on it (focus-visible fill) | match |
@@ -1070,11 +1074,29 @@ Browser: the `playwright-chrome` MCP (Chromium), Vite 5176 against the backend o
 | none (W13) | menu open, last row (keyboard / mouse) | 320 | menu | placement, focus | on screen; ring only after keyboard | 32–273; "Move up"; `:focus-visible` true by keyboard, false by mouse | match |
 | none (W13) | after Move down (keyboard) / Move up (mouse) | 320 | focus, region | ring after keyboard only | as at 1440 | moved ⋯ focused, 4 px ring by keyboard, none by mouse; the region's text as above; no h-scroll | match |
 | none (W13) | one-document draft | 320 | row | no ⋯, h-scroll | none | no ⋯; no h-scroll; one `h1`; name 151 px | match |
-| none (W13) | two documents, list | 160 | rows | layout (`narrow:`) | nothing hidden (W16) | the trash and the ⋯ wrap under the name at the row's end; rows 17–128 in the card 8–137; ⋯ 88–120; name 63 px ("Personal…", `truncate` by design; 23 px before this task) | W16 |
+| none (W13) | two documents, list | 160 | rows | layout (`narrow:`) | nothing hidden (W16) | the trash and the ⋯ wrap under the name at the row's end; rows 17–128 in the card 8–137; ⋯ 88–120; name 63 px ("Personal…", `truncate` by design; 23 px before this task); since bug v5-ui-fixes (B4), 2026-11-18: no trash, the ⋯ alone wraps under the name at the row's end (not re-measured) | W16 |
 | none (W13) | two documents, list | 160 | page | h-scroll, h1 | none, 1 | `scrollWidth` 160 = `clientWidth` 160; one `h1` | match |
 | none (W13) | menu open, first and last row | 160 | menu | placement | on screen | `full`, 24–121 (inside 160); "Move down" / "Move up" wraps to two lines, 79 px | match |
 | none (W13) | after Move down (keyboard) / Move up (mouse) | 160 | focus, region | as at 320 | as at 320 | moved ⋯ focused, ring by keyboard only; texts as above; no h-scroll | match |
-| none (W13) | one-document draft | 160 | row | no ⋯, layout | nothing hidden | no ⋯; the trash wraps under the name; no h-scroll; one `h1` | W16 |
+| none (W13) | one-document draft | 160 | row | no ⋯, layout | nothing hidden | no ⋯; the trash wraps under the name; no h-scroll; one `h1`; since bug v5-ui-fixes (B4), 2026-11-18: no trash; the ⋯, holding only "Remove document", wraps under the name where the trash was (not re-measured) | W16 |
+
+**Since bug v5-ui-fixes (B4), 2026-11-18** (spec Clarification 2026-11-18, FR-047): the row has no
+trash, and every row has the ⋯, a single document's too, named "Actions for <document>" /
+"Aktionen für <document>". Its entries come from `documentMenuOf()` (`DocumentsStep/utils.ts`):
+"Move up" (not on the first row), "Move down" (not on the last), then, after the divider, the red
+"Remove document" / "Dokument entfernen" with `kern-icon--delete` and
+`danger: true, separated: true`, as the rules step's "Delete rule"; a single document's ⋯ holds
+only "Remove document".
+`moveTargetsOf()` no longer returns `hasMoveMenu`, and the copy `moveDocumentLabel` and
+`removeDocumentLabel` are gone. "Remove document" opens the removal question (F72) unchanged.
+`ActionMenu` gives the focus back to the ⋯ before it runs the entry, so "Keep document", Escape, ×
+and the scrim leave it on the ⋯; after a confirmed removal it goes to the shown document's list
+item, or to "Add document" when none is left, as before. A document that needs data keeps KERN's
+error icon, now just before the ⋯, decorative, without the hover swap. The ⋯'s wrapper keeps
+`data-no-drag`. The rows above that name the ⋯ "Move <document>" / "<document> verschieben",
+find no ⋯ with one document, reach "Remove Driving licence" by Tab, or list a menu without
+"Remove document" (its entries and its 220×58 box) record T058's build. Not yet verified in a
+browser.
 
 #### T059, dragging a document to its place (S8 "Dragging"; frames R1 `7298:63317` (list `7298:63333`, line `7301:63416`, copy `7301:63418`), R2 `7298:63736` (list `7298:63752`, line `7301:63557`, copy `7301:63559`), R3 `7298:64157` (list `7298:64173`); F22, F25, R6, R15 V2; T059a, the copy's width and opacity (design-notes §4.2, §1); FR-046, FR-048, FR-049, US6-AS1, US6-AS2)
 
@@ -1137,6 +1159,12 @@ Browsers: the `playwright-chrome` MCP (Chromium) for the per-node comparison at 
 | R2 | over the first place | 160 | line, copy | as at 1440 | line above the first row; copy 8 px inside the row | line at the top, row 12 lower; copy 25–120; no h-scroll | match |
 | R3 | dropped | 160 | order, focus | moved, ⋯ focused | — | moved; focus on the moved row's ⋯, `:focus-visible` false; no h-scroll; one `h1` | match |
 | none | keyboard focus | 320, 160 | the row's controls | focus ring after keyboard focus, none after a click | — | the drag adds no focusable control; the keyboard path (⋯ → "Move up/down") is T058's rows at 320 and 160 | T058 |
+
+**Since bug v5-ui-fixes (B4), 2026-11-18**: the rows have no trash (the note after T058's table;
+§1). The rows above that name it record T059's build: R1's row height (still 40, now the ⋯'s 32
+plus 8), R3's look (R3 draws the trash on the shown row, no longer built), the press on the trash
+(now only the ⋯, whose wrapper keeps `data-no-drag`, starts no drag) and the 0.15 s colour
+transition read on the trash. Not re-measured.
 
 #### T066: the example banner against 1h `6798:122695`, 1i `7344:96396`, 1i-c `7344:96451` (C4; FR-058; F29 n/a here, W15)
 
@@ -3930,7 +3958,10 @@ reversed.
   wrap under the name (the name was 0 px wide at 160 px without it, 63 px now); the focus finds
   the moved row's ⋯ by `#document-row-<key> [aria-haspopup="menu"]`, since `ActionMenu` takes no
   id; the catalog has two document types, so no row in the browser offers both entries (§4.3, for
-  T084). Kept.
+  T084). Kept. Amended 2026-11-18 (bug v5-ui-fixes (B4); spec Clarification 2026-11-18): the
+  trash is gone; the ⋯ stands alone at the row's end on every row, a single document's too, and
+  ends with the red "Remove document" after the divider; below 320 CSS px the ⋯ alone wraps
+  under the name; the focus still finds the moved row's ⋯ by `[aria-haspopup="menu"]`.
 - **T059a, the dragged copy's width and opacity** (T059's UNCERTAIN 1 and 2; the user,
   2026-11-11, phase 8): R1 and R2 draw the copy cut 8–10 px inside the list's right edge (206 px,
   then 172 px as the pointer moves right), at opacity 0.85 and 0.75. The user's answer: the copy's

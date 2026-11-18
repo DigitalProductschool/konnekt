@@ -153,7 +153,7 @@ export default function ItemName({
         onChange={(event) => dispatchField({ type: 'change', value: event.target.value })}
         onKeyDown={handleKeyDown}
         onBlur={handleBlur}
-        className={`rounded-kern-default bg-kern-layout-background-default text-kern-static-medium text-kern-layout-text-default focus-visible:outline-kern-action-focus-default motion h-40 w-240 max-w-full border px-16 leading-(--kern-typography-line-height-medium-static) transition-colors duration-(--duration-colour) focus-visible:outline-4 focus-visible:outline-offset-0 ${error ? 'border-kern-feedback-danger' : 'hover:border-kern-form-input-border border-(--kern-color-decorative-border-default)'}`}
+        className={`rounded-kern-default bg-kern-layout-background-default text-kern-static-medium text-kern-layout-text-default focus-visible:outline-kern-action-focus-default motion h-40 w-240 max-w-full border px-16 leading-(--kern-typography-line-height-medium-static) transition-colors duration-(--duration-colour) focus-visible:outline-2 focus-visible:outline-offset-0 ${error ? 'border-kern-feedback-danger' : 'hover:border-kern-form-input-border border-(--kern-color-decorative-border-default)'}`}
       />
       {/* Live from the start, so that an error replacing the hint is announced */}
       <div id={messageId} aria-live="assertive">

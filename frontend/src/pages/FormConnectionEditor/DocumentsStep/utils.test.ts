@@ -17,6 +17,7 @@ import {
   dataCountOf,
   dataCountText,
   documentGlyphOf,
+  documentMenuOf,
   documentsNeedingData,
   dragOffsetOf,
   dragPointerTypeOf,
@@ -870,15 +871,79 @@ describe('searchCardHeight', () => {
   });
 });
 
-describe('moveTargetsOf (the ⋯ menu’s entries; FR-047, W13)', () => {
+describe('moveTargetsOf (where the ⋯ menu moves a document; FR-047, W13)', () => {
   it('offers "Move up" except on the first row and "Move down" except on the last', () => {
-    expect(moveTargetsOf(0, 3)).toEqual({ hasMoveMenu: true, up: null, down: 1 });
-    expect(moveTargetsOf(1, 3)).toEqual({ hasMoveMenu: true, up: 0, down: 2 });
-    expect(moveTargetsOf(2, 3)).toEqual({ hasMoveMenu: true, up: 1, down: null });
+    expect(moveTargetsOf(0, 3)).toEqual({ up: null, down: 1 });
+    expect(moveTargetsOf(1, 3)).toEqual({ up: 0, down: 2 });
+    expect(moveTargetsOf(2, 3)).toEqual({ up: 1, down: null });
   });
 
-  it('has no menu with one document', () => {
-    expect(moveTargetsOf(0, 1)).toEqual({ hasMoveMenu: false, up: null, down: null });
+  it('offers no move with one document', () => {
+    expect(moveTargetsOf(0, 1)).toEqual({ up: null, down: null });
+  });
+});
+
+describe('documentMenuOf (a row’s ⋯ menu; W13, bug v5-ui-fixes B4)', () => {
+  const copy = DOCUMENTS_COPY.en;
+  const labelsOf = (index: number, count: number) =>
+    documentMenuOf(index, count, copy, { onMove: () => {}, onRemove: () => {} }).map(
+      (action) => action.label
+    );
+
+  it('lists the moves the row offers, then "Remove document"', () => {
+    expect(labelsOf(0, 3)).toEqual(['Move down', 'Remove document']);
+    expect(labelsOf(1, 3)).toEqual(['Move up', 'Move down', 'Remove document']);
+    expect(labelsOf(2, 3)).toEqual(['Move up', 'Remove document']);
+  });
+
+  it('holds only "Remove document" for a single document, without a divider above it', () => {
+    expect(labelsOf(0, 1)).toEqual(['Remove document']);
+    const [remove] = documentMenuOf(0, 1, copy, { onMove: () => {}, onRemove: () => {} });
+    expect(remove).toMatchObject({
+      danger: true,
+      separated: false,
+      icon: { kern: 'kern-icon--delete' },
+    });
+  });
+
+  it('draws the removal red, after the divider, with KERN’s trash; the moves plain', () => {
+    const [up, down, remove] = documentMenuOf(1, 3, copy, {
+      onMove: () => {},
+      onRemove: () => {},
+    });
+    expect(remove).toMatchObject({
+      danger: true,
+      separated: true,
+      icon: { kern: 'kern-icon--delete' },
+    });
+    for (const move of [up, down]) {
+      expect(move.danger).toBeUndefined();
+      expect(move.separated).toBeUndefined();
+    }
+  });
+
+  it('moves to the row above or below, and removes the row’s document', () => {
+    const moves: number[] = [];
+    let removed = 0;
+    const actions = documentMenuOf(1, 3, copy, {
+      onMove: (toIndex) => moves.push(toIndex),
+      onRemove: () => {
+        removed += 1;
+      },
+    });
+    for (const action of actions) {
+      action.onSelect();
+    }
+    expect(moves).toEqual([0, 2]);
+    expect(removed).toBe(1);
+  });
+
+  it('words the entries in German', () => {
+    expect(
+      documentMenuOf(1, 3, DOCUMENTS_COPY.de, { onMove: () => {}, onRemove: () => {} }).map(
+        (action) => action.label
+      )
+    ).toEqual(['Nach oben', 'Nach unten', 'Dokument entfernen']);
   });
 });
 

@@ -179,10 +179,16 @@ export const TAB_ACTIONS_CLASSES = '-my-4 shrink-0';
 
 /**
  * "+ Add variant" and its (i) (U43 6168:7011): KERN's small tertiary button (48px target, 40px
- * visible, its label 16px from its right edge) pulled 12px towards the (i), so that the (i) sits 4px
- * after the label (the frame's `mr-[-12px]`); the group centres both in the 48px row
+ * visible) with the (i) 4px after its label (the frame's `mr-[-12px]`), and the group centres both
+ * in the 48px row. The button's hover and pressed tints are its own background, so its box reaches
+ * past the (i) (bug add-variant-hover-tooltip): its right padding 24 instead of KERN's 8, so that
+ * it ends 32px after the label (8 of the label's own), pulled 28px back over the (i), which then
+ * spans 4–24px after the label, 8px inside the box's edge as the "+" is after its left one. The
+ * group's `pr-8` keeps those 8px in the row. The (i) stays on top for the pointer (KERN's icon
+ * mask paints it after the button), so its tooltip and target are as before
  */
-export const ADD_VARIANT_CLASSES = 'flex items-center [&>.kern-btn]:-mr-12!';
+export const ADD_VARIANT_CLASSES =
+  'flex items-center pr-8 [&>.kern-btn]:-mr-28! [&>.kern-btn]:pr-24!';
 
 /**
  * The Add variant and Edit variant dialogs' fields (U37 "Dialog content/Add variant" 6139:32693):

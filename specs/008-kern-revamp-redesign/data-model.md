@@ -121,7 +121,7 @@ A reducer in the editor (`LeaveFlowState`, actions `askLeave`, `cancel`, `savePr
 |---|---|---|---|
 | create or draft | product name, "Your connections" | `leaveAsked` → "Leave this connection?" | **Save progress**: `saving` → Save and exit → leaves (a validation error returns to the flow with the field marked; FR-023g's message for a missing name); **Discard connection**: leaves without storing and forgets the flow's local draft; × / Escape: `idle` |
 | edit of a published connection | the same | `saveAsked` → "Save your changes?" | **Save**: opens "Save changes?" (the save dialog) and leaves to the details once saved; **Discard changes**: leaves without saving; × / Escape: `idle` |
-| any flow with unsaved changes | "Log out" | `logoutAsked` → "Save before you log out?" | **Save and log out**: stores the draft, then logs out; **Log out anyway**: logs out; **Cancel** / ×: `idle`, focus back on the user menu |
+| any flow with unsaved changes | "Log out" | `logoutAsked` → "Save before you log out?" | **Save and log out**: stores the draft, then logs out; **Log out anyway**: logs out; × / Escape / scrim: `idle`, focus back on the user menu (no "Cancel" since bug v5-ui-fixes, 2026-11-18) |
 | any flow with unsaved changes | closing or reloading the tab | — | the browser's "Leave site?" (`beforeunload`); the local draft stays the safety net (V9) |
 | any flow with unsaved changes | the browser's back button | — | a forced leave: no dialog (no router blocker, V9); the local draft stays the safety net (005-S4) |
 | an open rule editor | any of the above | — | "Save changes to Rule 01?" first; no editor state is stored |
@@ -181,7 +181,9 @@ scope: 'top' | groupId }`, inside a group limited to that group's rules (Clarifi
 applies the values, re-evaluates and shows the toast; a validation error blocks the whole save.
 The data card is a flat list grouped per document (the document's name as the row group's
 accessible heading, no visible column), rows "<label>: <value>" with the C6 formats; the result
-heading "Result: doesn't meet <n> rule(s)" / "Result: meets the rules"; the panel scrolls (F43).
+heading "Result: doesn't meet <n> rule(s)" / "Result: meets the rules"; the panel scrolls (F43),
+except where the step header is pinned and the cards sit side by side: there each card's rows
+scroll on their own (bug v5-ui-fixes, 2026-11-18).
 The variant tab shows the "no citizen can meet" finding from the evaluator only (FR-041).
 
 ### The publish dialog (FR-044)

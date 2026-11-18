@@ -120,11 +120,15 @@ export const EDIT_DATA_COPY = defineTexts(
   }
 );
 
+/** The digits of a `dd.mm.yyyy` date: a date field keeps no more (`dateEntryOf()`) */
+export const DATE_ENTRY_DIGITS = 8;
+
 /** The part of a licence class's issue date (`PersonaField.part`), labelled "Class B since" */
 export const ISSUE_DATE_PART = 'issue_date';
 
-// The step's layout where the wizard pins its step header (spec 008 F43, FR-043; CLAR #31 (c);
-// Figma U72 7058:61648 "only the panel scrolls"; T033's slot, `VISIBLE_HEIGHT_CLASSES`)
+// The step's layout where the wizard pins its step header (spec 008 FR-043, as clarified on
+// 2026-11-18: V5 frame 15 7599:57529 "Many rules (12)" brings back each card's own scroll area,
+// reversing CLAR #31 (c)'s "the panel scrolls"; T033's slot, `VISIBLE_HEIGHT_CLASSES`)
 
 /**
  * The step: the visible part of the window under the pinned step header, less the content's 40px
@@ -134,22 +138,41 @@ export const ISSUE_DATE_PART = 'issue_date';
 export const STEP_PINNED_CLASSES = 'wizard-pinned:pb-24';
 
 /**
- * The persona panel (Figma "Applicant panel" 7058:61704): the only part that scrolls, as a whole,
- * not each card (F43; the frames' per-card scroll areas 7114:49671–7114:49674 are CLAR #31 (c)).
- * A column, so that its "Data and result" box fills its height (`PANEL_CONTENT_CLASSES`).
- * `relative` makes it the containing block of the cards' hidden texts (`sr-only`: the documents'
- * headings, "Met", "Fails a rule:"), which are absolutely positioned: without it, they escape the
- * scroll container, and with many rules their places far down in the panel made the page scroll
+ * The persona panel (Figma "Applicant panel" 7599:57586): a column, so that its "Data and result"
+ * box fills its height (`PANEL_CONTENT_CLASSES`). Where the cards sit side by side (`lg`), each
+ * card scrolls its own rows (`CARD_SCROLL_CLASSES`) and the panel holds them at its height, so
+ * it doesn't scroll with loaded cards; it still does where they are stacked (below `lg`), and as
+ * a fallback for the skeleton cards (317px high) in a short window. `relative` makes it the
+ * containing block of the hidden texts outside the scroll areas (`sr-only`), which are
+ * absolutely positioned: without it, they escape the scroll container, and with many rules their
+ * places far down in the panel made the page scroll
  */
 export const PANEL_CLASSES =
   'wizard-pinned:min-h-0 wizard-pinned:flex-1 wizard-pinned:overflow-y-auto relative flex flex-col overflow-x-clip p-16';
 
 /**
- * "Data and result" (7058:61705): the two cards side by side from `lg`, 16px apart, as high as the
+ * "Data and result" (7599:57587): the two cards side by side from `lg`, 16px apart, as high as the
  * panel's visible part when they are shorter (U70 7057:61267, U71 7058:61372: both cards 395px in
- * a 427px panel), and as high as the taller one otherwise, the other stretching to it (U72)
+ * a 427px panel). Where the step header is pinned, side by side, no higher than that either
+ * (frame 15: 411px in the 443px panel): the cards' rows scroll inside them. Elsewhere it is as
+ * high as the taller card, the other stretching to it
  */
-export const PANEL_CONTENT_CLASSES = 'flex grow flex-col gap-16 lg:flex-row';
+export const PANEL_CONTENT_CLASSES =
+  'wizard-pinned:lg:min-h-0 flex grow flex-col gap-16 lg:flex-row';
+
+/**
+ * A card's rows under its head (`CardScrollArea`; frame 15: the data card's scroll area
+ * 7599:57593 and the result card's 7599:57635, each 8px under its 48px head). Where the step
+ * header is pinned and the cards sit side by side, it takes the rest of the card's height and
+ * scrolls; it reaches 16px into the card's right padding, with the same padding inside, so that
+ * the scrollbar sits in that padding, as Figma's 4px bar does, and the rows keep their width
+ * (the browser's own bar, as everywhere in the app). `relative` keeps the rows' hidden texts
+ * (`sr-only`) inside it. It takes the keyboard focus, since nothing in the rows does (WCAG 2.1.1;
+ * Safari doesn't focus a scroller by itself), with the ring for the keyboard only: KERN's
+ * unlayered rules for `[tabindex]` need the `!` (as `ACTIVITY_LIST_CLASSES`)
+ */
+export const CARD_SCROLL_CLASSES =
+  'wizard-pinned:lg:min-h-0 wizard-pinned:lg:flex-1 wizard-pinned:lg:overflow-y-auto wizard-pinned:lg:overflow-x-clip wizard-pinned:lg:-mr-16 wizard-pinned:lg:pr-16 rounded-kern-small focus-visible:outline-kern-action-focus-default! relative focus-visible:outline-4! focus-visible:outline-offset-2! [&:focus:not(:focus-visible)]:outline-none!';
 
 // Citizens row (S8.3; T032): a chip's 20 px KERN mask icon for its outcome in the shown variant,
 // in its colour (design-notes §10.4; Figma 7057:59061, 7057:59056). The shapes differ (check

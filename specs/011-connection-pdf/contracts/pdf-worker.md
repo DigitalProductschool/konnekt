@@ -8,7 +8,7 @@ research R2, R9, R13. **Shapes**: [data-model.md](../data-model.md) §2, §5, §
 
 | Part | Path | Touches browser APIs | Does |
 |---|---|---|---|
-| Button and version | `pages/FormConnectionDetail/PdfDownload.tsx` (in the Summary card's header through `DetailAccordion`'s new `actions` slot) | no | shows "Download PDF", the busy state, the failure notice and "Version …" |
+| Button and version | `pages/FormConnectionDetail/PdfDownload.tsx` (in the strip under the Summary card's header row, through `DetailAccordion`'s `strip` slot; the `actions` slot beside the toggle until 2026-11-18, bug v5-ui-fixes (B3)) | no | shows "Download PDF", the busy state, the failure notice and "Version …" |
 | Hook | `hooks/useConnectionPdf.ts` | yes: `Worker`, `URL.createObjectURL`, an anchor's `download` | the reducer of data-model §6; fetches, builds the model, runs the worker, saves the file |
 | Worker | `workers/pdf.ts` | yes: worker scope, `fetch` of the font files | imports PDFKit and the fonts dynamically, renders, posts the bytes |
 | Pure modules | `utils/connectionPdf/*.ts` | no | the model, gaps, file name, blocks, paginate, the drawing over an injected PDFKit document, texts |

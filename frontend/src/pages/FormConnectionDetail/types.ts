@@ -191,19 +191,18 @@ export interface DetailAccordionProps {
   open: boolean;
   onToggle: () => void;
   /**
-   * The header's controls between the heading and the toggle, such as the Summary's version and
-   * "Download PDF" (spec 011, design-notes §2); on narrow windows a row of their own under the
-   * heading
+   * Under the header row, inside the header, open or closed: the Summary's version strip with
+   * "Download PDF" (spec 011, design-notes §2; V5 7603:61502)
    */
-  actions?: ReactNode;
-  /** Under the header row, open or closed, full width: the PDF's failure (design-notes §3) */
+  strip?: ReactNode;
+  /** Under the header, open or closed, full width: the PDF's failure (design-notes §3) */
   notice?: ReactNode;
   children: ReactNode;
 }
 
 /**
- * The Summary's version and "Download PDF" (spec 011, FR-001, FR-032; design-notes §2, §3): the
- * version alone without `pdf` (both details pass it; the approval page shows neither)
+ * The Summary's version strip with "Download PDF" (spec 011, FR-001, FR-032; design-notes §2, §3):
+ * the version alone without `pdf` (both details pass it; the approval page shows neither)
  */
 export interface PdfDownloadProps {
   /** The content's version, `XXXX-XXXX-XXXX` (`version_fingerprint`) */

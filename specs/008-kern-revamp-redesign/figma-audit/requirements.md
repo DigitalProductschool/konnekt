@@ -72,8 +72,8 @@
 | FR-026f | An open rule editor asks "Save changes to Rule 01?" first; no editor state is stored | P3 | Y | Save changes dialog | default | | FR-026; Q8c |
 | FR-026g | Step 1 shows the info strip "Starts as a draft. It only becomes active when you publish." | P2 | Y | Step 1 Connection | default | F item, copy | FR-026; Q8d |
 | FR-026h | Logging out with unsaved changes asks "Save before you log out?" ("Your latest changes will be lost …") | P1 | Y | Log out dialog | default | F item, copy, supersedes 005-S7.2, 005-S7.3, 005-S7.4, 005-S7.5 | FR-026; Q8e |
-| FR-026i | Its buttons: "Save and log out" (primary, stores, then logs out), "Log out anyway", "Cancel", × | P1 | Y | Log out dialog | default | copy | FR-026; Q8e |
-| FR-026j | "Cancel" returns the focus to the user menu | P1 | Y | Log out dialog | default | | FR-026; Q8e |
+| FR-026i | Its buttons: "Save and log out" (primary, stores, then logs out), "Log out anyway", ~~"Cancel"~~, × | P1 | Y | Log out dialog | default | copy; "Cancel" removed 2026-11-18 (bug v5-ui-fixes) | FR-026; Q8e; CLAR 2026-11-18 #3 |
+| FR-026j | ~~"Cancel"~~ The ×, Escape and the scrim return the focus to the account pill | P1 | Y | Log out dialog | default | reworded 2026-11-18 (bug v5-ui-fixes: no "Cancel") | FR-026; Q8e; CLAR 2026-11-18 #3 |
 | FR-026k | The device's local draft remains the safety net after a crash or a forced leave | P1 | Y | Local drafts offer | default | | FR-026; Q8b |
 | FR-026l | In the edit flow, product name and breadcrumb open "Save your changes?" ("If you leave now, your changes are lost. …") | P4 | Y | Edit flow; Leave dialog | default | F item, copy | FR-026; FR-045; #47 |
 | FR-026m | Its "Save" opens "Save changes?" and leaves to the details once saved; a validation error keeps the member | P4 | Y | Leave dialog; Publish dialog | default | copy | FR-026; #47 |
@@ -147,7 +147,7 @@
 | FR-040c | Removed items in a variant keep their message line and "Changed here" text | P3 | Y | Rules step | default | | FR-040; Q28a |
 | FR-040d | A variant based on Standard stays linked while Standard has no rules | P3 | Y | Rules step | default | | Q28b |
 | FR-041a | A variant tab with a problem shows a red error icon; its tooltip (hover, focus) holds the text | P3 | Y | Variant tabs | error | F item, supersedes 003-S4.2, 003-S4.3 | FR-041; Q29a |
-| FR-041b | A variant tab without findings shows a grey ⓘ | P3 | Y | Variant tabs | default | F item | FR-041; Q29a |
+| FR-041b | ~~A variant tab without findings shows a grey ⓘ~~ Without findings, only a description shows the grey ⓘ; otherwise no icon | P3 | Y | Variant tabs | default | F item; reversed 2026-11-18 (bug v5-ui-fixes: no "No findings." ⓘ) | FR-041; Q29a; CLAR 2026-11-18 #2 |
 | FR-041c | The Test step's tabs show only the "no citizen can meet" finding, from the evaluator | P3 | Y | Test step | default | | FR-041; Q29b, Q29d |
 | FR-041d | The names in the findings banner are links that scroll to and focus the item | P3 | Y | Rules step | default | | FR-041; Q29c |
 | FR-041e | No line above the test step's result heading says that no citizen can meet the variant | P3 | Y | Test step | default | supersedes 004-S8.6.1 | FR-041; #50 |
@@ -157,7 +157,7 @@
 | FR-042d | Licence classes are picked by code; Nationality and Expiry date have fields; "Class B since" | P3 | Y | Edit data dialog | default | copy | FR-042; Q30 |
 | FR-043a | Result rows keep the statement and "Not met" / "Couldn't be checked" text, with the design's icon and tint | P3 | Y | Test step | default | | FR-043; Q31b |
 | FR-043b | The data card is a flat list without visible document column; the document's name stays the row group's accessible heading | P3 | Y | Test step | default | amends 004-S8.4.2 | FR-043; Q31c, #46 |
-| FR-043c | The panel scrolls as a whole, not each card | P3 | Y | Test step | default | | FR-043; Q31c |
+| FR-043c | ~~The panel scrolls as a whole, not each card~~ Pinned and side by side (`lg`), each card's rows scroll on their own | P3 | Y | Test step | default | reversed 2026-11-18 (bug v5-ui-fixes, V5 frame 15 `7599:57529`) | FR-043; Q31c; CLAR 2026-11-18 #1 |
 | FR-043d | A met variant shows no success message | P3 | Y | Test step | success | | FR-043; Q31a |
 | FR-044a | The publish dialog offers "Back to test", returning to the test step | P4 | Y | Publish dialog | default | F item, copy, supersedes 004-S5.3 | FR-044; Q33 |
 | FR-044b | It summarises the connection as counts ("7 data items", "Standard · 2 rules") | P4 | Y | Publish dialog | default | copy, supersedes 002-S5.1 | FR-044; Q33 |
@@ -508,7 +508,7 @@ Spec 008's Clarifications (session 2026-11-07, #1–#61) decide drift items agai
 | 003-S3.1 | The rule editor shows nothing about findings; a new rule is checked once it is added | P3 | Y | Rule editor | default | baseline | 003 §S3; W15 |
 | 003-S4.1 | Each variant is checked on its own, with the rules it inherits, changes and adds | P3 | Y | Rules step | default | baseline | 003 §S4; 003-FR-001 |
 | 003-S4.2 | Tab icon after the name, merged with the description (i): warning triangle or info icon | P3 | Y | Variant tabs | default | baseline, amends 002-S4.2, superseded by FR-041 | 003 §S4; A6 |
-| 003-S4.3 | No icon without findings and without a description | P3 | Y | Variant tabs | default | baseline, superseded by FR-041 | 003 §S4 |
+| 003-S4.3 | No icon without findings and without a description | P3 | Y | Variant tabs | default | baseline, superseded by FR-041; holds again since 2026-11-18 (bug v5-ui-fixes, CLAR 2026-11-18 #2) | 003 §S4 |
 | 003-S4.4 | Its accessible name is "<variant> has findings" when the variant has findings | P3 | Y | Variant tabs | default | baseline, copy:findings | 003 §S4; §Copy Tab |
 | 003-S4.5 | Tooltip on hover and keyboard focus: the description, then below a divider the findings segment with kind icon | P3 | Y | Variant tabs | default | baseline | 003 §S4; W20 |
 | 003-S4.6 | A rule removed in a based variant shows the removed state and no note; checked again once restored | P3 | Y | Rules step | default | baseline | 003 §S4; W9 |

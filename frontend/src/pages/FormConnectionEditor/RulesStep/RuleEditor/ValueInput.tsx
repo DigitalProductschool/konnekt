@@ -28,7 +28,7 @@ export default function ValueInput({
       autoComplete="off"
       onChange={(event) => onChange(event.target.value)}
       onBlur={onBlur}
-      className={`rounded-kern-default bg-kern-layout-background-default text-kern-static-medium text-kern-layout-text-default focus-visible:outline-kern-action-focus-default h-40 shrink-0 border px-16 leading-(--kern-typography-line-height-medium-static) focus-visible:outline-4 focus-visible:outline-offset-2 ${invalid ? 'border-kern-feedback-danger' : 'border-(--kern-color-decorative-border-default)'} ${widthClass}`}
+      className={`rounded-kern-default bg-kern-layout-background-default text-kern-static-medium text-kern-layout-text-default focus-visible:outline-kern-action-focus-default h-40 shrink-0 border px-16 leading-(--kern-typography-line-height-medium-static) focus-visible:outline-2 focus-visible:outline-offset-2 ${invalid ? 'border-kern-feedback-danger' : 'border-(--kern-color-decorative-border-default)'} ${widthClass}`}
     />
   );
 }

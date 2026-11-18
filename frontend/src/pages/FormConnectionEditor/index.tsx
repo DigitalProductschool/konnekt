@@ -207,12 +207,13 @@ import {
  * unsaved changes: "Save" opens the save dialog, which leaves to the details once saved, and
  * "Discard changes" leaves without saving. "Log out" with unsaved work asks "Save before you log
  * out?": "Save and log out" stores the flow as above and then logs out, "Log out anyway" forgets
- * the local draft and logs out, and "Cancel" returns the focus to the account pill. If the account
- * menu's warning about other local drafts then cancels the log-out, the flow ends as without it:
- * a stored flow exits as its save does, a discarded one leaves for the overview. Only an answer
- * that stores asks "Save changes to Rule 01?" first. Closing or reloading the tab with unsaved
- * work gets the browser's "Leave site?". There is no router blocker (research V9): the browser's
- * back button leaves without asking, and the local draft is the safety net (005-S4).
+ * the local draft and logs out, and the ×, Escape or the scrim return the focus to the account
+ * pill (U17 6408:72919 draws no "Cancel"; bug v5-ui-fixes B8). If the account menu's warning about
+ * other local drafts then cancels the log-out, the flow ends as without it: a stored flow exits as
+ * its save does, a discarded one leaves for the overview. Only an answer that stores asks "Save
+ * changes to Rule 01?" first. Closing or reloading the tab with unsaved work gets the browser's
+ * "Leave site?". There is no router blocker (research V9): the browser's back button leaves
+ * without asking, and the local draft is the safety net (005-S4).
  *
  * Local drafts (FR-014 to FR-018; R9, R10): a new connection and a stored draft keep their unsaved
  * work on this device, in the signed-in account's local draft of their flow key (`new-<uuid>` or
@@ -1370,8 +1371,9 @@ function ConnectionWizard({
   }
 
   /**
-   * A list item's trash in the documents step: always asks first (F72), "Keep document" /
-   * "Remove document", naming the rules that check the document when there are any (002-S1.1).
+   * A list item's "Remove document" (its ⋯ menu) in the documents step: always asks first (F72),
+   * "Keep document" / "Remove document", naming the rules that check the document when there are
+   * any (002-S1.1).
    */
   function handleRemove(documentType: DocumentType) {
     dispatchView({
@@ -1384,7 +1386,7 @@ function ConnectionWizard({
   /**
    * "Remove document": the editor removes the asked document with its undo toast, the question
    * closes and the next document shows in its place, the previous one at the end (U24 A12). Its
-   * trash has gone with it, so the focus goes to the shown document's list item, or to "Add
+   * ⋯ has gone with it, so the focus goes to the shown document's list item, or to "Add
    * document" once none is left.
    */
   function handleConfirmDocumentRemoval() {
@@ -1406,7 +1408,7 @@ function ConnectionWizard({
       });
       dispatchView({ type: 'confirmRemovalDone', listIds });
     });
-    // After the dialog has closed, which returns the focus to the trash that has gone
+    // After the dialog has closed, which returns the focus to the ⋯ that has gone
     requestAnimationFrame(() =>
       document
         .getElementById(shown ? DOCUMENTS_STEP_IDS.listItem(shown) : DOCUMENTS_STEP_IDS.addDocument)
@@ -1714,11 +1716,11 @@ function ConnectionWizard({
             onCancel={() => answerLeave({ type: 'cancel' })}
             onConfirm={() => answerLeave({ type: 'saveProgress' })}
           />
+          {/* U17 6408:72919: two buttons side by side; the ×, Escape and the scrim cancel */}
           <ConfirmDialog
             open={leave.status === 'logoutAsked'}
             title={leaveCopy.logoutTitle}
             text={leaveCopy.logoutText}
-            cancelLabel={leaveCopy.cancel}
             secondaryLabel={leaveCopy.logOutAnyway}
             onSecondary={() => answerLeave({ type: 'logoutAnyway' })}
             confirmLabel={leaveCopy.saveAndLogOut}
@@ -1739,7 +1741,7 @@ function ConnectionWizard({
             onCancel={() => dispatch({ type: 'cancelRemoval' })}
             onConfirm={handleConfirmRemoval}
           />
-          {/* A list item's trash: the documents step's own question (F72) */}
+          {/* A list item's "Remove document": the documents step's own question (F72) */}
           <RemoveDataDialog
             removal={askedDocumentRemoval}
             rules={documentsView.confirmRemoval?.rules ?? []}

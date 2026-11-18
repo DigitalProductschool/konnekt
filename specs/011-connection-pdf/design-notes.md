@@ -7,7 +7,8 @@ Two kinds of design are involved:
   – V5" (`s8mU9oJDq3411e8bxMjQO9`), nodes `6396:48196` (the button) and `6809:46423` (the
   published details with the Summary card), and the draft's details (U93 #10). The decisions
   that spec 008 recorded for these frames stay in force (`specs/008-kern-revamp-redesign/
-  design-notes.md`, F53 is what this feature lifts).
+  design-notes.md`, F53 is what this feature lifts). Since 2026-11-18 (bug v5-ui-fixes (B3)) the
+  Summary card follows the final frame `7603:61494` instead (§1, §2).
 - **The PDF** has no Figma frame. Its reference is the prototype's agreed layout,
   `prototype/published-ids-top.pdf` and `prototype/draft-ids-top.pdf` (the `*-bottom.pdf` files
   are the rejected alternative), adjusted by the spec and by §4 and §5 below.
@@ -24,43 +25,100 @@ Two kinds of design are involved:
   `frontend/src/assets/icons/` (FIGMA-WORKFLOW §3.5: never substituted); KERN's `kern-icon`
   classes only if the asset is KERN's own download icon.
 
+*Updated 2026-11-18 (bug v5-ui-fixes (B3)):* the designer's final frame replaces `6396:48196`
+and `6809:46423` for the Summary card: section `7610:66276` → `7603:61487` → final candidate `7603:61494` (the
+hidden options A–E and the engineer build in `7603:61487` are history).
+- **Frames**: closed EN 832 `7603:61502` (832 × 142), DE 832 `7603:61506`, EN 640 `7603:61510`,
+  DE 640 `7603:61514`; open EN 832 `7603:61521` (832 × 370), DE 640 `7603:61548` (640 × 408); no
+  EN 640 open and no DE 832 open frame. Full screens at 1440: `7603:61578` (closed),
+  `7603:61791` (open).
+- **The header row** (inside `7603:61502`, ids prefixed `I7603:61503;`): `7536:58867`, 782 × 52
+  at 24, 16, holds "Summary" with its counts (`7536:58868`) and the toggle (`7536:58871`,
+  145 × 48), as the Links and Activity cards do.
+- **The strip** `7536:58887`, 782 × 44 at 24, 80, 12 under the row: `layout/background-hued`
+  (#f2f5fb) with radius 8. "Version <code>" (`7536:58888`, 156 × 24) sits 16 from its left;
+  "Download PDF" (`7536:58891`, 156 × 32) 8 from its right and 6 from its top. The card has 24
+  at the sides and 16 above and below: 16 + 52 + 12 + 44 + 16 + 2 = 142.
+- **Type**: "Version" body/small 14/24 400 `layout-text-muted`; the code label/small 14/24 600
+  `layout-text-default`.
+- **The button**: KERN secondary, 32 high (KERN 2.8 has 40 and 48), a 1 px action-blue border, a
+  label/small label and `icon-download-small`. That icon is a 24 px box with the same 16 px glyph
+  as `download-action.svg`: the paths were compared and match, so the asset stays (the
+  assessment's guess of a 20 px glyph was wrong).
+- **Open** (`7603:61521`): the header instance is 830 × 140; the body's first line
+  ("Documents") sits 8 into the body, so 24 under the strip; the toggle reads "Hide summary",
+  144 × 48.
+
 ## 2. The Summary card's header (published and draft details)
 
-`DetailAccordion` gets an optional `actions` slot, rendered between the heading block and the
-toggle; only the Summary passes it. The slot holds, in this order:
+*Updated 2026-11-18 (bug v5-ui-fixes (B3), Figma `7603:61494`, §1):* the version and "Download
+PDF" moved out of the header row into a strip under it, the button down to 32 px and the code to
+semibold. Until then an `actions` slot put them between the heading block and the toggle, the
+code medium and the button KERN's regular 48 px (§7.1's T032 rows, §9.2).
+
+`DetailAccordion` has an optional `strip` slot, rendered under the header row, inside the header
+(not in the collapsible body), so that it shows open and closed; only the Summary passes it
+(`RulesSummary`, with `PdfDownload`). The header row is the Links and Activity cards': the heading
+block and the toggle (the `basis-200` and the wrapping group of the old row are gone).
 
 ```text
-┌ Summary ───────────────────────────────────────────────────────────────────────────┐
-│ Summary                          Version 62D0-715F-01D1  [⤓ Download PDF]  View summary ⌄ │
-│ 2 documents · 9 data items · 3 variants · 4 rules                                  │
-└────────────────────────────────────────────────────────────────────────────────────┘
+┌ Summary ─────────────────────────────────────────────────────────────────────┐
+│ Summary                                                       View summary ⌄ │
+│ 2 documents · 9 data items · 3 variants · 4 rules                            │
+│ ┌──────────────────────────────────────────────────────────────────────────┐ │
+│ │ Version 62D0-715F-01D1                                  [⤓ Download PDF] │ │
+│ └──────────────────────────────────────────────────────────────────────────┘ │
+└──────────────────────────────────────────────────────────────────────────────┘
 ```
 
-**The version** (FR-032; the spec's clarification of 2026-11-09 placed it beside the button; no
-frame draws it, so this is the proposal):
-- Text "Version 62D0-715F-01D1", one line, `whitespace-nowrap`, left of the button with KERN's
-  8 px gap: "Version" in `text-kern-static-small` and `text-kern-layout-text-muted`, the code in
-  the page's Fira Sans, medium weight, `tabular-nums`, in the default text colour, so a reader
-  compares it character by character with a printout. Not `font-kern-mono`: KERN 2.8.2 ships no
-  Fira Mono file (spike), so that class falls back to the system's monospace. (Option, not
-  taken: an `@font-face` "Fira Mono" in `index.css` on the committed `FiraMono-Regular.ttf`,
-  which browsers would load only where the class is used, would print the code as the PDF does.)
+**The header with the strip** (`7603:61502`, `7603:61521`): 24 px at the sides and 16 above and
+below, the strip 12 under the row: 16 + 52 + 12 + 44 + 16 + 2 (the border) = 142 px closed. Open,
+the body starts 8 px lower (a `pt-8` wrapper inside the clipped body), so that its first line
+stays 24 from the strip. Without a strip (Links, Activity, the approval page's Summary) the
+header keeps `p-24`. The failure (`notice`, `PdfFailure`, §3) sits under the header, below the
+strip, full width, open or closed; no frame draws it.
+
+**The strip** (`PDF_STRIP_CLASSES` in `constants.ts`): `layout/background-hued` (#f2f5fb) with
+an 8 px radius; 16 px left of the version, 8 right of the button, 6 above and below the 32 px
+button, so 44 high; `flex-wrap justify-between gap-8`, so that in German or under 320 CSS px the
+button can wrap under the version.
+
+**The version** (FR-032; the spec's clarifications of 2026-11-09 and 2026-11-18; D4):
+- Text "Version 62D0-715F-01D1", one line, `whitespace-nowrap`, at the strip's left: "Version"
+  in `text-kern-static-small` (body/small 14/24) and `text-kern-layout-text-muted`, the code in
+  the page's Fira Sans, semibold (label/small 600; medium until 2026-11-18), `tabular-nums`, in
+  the default text colour, so a reader compares it character by character with a printout. Not
+  `font-kern-mono`: KERN 2.8.2 ships no Fira Mono file (spike), so that class falls back to the
+  system's monospace. (Option, not taken: an `@font-face` "Fira Mono" in `index.css` on the
+  committed `FiraMono-Regular.ttf`, which browsers would load only where the class is used, would
+  print the code as the PDF does.)
 - Plain text, not a control and not a tooltip; screen readers read it in place, after the
-  counts. No copy button (the details' copy buttons are for links).
+  counts and the toggle. No copy button (the details' copy buttons are for links).
 - Shown open or closed, on the published (scheduled, active and deactivated) and the draft
   details; the
   value comes from the loaded connection and changes when the page loads a newer one (FR-005).
-- Rejected places: in the counts line (it would read as one more count, and the clarification
-  put it beside the button); in the status band (not where a reader looks when comparing with the
-  PDF the button makes); under the button (a second line in a header that is otherwise one row).
+- Rejected places (2026-11-09, before the frame): in the counts line (it would read as one more
+  count, and the clarification put it beside the button); in the status band (not where a reader
+  looks when comparing with the PDF the button makes). The 2026-11-09 proposal also rejected a
+  second line under the header row, which the final frame chose.
 
-**Narrow screens** (320 px at 200 %, spec 008's rule for the header): the row wraps; the slot
-moves under the heading block as its own row (version, then the button) and the toggle stays
-last; nothing overlaps. The button keeps its full label but drops the glyph, and the label
-wraps between words ("Download / PDF") or at the German soft hyphen ("PDF / herunter- /
-laden"), so the button grows taller than 48 px (66 and 90), as spec 008's narrow rule lets
-pills grow (D8; it said "keeps its full label and 48 px height", which no label fits in the
-110–125 px row at 16 px). The version wraps before the button, never inside the code.
+**The button** (FR-001; `PDF_BUTTON_CLASSES`): `kern-btn kern-btn--secondary kern-btn--small`
+brought down to the frame's 32 px (`min-h-32!`; KERN's small is 40), without the small button's
+4 px margins (`my-0!`), side padding `px-11!` (the frame's 12 includes the 1 px border;
+`narrow:px-7!`), the 24 px download glyph (`download-action.svg`, §1) and KERN small's
+label/small label, 8 at the sides but 3 px above and below (`PDF_BUTTON_LABEL_CLASSES`: the
+frame's 32 includes the 1 px border, so 1 + 3 + 24 + 3 + 1; KERN's 4 made the button 34 and the
+strip 46, found by the v5-ui-fixes bug test): 156 × 32 in English, wider in German
+("PDF herunterladen"). The 32 px size is new in the app and stays local to `PdfDownload`. Busy
+state, live region, `aria-disabled`, the German soft hyphen and the `aria-label` without it are
+as before (§3, D8).
+
+**Narrow screens** (320 px at 200 %, D8): the header row wraps the toggle under the heading block
+where it doesn't fit, and the strip wraps the button under the version; nothing overlaps. The
+button keeps its full label but drops the glyph, and the label can wrap between words or at the
+German soft hyphen ("PDF / herunter- / laden"), so the button can grow taller than 32 px, as spec
+008's narrow rule lets pills grow. The version wraps before the code, never inside it. The
+heights are to be re-measured (§7.1).
 
 ## 3. States without frames (build from KERN patterns, as spec 008's W# items)
 
@@ -69,7 +127,7 @@ pills grow (D8; it said "keeps its full label and 48 px height", which no label 
 | Idle | "Download PDF" with the glyph | a button |
 | Busy (fetching and rendering) | label "Creating PDF…", the glyph kept (on a narrow window hidden in every state, D8), `aria-disabled="true"`, clicks ignored (the pattern of `ConfirmDialog`'s busy button); the rest of the page responds (FR-003) | the polite live region says "Creating the PDF…" once |
 | Saved | back to idle; the browser's own download indicator shows the file | the live region says "PDF saved." |
-| Failed | a KERN danger alert inside the Summary card, under the header row, full width, open or closed: title "Couldn’t create the PDF", the text `ErrorNoticeText` gives (the server's message with a 5xx's error id, or "Check your connection and try again."), and a secondary "Try again" button that starts a new run (FR-004); it disappears when a run starts | the alert's `role="alert"` |
+| Failed | a KERN danger alert inside the Summary card, under the header (since 2026-11-18 below the version strip, §2), full width, open or closed: title "Couldn’t create the PDF", the text `ErrorNoticeText` gives (the server's message with a 5xx's error id, or "Check your connection and try again."), and a secondary "Try again" button that starts a new run (FR-004); it disappears when a run starts | the alert's `role="alert"` |
 | Gone (404 at activation) | the details' not-found state, as `FormConnectionLoadState` shows it | as today |
 
 The announcements go to a polite `role="status"` region of the button's own, present from mount,
@@ -172,6 +230,10 @@ token's name beside each, since the worker can't read CSS.
 
 ### 7.1 The button, per node
 
+*Since 2026-11-18 (bug v5-ui-fixes (B3)) T032's rows record the header as first built, on
+`6396:48196` and `6809:46487`. The strip under the header row follows the V5 frames; their rows
+follow T032's block, to verify.*
+
 **T032, 2026-11-12**, Chromium (Playwright MCP, headless), the dev SPA against the seeded stack
 (A and C of §8.3).
 - **How it was measured**: a 1455 × 1167 window, so the body is 1440 wide (FIGMA-WORKFLOW §4
@@ -224,6 +286,28 @@ Also checked:
     put about 20 kB into the entry (T032 measured 955.01 kB).
 
 The run's other states, the timings and the second browser are T033's (§7.2).
+
+**Bug v5-ui-fixes (B3), 2026-11-18: the V5 frames, to verify.** The build follows the final frame
+`7603:61494` (§1, §2), read with the Figma MCP for the assessment and the fix. It has not been
+checked in a browser yet: the next step (`/speckit-bug-test`) measures EN and DE at 832 and 640,
+open and closed, the full screens at 1440, a 320 px window and the browser's own 200 % zoom, on A
+and C, and fills the last column. "Built" names the classes, not a measurement.
+
+| Node | State | Element | Figma | Built | Actual |
+|---|---|---|---|---|---|
+| `7603:61502` EN 832 | A, closed | card, header | 832 × 142: 24 at the sides, 16 above and below; the header row `7536:58867` 782 × 52 at 24, 16 | `px-24 py-16`, `gap-12` between the row and the strip: 16 + 52 + 12 + 44 + 16 + 2 = 142 | to verify |
+| `7603:61502` | A, closed | header row | "Summary" and its counts `7536:58868`; the toggle `7536:58871`, 145 × 48 | the heading block and the toggle, as on the Links and Activity cards; no `basis-200`, no wrapping group | to verify |
+| `7603:61502` | A, closed | strip | `7536:58887`, 782 × 44 at 24, 80 (12 under the row); `layout/background-hued` #f2f5fb, radius 8 | `PDF_STRIP_CLASSES`: `bg-kern-layout-background-hued rounded-kern-default`, `py-6 pr-8 pl-16`, `flex-wrap justify-between gap-8` | to verify |
+| `7603:61502` | A, closed | version | `7536:58888`, 156 × 24 at 16, 10; "Version" body/small 14/24 400 `layout-text-muted`; the code label/small 14/24 600 `layout-text-default` | "Version" `text-kern-static-small`, muted; the code `font-semibold tabular-nums`, default colour | to verify |
+| `7603:61502` | A, closed | button | `7536:58891`, 156 × 32 at 618, 6 (8 from the strip's right); 1 px action-blue border; `icon-download-small` (a 24 box, the 16 glyph); label/small | `PDF_BUTTON_CLASSES`: `kern-btn kern-btn--secondary kern-btn--small`, `min-h-32! my-0! px-11!`; `download-action.svg` at 24 (the same paths); KERN small's label at 8 on the sides, 3 above and below (`PDF_BUTTON_LABEL_CLASSES`, the border included in the 32); 156 × 32 expected | to verify |
+| `7603:61521` EN 832 | A, open | header, body | 832 × 370; the header instance 830 × 140; "Documents" 8 into the body, 24 under the strip; the toggle "Hide summary", 144 × 48 | the same header; the body's `pt-8` wrapper inside the clipped body | to verify |
+| `7603:61510` EN 640 | A, closed | strip | the card at 640 | `flex-wrap`: one row while the version and the button fit | to verify |
+| `7603:61506` DE 832, `7603:61514` DE 640, `7603:61548` DE 640 open (640 × 408) | A, German | strip, button | "PDF herunterladen" wider than 156; the DE 640 strip on one row | the button as wide as its label; it wraps under the version only where both don't fit | to verify, and where it wraps first |
+| `7603:61578` closed, `7603:61791` open | A, the full screens at 1440 | the card in the page | the card as above | as above | to verify |
+| not drawn | C (draft), open and closed | card | (the draft gets the same card, FR-001) | the same card: `DraftDetails` passes the version and `pdf` | to verify |
+| not drawn | the approval page | header | (no PDF there, FR-006) | `PublishSummary` passes no version: `p-24`, no strip | to verify |
+| not drawn | A, failed (a stubbed `500`) | `notice` | (§3) | under the header, below the strip, full width, open or closed | to verify |
+| not drawn | A, narrow (a 320 px window; 200 % zoom) | header row, strip, button | (D8) | the toggle wraps under the heading block where it doesn't fit, the button under the version; no glyph; the label wraps between words or at the soft hyphen | to verify, with the heights |
 
 ### 7.2 The details page's states
 
@@ -1272,10 +1356,15 @@ PDFKit's own `strike`, not `PlacedLine` artifacts.
   ones would need a second line breaker); an artifact nested in the tag (fails PDF/UA-1).
 
 **D4, the version in the Summary's header** (T031, the user, 2026-11-12; FR-032; §2). The code
-is 14 px like "Version": one size on the line, told apart by weight (medium, `tabular-nums`) and
-colour (the default text against the label's muted). Rejected: 16 px, the body's size. And the
-closed header is measured on `6809:46423`'s Summary header node `6809:46487` only, keeping P7b's
-ⓘ tooltip out of the comparison (rejected: switching to P7 `6396:47648`, the same geometry).
+is 14 px like "Version": one size on the line, told apart by weight (600 since 2026-11-18,
+medium before; `tabular-nums`) and colour (the default text against the label's muted).
+Rejected: 16 px, the body's size. And the closed header is measured on `6809:46423`'s Summary
+header node `6809:46487` only, keeping P7b's ⓘ tooltip out of the comparison (rejected:
+switching to P7 `6396:47648`, the same geometry).
+*Updated 2026-11-18 (bug v5-ui-fixes (B3)):* the final frame sets the code in label/small 600
+(`font-semibold`), so the weight is 600, not medium (500); the size and the colours stay. The
+version sits in the strip under the header row (§2), and the closed card is compared with
+`7603:61502`, no longer with `6809:46487` (§7.1).
 
 **D5, where the download's hook lives and what it is given** (T031, T033, accepted by the
 coordinator 2026-11-13; FR-005, SC-008; contracts/pdf-worker.md §2).
@@ -1332,6 +1421,12 @@ SC-006). Each the smallest change that fixes it, or a reason to leave it:
   does (spec 009, V9), so its name stays "PDF herunterladen". Built: 66 px in English, 90 in
   German, 66 for the busy German label, in both browsers. §2's "keeps its full label and 48 px
   height" is corrected to this.
+  *Updated 2026-11-18 (bug v5-ui-fixes (B3)):* the button is now the strip's 32 px one with KERN
+  small's label/small (14 px) label, so the 16 px figures above no longer apply. On a narrow
+  window the glyph is still hidden (`narrow:hidden!`) and the label can still wrap, the soft
+  hyphen and the `aria-label` unchanged; the strip wraps the button under the version where both
+  don't fit. Whether the 14 px label now fits one line, and the heights, are to be re-measured
+  (§7.1).
 - **A count split from its noun (fixed)**. `summaryCounts`, `items` and `rulesCounts` in
   `CONNECTION_DETAIL_COPY` join each number to its noun with a no-break space (U+00A0), both
   columns, as `STATUS_PILL_COPY.scheduledOn` keeps its "·". The PDF reuses these strings (the
@@ -1339,7 +1434,8 @@ SC-006). Each the smallest change that fixes it, or a reason to leave it:
   the space's width, PDFKit's line breaker doesn't break at it, and T043's sweep re-run gives
   the same pages, texts, shapes, contrast and veraPDF result (§7.4). The tagged text reads "7 data
   items" with a no-break space. The 1440 header's height and the version's place stay the
-  designer's (§7.2, "Needs a person").
+  designer's (§7.2, "Needs a person"; answered 2026-11-18 by `7603:61494`, bug v5-ui-fixes (B3),
+  §9.2).
 - **German words broken inside (fixed for spec 011's alert; accepted for the heading and toggle)**.
   `pdfFailedText` gets a soft hyphen, `Internet\u00ADverbindung`, as the editor's failure texts
   already have it (spec 009's R9 step 3); its visible words stay D2's, equal to
@@ -2016,6 +2112,12 @@ designer is to be told about, the decisions, and what only a person can do. Phas
 
 ### 9.2 The deviation for the designer
 
+*Answered 2026-11-18 (bug v5-ui-fixes (B3)):* the designer drew the version in the final frame
+`7603:61494`: a strip under the header row, with "Version <code>" (the code semibold) at its left
+and a 32 px "Download PDF" at its right; the closed card is 142 px high (`7603:61502`). The build
+follows the frame (§1, §2), so the deviation below is history; the browser check is in §7.1, to
+verify.
+
 The version is in the Summary card's header, which the frames don't draw (§2; the spec's
 clarification of 2026-11-09 put it beside the button; D4 sets its type).
 - **Where**: left of "Download PDF", 8 px apart, on one line: "Version" 14/24 muted, the code
@@ -2038,7 +2140,7 @@ clarification of 2026-11-09 put it beside the button; D4 sets its type).
 | D1 | PDFKit typed by our own `PdfKitDocument` interface and one `declare module 'pdfkit'`, no `@types/pdfkit` |
 | D2 | German terms settled against spec 009's code ("Feld", "nicht aktiv", "Version", "Details der Anbindung" …) |
 | D3 | Faded text struck with PDFKit's own `strike`, inside the tag, not as `PlacedLine` artifacts |
-| D4 | The header's version 14 px, set apart by weight and colour; the closed header measured on node `6809:46487` |
+| D4 | The header's version 14 px, set apart by weight (600 since 2026-11-18) and colour; the closed header measured on node `6809:46487` (`7603:61502` since 2026-11-18, bug v5-ui-fixes (B3)) |
 | D5 | `useConnectionPdf` lives in `index.tsx`; no option sets passed; dynamic imports; a failed fetch keeps the worker |
 | D6 | A draft's links to be created tagged as two `P`s, not a list |
 | D7 | The German copy accepted as it stands (the user in the reviewer's place) |
@@ -2065,7 +2167,7 @@ T047 are unchecked for these items only; T054 is the final checkpoint.
 | 8 | Optional: a German-speaking team member reads C's and A's German PDFs (D7 was decided without one) | a German speaker | T047 (optional) |
 | 9 | E's timing confirmed once by hand in a real Chromium and Firefox: a stopwatch from the click to the saved file (Phase 9's Delegation) | a team member | T054 |
 | 10 | A save of E through nginx (`docker compose -f docker-compose.prod.yml`): T056 set the limit, but no nginx image was on this machine to check the configuration | a team member with the production stack | T054 (T056 is done) |
-| 11 | Tell the designer about the version's place in the header (§9.2) and record the answer here | the user | T054; the answer is open since T034 |
+| 11 | Tell the designer about the version's place in the header (§9.2) and record the answer here | the user | answered 2026-11-18: the designer's final frame `7603:61494` (bug v5-ui-fixes (B3)) puts the version and "Download PDF" in a strip under the header row; built (§2), the browser check to verify (§7.1) |
 | 12 | File `pdfkit-cidset-issue.md` with PDFKit (foliojs/pdfkit), after searching its issues for an existing report | a team member with a GitHub account | T054 |
 | 13 | Commit the feature and open the pull request with `pr.md` | the user | after T054 |
 

@@ -207,7 +207,6 @@ export const LEAVE_COPY = defineTexts(
     logoutText: 'Your latest changes will be lost if you log out now.',
     saveAndLogOut: 'Save and log out',
     logOutAnyway: 'Log out anyway',
-    cancel: 'Cancel',
   },
   {
     leaveTitle: 'Diese Anbindung verlassen?',
@@ -226,7 +225,6 @@ export const LEAVE_COPY = defineTexts(
     logoutText: 'Ihre letzten Änderungen gehen verloren, wenn Sie sich jetzt abmelden.',
     saveAndLogOut: 'Speichern und abmelden',
     logOutAnyway: 'Trotzdem abmelden',
-    cancel: 'Abbrechen',
   }
 );
 

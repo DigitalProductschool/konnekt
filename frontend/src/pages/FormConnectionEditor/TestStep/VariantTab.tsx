@@ -9,9 +9,8 @@ import type { VariantTabProps } from './types';
  * One variant tab of the test step (S8.2; F6, F27, F38; FR-018, FR-041; spec 008 S13; Figma
  * "Rules/Variant tab · fixes" 6529:39174 in U69 7057:60401, U71 7058:61380): `BranchName`'s tab
  * form, the rules step's tab (design-notes §3 "Tabs") without its ⋯ (variants are renamed on the
- * rules step, F28) and without the grey "No findings." ⓘ (F27: the rules step's only; U71
- * 7058:61380 draws none), so the icon after the name is the description's (i), as on Standard
- * (U69 7057:60402), or the warning triangle.
+ * rules step, F28), so the icon after the name is the description's (i), as on the rules step
+ * (U69 7057:60402), or the warning triangle; a variant with neither shows none (U71 7058:61380).
  *
  * The test step shows one finding only (F38, FR-041; CLAR Q29 (b), (d)): spec 003's
  * `none_can_meet` notice of the variant, as the checks give it (the baseline's evaluator, FR-003),

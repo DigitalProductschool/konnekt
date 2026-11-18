@@ -187,8 +187,9 @@ means: `POST {trigger_url}` and a `GET` of each pull URL answer `409` with
    dragging: the order is unchanged.
 3. Touch (Playwright's touch): press and hold, then move: a drag. A short swipe scrolls the list.
 4. Keyboard only: the row's ⋯ → "Move up"; the focus stays on the moved row; "“<document>” moved
-   to position 1 of 2." is announced. The first row has no "Move up", the last no "Move down", a
-   single document no ⋯.
+   to position 1 of 2." is announced. The first row has no "Move up", the last no "Move down".
+   Every ⋯ ends with "Remove document" after a divider, and a single document's ⋯ holds only
+   that (changed 2026-11-18, bug v5-ui-fixes (B4): a single document had no ⋯).
 5. Remove a document and "Undo": it returns to its place.
 6. Save as a draft, reopen, publish: the documents step, the test step's data, the publish
    dialog, the details' Summary and the approval page list the same order.

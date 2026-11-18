@@ -16,10 +16,11 @@ import { requestedDocumentsOf, summaryCountsOf } from './utils';
  * the counts "2 documents · 9 data items · 3 variants · 4 rules" and "View summary" / "Hide
  * summary" (`DetailAccordion`, T078); open, the documents part, a 1px line in action blue at 30 %,
  * then "Rules" with the variants as tabs and the findings (`RulesSummaryContent`), the parts 24px
- * apart. In the header, between the counts and the toggle, the content's version and "Download
- * PDF" (spec 011, which lifts F53; FR-001, FR-032, design-notes §2): both details, a published
- * connection's and a stored draft's, pass `version` and the page's download (`pdf`), the approval
- * page neither (FR-006). A failed run's alert sits under the header row (`PdfFailure`). There is
+ * apart. Under the header row, open or closed, the strip with the content's version and
+ * "Download PDF" (spec 011, which lifts F53; FR-001, FR-032 as clarified on 2026-11-18,
+ * design-notes §2; V5 7603:61502): both details, a published connection's and a stored draft's,
+ * pass `version` and the page's download (`pdf`), the approval page neither (FR-006), which keeps
+ * a header without the strip. A failed run's alert sits under the header (`PdfFailure`). There is
  * no "Edit rules": the footer's "Edit connection" is the one way into editing (FR-046 (a); U83
  * #35). The open part is `RulesSummaryBody`, memoised without `pdf`, so that a run's state changes
  * render only the header (T050).
@@ -73,7 +74,7 @@ export default function RulesSummary({
       hideLabel={copy.hideSummary}
       open={open ?? ownOpen}
       onToggle={onToggle ?? (() => setOwnOpen((isOpen) => !isOpen))}
-      actions={
+      strip={
         version !== undefined && (
           <PdfDownload version={version} pdf={pdf} buttonRef={pdfButtonRef} />
         )

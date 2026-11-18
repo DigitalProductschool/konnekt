@@ -1,6 +1,8 @@
 import { noRulesNoteOf } from '@connection-portal/rules/personas/messages';
+import { useId } from 'react';
 
 import { useLanguage } from '../../../hooks/useLanguage';
+import CardScrollArea from './CardScrollArea';
 import ResultTable from './ResultTable';
 import type { ResultSectionProps } from './types';
 
@@ -15,27 +17,37 @@ import type { ResultSectionProps } from './types';
  *   "School transport has no rules yet, so every citizen meets it. Add rules in the Rules step to
  *   test them." (`noRulesNoteOf()`), without the frame's success box (F41).
  *
+ * Where the wizard pins its step header and the cards sit side by side, the card is as high as the
+ * panel and its rows scroll under the heading that stays put (`CardScrollArea`; spec 008 FR-043 as
+ * clarified on 2026-11-18, V5 frame 15 7599:57632, reversing CLAR #31 (c)).
+ *
  * The card is a container, so that the table can ask how wide it is (`ResultTable`; quickstart V9:
  * at 320px nothing is cut off).
  */
 export default function ResultSection({ view, branch }: ResultSectionProps) {
   const { language } = useLanguage();
+  const headingId = useId();
   return (
     <div className="rounded-kern-default bg-kern-layout-background-default @container flex min-w-0 flex-1 flex-col gap-8 border border-(--kern-color-decorative-border-default) p-16">
       {view && (
         <>
           <div className="flex min-h-48 items-center">
-            <h2 className="text-kern-static-medium text-kern-layout-text-default leading-(--kern-typography-line-height-medium-static) font-semibold break-words">
+            <h2
+              id={headingId}
+              className="text-kern-static-medium text-kern-layout-text-default leading-(--kern-typography-line-height-medium-static) font-semibold break-words"
+            >
               {view.heading}
             </h2>
           </div>
-          {view.rows.length === 0 ? (
-            <p className="text-kern-static-small text-kern-layout-text-muted leading-(--kern-typography-line-height-medium-static) break-words">
-              {noRulesNoteOf(branch.name, language)}
-            </p>
-          ) : (
-            <ResultTable view={view} />
-          )}
+          <CardScrollArea labelledBy={headingId}>
+            {view.rows.length === 0 ? (
+              <p className="text-kern-static-small text-kern-layout-text-muted leading-(--kern-typography-line-height-medium-static) break-words">
+                {noRulesNoteOf(branch.name, language)}
+              </p>
+            ) : (
+              <ResultTable view={view} />
+            )}
+          </CardScrollArea>
         </>
       )}
     </div>

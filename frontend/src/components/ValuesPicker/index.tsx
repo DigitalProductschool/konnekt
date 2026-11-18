@@ -218,7 +218,7 @@ export default function ValuesPicker({
     ? 'bg-kern-feedback-danger-background border-b-2 border-kern-feedback-danger'
     : 'bg-kern-layout-background-hued border-b-2 border-(--kern-color-form-input-border)';
   const triggerLook = field
-    ? `rounded-kern-small focus-visible:outline-kern-action-focus-default min-h-48 w-full cursor-pointer items-center justify-between gap-8 px-16 py-4 focus-visible:outline-4 focus-visible:outline-offset-0 ${fieldLook}`
+    ? `rounded-kern-small focus-visible:outline-kern-action-focus-default min-h-48 w-full cursor-pointer items-center justify-between gap-8 px-16 py-4 focus-visible:outline-2 focus-visible:outline-offset-0 ${fieldLook}`
     : `rounded-kern-default bg-kern-layout-background-default focus-visible:outline-kern-action-focus-default h-40 max-w-full cursor-pointer items-center gap-8 border pr-8 pl-16 focus-visible:outline-4 focus-visible:outline-offset-2 max-md:h-auto max-md:min-h-40 max-md:py-7 ${border}`;
   const wrapperLook = field
     ? 'relative w-full'

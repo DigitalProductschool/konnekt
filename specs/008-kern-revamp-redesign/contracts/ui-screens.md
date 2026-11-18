@@ -2,7 +2,7 @@
 
 **Users**: signed-in DO.IT team members, and an agent's user on the consent page.
 **Requirements**: FR-001 to FR-052, SC-001 to SC-007, US1 to US5. **Decisions**: the spec's
-Clarifications (2026-11-06 #1–#3, 2026-11-07 #1–#61), the audit's decided items
+Clarifications (2026-11-06 #1–#3, 2026-11-07 #1–#61, 2026-11-18 #1–#3), the audit's decided items
 ([../figma-audit/report.md](../figma-audit/report.md): F1–F72, W1–W22, C1–C7), research R1–R15.
 
 **What decides what**: Figma "Middleware – V5" (file `s8mU9oJDq3411e8bxMjQO9`, page
@@ -196,8 +196,10 @@ and has one `h1`.
   outline, "Save progress" primary, ×); "Save progress" runs Save and exit (a missing name sends
   the flow to step 1 with "Enter a name for the connection.", F18, C7); "Discard connection"
   leaves and forgets the flow's local draft; log-out asks "Save before you log out?" ("Your
-  latest changes will be lost if you log out now."; "Save and log out", "Log out anyway",
-  "Cancel", F20); an open rule editor asks "Save changes to Rule 01?" first; closing the tab shows
+  latest changes will be lost if you log out now."; "Log out anyway" secondary and "Save and log
+  out" primary, side by side, and the ×; no "Cancel" since bug v5-ui-fixes, 2026-11-18,
+  Clarification 2026-11-18 #3, reversing F20: the ×, Escape and the scrim return the focus to the
+  account pill); an open rule editor asks "Save changes to Rule 01?" first; closing the tab shows
   the browser's warning; the local draft is the safety net after a crash (the restore dialog W4
   from U17's dialog: Escape, × and the scrim open the draft's details and keep it, F57); the
   conflict dialogs W3 (`draft_changed`, `draft_published`, `draft_deleted`) from U90's dialog;
@@ -370,7 +372,8 @@ and has one `h1`.
   duplicate" (C4), the names as links that scroll to and focus the item (F39), each line's kind
   icon; the notes under rules and groups; the outlines; the tab's red error icon with the problem
   text in its tooltip, the grey ⓘ without findings (FR-041b: the merged icon of 003-A6, its tooltip
-  holding the description or "No findings."; on Standard only with a description, FR-035c), opening
+  holding the description; only with a description, on a variant as on Standard, FR-035c: no "No
+  findings." ⓘ since bug v5-ui-fixes, 2026-11-18, Clarification 2026-11-18 #2), opening
   on hover and on focus; the
   hidden kind text, a notice without links, update in place, the status region, the tab's
   accessible name, reflow, the undrawn texts (W13).
@@ -387,7 +390,8 @@ and has one `h1`.
   (`7058:61209`, `7057:59952` "Generate again" asks first), U69 (`7057:60393`, `7057:60828`
   Ambulance · Anna), U70 (`7057:61267`, `7057:61659`, `7057:62051` a variant without rules), U71
   `7058:61372` (contradicting rules: the ⚠ on the tab `7058:61618` and its tooltip
-  `7058:61632`, no line above the heading), U72 `7058:61648` (12 rules: the panel scrolls), U74
+  `7058:61632`, no line above the heading), U72 `7058:61648` (12 rules: each card scrolls on its own
+  since bug v5-ui-fixes, V5 frame 15 `7599:57529`), U74
   (`7062:50960` loading, `7062:51249` one persona, `7062:51536` "Couldn't create sample
   citizens"), U99 `7114:49683` (the edit flow). **Build notes** U06 #29–#44. **Baseline**:
   004-S8, 004-S2, 004-ACC.
@@ -402,7 +406,10 @@ and has one `h1`.
   Expiry date fields, "Class B since" (F40, FR-042), the toast "Results updated. Mia now meets
   Rule 01."; the test-day line "Tested as if shared today, 01.11.2026."; no variant ⓘ (F27); the
   tab's "no citizen can meet" finding from the evaluator only (F38, FR-041), no line above the
-  heading (Clarification #50); the panel scrolls, header, tabs, chips and footer stay (F43);
+  heading (Clarification #50); header, tabs, chips and footer stay (F43); where the step header is
+  pinned and the cards sit side by side (`lg`), each card's head stays and only its rows scroll,
+  each card on its own, elsewhere the panel or the page scrolls (bug v5-ui-fixes, 2026-11-18,
+  Clarification 2026-11-18 #1, reversing F43's panel scrolling);
   "Publish" opening the publish dialog (S14).
 - **States**: loading (first open; one persona regenerating with the ring and the test-day
   line, F45); generation failed; met; not met; couldn't be checked; a variant without rules

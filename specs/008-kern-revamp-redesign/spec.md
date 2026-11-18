@@ -255,9 +255,11 @@ later `/speckit-specify`.
     publish."
   - (e) Log-out dialog (U05 #42; U17 #19, #20, 6408:72737, 6408:72919): adopt. Title "Save before
     you log out?"; body "Your latest changes will be lost if you log out now."; "Save and log out"
-    (primary, stores the draft and then logs out), "Log out anyway" (secondary), plus a "Cancel"
-    (and the ×) that returns the focus to the user menu. Supersedes 005-S7.2–S7.5. Dropped: "Log
-    out and discard unsaved work?", the list of names, "Saved drafts stay as they are.", "Log out"
+    (primary, stores the draft and then logs out), "Log out anyway" (secondary), ~~plus a "Cancel"
+    (and the ×) that returns the focus to the user menu~~. Superseded by Clarification 2026-11-18
+    #3 (bug v5-ui-fixes): no "Cancel", as U17 `6408:72919` draws it; the ×, Escape and the scrim
+    return the focus to the account pill. Supersedes 005-S7.2–S7.5. Dropped: "Log out and
+    discard unsaved work?", the list of names, "Saved drafts stay as they are.", "Log out"
     (danger).
   - Supersedes: 001-S0.6, 005-S4.1 (for in-app leaving), 005-S7.2–S7.5. No Clarification. (a)
     and (b) are amended by #47 (second round, Remap Q2) for the edit flow of a published
@@ -582,7 +584,9 @@ later `/speckit-specify`.
   - (a) Problem icons (U06 #7, #9; U07 #19; U50 #8, #22; tooltip U46 6758:43524): a red error
     icon on the tab with the problem text in its tooltip (spec 002 problems and findings), and a
     grey ⓘ when there are no findings; the tooltip opens on hover and on focus. Supersedes
-    003-S4.2 and 003-S4.3.
+    003-S4.2 and 003-S4.3. Amended by Clarification 2026-11-18 #2 (bug v5-ui-fixes): the grey ⓘ
+    shows only with a description; a variant tab without a description and without findings shows
+    no icon, as Standard does, and the "No findings." tooltip is gone.
   - (b) Test tabs: only the "no citizen can meet" finding (004-S8.2.2); the frames' other kinds
     on test tabs are not built.
   - (c) Banner (U44 #17; U45 #28, #30; U46 #11; 6753:40144): the names in banner lines are links
@@ -623,11 +627,13 @@ later `/speckit-specify`.
   - (c) Data card (U65 #15, #18, #20; U66 #14, #24; U67 #14, #16; U68 #14, #18, #20; U69 #15,
     #18, #23; U70 #14, #17; U71 #17, #19, #20; U72 #15, #18, #22–#24; U63 #10, #12; U73 #12; U75
     #22; U76 #14, #16; U77 #22; U78 #19; U79 #24, #26; U99 #43; U01 #15): the document is a
-    column, its name the row group's accessible heading (004-S8.4.2 in the new layout); the panel
-    scrolls, not each card (004-S8.4.11, build note 4).
+    column, its name the row group's accessible heading (004-S8.4.2 in the new layout); ~~the panel
+    scrolls, not each card (004-S8.4.11, build note 4)~~. Superseded by Clarification 2026-11-18
+    #1 (bug v5-ui-fixes): where the step header is pinned and the cards sit side by side, each
+    card's rows scroll on their own.
   - Supersedes: 004-S8.4.2's visible headings (layout). No Clarification; 004-S8.6.4, 004-S8.6.7,
     004-ACC.1, 004-S8.4.11 hold. (c) is amended by #46 (second round, Remap Q1): no visible
-    document column; the panel scrolling stays.
+    document column; the panel scrolling stays (until Clarification 2026-11-18 #1).
 
 - Q: Should the persona chips of the Test frames stay (rather than the older Publish frames'
   avatar cards), should "Your rules are saved." be shown, and how does regeneration look? (Q32,
@@ -887,8 +893,8 @@ Q<n>". The record is the same: the decision, the surfaces, the exact wording, wh
     Publish frames U63 #10, #12, 7112:48790; U75 #22, #24; U76 #15–#17, 6863:47775; U77 #22–#24;
     U78 #21, #22; U79 #25–#27, 6863:48492. Source: the rules package's persona formatting and its
     tests (C6). Unchanged: the Edit data dialog's "Age today" (004-S8.5.6) and "Class B since"
-    (FR-042; U66 #30, U67 #33), "Valid until <date>" and the test-day line (#6), the panel
-    scrolling (F43, #31 (c)).
+    (FR-042; U66 #30, U67 #33), "Valid until <date>" and the test-day line (#6), ~~the panel
+    scrolling (F43, #31 (c))~~ (superseded by Clarification 2026-11-18 #1, bug v5-ui-fixes).
   - Wording: a flat list under the rules' labels with no visible document column (the document's
     name stays the row group's accessible heading); "08.07.2007" (no age); "B since 20.08.2025"
     (no years); classes with the same issue date in one row, "B, BE since 02.05.2010"; the expiry
@@ -1257,6 +1263,60 @@ spec 005, numbered #67 here and tagged "Implement Q6". The record is the same.
     `signOutNamesOf` stay.
   - Supersedes: Q8 (e)'s "Dropped" list for the case outside a flow (005-S7.2–S7.5 stand there).
 
+### Session 2026-11-18 (bug fixes)
+
+Decisions taken with the reporter of `.specify/bugs/v5-ui-fixes` (B2, B6, B8), from the V5 file's
+page "⚡️ New design changes" (`7599:55725`) and U17 `6408:72919`. Each reverses an entry of Session
+2026-11-07; the record is the same: the decision, the surfaces, the behaviour and wording, what it
+supersedes. The code was changed the same day.
+
+- Q: On the test step, should the data card and the result card each scroll on their own, as
+  frame 15 "Many rules (12)" (`7599:57529`) draws, rather than the panel as a whole (#31 (c),
+  F43)? (#1, bug v5-ui-fixes B2) → A: Each card on its own, where the step header is pinned and
+  the cards sit side by side.
+  - Surfaces: frame 15 `7599:57529`: the data card `7599:57588` with its scroll area
+    `7599:57593`, the result card `7599:57632` with its scroll area `7599:57635`.
+  - Behaviour: where the wizard pins its step header (`wizard-pinned:`, ≥ 768 × 640) and the
+    cards sit side by side (`lg`, ≥ 1024), each card is as high as the panel; its head (the 48 px
+    row with "Mia's data", "Edit data" and "Generate again"; the result heading) stays put, and
+    only its rows scroll, each card on its own. Each scroll area is a region named by its card's
+    heading and takes the keyboard focus, because nothing in the rows is focusable (WCAG 2.1.1),
+    with the keyboard-only focus ring: two new tab stops on the step. The browser's own
+    scrollbar sits in the card's right padding; Figma's 4 px bar is a difference, not a mismatch
+    (the app styles no scrollbars). Below `lg`, or where the header isn't pinned, nothing changes:
+    the stacked cards scroll together in the panel, or the page scrolls. The header, the step
+    header, the tabs, the citizens row and the footer stay as before (004-S8.4.11). Unchanged: the
+    rows, the heads' contents, the placeholder while generating, the failure state. Frame 15's
+    "Tested as if shared today" line in the result head belongs to bug test-results-v5.
+  - Supersedes: #31 (c)'s "the panel scrolls, not each card" and #46's "Unchanged: … the panel
+    scrolling"; FR-043's "the panel scrolls as a whole"; F43 and FR-043c in `figma-audit/`.
+    004-S8.4.11 holds outside the panel; inside it, the cards' rows scroll.
+
+- Q: Should a variant tab with no description and no findings still show the grey ⓘ whose
+  tooltip says "No findings." (#29 (a), FR-041b)? (#2, bug v5-ui-fixes B6) → A: No: no icon, as
+  on Standard without a description.
+  - Surfaces: the rules step's variant tabs. No frame draws the "No findings." ⓘ; the ⓘ next to
+    "Standard" on the test step's tabs of page `7599:55725` (`I7599:57538;6529:39178`) is the
+    description's.
+  - Behaviour and wording: a tab shows a problem's red icon, the findings' icon, the
+    description's grey ⓘ, or nothing. `BranchName`'s `noFindingsInfo` prop and its copy
+    `noFindings` ("No findings." / "Keine Befunde.") are removed. The approval page's own "No
+    findings." is unaffected.
+  - Supersedes: #29 (a)'s grey ⓘ without a description; FR-041's "No findings." tooltip; FR-041b
+    in `figma-audit/`. 003-S4.3 ("No icon without findings and without a description") holds
+    again for the variant tabs.
+
+- Q: Should the log-out dialog of a flow with unsaved work keep the "Cancel" that #8 (e) and
+  F20 added, or show only the two buttons U17 `6408:72919` draws? (#3, bug v5-ui-fixes B8) →
+  A: Only the two buttons, as drawn.
+  - Surfaces: U17 `6408:72919` (480 × 232): the title, the body, "Log out anyway" (secondary,
+    action blue) and "Save and log out" (primary) side by side, the ×.
+  - Behaviour and wording: "Save before you log out?" offers "Log out anyway" (secondary, not
+    red) and "Save and log out" (primary), side by side; there is no "Cancel". The ×, Escape and
+    the scrim still cancel and return the focus to the account pill (the flow's `cancel` answer is
+    unchanged). The `cancel` copy is removed from `LEAVE_COPY`. Not yet verified in a browser.
+  - Supersedes: #8 (e)'s "Cancel"; FR-026's list of buttons; F20 in `figma-audit/report.md`.
+
 ## User Scenarios & Testing *(mandatory)*
 
 Each story is one flow of the app. It is checkable on its own: open its screens in every state,
@@ -1601,9 +1661,11 @@ Decided drift items (Clarifications, session 2026-11-07):
   closing or reloading the tab with unsaved changes shows the browser's "Leave site?" warning;
   an open rule editor is asked "Save changes to Rule 01?" first and no editor state is stored;
   step 1 shows "Starts as a draft. It only becomes active when you publish."; logging out with
-  unsaved changes asks "Save before you log out?" with "Save and log out", "Log out anyway" and
-  "Cancel". The local draft of the device remains the safety net after a crash or a forced leave,
-  the browser's back button included (no in-app navigation blocker, research V9) (Q8).
+  unsaved changes asks "Save before you log out?" with "Log out anyway" (secondary) and "Save and
+  log out" (primary) side by side and no "Cancel", the ×, Escape and the scrim returning the focus
+  to the account pill (Clarification 2026-11-18 #3). The local draft of the device remains the
+  safety net after a crash or a forced leave, the browser's back button included (no in-app
+  navigation blocker, research V9) (Q8).
 - **FR-027**: While no connection or draft exists, the homepage is the welcome page "Welcome to
   Konnekt", shown after a sign-in without a requested route and again after the last connection
   is deleted, and remembered on the device across a reload; "Start from an example" is deferred
@@ -1679,10 +1741,10 @@ Decided drift items (Clarifications, session 2026-11-07):
   the source branch; removed items in a variant keep their message line and "Changed here" text
   (Q28).
 - **FR-041**: A variant tab shows a red problem icon whose tooltip (on hover and on focus) holds
-  the problem text, or a grey ⓘ when there are no findings: the baseline's merged icon (003-A6),
-  whose tooltip holds the variant's description or, without one, "No findings." (undrawn, unless
-  the design supplies a text); a variant tab shows it as drawn (Q29a), the Standard tab only with
-  a description (FR-035, Q20); the Test step's tabs show only the
+  the problem text, the findings' icon, or, without findings, the grey ⓘ of its description: the
+  baseline's merged icon (003-A6), whose tooltip holds the description; a tab with neither a
+  description nor findings shows no icon, a variant's as Standard's (FR-035, Q20), and there is
+  no "No findings." ⓘ (Q29a, Clarification 2026-11-18 #2); the Test step's tabs show only the
   "no citizen can meet" finding, from the evaluator, and no line is shown above the result
   heading for it (004-S8.6.1 dropped, #50); the names in the findings banner are links to the
   item (Q29).
@@ -1693,8 +1755,11 @@ Decided drift items (Clarifications, session 2026-11-07):
   have fields (Q30).
 - **FR-043**: Test results keep each rule's statement and its "Not met" / "Couldn't be checked"
   text next to the design's icon and tint; the data card is a flat list with no visible document
-  column, the document's name staying the row group's accessible heading (#46), and the panel
-  scrolls as a whole; a met variant shows no success message (Q31).
+  column, the document's name staying the row group's accessible heading (#46); where the step
+  header is pinned and the cards sit side by side, each card is as high as the panel, its head
+  stays put and only its rows scroll, each card on its own, in a focusable region named by the
+  card's heading; elsewhere the stacked cards scroll together in the panel, or the page scrolls
+  (Clarification 2026-11-18 #1); a met variant shows no success message (Q31).
 - **FR-044**: The publish dialog offers "Back to test", summarises the connection as counts,
   lists the findings warnings first, shows a "Published" state with "Opening your connection
   page…" for 0.5 s before the details, and on failure keeps the summary and shows the error ID
