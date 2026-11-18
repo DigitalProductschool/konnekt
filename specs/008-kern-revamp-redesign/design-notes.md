@@ -1069,7 +1069,7 @@ T073) and the details' (T079).
 | FR-035c, FR-041b | no findings | ⓘ | when | Standard only with a description; a variant always (description or "No findings.") on the rules step | `noFindingsInfo` from the call site | match |
 | U01 #18 | scrolled | tab row | pinned | with the step header on the rules step | — | deferred to T056 |
 | U38 6134:9153 | — | ⋯ | on which tabs | selected only | every tab of the rules step (F28, CLAR #21); the test step's tabs none (T073) | F28 |
-| U43 6168:7011 | — | after the tabs | "+ Add variant" and its (i) | the (i) 4 after the label (`mr-[-12px]`), action blue | `ADD_VARIANT_CLASSES` (rules step only, F27) | match |
+| U43 6168:7011 | — | after the tabs | "+ Add variant" and its (i) | the (i) 4 after the label (`mr-[-12px]`), action blue | `ADD_VARIANT_CLASSES` (rules step only, F27); the button's box reaches 8 past the (i) (pr 24, pulled 28: bug add-variant-hover-tooltip, 2026-11-18) | match |
 
 ### GroupFrame (+ GroupHeader, GroupMessage) — T025, 2026-11-08
 
@@ -3210,7 +3210,8 @@ T026's `BranchName` table (§5.1); the rows here are the row, the dialog and the
 | U38 6134:9160 | selected | ⋯ | size | 20 (`icon-more_vert-small`) | 32 target (`BranchMenu`), `-my-4` keeps the 38 tab | F28 (the component's note "32px target"; T026's table) |
 | U43 6168:7012 | every state | "+ Add variant" | box, look | button-tertiary-small: 48 slot, visible 40, px 8, icon-add-small 20, label/small 600 14/24 `#1d56f0` | `kern-btn--tertiary kern-btn--small`: 40 visible (margin 4 0 → 48 slot), icon 20, label 600 14px/24px rgb(29, 86, 240) | match |
 | U43 6168:7011 | every state | "+ Add variant" | label line | label 12–36 in the 48 slot (2 px above the tab labels, 14–38) | label line 228–252, tab names 230–254 | match (was 2 px lower, spec 002's "Add variant · aligned" 6542:39560; the 008 frames draw the plain button) |
-| U43 6168:7012, 6168:7013 | every state | "What is a variant" (i) | place | after the button pulled `mr-[-12px]`: 4 after the label | 400.9 (label text ends at 397, 4 before) | match |
+| U43 6168:7012, 6168:7013 | every state | "What is a variant" (i) | place | after the button pulled `mr-[-12px]`: 4 after the label | 400.9 (label text ends at 397, 4 before); since bug add-variant-hover-tooltip (2026-11-18) the button pads 24 on its right and is pulled 28, the (i) still 4 after the label | match |
+| — | hover / pressed | "+ Add variant" | tint's extent | not drawn (the 008 frames draw the resting button) | the button's box, where KERN draws its 8 % / 16 % tint, runs 8 past the (i) (32 after the label, the 8 the "+" has before it); the (i) stays on top for the pointer, so the button isn't hovered (no tint) while the pointer is on the (i); the button's focus ring encloses the (i) too | decision (bug add-variant-hover-tooltip, 2026-11-18: the plain button's tint ended 12 px into the 20 px (i)) |
 | U43 6168:7013, U37 6151:33809 | every state | (i) | colour, size | `icon-info-small` 20 on action blue `#1d56f0` | 20 × 20, rgb(29, 86, 240) (`tone="action"`) | match (carried from T022, T056) |
 | U37 6134:8722, U38 6134:9163 | with variants | (i) after "Add variant" | shown | not drawn once a variant exists | shown in every state | F27 (FR-035a) |
 | U37 6151:33820 | (i) hovered / focused | tooltip | text | "A separate set of rules for citizens with different requirements. Each variant gets its own result link." | the same (`RULES_COPY.variantsInfo`) | match (F27) |
