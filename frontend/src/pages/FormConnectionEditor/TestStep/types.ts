@@ -44,7 +44,7 @@ export interface TestStepProps {
   saveFailed: boolean;
 }
 
-/** `TestDayLine` (S8.1; W1) */
+/** `TestDayLine` (S8.1; W1; test-results-v5 R1: in the result card's head) */
 export interface TestDayLineProps {
   /** `YYYY-MM-DD`, today in Germany */
   today: string;
@@ -220,11 +220,13 @@ export interface ResultSectionProps {
   view: ResultView | null;
   /** The shown variant, for its name (`noRulesNoteOf()`) and its rules */
   branch: RulesBranch;
+  /** `YYYY-MM-DD`, today in Germany: the test day under the heading (test-results-v5 R1) */
+  today: string;
 }
 
-/** `ResultTable` (S8.6; T034): the rows of a variant with rules */
-export interface ResultTableProps {
-  view: ResultView;
+/** `ResultList` (S8.6; T034; test-results-v5 R2): the rows of a variant with rules */
+export interface ResultListProps {
+  rows: readonly ResultRow[];
 }
 
 /** `ResultRow` (S8.6; T034): one row, then a reported group's members (W10) */
@@ -232,8 +234,6 @@ export interface ResultRowProps {
   row: ResultRow;
   /** 0 for a top-level row, 1 for a reported group's member, 2 for a member of a member */
   depth: number;
-  /** Whether the table has the message column ("Message Mia reads"; F3) */
-  messageColumn: boolean;
 }
 
 /** `MemberRows` (S8.6; T034; W10): a reported group's members, indented */
@@ -241,7 +241,6 @@ export interface MemberRowsProps {
   members: readonly ResultRow[];
   /** The members' depth: their group's plus one */
   depth: number;
-  messageColumn: boolean;
 }
 
 /** `GenerationFailed` (S8.9; T036), in place of the citizens row and the panel */

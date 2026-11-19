@@ -24,7 +24,7 @@ import { statementOf, statementPartsOf } from '../statements';
 import type { RuleContext, StatementParts } from '../types';
 import { applicantOf } from './applicant';
 import { GROUP_SUBTITLES } from './constants';
-import { meetsHeadingOf, messageColumnOf, resultHeadingOf } from './messages';
+import { resultHeadingOf } from './messages';
 import type {
   Persona,
   PersonaBranchResult,
@@ -84,20 +84,24 @@ export function testResultsOf(
 /**
  * What the test step shows of one persona's result for one variant (FR-015; data-model.md
  * "ResultView"):
- * - `rows`, in this order: first the reported items, in the order of the evaluation's messages,
- *   each with its message and, for a group, its members that aren't met, recursively (F8, W10);
- *   then every other top-level item that counts, in display order, with its outcome and no
- *   message (F14). A group is never `'not_checked'`.
+ * - `rows`, in this order: first the reported items (`reported`), in the order of the evaluation's
+ *   messages, each with, for a group, its members that aren't met, recursively (F8, W10); then
+ *   every other top-level item that counts, in display order, with its outcome (F14). A group is
+ *   never `'not_checked'`. Every row carries its item's message for citizens, met or not, as the
+ *   rules step shows it under the item (test-results-v5 R3, V5 frames 1 and 2 7599:55727,
+ *   7599:55854; reversing F3 and F14's "–"); a member whose group's message citizens read
+ *   instead names that group (`messageGroup`).
  * - `heading`: "Result: doesn’t meet 2 rules" with the rules not met (`resultHeadingOf()`; spec
- *   008 FR-024), counted as the rows list them (V4, `unmetRulesOf()`); `listHeading` under a
- *   variant the persona meets, `messageColumn` under one it doesn't (F3).
+ *   008 FR-024), counted as the rows list them (V4, `unmetRulesOf()`). The list has no heading
+ *   and no message column (test-results-v5 R2, R3: "Rules Mia meets" and "Message Mia reads"
+ *   are gone).
  * - `failingFields` (K1): the keys of the fields in `fields` read by the rules the rows show as
  *   failing, in the order of `fields`. A rule fails as shown when it isn't met and no group around
  *   it is met: a rule inside a met group marks nothing. A rule on a licence class's date that the
  *   persona doesn't hold marks "Licence classes", whose value makes it fail, as the date is hidden.
  *
- * Names, statements and group operators are the branch's current ones, looked up by id in
- * `branch`, so a rename shows without evaluating anew. Statements are worded as the rules step
+ * Names, statements, messages and group operators are the branch's current ones, looked up by id
+ * in `branch`, so a rename or a new message shows without evaluating anew. Statements are worded as the rules step
  * words them: a rule's by `statementOf()` with `context` (`statementPartsOf()` for `RuleSentence`),
  * a group's by its header's subtitle (design-notes.md §6.2).
  *
@@ -108,41 +112,54 @@ export function testResultsOf(
 export function resultViewOf(
   result: PersonaBranchResult,
   branch: Pick<BranchInput, 'items'>,
-  persona: Pick<Persona, 'name' | 'values'>,
+  persona: Pick<Persona, 'values'>,
   context: RuleContext,
   fields: readonly PersonaField[]
 ): ResultView {
   const language = context.language ?? DEFAULT_LANGUAGE;
   const current = currentItemsOf(branch.items);
   const evaluated = evaluatedById(result.items);
-  const row = (entry: EvaluatedItem, message: string | null, members: ResultRow[]): ResultRow =>
-    rowOf(entry, current.get(entry.item.id) ?? entry.item, context, message, members);
-  const memberRows = (entry: EvaluatedItem): ResultRow[] =>
-    entry.members
+  const row = (
+    entry: EvaluatedItem,
+    reported: boolean,
+    messageGroup: string | null,
+    members: ResultRow[]
+  ): ResultRow =>
+    rowOf(entry, current.get(entry.item.id) ?? entry.item, context, {
+      reported,
+      messageGroup,
+      members,
+    });
+  // A reported group's members; `messageGroup` is the outermost group around them with a message
+  // of its own, whose message citizens read instead of theirs. The evaluator reports a group with
+  // a message in place of its members, and reports no group inside one with a message, so for the
+  // members of a reported group it is that group, unless it has no message
+  const memberRows = (entry: EvaluatedItem, messageGroup: string | null): ResultRow[] => {
+    const group = messageGroup ?? groupWithMessageOf(current.get(entry.item.id) ?? entry.item);
+    return entry.members
       .filter((member) => member.outcome !== 'met')
-      .map((member) => row(member, null, memberRows(member)));
+      .map((member) => row(member, false, group, memberRows(member, group)));
+  };
 
   const reported = new Set<string>();
   const rows: ResultRow[] = [];
-  for (const { id, message } of result.messages) {
+  for (const { id } of result.messages) {
     const entry = evaluated.get(id);
     if (entry === undefined) {
       continue;
     }
     reported.add(id);
-    rows.push(row(entry, message, memberRows(entry)));
+    rows.push(row(entry, true, null, memberRows(entry, null)));
   }
   for (const entry of result.items) {
     if (!reported.has(entry.item.id)) {
-      rows.push(row(entry, null, []));
+      rows.push(row(entry, false, null, []));
     }
   }
 
   return {
     meets: result.met,
     heading: resultHeadingOf(result.met ? 0 : unmetRulesOf(rows), language),
-    listHeading: result.met ? meetsHeadingOf(persona, language) : null,
-    messageColumn: result.met ? null : messageColumnOf(persona, language),
     rows,
     failingFields: failingFieldsOf(result.items, persona, fields),
   };
@@ -198,16 +215,31 @@ function evaluatedById(items: readonly EvaluatedItem[]): Map<string, EvaluatedIt
   return byId;
 }
 
+/** A group's name when it has a message of its own, otherwise null (a rule's too) */
+function groupWithMessageOf(item: RuleTreeItem): string | null {
+  return item.type === 'group' && messageOf(item) !== null ? item.name.trim() : null;
+}
+
+/** An item's message as the rules step shows it: trimmed, and `null` when there is none */
+function messageOf(item: RuleTreeItem): string | null {
+  const message = item.message?.trim() ?? '';
+  return message === '' ? null : message;
+}
+
 /**
- * One row: the item's outcome, with its current name and statement. `message` is the evaluation's
- * for a reported item, null otherwise; `members` are a reported group's members that aren't met
+ * One row: the item's outcome, with its current name, statement and message for citizens.
+ * `reported` says whether the evaluation reports it; `messageGroup` names the group whose message
+ * citizens read instead; `members` are a reported group's members that aren't met
  */
 function rowOf(
   entry: EvaluatedItem,
   item: RuleTreeItem,
   context: RuleContext,
-  message: string | null,
-  members: ResultRow[]
+  {
+    reported,
+    messageGroup,
+    members,
+  }: { reported: boolean; messageGroup: string | null; members: ResultRow[] }
 ): ResultRow {
   const { statement, parts } =
     item.type === 'rule'
@@ -224,8 +256,9 @@ function rowOf(
     parts,
     // A group's outcome is met or not met; a rule's may be not checked
     status: entry.outcome,
-    message,
-    reported: message !== null,
+    message: messageOf(item),
+    messageGroup,
+    reported,
     members,
   };
 }

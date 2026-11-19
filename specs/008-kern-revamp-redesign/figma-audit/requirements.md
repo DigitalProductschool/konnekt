@@ -58,7 +58,7 @@
 | FR-024b | An expiry date reads "Valid until <date>" | P3 | Y | Test step | default | C item, copy:rules | FR-024; Q6 |
 | FR-024c | Licence classes: "<class> since <date>", no years; classes of one issue date share a row ("B, BE since …") | P3 | Y | Test step | default | C item, copy:rules, supersedes 004-S8.4.6 | FR-024; Q6, #46 |
 | FR-024d | The result heading reads "Result: doesn't meet <n> rule(s)", with the count | P3 | Y | Test step | default | C item, copy:rules, amends 004-S8.6.2 | FR-024; Q6, #46 |
-| FR-024e | The test-day line in dd.mm.yyyy: "Tested as if shared today, 01.11.2026." | P3 | Y | Test step | default | C item, copy:rules, amends 004-S8.1.1 | FR-024; Q6 |
+| FR-024e | The test day in dd.mm.yyyy: ~~"Tested as if shared today, 01.11.2026."~~ "Tested as if shared today, 01.11.2026", under the result heading | P3 | Y | Test step | default | C item, copy:rules, amends 004-S8.1.1; amended 2026-11-19 (bug test-results-v5: no full stop, in the result card's head, V5 `7599:61800`) | FR-024; Q6; CLAR 2026-11-19 #1 |
 | FR-025a | Wizard header: compact "Step n of 4", four segments, "Next: <step>" / "Last step" | P2 | Y | Wizard shell | default | F item, copy, supersedes 004-S0.1, 004-S0.2, 004-S0.3 | FR-025; Q7 |
 | FR-025b | The header is a progress bar for assistive technology (role="progressbar", aria-valuenow) | P2 | Y | Wizard shell | default | | FR-025; Q7 |
 | FR-025c | The header isn't clickable while creating, and is clickable while editing | P2 | Y | Wizard shell; Edit flow | default | supersedes 004-S7.3 | FR-025; Q7 |
@@ -155,7 +155,7 @@
 | FR-042b | Its buttons are "Cancel" and "Save and test"; a validation error blocks the whole save | P3 | Y | Edit data dialog | error | copy, supersedes 004-S8.5.9, 004-S8.5.10 | FR-042; Q30 |
 | FR-042c | A saved change updates the results; toast, announced: "Results updated. <name> now meets <rule>." | P3 | Y | Test step | success | copy, supersedes 004-S8.10.3 | FR-042; Q30 |
 | FR-042d | Licence classes are picked by code; Nationality and Expiry date have fields; "Class B since" | P3 | Y | Edit data dialog | default | copy | FR-042; Q30 |
-| FR-043a | Result rows keep the statement and "Not met" / "Couldn't be checked" text, with the design's icon and tint | P3 | Y | Test step | default | | FR-043; Q31b |
+| FR-043a | ~~Result rows keep the statement and "Not met" / "Couldn't be checked" text, with the design's icon and tint~~ A list of rows: icon, name coloured by outcome, statement, "Message for citizens:"; "Not met" hidden, "Couldn't be checked" visible; no tint | P3 | Y | Test step | default | reversed 2026-11-19 (bug test-results-v5, V5 frame 1 `7599:55832`, "Long rules" `7644:65780`) | FR-043; Q31b; CLAR 2026-11-19 #2, #3 |
 | FR-043b | The data card is a flat list without visible document column; the document's name stays the row group's accessible heading | P3 | Y | Test step | default | amends 004-S8.4.2 | FR-043; Q31c, #46 |
 | FR-043c | ~~The panel scrolls as a whole, not each card~~ Pinned and side by side (`lg`), each card's rows scroll on their own | P3 | Y | Test step | default | reversed 2026-11-18 (bug v5-ui-fixes, V5 frame 15 `7599:57529`) | FR-043; Q31c; CLAR 2026-11-18 #1 |
 | FR-043d | A met variant shows no success message | P3 | Y | Test step | success | | FR-043; Q31a |
@@ -568,8 +568,8 @@ Spec 008's Clarifications (session 2026-11-07, #1–#61) decide drift items agai
 | 004-S8.3 | Action bar: Back (to the rules step) and "Publish" ("Save" when editing); neither waits for generation | P3 | Y | Test step | default | baseline, copy | 004 §S8 |
 | 004-S8.4 | The step exists only in the signed-in editor | P3 | N | Test step | ? | baseline | 004 Items from the audit, W13 |
 | 004-S8.5 | A later flow opens with frame 18's loading and three new personas | P3 | Y | Test step | loading | baseline | 004 Items from the audit, W7 |
-| 004-S8.1.1 | "Tested as if shared today, 1 Nov 2026.", today's date in Germany, first line under the intro | P3 | Y | Test step | default | baseline, copy:rules, amended by FR-024 (dd.mm.yyyy) | 004 §S8.1; W1 |
-| 004-S8.1.2 | Shown whenever results are, also during one persona's regeneration; hidden in first generation and failure | P3 | Y | Test step | loading | baseline | 004 §S8.1 |
+| 004-S8.1.1 | "Tested as if shared today, 1 Nov 2026.", today's date in Germany, ~~first line under the intro~~ under the result heading | P3 | Y | Test step | default | baseline, copy:rules, amended by FR-024 (dd.mm.yyyy); amended 2026-11-19 (bug test-results-v5: in the result card's head, no full stop) | 004 §S8.1; W1; CLAR 2026-11-19 #1 |
+| 004-S8.1.2 | Shown whenever results are, ~~also during one persona's regeneration~~ but not on a regenerating persona's skeleton card; hidden in first generation and failure | P3 | Y | Test step | loading | baseline; amended 2026-11-19 (bug test-results-v5: the date is in the result card, V5 frame 19 `7599:58022`; another persona's card still shows it) | 004 §S8.1; CLAR 2026-11-19 #1 |
 | 004-S8.2.1 | One tab per variant, rules step order; the rules step's open variant selected on opening | P3 | Y | Test step | default | baseline | 004 §S8.2 |
 | 004-S8.2.2 | A variant no applicant can meet carries a warning icon after its name | P3 | Y | Test step | default | baseline | 004 §S8.2; F6 |
 | 004-S8.2.3 | Its tooltip shows "No applicant can meet the rules of Standard.", on keyboard focus and hover | P3 | Y | Test step | default | baseline, copy:findings, amended by FR-020, FR-022 | 004 §S8.2; F6 |
@@ -608,11 +608,11 @@ Spec 008's Clarifications (session 2026-11-07, #1–#61) decide drift items agai
 | 004-S8.5.14 | Switching persona or variant ends edit mode | P3 | Y | Test step | default | baseline, amended by FR-042 (dialog) | 004 §S8.5 |
 | 004-S8.6.1 | For a variant no applicant can meet, "No applicant can meet the rules of Standard." sits above the heading | P3 | Y | Test step | default | baseline, copy:findings, superseded by FR-041 (#50) | 004 §S8.6; F6 |
 | 004-S8.6.2 | Heading "Result: meets the rules", or "Result: doesn't meet 2 rules" / "… 1 rule and 1 group" | P3 | Y | Test step | default | baseline, copy:rules, amended by FR-024 (count kept, #46) | 004 §S8.6; W10 |
-| 004-S8.6.3 | An unmet variant has two columns, "Rule" and "Message Mia reads" | P3 | Y | Test step | default | baseline, copy:rules | 004 §S8.6 |
-| 004-S8.6.4 | Reported rules and groups first: name, statement, "Not met" or "Couldn't be checked" with own icon, message | P3 | Y | Test step | default | baseline, copy | 004 §S8.6; F8 |
-| 004-S8.6.5 | Below a reported group, indented, its members not met or not checked, with name, statement, status | P3 | Y | Test step | default | baseline | 004 §S8.6; W10 |
-| 004-S8.6.6 | Then every other top-level item; a met one has a check icon, name, statement and "–" as message | P3 | Y | Test step | default | baseline, copy | 004 §S8.6; F14 |
-| 004-S8.6.7 | A met variant: "Result: meets the rules", list "Rules Mia meets", no message column, no success message | P3 | Y | Test step | success | baseline, copy:rules | 004 §S8.6; F3, F14 |
+| 004-S8.6.3 | ~~An unmet variant has two columns, "Rule" and "Message Mia reads"~~ The results are a list without columns or a head | P3 | Y | Test step | default | baseline, copy:rules; reversed 2026-11-19 (bug test-results-v5: the head `7599:55827` is hidden) | 004 §S8.6; CLAR 2026-11-19 #2, #3 |
+| 004-S8.6.4 | Reported rules and groups first: name, statement, ~~"Not met"~~ hidden "Not met" or visible "Couldn't be checked" with own icon, message | P3 | Y | Test step | default | baseline, copy; amended 2026-11-19 (bug test-results-v5: the name coloured by outcome, no tint; F8 kept for "Couldn't be checked") | 004 §S8.6; F8; CLAR 2026-11-19 #2 |
+| 004-S8.6.5 | Below a reported group, indented 28 px per level, its members not met or not checked, with name, statement, status, message line; untinted | P3 | Y | Test step | default | baseline; amended 2026-11-19 (bug test-results-v5: no tint; a member of a group with its own message reads "Not shown while this rule is in <group>. …") | 004 §S8.6; W10; CLAR 2026-11-19 #2, #3 |
+| 004-S8.6.6 | Then every other top-level item; a met one has a check icon, name, statement and ~~"–" as message~~ its "Message for citizens:" line | P3 | Y | Test step | default | baseline, copy; amended 2026-11-19 (bug test-results-v5: no "–") | 004 §S8.6; F14; CLAR 2026-11-19 #3 |
+| 004-S8.6.7 | A met variant: "Result: meets the rules", ~~list "Rules Mia meets", no message column~~ every row with its message, no success message | P3 | Y | Test step | success | baseline, copy:rules; amended 2026-11-19 (bug test-results-v5: no list heading; "no success message" holds, F41) | 004 §S8.6; F3, F14; CLAR 2026-11-19 #3 |
 | 004-S8.6.8 | A variant without rules: "School transport has no rules yet, so every applicant meets it. Add rules …" | P3 | Y | Test step | empty | baseline, copy:rules, amended by FR-020 | 004 §S8.6 |
 | 004-S8.7.1 | One persona with changes: "Generate new data for Mia?", "Your changes to Mia's data will be replaced. …" | P3 | Y | Generate dialog | default | baseline, copy:rules | 004 §S8.7; U04 |
 | 004-S8.7.2 | The questions' buttons are "Cancel" and "Generate new data" | P3 | Y | Generate dialog | default | baseline, copy | 004 §S8.7 |
@@ -622,7 +622,7 @@ Spec 008's Clarifications (session 2026-11-07, #1–#61) decide drift items agai
 | 004-S8.8.2 | Status "Creating 3 sample applicants…" (role="status") at the applicants row's right end | P3 | Y | Test step | loading | baseline, copy:rules, amended by FR-020 | 004 §S8.8 |
 | 004-S8.8.3 | Skeleton cards keep the layout, result rows have a statement placeholder; no editing, no test-day line | P3 | Y | Test step | loading | baseline | 004 §S8.8; F14 |
 | 004-S8.8.4 | One persona: only its pill, data card and result card are skeletons, without "Edit data" or "Generate again" | P3 | Y | Test step | loading | baseline, amended by Q32 (chip keeps its name with a ring) | 004 §S8.8 |
-| 004-S8.8.5 | Status "Creating new data for Mia…"; the other personas stay usable; the test-day line shows | P3 | Y | Test step | loading | baseline, copy:rules | 004 §S8.8 |
+| 004-S8.8.5 | Status "Creating new data for Mia…"; the other personas stay usable; ~~the test-day line shows~~ their result cards show the test day | P3 | Y | Test step | loading | baseline, copy:rules; amended 2026-11-19 (bug test-results-v5: none on the regenerating persona's skeleton, V5 frame 19) | 004 §S8.8; CLAR 2026-11-19 #1 |
 | 004-S8.8.6 | Filling new data after returning from the rules step: as frame 19, per persona being filled | P3 | Y | Test step | loading | baseline, copy:rules | 004 §S8.8 |
 | 004-S8.9.1 | Failure replaces the applicants row and panel: "Couldn't create sample applicants", "Try again, or publish without testing." | P3 | Y | Test step | error | baseline, copy, copy:rules, amended by FR-020 | 004 §S8.9; U12 |
 | 004-S8.9.2 | "Try again" generates all three anew with S8.8's loading state | P3 | Y | Test step | error | baseline, copy | 004 §S8.9 |
@@ -631,7 +631,7 @@ Spec 008's Clarifications (session 2026-11-07, #1–#61) decide drift items agai
 | 004-S8.10.1 | A hidden polite role="status" region announces each outcome change of the edited persona, per variant | P3 | Y | Test step | default | baseline, amended by FR-042 (announced toast) | 004 §S8.10 |
 | 004-S8.10.2 | "Mia Schulz now meets the rules of Standard." / "Mia Schulz no longer meets the rules of Standard." | P3 | Y | Test step | default | baseline, copy:rules, amended by FR-042 | 004 §S8.10 |
 | 004-S8.10.3 | There is no visible toast | P3 | Y | Test step | default | baseline, not built, superseded by FR-042 | 004 §S8.10; F2 |
-| 004-ACC.1 | Outcome never by colour alone: chip icons differ in shape; statuses are text; hidden text on values | - | Y | Test step | default | baseline | 004 §Accessibility |
+| 004-ACC.1 | Outcome never by colour alone: chip and row icons differ in shape; statuses are ~~text~~ hidden text, "Couldn't be checked" visible; hidden text on values | - | Y | Test step | default | baseline; amended 2026-11-19 (bug test-results-v5: the result row's name coloured by outcome, its status hidden) | 004 §Accessibility; CLAR 2026-11-19 #2 |
 | 004-ACC.2 | The variant tabs and the persona chips work by arrow keys | - | Y | Test step | default | baseline | 004 §Accessibility |
 | 004-ACC.3 | Opening the step moves the focus to its heading, as every step does | - | Y | Test step | default | baseline | 004 §Accessibility |
 | 004-ACC.4 | "Edit data" moves the focus to the first field, and "Done" back to "Edit data" | - | Y | Test step | default | baseline, superseded by FR-042 | 004 §Accessibility |

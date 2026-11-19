@@ -3,7 +3,7 @@ import type { CardScrollAreaProps } from './types';
 
 /**
  * A card's rows under its head, the data card's (`PersonaData`) or the result card's
- * (`ResultTable`, or the note of a variant without rules): where the wizard pins its step header
+ * (`ResultList`, or the note of a variant without rules): where the wizard pins its step header
  * and the cards sit side by side, each card scrolls its rows on its own, its head staying put
  * (spec 008 FR-043, as clarified on 2026-11-18; V5 frame 15 7599:57529). Elsewhere it is a plain
  * box, and the panel or the page scrolls (`CARD_SCROLL_CLASSES`).

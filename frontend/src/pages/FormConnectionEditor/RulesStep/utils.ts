@@ -24,6 +24,7 @@ import { variantNameProblem } from '@connection-portal/rules/validation';
 import { generatePath } from 'react-router';
 
 import { GROUP_HEADER_ID_SUFFIX } from '../../../components/GroupFrame/constants';
+import { RULE_ROW_COPY } from '../../../components/RuleRow/constants';
 import type { ToastKind } from '../../../components/Toast/types';
 import { ROUTES } from '../../../constants';
 import { ELEMENT_IDS } from '../constants';
@@ -603,7 +604,7 @@ export function editorMessageHintOf(
     ? (findItem(items, editing.original.id)?.parentId ?? null)
     : editing.parentId;
   const group = messageGroupOf(items, parentId);
-  return group ? RULES_STEP_COPY[language].notShownInGroup(group.name.trim()) : null;
+  return group ? RULE_ROW_COPY[language].notShownInGroup(group.name.trim()) : null;
 }
 
 /**

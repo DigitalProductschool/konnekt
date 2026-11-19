@@ -54,8 +54,6 @@ export interface PersonaTexts {
   /** The result's heading for a variant not met, with the count and its noun */
   resultDoesNotMeet: (count: number, rules: string) => string;
   rule: PluralForms;
-  meetsHeading: (firstName: string) => string;
-  messageColumn: (firstName: string) => string;
   noRulesNote: (branchName: string) => string;
   confirmOneTitle: (firstName: string) => string;
   /** The question for one persona, from the first name's possessive */
@@ -81,13 +79,13 @@ const englishPossessive = (name: string): string => `${name}’s`;
 
 /**
  * The persona texts in both languages (spec 009, R4; glossary §2 "sample citizen", "meets",
- * "message", "today in Germany", §3 "persona chips", "Result", "Rules Mia meets"). The English
- * column is spec 004's and spec 008's copy, word for word (FR-014)
+ * "message", "today in Germany", §3 "persona chips", "Result"). The English column is spec 004's
+ * and spec 008's copy, word for word (FR-014), as test-results-v5 amends it (R1, R3)
  */
 export const PERSONA_TEXTS = defineTexts<PersonaTexts>(
   {
     possessive: englishPossessive,
-    testDayLine: (date) => `Tested as if shared today, ${date}.`,
+    testDayLine: (date) => `Tested as if shared today, ${date}`,
     chipName: (name, branchName, meets) =>
       `${name}: ${meets ? 'meets' : 'doesn’t meet'} the rules of ${branchName}`,
     dataHeading: (possessive) => `${possessive} data`,
@@ -98,8 +96,6 @@ export const PERSONA_TEXTS = defineTexts<PersonaTexts>(
     resultMeets: 'Result: meets the rules',
     resultDoesNotMeet: (count, rules) => `Result: doesn’t meet ${count} ${rules}`,
     rule: { one: 'rule', other: 'rules' },
-    meetsHeading: (firstName) => `Rules ${firstName} meets`,
-    messageColumn: (firstName) => `Message ${firstName} reads`,
     noRulesNote: (branchName) =>
       `${branchName} has no rules yet, so every citizen meets it. ` +
       'Add rules in the Rules step to test them.',
@@ -121,7 +117,7 @@ export const PERSONA_TEXTS = defineTexts<PersonaTexts>(
   },
   {
     possessive: (name) => `von ${name}`,
-    testDayLine: (date) => `Getestet, als würden die Daten heute geteilt: ${date}.`,
+    testDayLine: (date) => `Getestet, als würden die Daten heute geteilt: ${date}`,
     chipName: (name, branchName, meets) =>
       `${name}: erfüllt die Regeln von ${branchName}${meets ? '' : ' nicht'}`,
     dataHeading: (possessive) => `Daten ${possessive}`,
@@ -132,8 +128,6 @@ export const PERSONA_TEXTS = defineTexts<PersonaTexts>(
     resultMeets: 'Ergebnis: erfüllt alle Regeln',
     resultDoesNotMeet: (count, rules) => `Ergebnis: erfüllt ${count} ${rules} nicht`,
     rule: { one: 'Regel', other: 'Regeln' },
-    meetsHeading: (firstName) => `Regeln, die ${firstName} erfüllt`,
-    messageColumn: (firstName) => `Nachricht für ${firstName}`,
     noRulesNote: (branchName) =>
       `${branchName} hat noch keine Regeln und wird daher von allen erfüllt. ` +
       'Fügen Sie im Schritt „Regeln“ Regeln hinzu, um sie zu testen.',
@@ -189,9 +183,10 @@ export function displayDateOf(iso: string): string {
   return `${day}.${month}.${year}`;
 }
 
-// The test day (FR-016, W1; spec 008 FR-024)
+// The test day (FR-016, W1; spec 008 FR-024; test-results-v5 R1: under the result's heading, as
+// V5 frame 1 7599:61800 words it, without a full stop)
 
-/** "Tested as if shared today, 01.11.2026." for `today` as `YYYY-MM-DD` */
+/** "Tested as if shared today, 01.11.2026" for `today` as `YYYY-MM-DD` */
 export function testDayLineOf(today: string, language: Language = DEFAULT_LANGUAGE): string {
   return PERSONA_TEXTS[language].testDayLine(displayDateOf(today));
 }
@@ -263,17 +258,11 @@ export function resultHeadingOf(unmetRules: number, language: Language = DEFAULT
   return texts.resultDoesNotMeet(unmetRules, plural(texts.rule, unmetRules));
 }
 
-/** The list's heading for a variant the persona meets: "Rules Mia meets" (F3, F14) */
-export function meetsHeadingOf(persona: Named, language: Language = DEFAULT_LANGUAGE): string {
-  return PERSONA_TEXTS[language].meetsHeading(firstName(persona));
-}
-
-/** The message column's heading: "Message Mia reads" */
-export function messageColumnOf(persona: Named, language: Language = DEFAULT_LANGUAGE): string {
-  return PERSONA_TEXTS[language].messageColumn(firstName(persona));
-}
-
-/** A row's outcome in words, for a row that isn't met: "Not met", "Couldn’t be checked" */
+/**
+ * A row's outcome in words, for a row that isn't met: "Not met", "Couldn’t be checked". The step
+ * reads "Not met" as hidden text after the name, where the icon and the name's colour show it, and
+ * shows "Couldn’t be checked" (test-results-v5 R2)
+ */
 export function outcomeNameOf(
   outcome: NamedOutcome,
   language: Language = DEFAULT_LANGUAGE

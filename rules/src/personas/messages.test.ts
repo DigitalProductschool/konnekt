@@ -13,8 +13,6 @@ import {
   failingValueHiddenTextOf,
   failureHintOf,
   firstName,
-  meetsHeadingOf,
-  messageColumnOf,
   noLongerMeetsOf,
   noRulesNoteOf,
   nowMeetsOf,
@@ -37,14 +35,14 @@ const ANNA = persona('Anna Weber');
 const YUSUF = persona('Yusuf Demir');
 const TODAY = '2026-11-01';
 
-describe('testDayLineOf (FR-016, W1; spec 008 FR-024)', () => {
-  it('words the day the results assume, in dd.mm.yyyy', () => {
-    expect(testDayLineOf(TODAY)).toBe('Tested as if shared today, 01.11.2026.');
+describe('testDayLineOf (FR-016, W1; spec 008 FR-024; test-results-v5 R1)', () => {
+  it('words the day the results assume, in dd.mm.yyyy, without a full stop (V5 7599:61800)', () => {
+    expect(testDayLineOf(TODAY)).toBe('Tested as if shared today, 01.11.2026');
   });
 
   it('words it in German, the date still dd.mm.yyyy (glossary §2 "today in Germany")', () => {
     expect(testDayLineOf(TODAY, 'de')).toBe(
-      'Getestet, als würden die Daten heute geteilt: 01.11.2026.'
+      'Getestet, als würden die Daten heute geteilt: 01.11.2026'
     );
   });
 });
@@ -121,17 +119,13 @@ describe('firstName and possessiveOf (design-notes §1.1)', () => {
   });
 });
 
-describe('the panel and result headings (FR-004, FR-015)', () => {
+describe('the panel heading (FR-004)', () => {
   it('uses the first name', () => {
     expect(dataHeadingOf(MIA)).toBe('Mia’s data');
-    expect(meetsHeadingOf(MIA)).toBe('Rules Mia meets');
-    expect(messageColumnOf(MIA)).toBe('Message Mia reads');
   });
 
-  it('uses the first name in German (glossary §2 "message", §3 "Rules Mia meets")', () => {
+  it('uses the first name in German (glossary §2 "message")', () => {
     expect(dataHeadingOf(MIA, 'de')).toBe('Daten von Mia');
-    expect(meetsHeadingOf(MIA, 'de')).toBe('Regeln, die Mia erfüllt');
-    expect(messageColumnOf(MIA, 'de')).toBe('Nachricht für Mia');
   });
 });
 

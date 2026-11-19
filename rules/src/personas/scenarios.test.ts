@@ -502,12 +502,9 @@ describe('US1-AS2: per persona and variant, whether it meets the rules, and what
 
     const mia = viewOf(MIA, EXAMPLE, 'standard', TODAY, GERMAN);
     expect(mia.heading).toBe('Ergebnis: erfüllt alle Regeln');
-    expect(mia.listHeading).toBe('Regeln, die Mia erfüllt');
-    expect(mia.messageColumn).toBeNull();
 
     const jonas = viewOf(JONAS, EXAMPLE, 'standard', TODAY, GERMAN);
     expect(jonas.heading).toBe('Ergebnis: erfüllt 1 Regel nicht');
-    expect(jonas.messageColumn).toBe('Nachricht für Jonas');
     expect(jonas.rows[0].name).toBe('Rule 01');
     expect(jonas.rows[0].message).toBe('You are too young for this licence.');
     expect(jonas.rows[0].statement).toBe(
@@ -519,7 +516,6 @@ describe('US1-AS2: per persona and variant, whether it meets the rules, and what
 
     const anna = viewOf(ANNA, EXAMPLE, 'ambulance', TODAY, GERMAN);
     expect(anna.heading).toBe('Ergebnis: erfüllt 3 Regeln nicht');
-    expect(anna.messageColumn).toBe('Nachricht für Anna');
   });
 
   it('Mia, 25, from Stuttgart, class B for 6 years: meets both variants', () => {
@@ -527,13 +523,11 @@ describe('US1-AS2: per persona and variant, whether it meets the rules, and what
       const view = viewOf(MIA, EXAMPLE, branchKey);
       expect(view.meets).toBe(true);
       expect(view.heading).toBe('Result: meets the rules');
-      expect(view.listHeading).toBe('Rules Mia meets');
-      expect(view.messageColumn).toBeNull();
       expect(rowsOf(view)).toEqual([
-        ['rule-1', 'met', null, false],
-        ['rule-2', 'met', null, false],
-        ['rule-3', 'met', null, false],
-        ['rule-4', 'met', null, false],
+        ['rule-1', 'met', 'You are too young for this licence.', false],
+        ['rule-2', 'met', 'You must live in Stuttgart.', false],
+        ['rule-3', 'met', 'You need a class B licence.', false],
+        ['rule-4', 'met', 'You must have held class B for at least 2 years.', false],
       ]);
       expect(view.failingFields).toEqual([]);
     }
@@ -543,13 +537,11 @@ describe('US1-AS2: per persona and variant, whether it meets the rules, and what
     const standard = viewOf(JONAS, EXAMPLE, 'standard');
     expect(standard.meets).toBe(false);
     expect(standard.heading).toBe('Result: doesn’t meet 1 rule');
-    expect(standard.listHeading).toBeNull();
-    expect(standard.messageColumn).toBe('Message Jonas reads');
     expect(rowsOf(standard)).toEqual([
       ['rule-1', 'not_met', 'You are too young for this licence.', true],
-      ['rule-2', 'met', null, false],
-      ['rule-3', 'met', null, false],
-      ['rule-4', 'met', null, false],
+      ['rule-2', 'met', 'You must live in Stuttgart.', false],
+      ['rule-3', 'met', 'You need a class B licence.', false],
+      ['rule-4', 'met', 'You must have held class B for at least 2 years.', false],
     ]);
     expect(standard.rows[0].name).toBe('Rule 01');
     expect(standard.rows[0].statement).toBe(
@@ -570,12 +562,11 @@ describe('US1-AS2: per persona and variant, whether it meets the rules, and what
       const view = viewOf(ANNA, EXAMPLE, branchKey);
       expect(view.meets).toBe(false);
       expect(view.heading).toBe('Result: doesn’t meet 3 rules');
-      expect(view.messageColumn).toBe('Message Anna reads');
       expect(rowsOf(view)).toEqual([
         ['rule-2', 'not_met', 'You must live in Stuttgart.', true],
         ['rule-3', 'not_met', 'You need a class B licence.', true],
         ['rule-4', 'not_met', 'You must have held class B for at least 2 years.', true],
-        ['rule-1', 'met', null, false],
+        ['rule-1', 'met', 'You are too young for this licence.', false],
       ]);
       expect(view.failingFields).toEqual([CITY_KEY, CLASSES]);
     }
@@ -652,12 +643,12 @@ describe('US1-AS3: one persona meets both variants, one only Ambulance, one neit
 
 describe('US1-AS4: tested as if shared today', () => {
   it('names today’s date', () => {
-    expect(testDayLineOf(TODAY)).toBe('Tested as if shared today, 01.11.2026.');
+    expect(testDayLineOf(TODAY)).toBe('Tested as if shared today, 01.11.2026');
   });
 
   it('names today’s date in German, still dd.mm.yyyy (spec 009, FR-012)', () => {
     expect(testDayLineOf(TODAY, 'de')).toBe(
-      'Getestet, als würden die Daten heute geteilt: 01.11.2026.'
+      'Getestet, als würden die Daten heute geteilt: 01.11.2026'
     );
   });
 
@@ -887,7 +878,7 @@ describe('EC "Rules removed in a branch": not tested there', () => {
     expect(rowsOf(view)).toEqual([
       ['rule-3', 'not_met', 'You need a class B licence.', true],
       ['rule-4', 'not_met', 'You must have held class B for at least 2 years.', true],
-      ['rule-1', 'met', null, false],
+      ['rule-1', 'met', 'You are too young for this licence.', false],
     ]);
     // Mia from Esslingen fails Standard on the city, and meets Ambulance
     const elsewhere = persona('Mia Schulz', { ...MIA.values, [CITY_KEY]: 'Esslingen' });
@@ -943,8 +934,8 @@ describe('EC "A rule on a class the persona doesn’t hold": not met', () => {
     expect(rowsOf(view)).toEqual([
       ['rule-3', 'not_met', 'You need a class B licence.', true],
       ['rule-4', 'not_met', 'You must have held class B for at least 2 years.', true],
-      ['rule-1', 'met', null, false],
-      ['rule-2', 'met', null, false],
+      ['rule-1', 'met', 'You are too young for this licence.', false],
+      ['rule-2', 'met', 'You must live in Stuttgart.', false],
     ]);
     expect(view.failingFields).toEqual([CLASSES]);
     expect(shownFieldsOf(withoutB, fieldsOf(EXAMPLE)).map((each) => each.key)).not.toContain(
@@ -961,8 +952,8 @@ describe('EC "An empty class list" and "A class without an expiry date": couldn�
     expect(rowsOf(view)).toEqual([
       ['rule-3', 'not_checked', 'You need a class B licence.', true],
       ['rule-4', 'not_checked', 'You must have held class B for at least 2 years.', true],
-      ['rule-1', 'met', null, false],
-      ['rule-2', 'met', null, false],
+      ['rule-1', 'met', 'You are too young for this licence.', false],
+      ['rule-2', 'met', 'You must live in Stuttgart.', false],
     ]);
   });
 
@@ -978,7 +969,7 @@ describe('EC "An empty class list" and "A class without an expiry date": couldn�
       const subject = persona('Mia Schulz', { [CLASSES]: ['B'], [EXPIRY_B]: empty });
       expect(rowsOf(viewOf(subject, branches, 'standard'))).toEqual([
         ['rule-5', 'not_checked', 'You must meet this rule.', true],
-        ['rule-3', 'met', null, false],
+        ['rule-3', 'met', 'You need a class B licence.', false],
       ]);
     }
     const dated = persona('Mia Schulz', { [CLASSES]: ['B'], [EXPIRY_B]: '2030-01-01' });
@@ -1319,7 +1310,7 @@ describe('US2-AS6: data that no rule checks isn’t there', () => {
 });
 
 describe('US2-AS7: a rename changes no result', () => {
-  it('keeps every outcome, row and message; only the name in the texts changes', () => {
+  it('keeps every outcome, row and message', () => {
     const renamed = { ...JONAS, name: 'Erika Mustermann' };
     expect(resultsOf([renamed], EXAMPLE)['persona-2']).toEqual(
       resultsOf([JONAS], EXAMPLE)['persona-2']
@@ -1331,7 +1322,6 @@ describe('US2-AS7: a rename changes no result', () => {
       expect(after.meets).toBe(before.meets);
       expect(after.failingFields).toEqual(before.failingFields);
     }
-    expect(viewOf(renamed, EXAMPLE, 'standard').messageColumn).toBe('Message Erika reads');
     expect(
       announcementOf(metOf(JONAS, EXAMPLE), metOf(renamed, EXAMPLE), renamed, EXAMPLE_TABS)
     ).toBe('');

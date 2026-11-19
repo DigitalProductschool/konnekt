@@ -49,12 +49,10 @@ export const TEST_STEP_COPY = defineTexts(
     enterSmallerAge: 'Enter a smaller age, e.g. 25.',
 
     // Results (S8.6; design-notes §6.1)
-    rule: 'Rule',
-    /** The message cell of a row without a message (F14) */
-    noMessage: '–',
     /**
-     * A met row's hidden status, read in place of its check icon, which has no visible status text
-     * (FR-015, SC-007; proposed, T034)
+     * A met row's hidden status, read after its name in place of its check icon and its green
+     * name, which have no visible status text (FR-015, SC-007; proposed, T034; a row not met reads
+     * `outcomeNameOf()`'s "Not met" the same way, test-results-v5 R2)
      */
     met: 'Met',
 
@@ -87,8 +85,6 @@ export const TEST_STEP_COPY = defineTexts(
     enterWholeNumber: 'Geben Sie eine ganze Zahl ein, z. B. 25.',
     enterName: 'Geben Sie einen Namen ein.',
     enterSmallerAge: 'Geben Sie ein niedrigeres Alter ein, z. B. 25.',
-    rule: 'Regel',
-    noMessage: '–',
     met: 'Erfüllt',
     failureTitle: 'Beispielpersonen konnten nicht erstellt werden',
     tryAgain: 'Erneut versuchen',
@@ -182,18 +178,29 @@ export const CHIP_ICONS = {
   fails: 'kern-icon--danger bg-kern-feedback-danger!',
 } as const;
 
-// Results (S8.6; T034): each status's 20 px KERN mask icon in its colour (design-notes §10.4); a
-// row that isn't met names its outcome in words too (`outcomeNameOf()`). The three shapes differ,
-// so the outcome never rests on colour alone (F8, F14)
+// Results (S8.6; T034): each status's 20 px KERN mask icon in its colour (design-notes §10.4). The
+// three shapes differ, so the outcome never rests on colour alone (F8, F14; WCAG 1.4.1), now that
+// only "Couldn’t be checked" is said in visible words (test-results-v5 R2). The V5 frames draw
+// Material's person_off / how_to_reg, "Preview candidate, not approved": not adopted
 export const RESULT_STATUS_ICONS = {
   met: 'kern-icon--success bg-kern-feedback-success!',
   not_met: 'kern-icon--danger bg-kern-feedback-danger!',
   not_checked: 'kern-icon--help bg-kern-layout-text-muted!',
 } as const;
 
-// A result row's indent per level of a reported group's members (W10): the icon's 20 px and the
-// row's 12 px gap, so a member's icon sits under its group's name
-export const MEMBER_INDENT = ['', 'pl-32', 'pl-64', 'pl-96'] as const;
+// A result row's name in its outcome's colour (test-results-v5 R2; V5 7599:55832): danger when not
+// met, success when met (#c4271c and #1d7a2e, both 4.5:1 or more on white), and the default text
+// colour when it couldn't be checked, as no frame draws that case (spec 004 F8 kept)
+export const RESULT_NAME_COLOURS = {
+  met: 'text-kern-feedback-success',
+  not_met: 'text-kern-feedback-danger',
+  not_checked: 'text-kern-layout-text-default',
+} as const;
+
+// A result row's left padding per level of a reported group's members (W10): the row's 12 px, then
+// per level the icon's 20 px and the row's 8 px gap, so a member's icon sits under its group's
+// name
+export const MEMBER_INDENT = ['pl-12', 'pl-40', 'pl-68', 'pl-96'] as const;
 
 // Loading states (S8.8; T035; spec 008 S13, T074; Figma U74 frames 18 7062:50960 and 19
 // 7062:51249)

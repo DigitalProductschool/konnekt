@@ -283,10 +283,19 @@ export interface ResultRow {
   parts: StatementParts | null;
   status: 'met' | 'not_met' | 'not_checked';
   /**
-   * The item's message for a reported row; `null` for other rows, which the step draws as "–"
-   * when there is a message column
+   * The item's message for citizens as stored, the line the rules step draws under it ("Message
+   * for citizens:"), on every row, met or not: a rule's message, or a group's own message; `null`
+   * for a group without one. It is the item's current message, so an edit shows at once. Which
+   * messages the citizen reads follows from `reported`
    */
   message: string | null;
+  /**
+   * The name of the outermost group around this row whose own message citizens read instead of
+   * this item's, as the rules step finds it (`messageGroupOf()`; F32, FR-037): set only on the
+   * members listed under a reported group with a message, otherwise `null`
+   */
+  messageGroup: string | null;
+  /** Whether the evaluation reports the item: its message is one the citizen reads (FR-014) */
   reported: boolean;
   /**
    * A reported group's members that aren't met, recursively. Empty for everything else (W10,
@@ -301,10 +310,6 @@ export interface ResultView {
   meets: boolean;
   /** "Result: meets the rules", "Result: doesn't meet 2 rules" (FR-015; spec 008 FR-024, V4) */
   heading: string;
-  /** "Rules Mia meets" under a met variant, otherwise null (F3) */
-  listHeading: string | null;
-  /** "Message Mia reads" under a variant the persona doesn't meet, otherwise null (F3, F14) */
-  messageColumn: string | null;
   /** Reported items first, then the other top-level items */
   rows: ResultRow[];
   /** The keys of the fields read by rules shown as failing (K1) */

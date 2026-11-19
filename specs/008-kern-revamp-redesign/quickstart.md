@@ -160,18 +160,27 @@ Each scenario names the screens of [contracts/ui-screens.md](contracts/ui-screen
 1. Open the step on a connection with rules → "Creating 3 sample citizens…" with the skeletons,
    then the chips with name and outcome icon (F44), the data card as a flat list with
    "08.07.2007", "B, BE since 02.05.2010", "Valid until <date>" (C6), the result heading "Result:
-   doesn't meet 2 rules", rows with the statement, "Not met" / "Couldn't be checked" and the
-   message (F42); no success box (F41); "Tested as if shared today, 01.11.2026."; no variant ⓘ
-   (F27).
+   doesn't meet 2 rules" with "Tested as if shared today, 01.11.2026" (no full stop) under it in
+   the result card's head and no line above the tabs; ~~rows with the statement, "Not met" /
+   "Couldn't be checked" and the message (F42)~~ the rows as a list without a head: the status
+   icon, the name red when not met and green when met ("Not met" / "Met" hidden), "Couldn't be
+   checked" visible after the name, the statement, and "Message for citizens: <its message>" on
+   every row, met or not, with no tint, no "–" and no "Rules Mia meets"; a long message hangs
+   beside its label where the card is 560 px wide or more, and flows under it at 320 px (bug
+   test-results-v5, 2026-11-19, Clarification 2026-11-19 #1–#3); no success box (F41); no
+   variant ⓘ (F27).
 2. "Edit data" → the dialog; a date that doesn't exist → the error under the field blocks "Save
    and test"; a valid change → the results update and the toast "Results updated. Mia now meets
    Rule 01."; classes picked by code, Nationality and Expiry date fields, "Class B since" (F40).
 3. "Generate again" asks only when the persona was edited; the regenerating chip keeps its name
-   with a ring and the test-day line stays; "Generate all" (the design's label for the baseline's
-   "Generate all again", cosmetic 12) in every results state (F45).
+   with a ring, ~~and the test-day line stays~~ its skeleton card shows no test day while another
+   citizen's card does (Clarification 2026-11-19 #1); "Generate all" (the design's label for the
+   baseline's "Generate all again", cosmetic 12) in every results state (F45).
 4. Contradicting rules → the ⚠ on the tab with its tooltip on hover and focus, no line above the
    heading (CLAR #50); a variant without rules → "<variant> has no rules yet, so every citizen
-   meets it."; generation failed → "Couldn't create sample citizens" with "Try again".
+   meets it." under the head with the test day; a rule in a group with its own message → "Not
+   shown while this rule is in <group>. Citizens see the group message instead."; generation
+   failed → "Couldn't create sample citizens" with "Try again".
 5. With 12 rules the page doesn't scroll (F43): at ≥ 1024 × 640 each card's rows scroll on their
    own, its head staying; narrower but pinned, the panel scrolls (bug v5-ui-fixes, 2026-11-18).
    Arrow keys move between chips; the focus follows 004-ACC.

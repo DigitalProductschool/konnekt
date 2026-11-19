@@ -211,7 +211,9 @@ later `/speckit-specify`.
     Dropped: "08.07.2007 (age 19)", a bare expiry date, the codes row "B, BE" plus one row per
     class date, "Result: doesn't meet 2 rules", "1 Nov 2026".
   - Supersedes: no Clarification. Amended by #46 (second round, Remap Q1): the Test 1 frames'
-    formats replace these, except "Valid until <date>" and the test-day line.
+    formats replace these, except "Valid until <date>" and the test-day line. The test-day line
+    is amended by Clarification 2026-11-19 #1 (bug test-results-v5): "Tested as if shared today,
+    01.11.2026" without the full stop, under the heading in the result card's head.
 
 - Q: Should the wizard use the design's compact "Step n of 4" header with four unlabelled
   segments and a publish dialog, instead of the baseline's five labelled progress entries? (Q7, F,
@@ -621,9 +623,13 @@ later `/speckit-specify`.
     holds: no message column and no success message).
   - (b) Rows (U65 #23, #24; U66 #21, #22; U67 #22, #23; U68 #23, #24, #33; U69 #26, #27; U71
     #23, #24; U72 #28, #29; U73 #15; U63 #13–#15; U75 #24–#26; U76 #19–#21; U77 #25, #26; U78
-    #22–#24; U79 #30–#32; U99 #46, #47): each row keeps its statement and "Not met" / "Couldn't
-    be checked" as text (004-S8.6.4, 004-ACC.1), with the design's icon and tint; the older
-    frames' "19, needs 21" and the "Mia sees" box are Figma errors.
+    #22–#24; U79 #30–#32; U99 #46, #47): each row keeps its statement ~~and "Not met" /
+    "Couldn't be checked" as text (004-S8.6.4, 004-ACC.1), with the design's icon and tint~~;
+    the older frames' "19, needs 21" and the "Mia sees" box are Figma errors. Superseded by
+    Clarification 2026-11-19 #2 and #3 (bug test-results-v5): the rows follow the V5 frames, a
+    list without a head; "Not met" and "Met" are hidden text, the icon and the name's colour show
+    them, and only "Couldn't be checked" stays visible; no row is tinted; every row, met or not,
+    ends with "Message for citizens: <its message>".
   - (c) Data card (U65 #15, #18, #20; U66 #14, #24; U67 #14, #16; U68 #14, #18, #20; U69 #15,
     #18, #23; U70 #14, #17; U71 #17, #19, #20; U72 #15, #18, #22–#24; U63 #10, #12; U73 #12; U75
     #22; U76 #14, #16; U77 #22; U78 #19; U79 #24, #26; U99 #43; U01 #15): the document is a
@@ -632,7 +638,8 @@ later `/speckit-specify`.
     #1 (bug v5-ui-fixes): where the step header is pinned and the cards sit side by side, each
     card's rows scroll on their own.
   - Supersedes: 004-S8.4.2's visible headings (layout). No Clarification; 004-S8.6.4, 004-S8.6.7,
-    004-ACC.1, 004-S8.4.11 hold. (c) is amended by #46 (second round, Remap Q1): no visible
+    004-ACC.1, 004-S8.4.11 hold (004-S8.6.4, 004-S8.6.7 and 004-ACC.1 as amended by
+    Clarification 2026-11-19 #2 and #3). (c) is amended by #46 (second round, Remap Q1): no visible
     document column; the panel scrolling stays (until Clarification 2026-11-18 #1).
 
 - Q: Should the persona chips of the Test frames stay (rather than the older Publish frames'
@@ -647,12 +654,14 @@ later `/speckit-specify`.
   - "Your rules are saved." (U74 #24, 7062:51784): not built (004-S8.9.3).
   - Regeneration (U74 #16, #21; U63 #9; U75 #21; U76 #13; U78 #18; U79 #23; U06 #37, #80; U05
     #15): the regenerating chip keeps its name with a ring (styling; supersedes 004-S8.8.4's
-    skeleton pill); the test-day line shows during one persona's regeneration (004-S8.1.2);
-    "Generate again" and "Generate all again" show in every results state (004-S8.7.1);
-    generating asks first only when there are changes (004-S8.3.5); the Test tab's tooltip opens
-    on hover and on focus (004-S8.2.3).
-  - Supersedes: 004-S8.8.4 (styling). No Clarification; 004-S8.1.2, 004-S8.3.1, 004-S8.3.2,
-    004-S8.3.5, 004-S8.7.1, 004-S8.9.3 hold.
+    skeleton pill); ~~the test-day line shows during one persona's regeneration (004-S8.1.2)~~
+    (superseded by Clarification 2026-11-19 #1, bug test-results-v5: the date is in the result
+    card's head, so the regenerating persona's skeleton card shows none, while another persona's
+    card does); "Generate again" and "Generate all again" show in every results state
+    (004-S8.7.1); generating asks first only when there are changes (004-S8.3.5); the Test tab's
+    tooltip opens on hover and on focus (004-S8.2.3).
+  - Supersedes: 004-S8.8.4 (styling). No Clarification; 004-S8.1.2 (until Clarification
+    2026-11-19 #1), 004-S8.3.1, 004-S8.3.2, 004-S8.3.5, 004-S8.7.1, 004-S8.9.3 hold.
 
 - Q: Should the publish dialog have "Back to test", summarise as counts only, put warnings
   first, and show a "Published" interim state before the details? (Q33, F, Conflict 28, Partial
@@ -1287,7 +1296,8 @@ supersedes. The code was changed the same day.
     the stacked cards scroll together in the panel, or the page scrolls. The header, the step
     header, the tabs, the citizens row and the footer stay as before (004-S8.4.11). Unchanged: the
     rows, the heads' contents, the placeholder while generating, the failure state. Frame 15's
-    "Tested as if shared today" line in the result head belongs to bug test-results-v5.
+    "Tested as if shared today" line in the result head belongs to bug test-results-v5
+    (Clarification 2026-11-19 #1).
   - Supersedes: #31 (c)'s "the panel scrolls, not each card" and #46's "Unchanged: … the panel
     scrolling"; FR-043's "the panel scrolls as a whole"; F43 and FR-043c in `figma-audit/`.
     004-S8.4.11 holds outside the panel; inside it, the cards' rows scroll.
@@ -1316,6 +1326,119 @@ supersedes. The code was changed the same day.
     the scrim still cancel and return the focus to the account pill (the flow's `cancel` answer is
     unchanged). The `cancel` copy is removed from `LEAVE_COPY`. Not yet verified in a browser.
   - Supersedes: #8 (e)'s "Cancel"; FR-026's list of buttons; F20 in `figma-audit/report.md`.
+
+### Session 2026-11-19 (bug fixes)
+
+Decisions of `.specify/bugs/test-results-v5` (R1, R2, R3), from the V5 file's section "Test ·
+preview: tested date + rule rows" (`7599:55726`: frames 1–20 and the new "Long rules"
+`7644:65669`). Each reverses entries of Session 2026-11-07 and the spec 004 decisions they kept
+(W1, F3, F8, F14, W10 in spec 004's `figma-audit/report.md`, which stays as history); the
+record is the same: the decision, the surfaces, the behaviour and wording, what it supersedes.
+The assessment's five open questions took their defaults; each is folded into the entry it
+belongs to. Unchanged by all three: what is evaluated and reported (spec 004 FR-014), the order
+(reported items first, then the other top-level items), the heading and its count (FR-024d),
+the members listed only under a reported group (spec 004 FR-015k), the skeleton and failure
+states (004-S8.8, 004-S8.9), the per-card scrolling (Clarification 2026-11-18 #1) and F41 (no
+success message). The code was changed the same day and measured in Chrome with the example
+draft (design-notes, V5 `7599:55726`; the bug's `fix.md`).
+
+- Q: Where does the test step show the test day: as a line of its own above the variant tabs
+  (spec 004 W1, C6, FR-024e), or in the result card's head under its heading, as the V5 preview
+  draws it? (#1, bug test-results-v5 R1) → A: In the result card's head, without a final full
+  stop.
+  - Surfaces: the result head `7599:55810` (626 × 48) of frame 1 `7599:55727`, with "Title +
+    tested date" `7599:61799` (234 × 48) and the date `7599:61800`; every frame with results
+    draws the same head. No frame draws a line between the step header and the variant tabs
+    (`7599:55735`). Frames 18 `7599:57852` and 19 `7599:58022` draw the skeleton head and no
+    date; frame 20 `7599:58190` (failure) draws no result card.
+  - Behaviour and wording: the head is a column of two 24 px lines without a gap in the 48 px
+    row: the heading (`h2`, title/small 16/24 600, unchanged, still the name of the card's
+    scroll area) and under it the date in body/small 14/24 muted: "Tested as if shared today,
+    19.11.2026" / "Getestet, als würden die Daten heute geteilt: 19.11.2026", without a final
+    full stop in either language; the date stays dd.mm.yyyy, today in Germany (FR-024). The head
+    grows past 48 when either line wraps (German, a narrow card, 200 % zoom). The date shows
+    whenever the card has a result view, with the no-rules note too (Open Question 5, default:
+    004-S8.6.8's note stays under the new head; the archived frames 11–13's "a variant always has
+    rules" isn't adopted, since a variant can still be empty). It doesn't show on a skeleton
+    card: not in frame 18, and not on the card of a persona being generated anew (frame 19),
+    while another persona's card still shows it; nor in the failure state. Nothing stands
+    between the step's intro and the variant tabs any more (with the example, `ExampleBanner`
+    sits 16 above the tabs), so the app's y values from the tabs on should match the frames'
+    (design-notes: to verify).
+    `testDayLineOf()` in the rules package drops the full stop.
+  - Supersedes: #6's and C6's "Tested as if shared today, 01.11.2026." (the full stop) and
+    FR-024e's wording; spec 004 W1 / FR-016's place "directly under the intro" (004-S8.1.1),
+    which design-notes T071 decision 4 kept; #32's "the test-day line shows during one persona's
+    regeneration" (004-S8.1.2, F45) for the persona being generated. 004-S8.8.3 (no date in
+    frame 18) and 004-S8.9 (none in the failure) hold.
+
+- Q: Should the result rows keep the table with "Not met" / "Couldn't be checked" as text and
+  the danger tint (#31 (b), F42, FR-043), or follow the V5 rows: a list, the name coloured by
+  its outcome, no status text, no tint? (#2, bug test-results-v5 R2) → A: The V5 rows, as drawn;
+  KERN's status icons stay, and "Couldn't be checked" stays visible.
+  - Surfaces: frame 1 `7599:55727` (rows `7599:55832`, `7599:55842`), frame 2 `7599:55854`,
+    frame 3 `7599:55980`, frame 9 `7599:56241`, frame 15 `7599:57529` (Rule 07 `7599:57665`),
+    "Long rules" `7644:65669` (row `7644:65780`). The table head `7599:55827` is hidden in
+    every frame ("Old · Table head"). Not drawn: a group row and its members, a "Couldn't be
+    checked" row, German, a narrow window.
+  - Behaviour and wording: a list without a head (`ResultList.tsx` replaces `ResultTable.tsx`:
+    `ul` / `li`, a reported group's members in a nested `ul`). Each row is `px-12 py-8` with
+    `gap-8` and a 1 px bottom border in `decorative-border-default`; no row is tinted, members
+    included (Open Question 1, default: as drawn, the frames' failing rows have only the border;
+    the report's "tinted" is read as the red name). The status icon sits in a 20 × 24 box:
+    KERN's ◆ (`kern-icon--danger`), ✓ (`kern-icon--success`) and ? (`kern-icon--help`) stay
+    (Open Question 2, default: the frames' Material "person_off" / "how_to_reg" are marked
+    "Preview candidate, not approved"; the chips keep theirs too). Then a column 2 px apart: (1)
+    the name in 16/24 600, in `feedback-danger` when not met, `feedback-success` when met, and
+    in the default text colour when it couldn't be checked; "Not met" and "Met" are hidden text
+    right after the name, so a screen reader hears "Rule 01, Not met"; "Couldn't be checked"
+    stays visible, small muted text after the name on its line (Open Question 3, default: spec
+    004 F8 holds, since nothing else says the data was missing; frame 3, which draws Yusuf's
+    rules on his unshared licence as not met, is a Figma error); (2) the statement, unchanged:
+    the rules step's `RuleSentence`, or a group's "All rules must be met" / "At least one rule
+    must be met"; (3) the message line (#3). A reported group's members are indented 28 px per
+    level (the icon's 20 and the gap's 8), so that a member's icon sits under its group's name.
+    The outcome is never shown by colour alone: the icons differ in shape, and the status is
+    text for screen readers (004-ACC.1 in its new form). The skeleton rows of frames 18 and 19
+    keep the old two-column bars, as drawn, so the skeleton and the loaded rows now differ (the
+    designer is to be told).
+  - Supersedes: #31 (b)'s "'Not met' / 'Couldn't be checked' as text … with the design's icon
+    and tint"; FR-043's status text and tint; F42 and FR-043a in `figma-audit/`; 004-S8.6.4's
+    visible "Not met" (F8 holds for "Couldn't be checked"), 004-S8.6.5's tinted members (spec 004
+    W10), 004-ACC.1's "statuses are text" (hidden text now, except "Couldn't be checked").
+
+- Q: Which message does a result row show: the evaluation's message on reported rows under
+  "Message Mia reads", "–" on the others and the list heading "Rules Mia meets" for a met
+  variant (004-S8.6.3, 004-S8.6.6, 004-S8.6.7; F42), or the V5 rows' "Message for citizens:"
+  line under every rule? (#3, bug test-results-v5 R3) → A: "Message for citizens: <the item's
+  message>" on every row, met or not; no column, no "–", no list heading.
+  - Surfaces: frame 1 `7599:55727` (Rule 03, which Mia meets, shows its message); frame 2
+    `7599:55854` (Anna meets every rule, and all four rows show their messages; the head "Rules
+    Anna meets" `7599:55953` is hidden); "Long rules" `7644:65780` (a long message hanging
+    beside its label); the component "Rules/Error message" ("Shown under every saved rule").
+  - Behaviour and wording: every row ends with the rules step's `RuleMessage` line, "Message for
+    citizens:" (DE "Nachricht für Bürgerinnen und Bürger:") in label/small muted, 8, then the
+    item's current stored message in body/small, so an edited message shows at once. In a result
+    card whose container is 560 px wide or more, the message hangs beside its label, its lines
+    under its first word ("Long rules"); in a narrower one (320 px, 200 % zoom) it flows on under
+    the label. 560 rather than the assessment's 480, so that the German label (243 px measured)
+    leaves the message 200 px or more. A rule member under a reported group that has its own
+    message shows, in place of its message, the rules step's sentence "Not shown while this rule
+    is in <group>. Citizens see the group message instead." (Open Question 4, default; F32,
+    FR-037; the copy moved from `RULES_STEP_COPY` to `RULE_ROW_COPY`). A group without a
+    message, and a sub-group inside a group with one, show no message line. There is no message
+    column, no "–" and no head ("Rule", "Message Mia reads", "Rules Mia meets"): the line names
+    each item's message for citizens, and which of them the citizen reads follows from the red
+    rows. A met variant still shows no success message (#31 (a), F41, FR-043d), and spec 004
+    F3's refusal of the "Your wallet data meets the requirements" box holds. In the rules
+    package, `ResultRow.message` is the item's message on every row (`null` only for a group
+    without one), the new `ResultRow.messageGroup` names the group whose message citizens read
+    instead, and `ResultView.listHeading` / `messageColumn`, `meetsHeadingOf()` and
+    `messageColumnOf()` are removed.
+  - Supersedes: F42's "Met rows have the statement and '–'"; 004-S8.6.3 (the columns "Rule" and
+    "Message Mia reads"), 004-S8.6.6 ("–"), 004-S8.6.7's list heading "Rules Mia meets" and its
+    "no message column" (its "no success message" holds); spec 004 F3's "a met variant has no
+    message and no message column" and F14's "–".
 
 ## User Scenarios & Testing *(mandatory)*
 
@@ -1645,8 +1768,10 @@ Decided drift items (Clarifications, session 2026-11-07):
   the rules package: a flat list under the rules' labels, "<date>" for the date of birth (no
   age), "<class> since <date>" (no years) with the classes of one issue date in one row ("B, BE
   since <date>"), "Valid until <date>" under the expiry rule's label, "Result: doesn't meet <n>
-  rule(s)" with the count, and the test-day line in dd.mm.yyyy (Q6, amended by the second
-  round's Q1, #46).
+  rule(s)" with the count, and under it, in the result card's head, the test day in dd.mm.yyyy,
+  "Tested as if shared today, 19.11.2026" without a final full stop, no longer a line above the
+  variant tabs; it shows with a persona's results and not on a skeleton card (Q6, amended by
+  the second round's Q1, #46, and by Clarification 2026-11-19 #1).
 - **FR-025**: The wizard's header is the compact "Step n of 4" with four segments and "Next:
   <step>" / "Last step", exposed as a progress bar; it is not clickable while creating and is
   clickable while editing; Publish is a dialog opened from the test step; the details and draft
@@ -1753,13 +1878,15 @@ Decided drift items (Clarifications, session 2026-11-07):
   the save, and a saved change updates the results and announces "Results updated. <name> now
   meets <rule>." as a toast; licence classes are picked by code, and Nationality and Expiry date
   have fields (Q30).
-- **FR-043**: Test results keep each rule's statement and its "Not met" / "Couldn't be checked"
-  text next to the design's icon and tint; the data card is a flat list with no visible document
-  column, the document's name staying the row group's accessible heading (#46); where the step
-  header is pinned and the cards sit side by side, each card is as high as the panel, its head
-  stays put and only its rows scroll, each card on its own, in a focusable region named by the
-  card's heading; elsewhere the stacked cards scroll together in the panel, or the page scrolls
-  (Clarification 2026-11-18 #1); a met variant shows no success message (Q31).
+- **FR-043**: Test results are a list without a head: each row has its status icon, the
+  item's name coloured by its outcome, its statement and its "Message for citizens:" line, met
+  or not; "Not met" and "Met" are hidden text, "Couldn't be checked" stays visible, and no row
+  is tinted (Clarification 2026-11-19 #2 and #3); the data card is a flat list with no visible
+  document column, the document's name staying the row group's accessible heading (#46); where
+  the step header is pinned and the cards sit side by side, each card is as high as the panel,
+  its head stays put and only its rows scroll, each card on its own, in a focusable region named
+  by the card's heading; elsewhere the stacked cards scroll together in the panel, or the page
+  scrolls (Clarification 2026-11-18 #1); a met variant shows no success message (Q31).
 - **FR-044**: The publish dialog offers "Back to test", summarises the connection as counts,
   lists the findings warnings first, shows a "Published" state with "Opening your connection
   page…" for 0.5 s before the details, and on failure keeps the summary and shows the error ID
