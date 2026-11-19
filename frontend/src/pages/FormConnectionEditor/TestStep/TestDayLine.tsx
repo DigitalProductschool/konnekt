@@ -4,11 +4,11 @@ import { useLanguage } from '../../../hooks/useLanguage';
 import type { TestDayLineProps } from './types';
 
 /**
- * The test-day line (S8.1; FR-016, W1; spec 008 C6): "Tested as if shared today, 01.11.2026.",
- * the first line of the step's content, directly under the intro. The frames draw no test-day
- * line (U65 Missing: FR-024e), so it reads as the intro does (`PageTitle`'s hint: body/small,
- * muted). The step shows it while results are shown, also while one persona is generated anew
- * (F45). The date is `dd.mm.yyyy` in both languages (spec 009, FR-012)
+ * The test-day line (S8.1; FR-016, W1; spec 008 C6; test-results-v5 R1): "Tested as if shared
+ * today, 01.11.2026", without a full stop, in the result card's head under its heading (V5
+ * 7599:61800, body/small, muted). It shows with a persona's results, so not on the skeleton of a
+ * persona being generated anew (frame 19) nor in frame 18 or the failure (frame 20). The date is
+ * `dd.mm.yyyy` in both languages (spec 009, FR-012)
  */
 export default function TestDayLine({ today }: TestDayLineProps) {
   const { language } = useLanguage();

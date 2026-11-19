@@ -21,7 +21,6 @@ import PersonaPanel from './PersonaPanel';
 import PersonaPlaceholder from './PersonaPlaceholder';
 import RegenerateDialog from './RegenerateDialog';
 import ResultSection from './ResultSection';
-import TestDayLine from './TestDayLine';
 import type { EditedData, TestStepProps } from './types';
 import { createsAll, savedToastOf, selectedBranchOf } from './utils';
 import VariantTabs from './VariantTabs';
@@ -29,22 +28,24 @@ import VariantTabs from './VariantTabs';
 /**
  * The test step (S8; FR-004, FR-016; spec 008 S13; Figma U65 7057:58709), under the page title
  * "Test rules with sample citizen data" and its intro (`TEST_STEP_COPY`, `pageTitleOf()`): the
- * test-day line (W1), the variant tabs, then the selected variant's area (Figma "Variant area"
+ * variant tabs, then the selected variant's area (Figma "Variant area"
  * 7057:58753: hued, 1px border, 8px radius) with the citizens row and the panel
  * holding the selected persona's data and results, side by side and 16px apart. The data card
  * stretches to the results' height, and they to its (U08 7058:61705: both 714px; U11: both
- * skeleton cards 317px). Three states (S8.8, S8.9; FR-004, FR-012, FR-013; W7, W9):
+ * skeleton cards 317px). The test day ("Tested as if shared today, 19.11.2026") stands in the
+ * result card's head, under its heading (`ResultSection`; test-results-v5 R1, V5 7599:61800), no
+ * longer above the tabs (W1). Three states (S8.8, S8.9; FR-004, FR-012, FR-013; W7, W9):
  * - frame 18, while all three personas are generated (first open, "Generate all", "Try
- *   again") or the results' module loads: no test-day line, skeleton pills and the status
- *   "Creating 3 sample citizens…" in the row, skeleton cards, nothing to edit. A later create or
+ *   again") or the results' module loads: skeleton pills and the status "Creating 3 sample
+ *   citizens…" in the row, skeleton cards without a test day, nothing to edit. A later create or
  *   edit flow mounts a new editor page, whose personas start anew with this state (W7);
- * - failure (`state.failed`, or a catalog that couldn't load; S8.9): no test-day line, and the
- *   failure in place of the row and the panel;
- * - results: the test-day line, the chips, and the selected persona's cards; while some personas
+ * - failure (`state.failed`, or a catalog that couldn't load; S8.9): the failure in place of the
+ *   row and the panel;
+ * - results: the chips, and the selected persona's cards with the test day; while some personas
  *   are generated anew or filled with data for the rules' new fields (frame 19; "Adding new data for
  *   Mia…" after returning from the rules step, FR-020), their chips show a loading ring, the
- *   status names them, and the selected one's cards are skeletons, without "Edit data" or
- *   "Generate again", while the others stay usable.
+ *   status names them, and the selected one's cards are skeletons without a test day, without
+ *   "Edit data" or "Generate again", while the others stay usable.
  *
  * Before generating anew, a persona with changes gets a question (`RegenerateDialog`, S8.7).
  * "Edit data" opens `EditDataDialog` (spec 008 FR-042; `state.editing`); "Save and test" applies
@@ -62,7 +63,7 @@ import VariantTabs from './VariantTabs';
  *
  * Where the wizard pins its step header (`wizard-pinned:`, from 768 × 640 px), the step fills the
  * visible part of the window, its variant area ending 64px above the footer; the header, the step
- * header, the test-day line, the tabs, the citizens row and the footer stay put. There, with the
+ * header, the tabs, the citizens row, the cards' heads and the footer stay put. There, with the
  * cards side by side (`lg`), each card is as high as the panel and scrolls its own rows under its
  * head (FR-043 as clarified on 2026-11-18; V5 frame 15 7599:57529 with 12 rules, reversing CLAR
  * #31 (c)'s single scrolling panel; `CardScrollArea`); with the cards stacked, the panel scrolls
@@ -71,7 +72,7 @@ import VariantTabs from './VariantTabs';
  * lives only in the signed-in wizard, with no route of its own (W13).
  *
  * While the loaded draft is the example, `ExampleBanner` stands at the top of the step, above the
- * test-day line and the variant tabs, 16px from them as on the rules step (spec 010, S13; FR-058;
+ * variant tabs, 16px from them as on the rules step (spec 010, S13; FR-058;
  * W15: the step isn't drawn with it), in every state.
  */
 export default function TestStep({
@@ -220,7 +221,6 @@ export default function TestStep({
         }}
       >
         {isExample && <ExampleBanner text={EXAMPLE_BANNER_COPY[language].connection} />}
-        {shown && <TestDayLine today={today} />}
         <VariantTabs
           branches={branches}
           selected={branch.key}
@@ -273,7 +273,7 @@ export default function TestStep({
                         onEditData={() => personas.startEditing(state.selected)}
                         onGenerateAgain={() => generateOne(state.selected)}
                       />
-                      <ResultSection view={view} branch={branch} />
+                      <ResultSection view={view} branch={branch} today={today} />
                     </>
                   ) : (
                     <PersonaPlaceholder />

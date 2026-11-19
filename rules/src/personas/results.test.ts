@@ -173,14 +173,14 @@ describe('resultViewOf', () => {
     );
     expect(view.meets).toBe(false);
     expect(view.heading).toBe('Result: doesn’t meet 2 rules');
-    expect(view.listHeading).toBeNull();
-    expect(view.messageColumn).toBe('Message Mia reads');
     expect(outline(view.rows)).toEqual([
       ['rule-1', 'not_met', 'You must meet this rule.', true, []],
       ['rule-2', 'not_met', 'You must meet this rule.', true, []],
-      ['rule-3', 'met', null, false, []],
-      ['rule-4', 'met', null, false, []],
+      ['rule-3', 'met', 'You must meet this rule.', false, []],
+      ['rule-4', 'met', 'You must meet this rule.', false, []],
     ]);
+    // No list heading and no message column (test-results-v5 R2, R3)
+    expect(Object.keys(view)).toEqual(['meets', 'heading', 'rows', 'failingFields']);
   });
 
   it('follows the order of the messages, depth first', () => {
@@ -218,7 +218,7 @@ describe('resultViewOf', () => {
     expect(view.heading).toBe('Result: doesn’t meet 1 rule');
     expect(outline(view.rows)).toEqual([
       ['rule-2', 'not_checked', 'You must meet this rule.', true, []],
-      ['rule-1', 'met', null, false, []],
+      ['rule-1', 'met', 'You must meet this rule.', false, []],
     ]);
   });
 
@@ -247,20 +247,20 @@ describe('resultViewOf', () => {
         'You need a licence.',
         true,
         [
-          ['rule-4', 'not_met', null, false, []],
+          ['rule-4', 'not_met', 'You must meet this rule.', false, []],
           [
             'group-2',
             'not_met',
             null,
             false,
             [
-              ['rule-5', 'not_met', null, false, []],
-              ['rule-6', 'not_checked', null, false, []],
+              ['rule-5', 'not_met', 'You must meet this rule.', false, []],
+              ['rule-6', 'not_checked', 'You must meet this rule.', false, []],
             ],
           ],
         ],
       ],
-      ['rule-1', 'met', null, false, []],
+      ['rule-1', 'met', 'You must meet this rule.', false, []],
     ]);
     const [groupRow] = view.rows;
     expect([groupRow.type, groupRow.name, groupRow.statement, groupRow.parts]).toEqual([
@@ -284,7 +284,7 @@ describe('resultViewOf', () => {
     expect(outline(view.rows)).toEqual([
       ['rule-2', 'not_met', 'You must meet this rule.', true, []],
       ['rule-5', 'not_met', 'You must meet this rule.', true, []],
-      ['rule-1', 'met', null, false, []],
+      ['rule-1', 'met', 'You must meet this rule.', false, []],
       ['group-1', 'not_met', null, false, []],
     ]);
   });
@@ -298,10 +298,16 @@ describe('resultViewOf', () => {
     // Rule 05 under Sub-group 01, and Rule 02
     expect(view.heading).toBe('Result: doesn’t meet 2 rules');
     expect(outline(view.rows)).toEqual([
-      ['group-2', 'not_met', 'Check your ID.', true, [['rule-5', 'not_met', null, false, []]]],
+      [
+        'group-2',
+        'not_met',
+        'Check your ID.',
+        true,
+        [['rule-5', 'not_met', 'You must meet this rule.', false, []]],
+      ],
       ['rule-2', 'not_met', 'You must meet this rule.', true, []],
       ['group-1', 'not_met', null, false, []],
-      ['rule-1', 'met', null, false, []],
+      ['rule-1', 'met', 'You must meet this rule.', false, []],
     ]);
   });
 
@@ -336,20 +342,18 @@ describe('resultViewOf', () => {
       'not_met',
       'Both.',
       true,
-      [['rule-1', 'not_met', null, false, []]],
+      [['rule-1', 'not_met', 'You must meet this rule.', false, []]],
     ]);
     expect(unmet.heading).toBe('Result: doesn’t meet 3 rules');
   });
 
-  it('lists every top-level item under a met variant, without a message column (F3)', () => {
-    const { view } = viewOf([AGE, group(1, 'or', [CITY, FAMILY])]);
+  it('lists every top-level item under a met variant, each with its message (R3, V5 frame 2)', () => {
+    const { view } = viewOf([AGE, group(1, 'or', [CITY, FAMILY], 'Live here.')]);
     expect(view.meets).toBe(true);
     expect(view.heading).toBe('Result: meets the rules');
-    expect(view.listHeading).toBe('Rules Mia meets');
-    expect(view.messageColumn).toBeNull();
     expect(outline(view.rows)).toEqual([
-      ['rule-1', 'met', null, false, []],
-      ['group-1', 'met', null, false, []],
+      ['rule-1', 'met', 'You must meet this rule.', false, []],
+      ['group-1', 'met', 'Live here.', false, []],
     ]);
     expect(view.failingFields).toEqual([]);
   });
@@ -358,8 +362,8 @@ describe('resultViewOf', () => {
     const { view } = viewOf([AGE, CITY], persona({ 'pid.address_locality': 'Berlin' }), 'or');
     expect(view.heading).toBe('Result: meets the rules');
     expect(outline(view.rows)).toEqual([
-      ['rule-1', 'met', null, false, []],
-      ['rule-2', 'not_met', null, false, []],
+      ['rule-1', 'met', 'You must meet this rule.', false, []],
+      ['rule-2', 'not_met', 'You must meet this rule.', false, []],
     ]);
     expect(view.failingFields).toEqual(['pid.address_locality']);
   });
@@ -369,8 +373,6 @@ describe('resultViewOf', () => {
     expect(view).toEqual({
       meets: true,
       heading: 'Result: meets the rules',
-      listHeading: 'Rules Mia meets',
-      messageColumn: null,
       rows: [],
       failingFields: [],
     });
@@ -388,6 +390,68 @@ describe('resultViewOf', () => {
     expect(view.rows.map((row) => [row.name, row.statement])).toEqual([
       ['Old enough', statementOf(AGE, CONTEXT)?.text],
       ['Home', GROUP_SUBTITLES.en.and],
+    ]);
+  });
+
+  // test-results-v5 R3: "Message for citizens:" under every row, as the rules step shows it
+  it('takes the current messages from the branch, so an edited message shows at once', () => {
+    const items = [AGE, group(1, 'or', [CITY, FAMILY], 'Live here.')];
+    const { result } = viewOf(items, persona({ 'pid.birthdate': '2010-01-01' }));
+    const edited = [
+      { ...AGE, message: '  You need to be 21.  ' },
+      group(1, 'or', [CITY, FAMILY], null),
+    ];
+    const fields = personaFieldsOf([keyed(mainBranch(items), 'branch-1')], CONTEXT);
+    const view = resultViewOf(result, { items: edited }, persona(), CONTEXT, fields);
+    // Trimmed as the rules step shows it; a group without a message has none
+    expect(view.rows.map((row) => [row.itemId, row.message, row.reported])).toEqual([
+      ['rule-1', 'You need to be 21.', true],
+      ['group-1', null, false],
+    ]);
+    // The evaluation still reports what it reported
+    expect(result.messages).toEqual([{ id: 'rule-1', message: 'You must meet this rule.' }]);
+  });
+
+  it('names the group whose message citizens read on the members listed under it', () => {
+    const subGroup = group(2, 'or', [FAMILY, NATIONALITY], 'Check your ID.', 'Sub-group 01');
+    const { view } = viewOf(
+      [AGE, group(1, 'and', [CLASS_B, HELD_B, subGroup], 'You need a licence.', ' Licence ')],
+      persona({
+        'mdl.driving_privileges.issue_date#B': '2026-01-01',
+        'pid.family_name': 'Schulz',
+        'pid.nationalities': [],
+      })
+    );
+    const [groupRow, ageRow] = view.rows;
+    const groups = (rows: readonly ResultRow[]): [string, string | null, string | null][] =>
+      rows.flatMap((row) => [
+        [row.itemId, row.message, row.messageGroup] as [string, string | null, string | null],
+        ...groups(row.members),
+      ]);
+    // The outermost group with a message, trimmed: the sub-group's own message is kept as data
+    expect(groups([groupRow])).toEqual([
+      ['group-1', 'You need a licence.', null],
+      ['rule-4', 'You must meet this rule.', 'Licence'],
+      ['group-2', 'Check your ID.', 'Licence'],
+      ['rule-5', 'You must meet this rule.', 'Licence'],
+      ['rule-6', 'You must meet this rule.', 'Licence'],
+    ]);
+    expect([ageRow.messageGroup, ageRow.reported]).toEqual([null, false]);
+  });
+
+  it('names no group on the rules a group without a message reports in its place', () => {
+    const subGroup = group(2, 'and', [FAMILY, NATIONALITY], 'Check your ID.', 'Sub-group 01');
+    const { view } = viewOf(
+      [group(1, 'and', [subGroup, CITY]), AGE],
+      persona({ 'pid.family_name': 'Schulz', 'pid.address_locality': 'Berlin' })
+    );
+    expect(
+      view.rows.map((row) => [row.itemId, row.messageGroup, row.members.map((m) => m.messageGroup)])
+    ).toEqual([
+      ['group-2', null, ['Sub-group 01']],
+      ['rule-2', null, []],
+      ['group-1', null, []],
+      ['rule-1', null, []],
     ]);
   });
 
@@ -457,8 +521,6 @@ describe('resultViewOf in German (spec 009)', () => {
   it('words the headings and statements in German (glossary §3 "Result", §2 "message")', () => {
     const { view } = viewOf([AGE, CITY, CLASS_B, HELD_B], failing, 'and', CONTEXT_DE);
     expect(view.heading).toBe('Ergebnis: erfüllt 2 Regeln nicht');
-    expect(view.listHeading).toBeNull();
-    expect(view.messageColumn).toBe('Nachricht für Mia');
     expect(view.rows[0].statement).toBe(
       'Personalausweis · Geburtsdatum (Alter) ist mindestens 21 Jahre alt'
     );
@@ -488,8 +550,6 @@ describe('resultViewOf in German (spec 009)', () => {
     expect(one.view.heading).toBe('Ergebnis: erfüllt 1 Regel nicht');
     const met = viewOf([AGE, group(1, 'or', [CITY, FAMILY])], persona(), 'and', CONTEXT_DE);
     expect(met.view.heading).toBe('Ergebnis: erfüllt alle Regeln');
-    expect(met.view.listHeading).toBe('Regeln, die Mia erfüllt');
-    expect(met.view.messageColumn).toBeNull();
   });
 
   it('words the groups by their German subtitles (glossary §3 "group subtitles")', () => {

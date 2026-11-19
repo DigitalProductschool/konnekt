@@ -68,6 +68,11 @@ export interface ValueChipProps {
 
 export interface RuleMessageProps {
   message: string;
+  /**
+   * In a wide enough container, the message wraps beside its label rather than under it (the test
+   * step's result rows; `HANGING_MESSAGE`). The rules step keeps the inline flow
+   */
+  hanging?: boolean;
 }
 
 export interface ProblemNoteProps {

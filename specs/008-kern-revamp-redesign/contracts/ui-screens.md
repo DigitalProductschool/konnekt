@@ -2,7 +2,7 @@
 
 **Users**: signed-in DO.IT team members, and an agent's user on the consent page.
 **Requirements**: FR-001 to FR-052, SC-001 to SC-007, US1 to US5. **Decisions**: the spec's
-Clarifications (2026-11-06 #1–#3, 2026-11-07 #1–#61, 2026-11-18 #1–#3), the audit's decided items
+Clarifications (2026-11-06 #1–#3, 2026-11-07 #1–#61, 2026-11-18 #1–#3, 2026-11-19 #1–#3), the audit's decided items
 ([../figma-audit/report.md](../figma-audit/report.md): F1–F72, W1–W22, C1–C7), research R1–R15.
 
 **What decides what**: Figma "Middleware – V5" (file `s8mU9oJDq3411e8bxMjQO9`, page
@@ -391,7 +391,9 @@ and has one `h1`.
   Ambulance · Anna), U70 (`7057:61267`, `7057:61659`, `7057:62051` a variant without rules), U71
   `7058:61372` (contradicting rules: the ⚠ on the tab `7058:61618` and its tooltip
   `7058:61632`, no line above the heading), U72 `7058:61648` (12 rules: each card scrolls on its own
-  since bug v5-ui-fixes, V5 frame 15 `7599:57529`), U74
+  since bug v5-ui-fixes, V5 frame 15 `7599:57529`), V5 `7599:55726` (the result card since bug
+  test-results-v5: frames 1 `7599:55727`, 2 `7599:55854`, 3 `7599:55980`, 9 `7599:56241`, 15
+  `7599:57529`, "Long rules" `7644:65669`; the head `7599:55810`, the date `7599:61800`), U74
   (`7062:50960` loading, `7062:51249` one persona, `7062:51536` "Couldn't create sample
   citizens"), U99 `7114:49683` (the edit flow). **Build notes** U06 #29–#44. **Baseline**:
   004-S8, 004-S2, 004-ACC.
@@ -399,25 +401,37 @@ and has one `h1`.
   the persona chips with name and outcome icon (F44), "Generate all" / "Generate again" /
   "Generate all again" in every results state (F45); the data card as a flat list with the C6
   formats and the document's name as the row group's accessible heading (F63, FR-043); the
-  result heading "Result: doesn't meet 2 rules"; result rows with the statement (C3), "Not met" /
-  "Couldn't be checked" as text with the icon and tint, and the message (F42); no success box
-  (F41); "Edit data" opening the dialog "Change the values to try a particular case. Results
-  update when you save." with "Cancel" / "Save and test", classes picked by code, Nationality and
+  result heading "Result: doesn't meet 2 rules" with the test day under it in the result card's
+  head, "Tested as if shared today, 01.11.2026" without a full stop (Clarification 2026-11-19 #1);
+  ~~result rows with the statement (C3), "Not met" / "Couldn't be checked" as text with the icon
+  and tint, and the message (F42)~~ the result rows as a list without a head (bug
+  test-results-v5, 2026-11-19, Clarification 2026-11-19 #2 and #3, reversing F42): each row with
+  KERN's status icon, the name coloured by its outcome ("Not met" / "Met" hidden, "Couldn't be
+  checked" visible), the statement (C3) and "Message for citizens: <its message>", met rows too,
+  hanging beside its label in a card 560 px wide or more; no tint, no "–", no "Rules Mia meets";
+  no success box (F41); "Edit data" opening the dialog "Change the values to try a particular
+  case. Results update when you save." with "Cancel" / "Save and test", classes picked by code,
+  Nationality and
   Expiry date fields, "Class B since" (F40, FR-042), the toast "Results updated. Mia now meets
-  Rule 01."; the test-day line "Tested as if shared today, 01.11.2026."; no variant ⓘ (F27); the
+  Rule 01."; ~~the test-day line "Tested as if shared today, 01.11.2026."~~ (in the result head
+  since bug test-results-v5); no variant ⓘ (F27); the
   tab's "no citizen can meet" finding from the evaluator only (F38, FR-041), no line above the
   heading (Clarification #50); header, tabs, chips and footer stay (F43); where the step header is
   pinned and the cards sit side by side (`lg`), each card's head stays and only its rows scroll,
   each card on its own, elsewhere the panel or the page scrolls (bug v5-ui-fixes, 2026-11-18,
   Clarification 2026-11-18 #1, reversing F43's panel scrolling);
   "Publish" opening the publish dialog (S14).
-- **States**: loading (first open; one persona regenerating with the ring and the test-day
-  line, F45); generation failed; met; not met; couldn't be checked; a variant without rules
-  ("<variant> has no rules yet, so every citizen meets it. …"); the edit dialog with an error;
+- **States**: loading (first open; one persona regenerating with the ring, F45, its skeleton
+  card without the test day while another persona's card shows it, Clarification
+  2026-11-19 #1); generation failed; met; not met; couldn't be checked; a variant without rules
+  ("<variant> has no rules yet, so every citizen meets it. …", under the head with the test
+  day); the edit dialog with an error;
   the regeneration question only when there are changes; the "all" dialog, clearing fields,
-  class dates coming back, group members, the name kept, arrow keys, focus (W14); many rules.
+  class dates coming back, group members (a rule member of a group with its own message reading
+  "Not shown while this rule is in <group>. Citizens see the group message instead."), the name
+  kept, arrow keys, focus (W14); many rules; a long message.
 - **Items**: F11, F27, F38, F40, F41, F42, F43, F44, F45, F63, C2, C3, C4, C6, W14, FR-041,
-  FR-042, FR-043.
+  FR-042, FR-043; Clarification 2026-11-19 #1–#3.
 
 ### User Story 4: the publish dialog, the details, the draft details, the confirmations and the edit flow
 

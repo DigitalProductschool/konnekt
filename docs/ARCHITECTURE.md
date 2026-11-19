@@ -1136,7 +1136,8 @@ endpoint, table, setting or dependency of its own.
   `branch_evaluations` (whole-branch outcomes), pin it to Python.
 - **The day**: the test day is today in Germany, from `useTodayInGermany()`
   (`hooks/useTodayInGermany.ts`, read again every minute and when the page becomes visible),
-  shown in the test-day line; ages and dates are judged on it.
+  shown under the result's heading in the result card ("Tested as if shared today,
+  19.11.2026", `TestDayLine`); ages and dates are judged on it.
 - **Fill runs and substitution**: the step opening again (after the team member went back to
   the rules) keeps the personas. `opened` marks each persona that lacks a key for a
   field the rules now check as `filled`, and the others `kept`; a fill run generates only

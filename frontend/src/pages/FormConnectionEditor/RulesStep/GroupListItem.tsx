@@ -2,10 +2,10 @@ import { findItem, shownItems } from '@connection-portal/rules/tree';
 
 import GroupFrame from '../../../components/GroupFrame';
 import type { GroupFrameMember } from '../../../components/GroupFrame/types';
+import { RULE_ROW_COPY } from '../../../components/RuleRow/constants';
 import { useLanguage } from '../../../hooks/useLanguage';
 import { ELEMENT_IDS } from '../constants';
 import AddRuleButton from './AddRuleButton';
-import { RULES_STEP_COPY } from './constants';
 import GroupMenu from './GroupMenu';
 import ItemName from './ItemName';
 import SwitchNote from './SwitchNote';
@@ -38,7 +38,7 @@ export default function GroupListItem({
 }: GroupListItemProps) {
   const { branch, state, dispatch, onCopyLink: copyLink } = view;
   const { language } = useLanguage();
-  const copy = RULES_STEP_COPY[language];
+  const copy = RULE_ROW_COPY[language];
   const subGroup = depth > 0;
   const inactive = dissolved || group.mark === 'removed';
   // Nothing in a removed or dissolved group changes until it is restored (FR-024)

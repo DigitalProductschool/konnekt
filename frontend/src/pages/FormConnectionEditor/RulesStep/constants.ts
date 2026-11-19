@@ -348,10 +348,6 @@ export const RULES_STEP_COPY = defineTexts(
       count === 1
         ? `Ungrouped. ${rules} uses its own message again.`
         : `Ungrouped. ${rules} use their own messages again.`,
-    // A member's message line while a group it is in has its own message (F32, FR-037; U35
-    // 6965:50822): the rule keeps its message, citizens read the group's
-    notShownInGroup: (group: string) =>
-      `Not shown while this rule is in ${group}. Citizens see the group message instead.`,
     // Worded as "Rule 03 deleted." is (U35 6113:29469; report cosmetic 8)
     groupDeleted: (group: string, _branch: string) => `${group} deleted.`,
     // A based variant's menus (U56 6522:32644; U23 6185:8802, 6185:41586; W8; report cosmetic 8):
@@ -529,8 +525,6 @@ export const RULES_STEP_COPY = defineTexts(
       count === 1
         ? `Gruppierung aufgehoben. ${rules} verwendet wieder ihre eigene Nachricht.`
         : `Gruppierung aufgehoben. ${rules} verwenden wieder ihre eigenen Nachrichten.`,
-    notShownInGroup: (group: string) =>
-      `Wird nicht angezeigt, solange diese Regel in ${group} ist. Bürgerinnen und Bürger sehen stattdessen die Nachricht der Gruppe.`,
     groupDeleted: (group: string, _branch: string) => `${group} gelöscht.`,
     copyToVariant: 'In Variante kopieren',
     resetTo: (main: string) => `Auf ${main} zurücksetzen`,
