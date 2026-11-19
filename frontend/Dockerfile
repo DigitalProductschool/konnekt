@@ -22,7 +22,7 @@ COPY frontend ./frontend
 # '/api' path, which nginx proxies to the backend container.
 RUN npm run build -w frontend
 
-FROM nginx:alpine AS runner
+FROM nginx:1.31.9-alpine AS runner
 
 # Installed as a template: the image's entrypoint runs envsubst over
 # /etc/nginx/templates/*.template into /etc/nginx/conf.d/ at container start,
