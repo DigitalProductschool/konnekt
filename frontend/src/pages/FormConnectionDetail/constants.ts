@@ -5,8 +5,10 @@ import doneWhiteIcon from '../../assets/icons/done-white.svg';
 import editWhiteSmallIcon from '../../assets/icons/edit-white-small.svg';
 import linkOffIcon from '../../assets/icons/link-off.svg';
 import linkOffWhiteIcon from '../../assets/icons/link-off-white.svg';
-import publishedArt from '../../assets/illustrations/published-art@2x.png';
-import publishedArtGrey from '../../assets/illustrations/published-art-grey@2x.png';
+import chainBandActive from '../../assets/illustrations/chain-band-active@2x.webp';
+import chainBandBroken from '../../assets/illustrations/chain-band-broken@2x.webp';
+import chainBandDraft from '../../assets/illustrations/chain-band-draft@2x.webp';
+import chainBandScheduled from '../../assets/illustrations/chain-band-scheduled@2x.webp';
 import type {
   ActionsState,
   ActivityCardState,
@@ -41,6 +43,8 @@ export const CONNECTION_DETAIL_COPY = defineTexts(
     activateAgain: 'Activate again',
     // The ⋯ on the date pill (U80 7355:61160, "More · connection actions"; FR-016)
     connectionActions: 'Connection actions',
+    // The ⋯ on a draft's date pill, which holds "Delete draft" (F56; bug new-visuals B2)
+    draftActions: 'Draft actions',
     // The Links accordion (U91 7246:51437; FR-052f: "1 request link · 3 result links")
     linksTitle: 'Links for your service',
     // Only the approval page's lead now (S21, ApprovalUrls; T088 rebuilds it)
@@ -154,8 +158,9 @@ export const CONNECTION_DETAIL_COPY = defineTexts(
     // A draft's empty parts in the Summary (spec 005: S6, W8), which U93 doesn't draw
     noDocumentsYet: 'No documents yet',
     noDataYet: 'No data chosen yet',
-    // Visible on the draft's details (F56; spec 005, S6), without a frame; it opens the overview's
-    // delete dialog with the draft's body (`DELETE_DIALOG_COPY`, F55)
+    // The one entry of the draft pill's ⋯ (F56, placed by bug new-visuals B2; spec 005, S6),
+    // without a frame; it opens the overview's delete dialog with the draft's body
+    // (`DELETE_DIALOG_COPY`, F55)
     deleteDraft: 'Delete draft',
     // The delete confirmation's errors (S6): published or deleted meanwhile
     draftPublishedSince: 'This draft has been published since you opened it.',
@@ -193,6 +198,7 @@ export const CONNECTION_DETAIL_COPY = defineTexts(
     deactivatedSince: (dateTime: string) => `Deaktiviert seit ${dateTime}`,
     activateAgain: 'Wieder aktivieren',
     connectionActions: 'Aktionen für die Anbindung',
+    draftActions: 'Aktionen für den Entwurf',
     linksTitle: 'Links für Ihren Dienst',
     linksLead: 'Fügen Sie beide Links in Ihr Formular ein. Jeder Link gehört in ein eigenes Feld.',
     linksCounts: (resultLinks: number) =>
@@ -461,8 +467,10 @@ export const START_TIME = '00:00';
  * The date pill (U80 7355:61155, U94 7355:60689, U89 7355:61543): white, radius 8, the calendar
  * 20 and the line (label/small, muted) 8 apart. With the ⋯ (32) the padding is 8 16 8 8 and the
  * pill 48 high, the calendar and the line centred on the ⋯ from the top, so that the ⋯ stays on
- * the first row when the line wraps (W16); a draft's pill without it 8 16, 40 high (U93
- * 7362:54709). Under 320 CSS px the line takes the pill's width under the calendar and the ⋯
+ * the first row when the line wraps (W16). A draft's pill has the ⋯ too, for "Delete draft"
+ * (bug new-visuals B2), so it is 48 high where U93 7362:54709 draws it without the ⋯, 8 16 and
+ * 40 high (`plain`, unused while every pill has a ⋯). Under 320 CSS px the line takes the pill's
+ * width under the calendar and the ⋯
  */
 export const DATE_PILL_CLASSES = {
   withActions: {
@@ -475,17 +483,18 @@ export const DATE_PILL_CLASSES = {
 
 /**
  * The status band's looks (U07 #6): the band's colour, the 32px status icon in its circle and the
- * picture at the bottom right. Active ("Status band · active" U80 7355:61767): green, the white
- * check 24px in a green circle, the colour picture. Deactivated ("Status band · deactivated" U89
+ * band's picture, one per state ("New visuals" 7741:62072, 7741:62685, 7741:62796, 7741:62360;
+ * bug new-visuals B2). Active ("Status band · active" U80 7355:61767): green, the white check
+ * 24px in a green circle, `chain-band-active`. Deactivated ("Status band · deactivated" U89
  * 7355:61530): `layout-background-hued` #f2f5fb, the white "Icon/Link off" 20px (7355:61536, the
- * export) in a `layout-text-muted` #4a5468 circle (7355:61535), the grey picture (7355:61552, the
- * same crop). Draft ("Status band · draft" U93 7362:54697; U07 #23): the gradient from
+ * export) in a `layout-text-muted` #4a5468 circle (7355:61535), the broken chain
+ * `chain-band-broken`. Draft ("Status band · draft" U93 7362:54697; U07 #23): the gradient from
  * `feedback-info-background` (21.6 %) to `layout-background-hued` (75.9 %) at 113.27°, the white
  * "icon-edit-small" 20px (7362:54702, the export) in a `feedback-info` circle (7362:54701, at the
- * overlay's AA value), the grey picture. Scheduled ("Status band · scheduled" U94 7355:60677):
+ * overlay's AA value), `chain-band-draft`. Scheduled ("Status band · scheduled" U94 7355:60677):
  * `feedback-info-background` #e0f2fe, KERN's calendar 20px in white (7355:60683) in a
- * `feedback-info` circle (7355:60682, at the overlay's AA value, as the draft's), the colour
- * picture ("Picture · scheduled" 7355:60695, the active band's art, T006's crop)
+ * `feedback-info` circle (7355:60682, at the overlay's AA value, as the draft's),
+ * `chain-band-scheduled`
  */
 export const STATUS_BAND_TONES: Record<StatusBandTone, StatusBandToneLook> = {
   active: {
@@ -493,28 +502,28 @@ export const STATUS_BAND_TONES: Record<StatusBandTone, StatusBandToneLook> = {
     iconCircle: 'bg-kern-feedback-success',
     icon: { src: doneWhiteIcon },
     iconSize: 'size-24',
-    picture: publishedArt,
+    picture: chainBandActive,
   },
   scheduled: {
     band: 'bg-kern-feedback-info-background',
     iconCircle: 'bg-kern-feedback-info',
     icon: { kern: 'kern-icon--calendar-today' },
     iconSize: 'size-20',
-    picture: publishedArt,
+    picture: chainBandScheduled,
   },
   deactivated: {
     band: 'bg-kern-layout-background-hued',
     iconCircle: 'bg-kern-layout-text-muted',
     icon: { src: linkOffWhiteIcon },
     iconSize: 'size-20',
-    picture: publishedArtGrey,
+    picture: chainBandBroken,
   },
   draft: {
     band: 'bg-[linear-gradient(113.27deg,var(--kern-color-feedback-info-background)_21.638%,var(--kern-color-layout-background-hued)_75.912%)]',
     iconCircle: 'bg-kern-feedback-info',
     icon: { src: editWhiteSmallIcon },
     iconSize: 'size-20',
-    picture: publishedArtGrey,
+    picture: chainBandDraft,
   },
 };
 

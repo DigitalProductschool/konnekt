@@ -104,6 +104,10 @@ The UI says "connection" for form connection and "variant" for branch, and calls
 - **KERN Revamp** (spec 008): the Revamp's values live in the overlay block of `index.css`
   under KERN's names; a value without a KERN name is a `@theme` token
   (`docs/KERN-DESIGN-SYSTEM.md` §3.1).
+- **Visuals** (`src/assets/illustrations/`): lossless WebP at 2× or more, at most 1.5 MB each,
+  colour and rotation baked in (never CSS filters, opacity or rotation), `alt=""` and
+  `aria-hidden`, a fixed size that never scales, cut only by a clip layer of their own, and text
+  24 px or more from them (ARCHITECTURE, "frontend", "The visuals").
 - **Narrow windows**: below 320 CSS px (a 320 px window at 200 % zoom) use the `narrow:`
   variant; `index.css`'s narrow block already wraps words and halves the side paddings
   (`docs/KERN-DESIGN-SYSTEM.md` §3.1).

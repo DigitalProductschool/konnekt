@@ -2,6 +2,8 @@ import { useEffect, useReducer, useRef, useState } from 'react';
 import { useNavigate } from 'react-router';
 
 import { deleteDraft } from '../../api/form-connections';
+import ActionMenu from '../../components/ActionMenu';
+import type { MenuAction } from '../../components/ActionMenu/types';
 import ConfirmDialog from '../../components/ConfirmDialog';
 import ConnectionStatusBadge from '../../components/ConnectionStatusBadge';
 import WizardLayout from '../../components/WizardLayout';
@@ -11,7 +13,7 @@ import { useLanguage } from '../../hooks/useLanguage';
 import { useSignOutOnUnauthorized } from '../../hooks/useSignOutOnUnauthorized';
 import { DELETE_CONNECTION_COPY } from '../FormConnectionList/constants';
 import ActivityCard from './ActivityCard';
-import { CONNECTION_DETAIL_COPY, INITIAL_DRAFT_DELETE_STATE } from './constants';
+import { CONNECTION_DETAIL_COPY, DELETE_ICON, INITIAL_DRAFT_DELETE_STATE } from './constants';
 import DetailFooter from './DetailFooter';
 import DraftCard from './DraftCard';
 import RulesSummary from './RulesSummary';
@@ -31,9 +33,10 @@ import {
  * A stored draft's details (S16; U93 7362:54691, U07 #22–#27) in the details' frame (L4): the
  * header pill names it with the "Draft" badge and its description (W10), the tab title "<name>
  * (Draft)"; no step line (FR-025e). The draft band's "This connection is a draft" is the page's
- * one h1 (FR-049), with its sub-line and the date pill "Edited 03.10.2026, 14:32"; no ⋯, but a
- * visible "Delete draft" at the band's right end (F56), which asks in the overview's one delete
- * dialog with the draft's body (S17: "Delete “<name>”?", F55, "Keep connection" / "Delete
+ * one h1 (FR-049), with its sub-line and the date pill "Edited 03.10.2026, 14:32" and its ⋯
+ * ("Draft actions"), as the published pages have it, whose one entry "Delete draft" (F56, bug
+ * new-visuals B2) asks in the overview's one delete dialog with the draft's body (S17: "Delete
+ * “<name>”?", F55, "Keep connection" / "Delete
  * connection", the scrim not closing it) and returns to the overview with the toast "“<name>”
  * deleted." and its "Undo" (spec 010, FR-033: the deletion's id goes with it), or, if the draft
  * was published or deleted meanwhile, says so in the dialog's alert (W8): "Open the connection"
@@ -97,6 +100,15 @@ export default function DraftDetails({ draft, onReload, pdf }: DraftDetailsProps
   }
 
   const dialog = deleteDraftDialogOf(state.failure, language);
+  // The ⋯ gets the focus back before the dialog opens (ActionMenu), so "Cancel" returns there
+  const menuActions: MenuAction[] = [
+    {
+      label: copy.deleteDraft,
+      icon: DELETE_ICON,
+      danger: true,
+      onSelect: () => dispatch({ type: 'openDialog' }),
+    },
+  ];
   return (
     <WizardLayout
       variant="details"
@@ -130,16 +142,7 @@ export default function DraftDetails({ draft, onReload, pdf }: DraftDetailsProps
           title={copy.draftTitle}
           text={copy.draftText}
           dateLine={datePillOf(draft, language)}
-          mainAction={
-            <button
-              type="button"
-              onClick={() => dispatch({ type: 'openDialog' })}
-              className="kern-btn kern-btn--tertiary"
-            >
-              <span aria-hidden="true" className="kern-icon kern-icon--delete" />
-              <span className="kern-label">{copy.deleteDraft}</span>
-            </button>
-          }
+          actions={<ActionMenu label={copy.draftActions} actions={menuActions} />}
         />
         <RulesSummary
           branches={draft.branches}

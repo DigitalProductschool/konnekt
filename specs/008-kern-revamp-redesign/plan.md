@@ -161,7 +161,8 @@ frontend/
 │   │                              #   rule; the :root pins, the split variant and the old rules removed
 │   ├── constants.ts               # APP_NAME 'Konnekt', CONNECTION_STEPS with four steps
 │   ├── assets/icons/              # the design's SVG glyphs (exported); unused ones removed
-│   ├── assets/illustrations/      # login-art@2x.png, published-art@2x.png (+ grey), wallet-star@2x.png
+│   ├── assets/illustrations/      # login-art@2x.png, published-art@2x.png (+ grey), wallet-star@2x.png;
+│   │                              # replaced by the new visuals (bug new-visuals, 2026-11-21)
 │   ├── hooks/
 │   │   └── useRememberedHomepage.ts   # new: the homepage memory (research R6)
 │   ├── utils/

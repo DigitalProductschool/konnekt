@@ -162,7 +162,11 @@ values are laid over them.
   `@media` switches of the adaptive type, so the design's single size holds on every width.
 - **A value without a KERN name** (a shadow, a duration, the variants' marks) is a project token
   in `@theme` (`--shadow-card`, `--duration-pill`, `--color-variant-new` …), never a new
-  `--kern-…` variable.
+  `--kern-…` variable. The sign-in hero's two type sizes are such tokens (bug `new-visuals` B1):
+  `--text-hero-headline` (KERN's primitive `--kern-font-size-56`, line height 1.2) and
+  `--text-hero-tagline` (`--kern-font-size-20`, line height 24 px), used as
+  `text-hero-headline` and `text-hero-tagline` from the side-by-side sign-in layout on; KERN
+  has 56 and 20 only as primitives, not in the semantic scale the overlay sets.
 - **What it sets**: the Revamp's colours (one AA fix: `feedback-info` `#0273ae` for the
   design's `#0284c7`), the radii, the static type sizes, the adaptive sizes and line heights
   and the heading, title, body and label baseline paddings at their small-screen values on

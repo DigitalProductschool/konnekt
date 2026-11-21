@@ -12,6 +12,7 @@ repos:
       - id: trailing-whitespace
       - id: check-merge-conflict
       - id: check-added-large-files
+        args: ["--maxkb=1500"]
 
   # Secrets in the staged changes. pre-commit builds gitleaks from source on first use, and
   # fetches Go if it is missing. The CI's secrets job pins the same version: change them together

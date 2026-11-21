@@ -12,11 +12,14 @@ import { headerBackgroundClasses } from './utils';
 /**
  * Figma "Shell/Header" (U11 6699:44242, U17 7173:52658, U10 6401:27994; build notes U03
  * #29–#40): pills 48px high, 16px from the top and the sides, that stay at the top while the
- * page scrolls. Left the Konnekt pill, light blue on the signed-in screens, white on the sign-in
- * screens (#33); right the account pill (UserMenu), none when signed out. Inside a connection a
+ * page scrolls. Left the Konnekt pill, light blue on the signed-in screens, white on the loader
+ * after sign-in (#33), none on the sign-in screens' blue surface ("New visuals" 7741:61944, bug
+ * new-visuals B1), whose hero logo names the product; right the account pill (UserMenu), none when
+ * signed out. Inside a connection a
  * second pill, "Your connections / <name> · <status>", grows out of the Konnekt pill (#34, #40),
- * the name cut with "…" (#38). The header area, 64px, turns white at once when the page scrolls
- * under it and fades back at the top (#39, `headerBackgroundClasses`). The product name and "Your
+ * the name cut with "…" (#38). The header area, 64px, turns white (on the blue surface: blue) at
+ * once when the page scrolls under it and fades back at the top (#39, `headerBackgroundClasses`).
+ * The product name and "Your
  * connections" go home, or in a flow call `onLeave` (FR-026).
  * The language switch (spec 009, R2) sits in the right group before the account pill. Below
  * `md`, which the design has no frame for, the second pill and the description take rows of
@@ -31,6 +34,7 @@ export default function TopBar({
   meta,
   logoTo,
   signedOut = false,
+  brandSurface = false,
   onLeave,
   children,
 }: TopBarProps) {
@@ -48,15 +52,16 @@ export default function TopBar({
 
   return (
     <header
-      className={`motion top-0 z-30 flex flex-wrap items-center gap-y-8 px-16 pt-16 md:flex-nowrap [@media(width>=20rem)_and_(height>=30rem)]:sticky ${title ? 'gap-x-8' : 'gap-x-16'} ${headerBackgroundClasses(scrolled)}`}
+      className={`motion top-0 z-30 flex flex-wrap items-center gap-y-8 px-16 pt-16 md:flex-nowrap [@media(width>=20rem)_and_(height>=30rem)]:sticky ${title ? 'gap-x-8' : 'gap-x-16'} ${headerBackgroundClasses(scrolled, brandSurface)}`}
     >
-      {logoTo ? (
-        <Link to={logoTo} onClick={handleLeave} className={`${logoPill} ${FOCUS_RING_CLASSES}`}>
-          {logoContent}
-        </Link>
-      ) : (
-        <div className={logoPill}>{logoContent}</div>
-      )}
+      {!brandSurface &&
+        (logoTo ? (
+          <Link to={logoTo} onClick={handleLeave} className={`${logoPill} ${FOCUS_RING_CLASSES}`}>
+            {logoContent}
+          </Link>
+        ) : (
+          <div className={logoPill}>{logoContent}</div>
+        ))}
       {title && (
         <ConnectionPill
           title={title}

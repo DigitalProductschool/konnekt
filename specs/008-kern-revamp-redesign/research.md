@@ -108,7 +108,10 @@ note 14) and the other SVG glyphs the frames use are exported from Figma as SVG 
 (constitution IV). The three image files the design names (build note 9: `login-art@2x.png`
 662 × 1234, `published-art@2x.png` 454 × 288 in colour and grey, `wallet-star@2x.png` 400 × 385)
 are exported by an Opus agent in pass D into `frontend/src/assets/illustrations/`, used at the
-sizes the note gives, decorative (`alt=""`), and checked for weight (**V3**).
+sizes the note gives, decorative (`alt=""`), and checked for weight (**V3**). These previous
+illustrations are replaced by the new visuals (bug `new-visuals`, 2026-11-21,
+`.specify/bugs/new-visuals/`; Figma "⛓️ New visuals" `7741:61917`): eight lossless WebP pictures
+and `logo-white.svg` (design-notes §1.3).
 
 ## R2. Copy outside the frontend: what each C item changes
 
@@ -420,7 +423,7 @@ machine; no task commits.
 |---|---|---|
 | V1 | The overlay at `:root` beats `kern.css`'s `@media (min-width: 768px)` blocks for the adaptive type by cascade order, on every width | the foundations task |
 | V2 | `kern.css` derives every `-contextual` alias from the plain variable the overlay sets; otherwise the overlay sets both | the foundations task |
-| V3 | The three image exports weigh under about 300 KB each at 2×; otherwise re-export or optimise losslessly | the assets task |
+| V3 | The three image exports weigh under about 300 KB each at 2×; otherwise re-export or optimise losslessly. For the new visuals that replace them (bug `new-visuals`, 2026-11-21): lossless, at most 1.5 MB each | the assets task |
 | V4 | How "Result: doesn't meet 2 rules" counts rules inside unmet groups, read from U65 `7057:58811` and U66 #19/#25 | the C6 task |
 | V5 | The page fade: a CSS animation on the main region, or the View Transitions API if every evergreen browser the team uses supports it | the layouts task |
 | V6 | No ancestor of a menu clips (`overflow`) or creates a containing block (`transform`, `filter`) between the menu and the page, and a `z-index` keeps it above the sticky header and footer (R10: class-set placement, no inline styles) | the `ActionMenu` task and every screen task that holds a menu |

@@ -1,5 +1,5 @@
 import type { EditorStep } from '@connection-portal/api-types/form-connections';
-import { defineTexts } from '@connection-portal/rules/language';
+import { defineTexts, type Language } from '@connection-portal/rules/language';
 
 import documentInk from '../../assets/icons/document-ink.svg';
 import factCheckInk from '../../assets/icons/fact-check-ink.svg';
@@ -14,6 +14,7 @@ import type {
   RowDeleteState,
   Selection,
   WelcomeStep,
+  WelcomeStepsRowClasses,
 } from './types';
 
 // S4, the overview (Figma U11 6699:44240, 6699:44511, 6699:44570; spec 009: G§2 "connection",
@@ -219,6 +220,26 @@ export const WELCOME_STEPS = defineTexts<readonly WelcomeStep[]>(
     { label: 'Veröffentlichen', glyph: publicInk },
   ]
 );
+
+/**
+ * Where the welcome steps sit in a row, as container queries on the card's text column (bug
+ * new-visuals B3). The English row is 611px wide and sits in a row from a 640px column; the German
+ * one is 772px, wider even than the full 760px column, where it still ends 31px before the chain,
+ * so it sits in a row only there. In a narrower column the steps stack, so that no label runs past
+ * the column into the chain
+ */
+export const WELCOME_STEPS_ROW: Record<Language, WelcomeStepsRowClasses> = {
+  en: {
+    list: '@min-[640px]:flex-row @min-[640px]:items-center @min-[640px]:gap-16',
+    joinedItem: '@min-[640px]:min-w-0 @min-[640px]:flex-auto',
+    line: '@min-[640px]:block',
+  },
+  de: {
+    list: '@min-[760px]:flex-row @min-[760px]:items-center @min-[760px]:gap-16',
+    joinedItem: '@min-[760px]:min-w-0 @min-[760px]:flex-auto',
+    line: '@min-[760px]:block',
+  },
+};
 
 export const INITIAL_LIST_STATE: ListState = { status: 'loading', attempt: 0 };
 

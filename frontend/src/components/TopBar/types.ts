@@ -17,8 +17,14 @@ export interface TopBarProps {
   meta?: ReactNode;
   /** Makes the product name a link to this route, as on the signed-in screens */
   logoTo?: string;
-  /** The sign-in screens: the Konnekt pill is white on the light blue page (U03 #33) */
+  /** The signed-out loader after sign-in: the Konnekt pill is white on the white page (U03 #33) */
   signedOut?: boolean;
+  /**
+   * The sign-in screens' blue surface (bug new-visuals B1): no Konnekt pill, since the hero's
+   * logo names the product, and the header area turns that blue, not white, once the page has
+   * scrolled
+   */
+  brandSurface?: boolean;
   /**
    * In a flow (FR-026, T048): the product name and "Your connections" call this instead of
    * going home, and the editor asks before leaving. Without it they go home (001-S0.6)
