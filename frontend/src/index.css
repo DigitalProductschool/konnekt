@@ -156,6 +156,17 @@
   --color-variant-new-background: #f8f1fc;
 
   /*
+   * The sign-in hero's type ("New visuals" 7741:61958, 7741:61959; bug new-visuals B1), sizes
+   * KERN has only as primitives, not in the semantic scale: the headline Fira Sans Medium 56px,
+   * line height auto (1.2, 67.2px), and the tagline Regular 20/24. Used as text-hero-headline and
+   * text-hero-tagline from the side-by-side layout on; the stacked one keeps KERN's 40/48 and 18/24
+   */
+  --text-hero-headline: var(--kern-font-size-56);
+  --text-hero-headline--line-height: 1.2;
+  --text-hero-tagline: var(--kern-font-size-20);
+  --text-hero-tagline--line-height: var(--kern-font-size-24);
+
+  /*
    * The design's motion (FR-050, design-notes §4), used as duration-(--duration-colour) and
    * so on, on elements that also carry the .motion class below
    */

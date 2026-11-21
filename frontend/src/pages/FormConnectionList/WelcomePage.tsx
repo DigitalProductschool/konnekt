@@ -2,13 +2,18 @@ import { useReducer } from 'react';
 import { generatePath, Link, useNavigate } from 'react-router';
 
 import { createExample } from '../../api/form-connections';
-import walletStar from '../../assets/illustrations/wallet-star@2x.png';
+import chainWelcomeCard from '../../assets/illustrations/chain-welcome-card@2x.webp';
 import IconTile from '../../components/IconTile';
 import PageTitle from '../../components/PageTitle';
 import { ROUTES } from '../../constants';
 import { useCopy, useLanguage } from '../../hooks/useLanguage';
 import { useSignOutOnUnauthorized } from '../../hooks/useSignOutOnUnauthorized';
-import { INITIAL_EXAMPLE_DIALOG_STATE, WELCOME_COPY, WELCOME_STEPS } from './constants';
+import {
+  INITIAL_EXAMPLE_DIALOG_STATE,
+  WELCOME_COPY,
+  WELCOME_STEPS,
+  WELCOME_STEPS_ROW,
+} from './constants';
 import ExampleDialog from './ExampleDialog';
 import type { WelcomePageProps, WelcomeStepItemProps } from './types';
 import { exampleDialogReducer, exampleFailureOf } from './utils';
@@ -20,15 +25,13 @@ import { exampleDialogReducer, exampleFailureOf } from './utils';
  * row; stacked, the line goes. In the row the item grows from its content's width (`flex-auto`),
  * so that the three lines share the free space equally, as the frame draws them
  */
-function WelcomeStepItem({ step, joined }: WelcomeStepItemProps) {
+function WelcomeStepItem({ step, joined, row }: WelcomeStepItemProps) {
   return (
-    <li
-      className={`flex items-center gap-16 ${joined ? '@min-[640px]:min-w-0 @min-[640px]:flex-auto' : ''}`}
-    >
+    <li className={`flex items-center gap-16 ${joined ? row.joinedItem : ''}`}>
       {joined && (
         <span
           aria-hidden="true"
-          className="bg-kern-action-default hidden h-2 min-w-px flex-1 opacity-32 @min-[640px]:block"
+          className={`bg-kern-action-default hidden h-2 min-w-px flex-1 opacity-32 ${row.line}`}
         />
       )}
       <span className="flex shrink-0 items-center gap-8">
@@ -43,17 +46,23 @@ function WelcomeStepItem({ step, joined }: WelcomeStepItemProps) {
 
 /**
  * S3, the welcome page at "/" while no connection or draft exists (Figma U11 6699:44481 "1b";
- * FR-027, design-notes §3 "Empty state"): "Welcome to Konnekt" as the page's h1 (heading/x-large,
- * 6699:44486), then the light blue card (radius 12, padding and gap 48; 6699:44488) with its
- * heading "Create your first connection" (title/large) and the one sentence 8px under it, the four
- * steps 32px under them, "Create connection" with its forward arrow (primary) and, 16px beside
- * it, "Start from an example" (secondary; spec 010, FR-053, 1g U18 6793:47705, 6793:47706; F24,
- * F28), which wrap under each other where they don't fit, and the wallet star at 200 × 193 at the
- * right (decorative). "Start from an example" opens the example dialog (`ExampleDialog`, its
- * state `exampleDialogReducer`); "Create the example" creates the example draft and opens it at
- * its stored step, step 1 (FR-055). The steps sit in a row
- * where the card's text column has room for them (640px), and stack below; narrower than 768px
- * the card keeps 24px padding and the picture goes (FR-010). "Create connection" opens the
+ * FR-027, design-notes §3 "Empty state"; the card's picture and padding from "New visuals"
+ * 7741:61982 and 7741:61974, bug new-visuals B3): "Welcome to Konnekt" as the page's h1
+ * (heading/x-large, 6699:44486), then the light blue card (radius 12, padding 36 / 48, at least
+ * 296 high, its content centred vertically) with a column of at most 760px: its heading "Create
+ * your first connection" (title/large) and the one sentence 8px under it, the four steps 32px
+ * under them, "Create connection" with its forward arrow (primary) and, 16px beside it, "Start
+ * from an example" (secondary; spec 010, FR-053, 1g U18 6793:47705, 6793:47706; F24, F28), which
+ * wrap under each other where they don't fit. The chain (`chain-welcome-card`, 480 × 320,
+ * decorative) lies at the card's top right at its natural size, cut by the card; the card keeps
+ * its visible part plus 24px (301px) free at its right, so that the column wraps before the
+ * chain on a narrower card. "Start from an example" opens the example dialog (`ExampleDialog`,
+ * its state `exampleDialogReducer`); "Create the example" creates the example draft and opens it
+ * at its stored step, step 1 (FR-055). The steps sit in a row where the card's text column has
+ * room for them (`WELCOME_STEPS_ROW`: 640px in English, the full 760px in German, so that no
+ * label runs past the column into the chain; bug new-visuals B3), and stack below; narrower than
+ * 768px the card keeps 24px padding and
+ * the picture goes (FR-010). "Create connection" opens the
  * first-connection flow at step 1 (`/get-started`). After the last connection was deleted it
  * shows with the deletion's toast, which the overview page owns; its "Undo" brings the overview
  * back with the connection (spec 010, FR-037).
@@ -62,6 +71,7 @@ export default function WelcomePage({ titleRef }: WelcomePageProps) {
   const copy = useCopy(WELCOME_COPY);
   const steps = useCopy(WELCOME_STEPS);
   const { language } = useLanguage();
+  const stepsRow = WELCOME_STEPS_ROW[language];
   const [exampleDialog, dispatchExample] = useReducer(
     exampleDialogReducer,
     INITIAL_EXAMPLE_DIALOG_STATE
@@ -89,9 +99,24 @@ export default function WelcomePage({ titleRef }: WelcomePageProps) {
   return (
     <>
       <PageTitle ref={titleRef} title={copy.title} size="x-large" />
-      <div className="bg-kern-layout-background-hued rounded-kern-large flex w-full items-center gap-48 p-24 md:p-48">
-        <div className="@container flex min-w-0 flex-1 flex-col items-start gap-32">
-          <div className="flex max-w-578 flex-col gap-8">
+      <div className="bg-kern-layout-background-hued rounded-kern-large relative flex w-full items-center p-24 md:min-h-296 md:py-36 md:pr-301 md:pl-48">
+        {/* The picture's clip layer, so that the card clips no focus ring */}
+        <div
+          aria-hidden="true"
+          className="rounded-kern-large pointer-events-none absolute inset-0 hidden overflow-hidden md:block"
+        >
+          <img
+            src={chainWelcomeCard}
+            alt=""
+            aria-hidden="true"
+            width={480}
+            height={320}
+            className="absolute top-0 right-0 h-320! w-480 max-w-none!"
+          />
+        </div>
+        {/* Positioned, so that it paints over the clip layer */}
+        <div className="@container relative flex w-full max-w-760 min-w-0 flex-col items-start gap-32">
+          <div className="flex flex-col gap-8">
             <h2 className="text-kern-adaptive-large text-kern-layout-text-default font-semibold break-words">
               {copy.heading}
             </h2>
@@ -101,11 +126,11 @@ export default function WelcomePage({ titleRef }: WelcomePageProps) {
           </div>
           <ol
             aria-label={copy.stepsLabel}
-            className="flex w-full flex-col items-start gap-8 @min-[640px]:flex-row @min-[640px]:items-center @min-[640px]:gap-16"
+            className={`flex w-full flex-col items-start gap-8 ${stepsRow.list}`}
           >
             {steps.map((step, index) => (
               // Keyed by the glyph, the same in both languages: a switch re-keys nothing
-              <WelcomeStepItem key={step.glyph} step={step} joined={index > 0} />
+              <WelcomeStepItem key={step.glyph} step={step} joined={index > 0} row={stepsRow} />
             ))}
           </ol>
           <div className="flex flex-wrap gap-16">
@@ -121,10 +146,6 @@ export default function WelcomePage({ titleRef }: WelcomePageProps) {
               <span className="kern-label">{copy.startFromExample}</span>
             </button>
           </div>
-        </div>
-        {/* Wrapped: kern.css's unlayered `img { display: block }` beats `hidden` on the image */}
-        <div className="hidden flex-none md:block">
-          <img src={walletStar} alt="" className="h-193 w-200" />
         </div>
       </div>
       <ExampleDialog

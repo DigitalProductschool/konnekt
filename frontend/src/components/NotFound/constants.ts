@@ -1,9 +1,10 @@
 import { defineTexts } from '@connection-portal/rules/language';
 
 /**
- * The texts of "Page not found" (S22). The design draws no not-found page, so the texts are the
- * baseline's (001-S0.4); the way back is the design's wording ("Go to connections", FR-049's
- * footer link and the error state of a page, design-notes §3)
+ * The texts of "Page not found" (S22), as the card draws them in English (Figma "New visuals"
+ * 7786:63039, bug new-visuals B5): the title, the sentence (the baseline's, 001-S0.4) and the
+ * way back ("Go to connections", FR-049's footer link and the error state of a page,
+ * design-notes §3)
  */
 export const NOT_FOUND_COPY = defineTexts(
   {

@@ -45,17 +45,19 @@ function DatePill({ line, actions }: DatePillProps) {
 
 /**
  * Figma "Status band" (U80 7355:61767, U94 7355:60677, U89 7355:61530, U93 7362:54697; build
- * notes U07 #6, #23, L4): the 32px status icon in its own column, then the status sentence, the
- * page's one h1 (FR-046, FR-049), with its sub-line 4px under it, 32px from the band's edges, and
- * the picture at the bottom right, in colour or grey by `tone`. 20px under the text the date pill
- * (C1, FR-015): its line, and a published connection's ⋯ menu inside it (FR-016, superseding spec
- * 008's #52, which held the ⋯ in a chip at the band's right end); while deactivated "Activate
- * again" (`pillAction`) stands next to it, 16px apart (U89 7355:61542), and goes under it where
- * the row is too narrow. A draft's pill has no ⋯, and its "Delete draft" (`mainAction`, F56)
- * stands at the band's right end. The picture is clipped to the band in a layer of its own, so
- * that nothing clips the ⋯ menu (V6). Below 768px, where the text needs the room, the decorative
- * picture goes and a main action takes a row of its own under the text, 20px under it, under the
- * icon too below 640px.
+ * notes U07 #6, #23, L4; its picture and right padding from "New visuals" 7741:62072,
+ * 7741:62360, 7741:62685, 7741:62796, bug new-visuals B2): the 32px status icon in its own
+ * column, then the status sentence, the page's one h1 (FR-046, FR-049), with its sub-line 4px
+ * under it, 32px from the band's edges and 200px from its right edge, and the state's picture in
+ * a 241px box at the band's top right, as high as the band: the 241 × 320 picture at the box's
+ * top left at its natural size, cut where the band ends. The text wraps before the picture, and
+ * the band grows with the text while the picture stays. 20px under the text the date pill (C1,
+ * FR-015): its line and the ⋯ menu inside it, a published connection's (FR-016, superseding spec
+ * 008's #52, which held the ⋯ in a chip at the band's right end) or a draft's with "Delete
+ * draft" (F56, bug new-visuals B2); while deactivated "Activate again" (`pillAction`) stands next
+ * to it, 16px apart (U89 7355:61542), and goes under it where the row is too narrow. The picture
+ * is clipped to the band in a layer of its own, so that nothing clips the ⋯ menu (V6). Below
+ * 768px, where the text needs the room, the decorative picture goes.
  */
 export default function StatusBand({
   tone,
@@ -65,23 +67,28 @@ export default function StatusBand({
   dateLine,
   actions,
   pillAction,
-  mainAction,
 }: StatusBandProps) {
   const look = STATUS_BAND_TONES[tone];
   const titleId = useId();
   return (
     <section
       aria-labelledby={titleId}
-      className={`${look.band} rounded-kern-large relative flex flex-wrap items-start gap-16 p-16 sm:p-32 md:pr-215`}
+      className={`${look.band} rounded-kern-large relative flex flex-wrap items-start gap-16 p-16 sm:p-32 md:pr-200`}
     >
       <div
         aria-hidden="true"
         className="rounded-kern-large pointer-events-none absolute inset-0 hidden overflow-hidden md:block"
       >
+        {/* The 241px box at the top right is the picture's own width, so the picture sits at
+            its top left; KERN's unlayered rule gives every image `height: auto` and `max-width:
+            100%`, hence the `!` */}
         <img
           src={look.picture}
           alt=""
-          className="absolute right-0 bottom-0 h-129 w-217 max-w-none"
+          aria-hidden="true"
+          width={241}
+          height={320}
+          className="absolute top-0 right-0 h-320! w-241 max-w-none!"
         />
       </div>
       <span
@@ -110,14 +117,6 @@ export default function StatusBand({
           {pillAction}
         </div>
       </div>
-      {mainAction && (
-        // From 768px in the band's top right corner, over the picture, so that the text keeps its
-        // drawn width, centred on the title's line; below, it wraps under the text. Under 320 CSS
-        // px the text and the action take rows of their own
-        <div className="narrow:static narrow:basis-full narrow:flex-wrap relative flex shrink-0 items-center gap-16 max-md:mt-4 max-md:basis-full max-md:flex-wrap sm:max-md:pl-48 md:absolute md:top-24 md:right-32">
-          {mainAction}
-        </div>
-      )}
     </section>
   );
 }

@@ -243,7 +243,10 @@ export interface StatusBandToneLook {
   icon: { src: string } | { kern: string };
   /** The status icon's size in its circle: the active check 24px, the other glyphs 20px */
   iconSize: string;
-  /** The picture at the bottom right, in colour or grey */
+  /**
+   * The band's picture (241 × 320, bug new-visuals B2), one per state, at the band's top right
+   * and cut at the band's height
+   */
   picture: string;
 }
 
@@ -261,12 +264,13 @@ export interface StatusBandProps {
    * "Edited <date>, <time>"
    */
   dateLine: string;
-  /** Inside the pill, after the date (FR-016): a published connection's ⋯ menu; a draft has none */
+  /**
+   * Inside the pill, after the date (FR-016): the ⋯ menu, a published connection's or a draft's
+   * with "Delete draft" (F56, bug new-visuals B2)
+   */
   actions?: ReactNode;
   /** Next to the pill, 16px from it (FR-016, U89 7355:61542): while deactivated, "Activate again" */
   pillAction?: ReactNode;
-  /** At the band's right end (F56): a draft's "Delete draft" */
-  mainAction?: ReactNode;
 }
 
 /** The date pill (U80 7355:61155; U93 7362:54709): its line and, on a published connection, the ⋯ */

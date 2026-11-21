@@ -128,6 +128,18 @@ export interface WelcomeStepItemProps {
   step: WelcomeStep;
   /** Whether a line joins it to the step before: every step but the first */
   joined: boolean;
+  /** The language's classes for the row (`WELCOME_STEPS_ROW`) */
+  row: WelcomeStepsRowClasses;
+}
+
+/** The welcome steps' classes from the column width where they sit in a row (bug new-visuals B3) */
+export interface WelcomeStepsRowClasses {
+  /** The list: a row, centred, 16px gaps */
+  list: string;
+  /** Every step but the first: it shrinks, and its line grows */
+  joinedItem: string;
+  /** The line before the step, shown only in the row */
+  line: string;
 }
 
 export interface SearchToolbarProps {

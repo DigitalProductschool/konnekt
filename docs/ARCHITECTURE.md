@@ -228,7 +228,8 @@ frontend/
   components read it with `useCurrentUser()`
 - **Layouts** (spec 008, `contracts/ui-screens.md` L1–L4, research R4). Three route groups in
   `App.tsx`: the signed-out screens (`/login`, `/forgot-password`) inside `RequireSignedOut`,
-  each in `AuthLayout` (L1: the login art and the card); the consent, account and approval
+  each in `AuthLayout` (L1: the blue surface with the white chain, the hero with the white
+  logo, and the card; bug `new-visuals` B1); the consent, account and approval
   pages inside `RequireSignIn` and `AppLayout` (L2: the header pills over a 1120 px column);
   and a layout-less group inside `RequireSignIn` whose pages render their own layout in every
   state, loading and errors included. In that group, `/` renders `AppLayout` itself for the
@@ -339,6 +340,20 @@ frontend/
   (`src/assets/illustrations/favicon.svg`): the browser draws its tab bar in its own theme,
   so the SVG's own `prefers-color-scheme` rule makes the logo's squares blue (`#1D56F0`) on a
   light theme and white on a dark one, without a background (Figma "logo for website")
+- **The visuals** (`src/assets/illustrations/`, bug `new-visuals`, Figma "⛓️ New visuals"
+  7741:61917): the eight pictures (the sign-in chain, the four band pictures, the welcome and
+  not-found chains, the empty documents folder) are lossless WebP at 2× their display size or
+  more, each at most 1.5 MB (`assets/illustrations.test.ts` checks it), with colour, opacity,
+  rotation and crop baked in: never CSS filters, blend modes, opacity or rotation on them. Each
+  is an
+  `<img alt="" aria-hidden="true">` at a fixed pixel size (`h-…!`, `max-w-none!`: KERN's
+  unlayered `img` rule sets `height: auto` and `max-width: 100%`) that never scales; only a
+  clip layer of its own (`absolute inset-0 overflow-hidden`) cuts it, never the page's root or
+  a card that holds a menu or a focus ring, so the sticky header and the ⋯ menus stay unclipped.
+  Text keeps at least 24 px from a picture's first visible pixel: the cards and bands reserve
+  that room in their right padding, and below 768 px (the sign-in surface: 1021 px) the
+  pictures go. `AuthLayout` puts the chain behind everything on the surface (`isolate`,
+  `-z-10`); the white logo (`logo-white.svg`) is the one picture with a name (`alt="Konnekt"`)
 - The visual design comes from Figma ("Middleware – V5" on the KERN Revamp). Its decisions
   are recorded in `specs/008-kern-revamp-redesign/`: `spec.md` (what decides what, and the
   Clarifications), `contracts/ui-screens.md` (the layouts L1–L4 and screens S1–S22 with
@@ -376,7 +391,10 @@ frontend/
   Spec 009 puts the language switch (`LanguageSwitch`) in `TopBar`'s right group, before the
   account pill, so every layout that renders `TopBar` (`AppLayout`, `AuthLayout`,
   `WizardLayout`, the homepage's loading page) shows it, signed out too (see
-  [Languages](#languages-spec-009)).
+  [Languages](#languages-spec-009)). On the sign-in screens' blue surface (`brandSurface`,
+  bug `new-visuals` B1) the header has no Konnekt pill, since the hero's logo names the
+  product, and its area turns the surface's blue, not white, once the page has scrolled; the
+  homepage's loading page keeps the white pill (`signedOut`).
   The connection's name in that pill is the only place on the details and in the edit flow
   that says which connection is open, so it keeps at least min(its own width, 96 px) at every
   width (flex basis 96 px, growing to its full width where there is room) and is cut with
@@ -424,8 +442,10 @@ frontend/
 - **The details** (`/form-connections/:id`, L4, S15, S16): the status band, whose sentence is
   the page's h1, with the **date pill** under it (`StatusBand.tsx`, C1): the calendar, the line
   by state ("Active since <date>, <time>", "Active from <date>, 00:00", "Deactivated since
-  <date>, <time>", a draft's "Edited <date>, <time>") and, on a published connection, the ⋯
-  menu inside it ("Change start date", "Deactivate", "Delete connection" by state); while
+  <date>, <time>", a draft's "Edited <date>, <time>") and the ⋯ menu inside it ("Change start
+  date", "Deactivate", "Delete connection" by state; a draft's "Delete draft", bug
+  `new-visuals` B2); the band's picture, one per state, lies in a 241 px box at its top right
+  (see "The visuals" above); while
   deactivated, "Activate again" stands next to the pill (spec 010, FR-015, FR-016). A
   scheduled connection reads "Your connection is scheduled" in the blue band and otherwise
   shows a live connection's details, every link with its copy button. "Change start date"
@@ -439,8 +459,8 @@ frontend/
   "Deactivated by …"; open, the entries newest first, 50 at a time, loaded again after an
   action on the page changed the connection; see [The activity](#the-activity-spec-010)). A
   stored draft's details show the Summary first, then the Links card without URLs, then the
-  Activity, with "Delete draft" in the band. A card's header row is its heading and the toggle;
-  `DetailAccordion`'s `strip` slot adds a strip under that row, inside the header, so that it
+  Activity, with "Delete draft" in the date pill's ⋯. A card's header row is its heading and
+  the toggle; `DetailAccordion`'s `strip` slot adds a strip under that row, inside the header, so that it
   shows open and closed: the Summary's holds "Version …" and "Download PDF" (`PdfDownload`,
   spec 011, as clarified on 2026-11-18; see [The connection PDF](#the-connection-pdf-spec-011))
 - **The documents step** (spec 010, S8): the documents stay in the team's order. A row is
