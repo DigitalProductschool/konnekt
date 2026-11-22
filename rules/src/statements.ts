@@ -91,7 +91,7 @@ export function licenceClassLabel(code: string, language: Language = DEFAULT_LAN
 }
 
 /**
- * A field's name in the rules UI: "Date of birth (Age)" ("Geburtsdatum (Alter)") for the date of
+ * A field's name in the rules UI: "Date of birth (Age)" ("Alter (Geburtsdatum)") for the date of
  * birth (B7), the catalog's label otherwise. Messages, hints and validation keep `field.label`,
  * the citizen's wording.
  */

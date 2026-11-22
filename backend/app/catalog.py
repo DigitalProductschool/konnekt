@@ -490,7 +490,9 @@ MDL = CatalogDocumentType(
             _mdl_element(
                 'height', 'Height (cm)', 'number', label_de='Körpergröße (cm)'
             ),
-            _mdl_element('weight', 'Weight (kg)', 'number', label_de='Gewicht (kg)'),
+            _mdl_element(
+                'weight', 'Weight (kg)', 'number', label_de='Körpergewicht (kg)'
+            ),
             _mdl_element(
                 'eye_colour',
                 'Eye colour',
@@ -515,7 +517,7 @@ MDL = CatalogDocumentType(
                 'portrait_capture_date',
                 'Portrait capture date',
                 'date',
-                label_de='Aufnahmedatum des Lichtbilds',
+                label_de='Aufnahmedatum des Lichtbildes',
             ),
             _mdl_element(
                 'age_in_years', 'Age in years', 'number', label_de='Alter in Jahren'
@@ -553,7 +555,7 @@ MDL = CatalogDocumentType(
                 'resident_country',
                 'Resident country',
                 'enum',
-                label_de='Land des Wohnorts',
+                label_de='Wohnsitzland',
                 option_set=COUNTRIES,
             ),
             _mdl_element(
@@ -572,7 +574,7 @@ MDL = CatalogDocumentType(
                 'signature_usual_mark',
                 'Signature or usual mark',
                 'image',
-                label_de='Unterschrift oder übliches Zeichen',
+                label_de='Unterschrift',
             ),
         ),
         {

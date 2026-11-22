@@ -121,7 +121,7 @@ export const ACCOUNT_COPY = defineTexts(
 
     createTitle: 'Persönliches Zugriffstoken erstellen',
     createText:
-      'Ein Agent, der sich nicht über den Browser anmelden kann, verwendet stattdessen das Token. Er handelt in Ihrem Namen mit der Zugriffsstufe, die Sie wählen.',
+      'Ein Agent, der sich nicht über den Browser anmelden kann, verwendet stattdessen das Token. Er handelt in Ihrem Namen mit der Zugriffsstufe, die Sie auswählen.',
     tokenName: 'Name',
     tokenNameMissing: 'Geben Sie einen Namen für das Token ein.',
     validFor: 'Gültigkeitsdauer',

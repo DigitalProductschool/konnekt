@@ -24,9 +24,9 @@ a `RuleContext` composes in `ctx.language ?? DEFAULT_LANGUAGE`:
 
 | Function | Module | German example (glossary §3) |
 |---|---|---|
-| `statementOf`, `statementPartsOf`, `predicateOf`, `predicatePartsOf` | `statements.ts` | "Personalausweis · Geburtsdatum (Alter) ist mindestens 21 Jahre alt" |
+| `statementOf`, `statementPartsOf`, `predicateOf`, `predicatePartsOf` | `statements.ts` | "Personalausweis · Alter (Geburtsdatum) ist mindestens 21 Jahre alt" |
 | `proposedMessage` | `messages.ts` | "Sie müssen mindestens 21 Jahre alt sein." |
-| `ruleProblem`, `firstProblem` | `validation.ts` | "Rule 01 in Standard: Wählen Sie die zu prüfenden Daten." |
+| `ruleProblem`, `firstProblem` | `validation.ts` | "Rule 01 in Standard: Wählen Sie die zu prüfenden Daten aus." |
 | `resultViewOf` | `personas/results.ts` | heading "Ergebnis: erfüllt 2 Regeln nicht" |
 | `personaFieldsOf` | `personas/fields.ts` | labels from the (German) catalog in the context |
 | `droppedDataOf` | `dropped.ts` | `${documentLabel} – ${field}` with the context's labels |

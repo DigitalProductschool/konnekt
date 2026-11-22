@@ -71,7 +71,7 @@ describe('gapsOf', () => {
   it('finds exactly C’s two gaps, in German', () => {
     expect(gapTextsOf(SAMPLE_DRAFT_GAPS, 'de')).toEqual([
       'Licence class B in Hire car hat keine Fehlermeldung.',
-      'Licence still valid in Hire car: Wählen Sie eine Prüfung.',
+      'Licence still valid in Hire car: Wählen Sie eine Prüfung aus.',
     ]);
   });
 
@@ -225,38 +225,38 @@ const EXPECTED: Record<RuleProblemCode, { en: string | null; de: string | null }
   itemNameTooLong: { en: null, de: null },
   nameTaken: { en: null, de: null },
   nameReserved: { en: null, de: null },
-  chooseData: { en: 'Choose the data to check.', de: 'Wählen Sie die zu prüfenden Daten.' },
+  chooseData: { en: 'Choose the data to check.', de: 'Wählen Sie die zu prüfenden Daten aus.' },
   notRequested: {
     en: 'Add the data again in Documents, or edit or delete the rule.',
     de: 'Fügen Sie die Daten im Schritt „Dokumente“ wieder hinzu oder bearbeiten oder löschen Sie die Regel.',
   },
-  unknownPart: { en: 'Choose the data to check.', de: 'Wählen Sie die zu prüfenden Daten.' },
-  choose_check: { en: 'Choose a check.', de: 'Wählen Sie eine Prüfung.' },
+  unknownPart: { en: 'Choose the data to check.', de: 'Wählen Sie die zu prüfenden Daten aus.' },
+  choose_check: { en: 'Choose a check.', de: 'Wählen Sie eine Prüfung aus.' },
   enter_number: { en: 'Enter a number.', de: 'Geben Sie eine Zahl ein.' },
   enter_text: {
     en: 'Enter a text to compare with.',
     de: 'Geben Sie einen Text zum Vergleichen ein.',
   },
-  choose_value: { en: 'Choose at least one value.', de: 'Wählen Sie mindestens einen Wert.' },
+  choose_value: { en: 'Choose at least one value.', de: 'Wählen Sie mindestens einen Wert aus.' },
   values_from_list: { en: 'Choose values from the list.', de: 'Wählen Sie Werte aus der Liste.' },
-  value_once: { en: 'Choose each value only once.', de: 'Wählen Sie jeden Wert nur einmal.' },
+  value_once: { en: 'Choose each value only once.', de: 'Wählen Sie jeden Wert nur einmal aus.' },
   enter_date: { en: 'Enter a date.', de: 'Geben Sie ein Datum ein.' },
   years_at_least_1: {
     en: 'Enter a number of years of at least 1.',
     de: 'Geben Sie mindestens 1 Jahr ein.',
   },
-  choose_unit: { en: 'Choose years or months.', de: 'Wählen Sie Jahre oder Monate.' },
+  choose_unit: { en: 'Choose years or months.', de: 'Wählen Sie Jahre oder Monate aus.' },
   amount_at_least_1: {
     en: 'Enter a number of years of at least 1.',
     de: 'Geben Sie mindestens 1 Jahr ein.',
   },
   noMessage: {
     en: 'Write the message for citizens.',
-    de: 'Schreiben Sie die Nachricht für Bürgerinnen und Bürger.',
+    de: 'Schreiben Sie die Nachricht an die antragstellende Person.',
   },
   messageTooLong: {
     en: 'Shorten the message for citizens to at most 500 characters.',
-    de: 'Kürzen Sie die Nachricht für Bürgerinnen und Bürger auf höchstens 500 Zeichen.',
+    de: 'Kürzen Sie die Nachricht an die antragstellende Person auf höchstens 500 Zeichen.',
   },
 };
 
@@ -323,7 +323,10 @@ describe('missingOf', () => {
     expect(problems.map((problem) => missingOf(problem, language))).toEqual(
       language === 'en'
         ? ['Write the message for citizens.', 'Choose a check.']
-        : ['Schreiben Sie die Nachricht für Bürgerinnen und Bürger.', 'Wählen Sie eine Prüfung.']
+        : [
+            'Schreiben Sie die Nachricht an die antragstellende Person.',
+            'Wählen Sie eine Prüfung aus.',
+          ]
     );
   });
 });

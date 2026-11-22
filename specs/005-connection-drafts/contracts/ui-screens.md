@@ -188,7 +188,7 @@ a dialog opens before the flow (W6), in the wizard frame with the "Draft" badge:
   - **"Delete draft"** (tertiary, delete icon).
   - There is no deactivate or reactivate (FR-007).
 - **"Delete draft"** asks in a `ConfirmDialog`: "Delete this draft?" / "<name> will be deleted for
-  good. It was never live, so nothing changes for serviceBW." The buttons are "Delete draft"
+  good. It was never live, so nothing changes for your service." The buttons are "Delete draft"
   (danger) and "Cancel". On success the overview opens. `409 draft_published` shows the dialog's
   error, "This draft has been published since you opened it.", with "Open the connection". A
   `404` says it was already deleted, and leads to the overview.
@@ -284,7 +284,7 @@ alert or in the publish dialog. The step's cards show only what the catalog offe
 | `openConnection` / `saveAsNewDraft` | Open the connection / Save as new draft |
 | `draftNotLive` | This draft isn't live. Its connection links appear once you publish it. |
 | `draftCardText(date)` | Saved {date}. Continue to finish and publish it. |
-| `deleteDraft` / `deleteDraftTitle` / `deleteDraftText(name)` | Delete draft / Delete this draft? / {name} will be deleted for good. It was never live, so nothing changes for serviceBW. |
+| `deleteDraft` / `deleteDraftTitle` / `deleteDraftText(name)` | Delete draft / Delete this draft? / {name} will be deleted for good. It was never live, so nothing changes for your service. |
 | `signOutTitle` / `signOutText(names)` | Log out and discard unsaved work? / Logging out deletes the unsaved changes on this device to: {names}. Saved drafts stay as they are. |
 | `catalogDroppedTitle` / `removeIt` | The wallet no longer offers some data of this draft / Remove it |
 

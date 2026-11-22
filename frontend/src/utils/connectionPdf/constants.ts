@@ -577,7 +577,7 @@ export const PDF_TEXTS = defineTexts(
         : `Es wird einen Anfragelink und einen Ergebnislink für die Variante ${listOf(names, 'und')} geben.`,
     section2: 'Dokumente und Felder',
     section2Lead:
-      'Die Wallet fragt die Bürgerin oder den Bürger nach diesen Dokumenten und teilt nur diese Felder mit Ihrem Dienst.',
+      'Das Wallet fragt die Bürgerin oder den Bürger nach diesen Dokumenten und teilt nur diese Felder mit Ihrem Dienst.',
     section3: 'Regeln je Variante',
     section3Lead:
       'Die Daten einer Person erfüllen eine Variante, wenn deren Regeln erfüllt sind. Jede Variante hat ihren eigenen Ergebnislink. In einer Variante auf Basis von Standard zeigen Markierungen, wo sie von Standard abweicht.',
@@ -587,12 +587,12 @@ export const PDF_TEXTS = defineTexts(
     originEmpty: 'Eigene Regeln',
     group: (combines) => `Gruppe · ${combines}`,
     notComplete: 'Nicht vollständig:',
-    writeMessage: 'Schreiben Sie die Nachricht für Bürgerinnen und Bürger.',
+    writeMessage: 'Schreiben Sie die Nachricht an die antragstellende Person.',
     addDocument: 'Fügen Sie mindestens ein Dokument hinzu.',
-    chooseData: 'Wählen Sie die zu prüfenden Daten.',
+    chooseData: 'Wählen Sie die zu prüfenden Daten aus.',
     addDataAgain:
       'Fügen Sie die Daten im Schritt „Dokumente“ wieder hinzu oder bearbeiten oder löschen Sie die Regel.',
-    shortenMessage: `Kürzen Sie die Nachricht für Bürgerinnen und Bürger auf höchstens ${MESSAGE_MAX_LENGTH} Zeichen.`,
+    shortenMessage: `Kürzen Sie die Nachricht an die antragstellende Person auf höchstens ${MESSAGE_MAX_LENGTH} Zeichen.`,
     draftNotLive: 'Entwurf · Nicht aktiv',
     idLine: (id) => `Anbindungs-ID ${id}`,
     versionLine: (version) => `Version ${version}`,

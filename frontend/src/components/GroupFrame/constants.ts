@@ -27,7 +27,7 @@ export const GROUP_FRAME_COPY = defineTexts<{
       and: 'Alle Regeln müssen erfüllt sein',
       or: 'Mindestens eine Regel muss erfüllt sein',
     },
-    messageLabel: 'Nachricht für Bürgerinnen und Bürger:',
+    messageLabel: 'Nachricht an die antragstellende Person:',
     messageHint:
       'Wird anstelle der Nachrichten der einzelnen Regeln angezeigt, wenn diese Gruppe nicht erfüllt ist.',
     identifier: 'Kennung',

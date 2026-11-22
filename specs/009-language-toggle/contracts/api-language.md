@@ -101,7 +101,7 @@ log line (`describe_error()` never logs messages), a stored column or an `ApiRes
   "cases": [
     { "key": "chooseData", "params": { "name": "Rule 01", "branch": "Standard" },
       "en": "Rule 01 in Standard: choose the data to check.",
-      "de": "Rule 01 in Standard: Wählen Sie die zu prüfenden Daten." },
+      "de": "Rule 01 in Standard: Wählen Sie die zu prüfenden Daten aus." },
     …
   ]
 }

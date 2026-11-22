@@ -53,15 +53,15 @@ describe('statementOf', () => {
 
   it('reads US1’s rules in German (spec 009, glossary G§3)', () => {
     expect(US1_RULES.map((rule) => statementOf(rule, CONTEXT_DE)?.text)).toEqual([
-      'Personalausweis · Geburtsdatum (Alter) ist mindestens 21 Jahre alt',
+      'Personalausweis · Alter (Geburtsdatum) ist mindestens 21 Jahre alt',
       'Führerschein · Führerscheinklassen enthält eines von B',
       'Führerschein · Führerscheinklasse B – Ausstellungsdatum liegt mindestens 2 Jahre zurück',
     ]);
     expect(statementOf(US1_RULES[0], CONTEXT_DE)).toEqual({
-      subject: 'Personalausweis · Geburtsdatum (Alter)',
+      subject: 'Personalausweis · Alter (Geburtsdatum)',
       predicate: 'ist mindestens 21 Jahre alt',
       symbol: '≥',
-      text: 'Personalausweis · Geburtsdatum (Alter) ist mindestens 21 Jahre alt',
+      text: 'Personalausweis · Alter (Geburtsdatum) ist mindestens 21 Jahre alt',
     });
   });
 
@@ -138,10 +138,10 @@ describe('statementOf', () => {
       ['exactly_years_ago', 1, 'ist genau 1 Jahr alt'],
     ])('words %s on a Date of birth as an age in German', (operator, years, predicate) => {
       expect(germanStatement(target('pid', 'birthdate'), { operator, years })).toBe(
-        `Personalausweis · Geburtsdatum (Alter) ${predicate}`
+        `Personalausweis · Alter (Geburtsdatum) ${predicate}`
       );
       expect(germanStatement(target('mdl', 'birth_date'), { operator, years })).toBe(
-        `Führerschein · Geburtsdatum (Alter) ${predicate}`
+        `Führerschein · Alter (Geburtsdatum) ${predicate}`
       );
     });
 
@@ -416,7 +416,7 @@ describe('statementPartsOf', () => {
       {
         document: 'Personalausweis',
         documentType: 'pid',
-        data: 'Geburtsdatum (Alter)',
+        data: 'Alter (Geburtsdatum)',
         predicate: {
           symbol: '≥',
           words: 'ist mindestens',
@@ -573,7 +573,7 @@ describe('dataOfResolved', () => {
       const resolved = resolveTarget(ruleTarget, CONTEXT_DE.documents);
       return resolved && dataOfResolved(resolved, 'de');
     };
-    expect(data(target('pid', 'birthdate'))).toBe('Geburtsdatum (Alter)');
+    expect(data(target('pid', 'birthdate'))).toBe('Alter (Geburtsdatum)');
     expect(data(target('pid', 'place_of_birth', 'country'))).toBe('Geburtsort – Land');
     expect(data(target('mdl', 'driving_privileges', 'classes'))).toBe('Führerscheinklassen');
     expect(data(target('mdl', 'driving_privileges', 'expiry_date', 'C1E'))).toBe(
@@ -604,8 +604,8 @@ describe('ruleFieldLabel', () => {
   });
 
   it('names the date of birth as an age in German, and keeps the German catalog’s labels', () => {
-    expect(ruleFieldLabel(fieldOf(PID_DE, 'birthdate'), 'de')).toBe('Geburtsdatum (Alter)');
-    expect(ruleFieldLabel(fieldOf(MDL_DE, 'birth_date'), 'de')).toBe('Geburtsdatum (Alter)');
+    expect(ruleFieldLabel(fieldOf(PID_DE, 'birthdate'), 'de')).toBe('Alter (Geburtsdatum)');
+    expect(ruleFieldLabel(fieldOf(MDL_DE, 'birth_date'), 'de')).toBe('Alter (Geburtsdatum)');
     expect(ruleFieldLabel(fieldOf(PID_DE, 'place_of_birth'), 'de')).toBe('Geburtsort');
   });
 });

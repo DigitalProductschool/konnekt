@@ -138,11 +138,11 @@ describe('the example connection', () => {
     const [standard, variant] = EXAMPLE.de.draft.branches;
 
     expect(statementsOf(standard, 'de')).toEqual([
-      'Personalausweis · Geburtsdatum (Alter) ist mindestens 21 Jahre alt',
+      'Personalausweis · Alter (Geburtsdatum) ist mindestens 21 Jahre alt',
       'Führerschein · Führerscheinklasse B – Ausstellungsdatum liegt mindestens 2 Jahre zurück',
     ]);
     expect(statementsOf(variant, 'de')).toEqual([
-      'Personalausweis · Geburtsdatum (Alter) ist mindestens 19 Jahre alt',
+      'Personalausweis · Alter (Geburtsdatum) ist mindestens 19 Jahre alt',
       'Führerschein · Führerscheinklasse B – Ausstellungsdatum liegt mindestens 1 Jahr zurück',
     ]);
   });

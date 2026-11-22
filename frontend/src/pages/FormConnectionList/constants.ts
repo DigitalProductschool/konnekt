@@ -60,7 +60,7 @@ export const LIST_COPY = defineTexts(
   {
     pageTitle: 'Ihre Anbindungen',
     title: 'Ihre Anbindungen',
-    hint: 'Jede Anbindung verbindet einen Ihrer Dienste mit der EUDI-Wallet. Öffnen Sie einen Entwurf, um weiterzuarbeiten, oder sehen Sie sich eine aktive Anbindung an, um ihre Links zu erhalten.',
+    hint: 'Jede Anbindung verbindet einen Ihrer Dienste mit dem EUDI-Wallet. Öffnen Sie einen Entwurf, um weiterzuarbeiten, oder wählen Sie eine aktive Anbindung, um den Anfrage- und den Ergebnislink zu kopieren.',
     createConnection: 'Anbindung erstellen',
     loading: 'Ihre Anbindungen werden geladen …',
     errorTitle: 'Ihre Anbindungen konnten nicht geladen werden',
@@ -157,7 +157,7 @@ export const WELCOME_COPY = defineTexts(
     pageTitle: 'Willkommen',
     title: 'Willkommen bei Konnekt',
     heading: 'Erstellen Sie Ihre erste Anbindung',
-    text: 'Verbinden Sie Ihre Dienste mit der EUDI-Wallet. Legen Sie eigene Regeln fest und erhalten Sie geprüfte Daten von Bürgerinnen und Bürgern.',
+    text: 'Verbinden Sie Ihre Dienste mit dem EUDI-Wallet. Legen Sie eigene Regeln fest und erhalten Sie verifizierte Daten von Bürgerinnen und Bürgern.',
     stepsLabel: 'So entsteht eine Anbindung',
     createConnection: 'Anbindung erstellen',
     startFromExample: 'Mit einem Beispiel beginnen',
@@ -262,7 +262,7 @@ export const DELETE_CONNECTION_COPY = defineTexts(
   {
     title: (name: string) => `Delete “${name}”?`,
     draft: (name: string) =>
-      `${name} will be deleted for good. It was never live, so nothing changes for serviceBW.`,
+      `${name} will be deleted for good. It was never live, so nothing changes for your service.`,
     active:
       'This connection is active. Citizens won’t be able to use it, and its links stop working.',
     deactivated: 'Its documents and rules will be deleted too.',
@@ -279,7 +279,7 @@ export const DELETE_CONNECTION_COPY = defineTexts(
   {
     title: (name: string) => `„${name}“ löschen?`,
     draft: (name: string) =>
-      `${name} wird endgültig gelöscht. Die Anbindung war nie aktiv, daher ändert sich für serviceBW nichts.`,
+      `${name} wird endgültig gelöscht. Die Anbindung war nie aktiv, daher ändert sich für Ihren Dienst nichts.`,
     active:
       'Diese Anbindung ist aktiv. Bürgerinnen und Bürger können sie dann nicht mehr nutzen, und ihre Links funktionieren nicht mehr.',
     deactivated: 'Die Dokumente und Regeln der Anbindung werden ebenfalls gelöscht.',

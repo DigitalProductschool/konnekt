@@ -1291,7 +1291,7 @@ def test_a_new_connections_variants_keep_the_uuids_they_were_given() -> None:
 
 def test_a_rule_needs_its_data_in_german() -> None:
     assert _german(_rule_with(None, {'operator': 'on', 'date': '2020-01-01'})) == (
-        'Rule 01 in Standard: Wählen Sie die zu prüfenden Daten.'
+        'Rule 01 in Standard: Wählen Sie die zu prüfenden Daten aus.'
     )
 
 
@@ -1403,7 +1403,7 @@ def test_two_variants_cant_share_a_name_in_german() -> None:
 @pytest.mark.parametrize(
     ('rule_target', 'condition', 'problem'),
     [
-        (CITY, None, 'Wählen Sie eine Prüfung.'),
+        (CITY, None, 'Wählen Sie eine Prüfung aus.'),
         (HEIGHT, {'operator': 'greater_than'}, 'Geben Sie eine Zahl ein.'),
         (
             CITY,
@@ -1413,7 +1413,7 @@ def test_two_variants_cant_share_a_name_in_german() -> None:
         (
             CLASS_RULE['target'],
             {'operator': 'includes_one_of', 'values': []},
-            'Wählen Sie mindestens einen Wert.',
+            'Wählen Sie mindestens einen Wert aus.',
         ),
         (
             CLASS_RULE['target'],
@@ -1423,7 +1423,7 @@ def test_two_variants_cant_share_a_name_in_german() -> None:
         (
             CLASS_RULE['target'],
             {'operator': 'includes_one_of', 'values': ['B', 'B']},
-            'Wählen Sie jeden Wert nur einmal.',
+            'Wählen Sie jeden Wert nur einmal aus.',
         ),
         (
             EXPIRY,
@@ -1438,7 +1438,7 @@ def test_two_variants_cant_share_a_name_in_german() -> None:
         (
             EXPIRY,
             {'operator': 'at_least_from_now', 'amount': 6, 'unit': None},
-            'Wählen Sie Jahre oder Monate.',
+            'Wählen Sie Jahre oder Monate aus.',
         ),
         (
             EXPIRY,

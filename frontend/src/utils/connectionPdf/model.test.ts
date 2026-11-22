@@ -545,10 +545,10 @@ describe('C and D, drafts', () => {
     const model = modelOf(answeredIn(SAMPLE_DRAFT_GAPS, 'de'), 'de');
     expect(model.gaps.map((gap) => gap.text)).toEqual([
       'Licence class B in Hire car hat keine Fehlermeldung.',
-      'Licence still valid in Hire car: Wählen Sie eine Prüfung.',
+      'Licence still valid in Hire car: Wählen Sie eine Prüfung aus.',
     ]);
     expect(pdfRuleOf(variantOf(model, 'Hire car'), 'rule-12').missing).toBe(
-      'Wählen Sie eine Prüfung.'
+      'Wählen Sie eine Prüfung aus.'
     );
     expect(model.lastSaved).toEqual({ at: '09.11.2026, 14:10', saveNumber: 7 });
   });

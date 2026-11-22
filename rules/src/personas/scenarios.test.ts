@@ -420,7 +420,7 @@ describe('US1-AS1: the personas have exactly the data the rules check', () => {
     expect(
       fieldsOf(EXAMPLE, GERMAN).map((each) => `${each.documentLabel} · ${each.label}`)
     ).toEqual([
-      'Personalausweis · Geburtsdatum (Alter)',
+      'Personalausweis · Alter (Geburtsdatum)',
       'Personalausweis · Ort',
       'Führerschein · Führerscheinklassen',
       'Führerschein · Führerscheinklasse B – Ausstellungsdatum',
@@ -508,10 +508,10 @@ describe('US1-AS2: per persona and variant, whether it meets the rules, and what
     expect(jonas.rows[0].name).toBe('Rule 01');
     expect(jonas.rows[0].message).toBe('You are too young for this licence.');
     expect(jonas.rows[0].statement).toBe(
-      'Personalausweis · Geburtsdatum (Alter) ist mindestens 21 Jahre alt'
+      'Personalausweis · Alter (Geburtsdatum) ist mindestens 21 Jahre alt'
     );
     expect(viewOf(JONAS, EXAMPLE, 'ambulance', TODAY, GERMAN).rows[0].statement).toBe(
-      'Personalausweis · Geburtsdatum (Alter) ist mindestens 19 Jahre alt'
+      'Personalausweis · Alter (Geburtsdatum) ist mindestens 19 Jahre alt'
     );
 
     const anna = viewOf(ANNA, EXAMPLE, 'ambulance', TODAY, GERMAN);
@@ -648,7 +648,7 @@ describe('US1-AS4: tested as if shared today', () => {
 
   it('names today’s date in German, still dd.mm.yyyy (spec 009, FR-012)', () => {
     expect(testDayLineOf(TODAY, 'de')).toBe(
-      'Getestet, als würden die Daten heute geteilt: 01.11.2026'
+      'Sie testen Ihre Regeln anhand von Beispieldaten. Als Referenzdatum wird das heutige Datum verwendet (01.11.2026).'
     );
   });
 

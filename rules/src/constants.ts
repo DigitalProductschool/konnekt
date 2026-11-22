@@ -256,7 +256,7 @@ export const PLACE_OF_BIRTH_FIELD = 'pid.place_of_birth';
 // catalog's "Date of birth"
 export const DATE_OF_BIRTH_RULE_LABEL = defineTexts<string>(
   'Date of birth (Age)',
-  'Geburtsdatum (Alter)'
+  'Alter (Geburtsdatum)'
 );
 
 // The items' nouns in sentences, in each language (glossary G§2; `nounTextOf()` in tree.ts). The
@@ -353,7 +353,7 @@ export const RULES_MESSAGES = defineTexts<typeof RULES_MESSAGES_EN>(RULES_MESSAG
   nameReserved: (name: string, noun: ItemNoun, number: string) =>
     `${name} ist für die ${ITEM_NOUNS.de[noun]} mit der Nummer ${number} reserviert.`,
   chooseData: (rule: string, branch: string) =>
-    `${rule} in ${branch}: Wählen Sie die zu prüfenden Daten.`,
+    `${rule} in ${branch}: Wählen Sie die zu prüfenden Daten aus.`,
   notRequested: (rule: string, branch: string) =>
     `${rule} in ${branch} prüft Daten, die nicht mehr angefordert werden.`,
   unknownPart: (rule: string, branch: string, field: string) =>
@@ -424,12 +424,12 @@ export const EDIT_MESSAGES = defineTexts<typeof EDIT_MESSAGES_EN>(EDIT_MESSAGES_
   inheritedGroup: (group: string, variant: string, main: string) =>
     `${group} in ${variant} folgt ${main}, daher kann die Gruppierung nur in ${main} aufgehoben werden. Entfernen Sie sie stattdessen aus ${variant}.`,
   cantGroup: (variant: string) =>
-    `Wählen Sie zum Gruppieren zwei oder mehr Regeln einer Ebene in ${variant}. Eine Untergruppe kann keine Gruppen enthalten.`,
+    `Wählen Sie zum Gruppieren zwei oder mehr Regeln einer Ebene in ${variant} aus. Eine Untergruppe kann keine Gruppen enthalten.`,
   mainVariant: (main: string) => `${main} ist die Hauptvariante und kann nicht gelöscht werden.`,
   noCopyTarget: (rule: string) =>
-    `Wählen Sie eine andere Variante, in die ${rule} kopiert werden soll.`,
+    `Wählen Sie eine andere Variante aus, in die ${rule} kopiert werden soll.`,
   documentNotRequested: (document: string) => `Die Anbindung fordert „${document}“ nicht an.`,
-  positionOutside: (count: number) => `Wählen Sie eine Position von 1 bis ${count}.`,
+  positionOutside: (count: number) => `Wählen Sie eine Position von 1 bis ${count} aus.`,
   alreadyInPosition: (document: string, position: number) =>
     `„${document}“ ist bereits auf Position ${position}.`,
 });
@@ -456,15 +456,15 @@ const CONDITION_PROBLEM_MESSAGES_EN = {
 export const CONDITION_PROBLEM_MESSAGES = defineTexts<typeof CONDITION_PROBLEM_MESSAGES_EN>(
   CONDITION_PROBLEM_MESSAGES_EN,
   {
-    choose_check: 'Wählen Sie eine Prüfung.',
+    choose_check: 'Wählen Sie eine Prüfung aus.',
     enter_number: 'Geben Sie eine Zahl ein.',
     enter_text: 'Geben Sie einen Text zum Vergleichen ein.',
-    choose_value: 'Wählen Sie mindestens einen Wert.',
+    choose_value: 'Wählen Sie mindestens einen Wert aus.',
     values_from_list: 'Wählen Sie Werte aus der Liste.',
-    value_once: 'Wählen Sie jeden Wert nur einmal.',
+    value_once: 'Wählen Sie jeden Wert nur einmal aus.',
     enter_date: 'Geben Sie ein Datum ein.',
     years_at_least_1: 'Geben Sie mindestens 1 Jahr ein.',
-    choose_unit: 'Wählen Sie Jahre oder Monate.',
+    choose_unit: 'Wählen Sie Jahre oder Monate aus.',
     amount_at_least_1: (unit: 'years' | 'months') =>
       `Geben Sie mindestens 1 ${TIME_UNITS.de[unit].one} ein.`,
   }

@@ -42,7 +42,7 @@ describe('testDayLineOf (FR-016, W1; spec 008 FR-024; test-results-v5 R1)', () =
 
   it('words it in German, the date still dd.mm.yyyy (glossary §2 "today in Germany")', () => {
     expect(testDayLineOf(TODAY, 'de')).toBe(
-      'Getestet, als würden die Daten heute geteilt: 01.11.2026'
+      'Sie testen Ihre Regeln anhand von Beispieldaten. Als Referenzdatum wird das heutige Datum verwendet (01.11.2026).'
     );
   });
 });

@@ -171,7 +171,7 @@ there first. The proposal:
 | deactivatedLinks | The connection is deactivated: its links answer “unavailable” until it is activated again. | Die Anbindung ist deaktiviert: Ihre Links antworten mit „unavailable“, bis sie wieder aktiviert wird. |
 | scheduledLinks(date) | The connection is scheduled: its links can already be added to your service and answer “unavailable” until it starts on {date}. | Die Anbindung ist geplant: Ihre Links können bereits in Ihren Dienst eingefügt werden und antworten mit „unavailable“, bis sie am {date} startet. |
 | linksToCreate(list) | There will be one request link for all variants, and a result link for each variant: {list}. | Es wird einen Anfragelink für alle Varianten geben und einen Ergebnislink für jede Variante: {list}. |
-| section2 / section2Lead | Documents and data items / The wallet asks the citizen for these documents and shares only these data items with your service. | Dokumente und Felder / Die Wallet fragt die Bürgerin oder den Bürger nach diesen Dokumenten und teilt nur diese Felder mit Ihrem Dienst. |
+| section2 / section2Lead | Documents and data items / The wallet asks the citizen for these documents and shares only these data items with your service. | Dokumente und Felder / Das Wallet fragt die Bürgerin oder den Bürger nach diesen Dokumenten und teilt nur diese Felder mit Ihrem Dienst. |
 | dataItems(n) | {n} data items (1 data item) | {n} Felder (1 Feld) |
 | section3 / section3Lead | Rules per variant / A citizen’s data meets a variant when its rules are met. Each variant has its own result link. In a variant based on Standard, marks show where it differs from Standard. | Regeln je Variante / Die Daten einer Person erfüllen eine Variante, wenn deren Regeln erfüllt sind. Jede Variante hat ihren eigenen Ergebnislink. In einer Variante auf Basis von Standard zeigen Markierungen, wo sie von Standard abweicht. |
 | variant(name) | Variant {name} | Variante {name} |
@@ -179,9 +179,9 @@ there first. The proposal:
 | combinesAnd / combinesOr | All rules must be met (AND) / At least one rule must be met (OR) | Alle Regeln müssen erfüllt sein (UND) / Mindestens eine Regel muss erfüllt sein (ODER) |
 | chipAnd / chipOr | AND / OR | UND / ODER |
 | group(combines) | Group · {combines} | Gruppe · {combines} |
-| messageLabel | Message for citizens: | Nachricht für Bürgerinnen und Bürger: |
+| messageLabel | Message for citizens: | Nachricht an die antragstellende Person: |
 | notComplete(what) | Not complete: {what} | Nicht vollständig: {what} |
-| writeMessage | Write the message for citizens. | Schreiben Sie die Nachricht für Bürgerinnen und Bürger. |
+| writeMessage | Write the message for citizens. | Schreiben Sie die Nachricht an die antragstellende Person. |
 | draftNotLive | Draft · Not live | Entwurf · Nicht aktiv |
 | idLine(id) / versionLine(v) / generatedLine(date) | Connection ID {id} / Version {v} / Generated {date} | Anbindungs-ID {id} / Version {v} / Erstellt {date} |
 | page(n, total) | Page {n} of {total} | Seite {n} von {total} |

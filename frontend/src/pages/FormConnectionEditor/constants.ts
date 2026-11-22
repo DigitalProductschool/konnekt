@@ -21,9 +21,12 @@ export const EDITOR_COPY = defineTexts(
     nameLabel: 'Connection name',
     namePlaceholder: 'e.g. Residents’ parking permit',
     nameInfoLabel: 'About the connection name',
-    // The ⓘ's text, two lines (U19 6809:46408; F60)
-    nameInfo: 'This name helps you and your colleagues find this connection later.',
-    nameInfoAdvice: 'Recommended: Use the name of a particular service. Citizens never see it.',
+    // The ⓘ's text, a line each (U19 6809:46408; F60); German has the advice alone (round 4 of
+    // the user tests)
+    nameInfoLines: [
+      'This name helps you and your colleagues find this connection later.',
+      'Recommended: Use the name of a particular service. Citizens never see it.',
+    ] as readonly string[],
     descriptionLabel: 'Description',
     descriptionPlaceholder: 'e.g. For people who live in the area and park on the street',
     descriptionInfoLabel: 'About the description',
@@ -75,24 +78,22 @@ export const EDITOR_COPY = defineTexts(
     headerTitle: 'Neue Anbindung',
     connectionTitle: 'Benennen Sie Ihre Anbindung',
     connectionHint:
-      'Verbinden Sie einen Dienst mit der EUDI-Wallet, damit Bürgerinnen und Bürger geprüfte Daten teilen können.',
-    formCardTitle: 'Welchen Dienst binden Sie an?',
+      'Verbinden Sie einen Dienst mit dem EUDI-Wallet, um verifizierte Daten von Bürgerinnen und Bürgern zu empfangen.',
+    formCardTitle: 'Welchen Dienst möchten Sie anbinden?',
     formCardHint: 'Sie können diese Angaben später ändern.',
     editFormCardHint:
       'Der Name erscheint unter „Ihre Anbindungen“ und auf der Seite der veröffentlichten Anbindung.',
     nameLabel: 'Name der Anbindung',
     namePlaceholder: 'z. B. Bewohnerparkausweis',
     nameInfoLabel: 'Informationen zum Namen der Anbindung',
-    nameInfo:
-      'Mit diesem Namen finden Sie und Ihre Kolleginnen und Kollegen diese Anbindung später wieder.',
-    nameInfoAdvice:
-      'Empfohlen: Verwenden Sie den Namen eines bestimmten Dienstes. Bürgerinnen und Bürger sehen ihn nie.',
+    nameInfoLines: ['Empfehlung: Verwenden Sie den Namen des Dienstes.'],
     descriptionLabel: 'Beschreibung',
-    descriptionPlaceholder: 'z. B. Für Personen, die im Gebiet wohnen und auf der Straße parken',
+    descriptionPlaceholder:
+      'z. B. Für Personen, die im Gebiet wohnen und auf der Straße parken möchten',
     descriptionInfoLabel: 'Informationen zur Beschreibung',
     descriptionInfo:
       'Eine Notiz für Ihr Team, etwa die ID des Formulars in Ihrem Formularmanagementsystem. Bürgerinnen und Bürger sehen sie nie.',
-    draftNote: 'Beginnt als Entwurf. Die Anbindung wird erst aktiv, wenn Sie sie veröffentlichen.',
+    draftNote: 'Entwurf: Die Anbindung wird erst aktiv, wenn Sie sie veröffentlichen.',
     editNote:
       'Ihre Änderungen werden wirksam, wenn Sie sie speichern. Bereits laufende Anfragen behalten ihre bisherige Konfiguration.',
     scheduledEditNote: (date: string) =>
@@ -100,7 +101,7 @@ export const EDITOR_COPY = defineTexts(
     continue: 'Dokumente auswählen',
     documentsTitle: 'Dokumente und Daten auswählen',
     documentsHint:
-      'Fügen Sie die Dokumente hinzu, die Bürgerinnen und Bürger für diese Anbindung teilen müssen. Im nächsten Schritt können Sie mit den hier ausgewählten Angaben Regeln festlegen.',
+      'Wählen Sie die Dokumente und Felder aus, die für diese Anbindung erforderlich sind.',
     removed: (document: string) => `${document} entfernt.`,
     undo: 'Rückgängig',
     loadingCatalog: 'Die Wallet-Dokumente werden geladen …',
@@ -166,7 +167,7 @@ export const DRAFT_COPY = defineTexts(
     draftBadge: 'Entwurf',
     untitled: 'Unbenannte Anbindung',
     draftSaved: (name: string) => `Entwurf ${name} gespeichert.`,
-    catalogDroppedTitle: 'Die Wallet bietet einige Daten dieses Entwurfs nicht mehr an',
+    catalogDroppedTitle: 'Das Wallet bietet einige Daten dieses Entwurfs nicht mehr an',
     removeIt: 'Entfernen',
     draftChangedTitle: 'Dieser Entwurf wurde geändert',
     draftChangedHint:
@@ -301,7 +302,8 @@ export const PUBLISH_DIALOG_COPY = defineTexts(
     // As publishTitle (R9 step 3; spec 009, T046)
     publishWithoutRulesTitle: 'Ohne Regeln veröffent\u00ADlichen?',
     saveWithoutRulesTitle: 'Ohne Regeln speichern?',
-    publishIntro: 'Nach dem Veröffentlichen kann die Anbindung in Ihre Dienste eingebunden werden.',
+    publishIntro:
+      'Nach der Veröffentlichung kann die Anbindung in Ihre Dienste eingebunden werden.',
     scheduleIntro:
       'Die Anbindung wird am gewählten Datum aktiv. Sie erhalten die Links schon jetzt, damit Ihr Dienst rechtzeitig bereit ist.',
     saveIntro:

@@ -144,10 +144,10 @@ export const RULE_EDITOR_COPY = defineTexts(
     textHint: 'Leerzeichen am Anfang oder Ende spielen keine Rolle.',
     dateHint:
       'Prüfen Sie die Zeit seit oder bis zu diesem Datum oder vergleichen Sie es mit einem festen Datum.',
-    turnsThatDay: (years) => `Wer an diesem Tag ${years} wird, zählt mit.`,
+    turnsThatDay: (years) => `Wer an diesem Tag ${years} wird, erfüllt die Regel.`,
     partsHint: (field) =>
-      `Das Feld „${field}“ hat Bestandteile. Wählen Sie den zu prüfenden Bestandteil.`,
-    countedFrom: 'Gezählt ab dem Tag, an dem die antragstellende Person ihre Daten teilt.',
+      `Das Feld „${field}“ hat Bestandteile. Wählen Sie den zu prüfenden Bestandteil aus.`,
+    countedFrom: 'Es zählt der Tag, an dem die antragstellende Person ihre Daten teilt.',
     countedFromClassIssue: (code) =>
       `Gezählt ab dem Datum, an dem die Klasse ${code} erstmals ausgestellt wurde.`,
     todayMeans: (today, meaning) => `Heute (${today}) bedeutet das: ${meaning}.`,
@@ -158,8 +158,7 @@ export const RULE_EDITOR_COPY = defineTexts(
       `Fehlt das Feld „${label}“ oder kann es nicht gelesen werden, ist die Regel nicht erfüllt. Konnekt meldet dann „konnte nicht geprüft werden“.`,
     classMissing: (code) =>
       `Fehlt die Klasse ${code} oder kann sie nicht gelesen werden, ist die Regel nicht erfüllt. Konnekt meldet dann „konnte nicht geprüft werden“.`,
-    nationalityHint:
-      'Eine Person kann mehr als eine Staatsangehörigkeit haben. Die Regel prüft alle.',
+    nationalityHint: 'Hat eine Person mehrere Staatsangehörigkeiten, prüft die Regel jede davon.',
     classesHintOneOf:
       'Erfüllt, wenn der Führerschein mindestens eine der ausgewählten Klassen enthält.',
     classesHintNoneOf: 'Erfüllt, wenn der Führerschein keine der ausgewählten Klassen enthält.',
@@ -167,9 +166,9 @@ export const RULE_EDITOR_COPY = defineTexts(
     enterNumber: CONDITION_PROBLEM_MESSAGES.de.enter_number,
     enterText: CONDITION_PROBLEM_MESSAGES.de.enter_text,
     enterDate: CONDITION_PROBLEM_MESSAGES.de.enter_date,
-    messageLabel: 'Nachricht für Bürgerinnen und Bürger:',
+    messageLabel: 'Nachricht an die antragstellende Person:',
     messagePlaceholder:
-      'Ein Vorschlag erscheint, sobald Sie eine Prüfung auswählen. Sie können ihn bearbeiten.',
+      'Ein Vorschlag erscheint, sobald Sie eine Prüfung auswählen. Die vorgeschlagene Nachricht können Sie individuell bearbeiten.',
     discardRule: 'Regel verwerfen',
     saveRule: 'Regel speichern',
     rename: (name) => `${name} umbenennen`,

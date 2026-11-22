@@ -1317,7 +1317,9 @@ wins; applied to contracts/pdf-document.md §5 and to §3 above):
 - "Documents and data items" is "Dokumente und Felder"; "{n} data items" is
   `CONNECTION_DETAIL_COPY.items` ("{n} Felder", "1 Feld").
 - "Message for citizens:" is "Nachricht für Bürgerinnen und Bürger:" (`RULE_ROW_COPY`), not
-  "Nachricht an …".
+  "Nachricht an …". Reversed 2026-11-22, the user tests: the label is now "Nachricht an die
+  antragstellende Person:" everywhere, and so are `writeMessage` and `shortenMessage` (spec 009
+  design-notes §3.2; `.specify/bugs/german-copy-user-tests/`).
 - "Check your connection and try again." is "Prüfen Sie Ihre Internetverbindung und versuchen Sie
   es erneut." (`CONNECTION_DETAIL_COPY.rulesErrorText`), and "Try again" is "Erneut versuchen"
   (`CONNECTION_DETAIL_COPY.retry`).

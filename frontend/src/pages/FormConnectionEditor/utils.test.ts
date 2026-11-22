@@ -1959,7 +1959,7 @@ describe('the wizard in the language of the moment (spec 009, FR-003, FR-006)', 
   it('titles step 1 and the documents step in German', () => {
     expect(pageTitleOf('connection', 'create', 'de')).toEqual({
       title: 'Benennen Sie Ihre Anbindung',
-      hint: 'Verbinden Sie einen Dienst mit der EUDI-Wallet, damit Bürgerinnen und Bürger geprüfte Daten teilen können.',
+      hint: 'Verbinden Sie einen Dienst mit dem EUDI-Wallet, um verifizierte Daten von Bürgerinnen und Bürgern zu empfangen.',
     });
     expect(pageTitleOf('connection', 'edit', 'de').title).toBe('Details der Anbindung');
     expect(pageTitleOf('documents', 'create', 'de').title).toBe('Dokumente und Daten auswählen');

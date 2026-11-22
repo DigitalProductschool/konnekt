@@ -206,7 +206,7 @@
         "branch": "Standard"
       },
       "en": "Rule 01 in Standard: choose the data to check.",
-      "de": "Rule 01 in Standard: Wählen Sie die zu prüfenden Daten."
+      "de": "Rule 01 in Standard: Wählen Sie die zu prüfenden Daten aus."
     },
     {
       "key": "notRequested",
@@ -279,7 +279,7 @@
       "table": "CONDITION_PROBLEM_MESSAGES",
       "params": {},
       "en": "choose a check.",
-      "de": "Wählen Sie eine Prüfung."
+      "de": "Wählen Sie eine Prüfung aus."
     },
     {
       "key": "enter_number",
@@ -300,7 +300,7 @@
       "table": "CONDITION_PROBLEM_MESSAGES",
       "params": {},
       "en": "choose at least one value.",
-      "de": "Wählen Sie mindestens einen Wert."
+      "de": "Wählen Sie mindestens einen Wert aus."
     },
     {
       "key": "values_from_list",
@@ -314,7 +314,7 @@
       "table": "CONDITION_PROBLEM_MESSAGES",
       "params": {},
       "en": "choose each value only once.",
-      "de": "Wählen Sie jeden Wert nur einmal."
+      "de": "Wählen Sie jeden Wert nur einmal aus."
     },
     {
       "key": "enter_date",
@@ -335,7 +335,7 @@
       "table": "CONDITION_PROBLEM_MESSAGES",
       "params": {},
       "en": "choose years or months.",
-      "de": "Wählen Sie Jahre oder Monate."
+      "de": "Wählen Sie Jahre oder Monate aus."
     },
     {
       "key": "amount_at_least_1",
