@@ -19,6 +19,7 @@ import ErrorNoticeText from '../../components/ErrorNoticeText';
 import LocalDraftsOffer from '../../components/LocalDraftsOffer';
 import PageLoader from '../../components/PageLoader';
 import PageTitle from '../../components/PageTitle';
+import { ARRIVAL_CARD_CLASSES } from '../../components/SignInMotion/constants';
 import Toast from '../../components/Toast';
 import type { ToastContent } from '../../components/Toast/types';
 import TopBar from '../../components/TopBar';
@@ -26,6 +27,7 @@ import { ROUTES } from '../../constants';
 import { useDocumentTitle } from '../../hooks/useDocumentTitle';
 import { useCopy, useLanguage } from '../../hooks/useLanguage';
 import { useRememberedHomepage } from '../../hooks/useRememberedHomepage';
+import { useSignInDestination } from '../../hooks/useSignInMotion';
 import { useSignOutOnUnauthorized } from '../../hooks/useSignOutOnUnauthorized';
 import { EDIT_ENTRY_DIALOG_COPY, EDIT_ENTRY_STATE } from '../FormConnectionEdit/constants';
 import BulkDeleteDialog from './BulkDeleteDialog';
@@ -240,6 +242,11 @@ function arrivalToastOf(
  * "Undo" for all of them (`deletionReducer`). When a connection changed meanwhile, nothing is
  * deleted: the dialog stays open and names it, and the list behind it loads again without its
  * skeleton, so that the bar and its "Delete" stay where the focus returns.
+ *
+ * As the destination of a sign-in (bug login-welcome-motion, P5–P7) the page loads under the
+ * sign-in page, which holds until the list is there (at most 1000 ms) on a device that remembers
+ * nothing; the welcome page then runs the full motion, the overview the cross-fade, and the
+ * page's heading takes the focus as it shows.
  */
 export default function FormConnectionListPage() {
   const { language } = useLanguage();
@@ -319,6 +326,7 @@ export default function FormConnectionListPage() {
         ? 'loading'
         : homepageOf(list, expected);
   useDocumentTitle(view === 'welcome' ? welcomeCopy.pageTitle : copy.pageTitle);
+  const { card: arriving } = useSignInDestination(view, titleRef);
 
   useEffect(() => {
     if (arrival?.draftSaved !== undefined || arrival?.deleted !== undefined) {
@@ -575,7 +583,7 @@ export default function FormConnectionListPage() {
       <AppLayout>
         {/* Above the page (S3): the banner 32px over the h1 (16 + the column's gap 16), and
             nothing while it's hidden; `contents`, so that the banner is the column's item */}
-        <div className="contents [&>section]:mb-16">
+        <div className={`contents [&>section]:mb-16 ${arriving ? ARRIVAL_CARD_CLASSES.offer : ''}`}>
           <LocalDraftsOffer emptyFocusRef={titleRef} />
         </div>
         <WelcomePage titleRef={titleRef} />

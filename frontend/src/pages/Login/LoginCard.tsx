@@ -9,6 +9,7 @@ import TextField from '../../components/TextField';
 import { ROUTES } from '../../constants';
 import { useCurrentUser } from '../../hooks/useCurrentUser';
 import { useCopy, useLanguage } from '../../hooks/useLanguage';
+import { useSignInTrigger } from '../../hooks/useSignInMotion';
 import { INITIAL_LOGIN_FORM, LOGIN_COPY } from './constants';
 import PasswordField from './PasswordField';
 import type { SignInAlertProps } from './types';
@@ -22,10 +23,13 @@ const ALERT_ID = 'login-error';
  * (cosmetic 25). A failed sign-in puts the design's alert above the fields (U10 6401:28435) and
  * marks **both** fields invalid without saying which was wrong (F16, Clarification Q10); any other
  * failure shows the alert with the server's message and its error ID (FR-008). After a
- * successful sign-in the page moves on by itself, because the signed-in state changes.
+ * successful sign-in the page moves on by itself, because the signed-in state changes: the
+ * submit arms the motion to the destination and a failure disarms it (bug login-welcome-motion),
+ * so the card stays "Logging in…" while it leaves.
  */
 export default function LoginCard() {
   const { signIn } = useCurrentUser();
+  const { arm, disarm } = useSignInTrigger();
   const { language } = useLanguage();
   const copy = useCopy(LOGIN_COPY);
   const location = useLocation();
@@ -42,9 +46,11 @@ export default function LoginCard() {
       return;
     }
     dispatch({ type: 'submit' });
+    arm(location);
     try {
       await signIn({ username: state.username, password: state.password });
     } catch (error) {
+      disarm();
       dispatch({ type: 'fail', failure: signInFailureOf(error, language) });
     }
   }

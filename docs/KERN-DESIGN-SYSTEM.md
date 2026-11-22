@@ -166,7 +166,12 @@ values are laid over them.
   `--text-hero-headline` (KERN's primitive `--kern-font-size-56`, line height 1.2) and
   `--text-hero-tagline` (`--kern-font-size-20`, line height 24 px), used as
   `text-hero-headline` and `text-hero-tagline` from the side-by-side sign-in layout on; KERN
-  has 56 and 20 only as primitives, not in the semantic scale the overlay sets.
+  has 56 and 20 only as primitives, not in the semantic scale the overlay sets. The sign-in
+  motion's two durations are such tokens too (bug `login-welcome-motion`; Figma has no variable
+  for them, the values are its note's): `--duration-signin` (800 ms, the full motion's clock, of
+  which every `--animate-signin-*` takes its fractions) and `--duration-signin-fade` (200 ms, the
+  cross-fade). Its colours, radius and pictures are KERN's and the image bank's:
+  `action-default` to `layout-background-hued`, `border-radius-large`.
 - **What it sets**: the Revamp's colours (one AA fix: `feedback-info` `#0273ae` for the
   design's `#0284c7`), the radii, the static type sizes, the adaptive sizes and line heights
   and the heading, title, body and label baseline paddings at their small-screen values on
@@ -178,7 +183,8 @@ values are laid over them.
 - **AA**: a Revamp text colour that fails 4.5:1 is set to the nearest passing value in the
   overlay, with a comment naming the pair (spec 008's design-notes §1.5).
 - **Motion**: an element that transitions carries the `motion` class next to its utilities; the
-  one `prefers-reduced-motion` rule in `index.css` switches it off (design-notes §4).
+  one `prefers-reduced-motion` rule in `index.css` switches it off (design-notes §4). The one
+  exception is the sign-in page's 200 ms cross-fade, which reduced motion keeps (no `motion`).
 
 Each component is built in one of three ways, recorded per component in spec 008's
 `design-notes.md` §2:

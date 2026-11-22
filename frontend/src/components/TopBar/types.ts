@@ -32,4 +32,9 @@ export interface TopBarProps {
   onLeave?: () => void;
   /** Shown at the right end: the account pill (UserMenu) */
   children?: ReactNode;
+  /**
+   * Classes added to the header: the sign-in motion's fade-out on the sign-in surface and fade-in
+   * on the welcome page (bug login-welcome-motion)
+   */
+  className?: string;
 }

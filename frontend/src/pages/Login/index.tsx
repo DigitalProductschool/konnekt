@@ -6,6 +6,7 @@ import AuthLayout from '../../components/AuthLayout';
 import Toast from '../../components/Toast';
 import { useDocumentTitle } from '../../hooks/useDocumentTitle';
 import { useCopy } from '../../hooks/useLanguage';
+import { useSignInExit } from '../../hooks/useSignInMotion';
 import { LOGIN_COPY } from './constants';
 import LoginCard from './LoginCard';
 
@@ -15,11 +16,13 @@ import LoginCard from './LoginCard';
  * "You’re logged out." (FR-051 (30), U10 7128:74220): neutral, no action, 24 above the window's
  * edge (no footer), gone after 6 s. The flag is read once and then dropped from the history
  * entry, which keeps the route to return to, so that a reload or "Back to log in" doesn't show
- * the toast again.
+ * the toast again. While the page leaves after a successful sign-in (bug login-welcome-motion),
+ * the toast is gone, and the tab already has the destination's title.
  */
 export default function LoginPage() {
   const copy = useCopy(LOGIN_COPY);
-  useDocumentTitle(copy.pageTitle);
+  const leaving = useSignInExit() !== null;
+  useDocumentTitle(leaving ? null : copy.pageTitle);
   const location = useLocation();
   const navigate = useNavigate();
   const loggedOut = (location.state as LoginLocationState | null)?.loggedOut === true;
@@ -48,7 +51,7 @@ export default function LoginPage() {
       </AuthLayout>
       {/* Outside the layout: its container query would make the fixed toast relative to it */}
       <Toast
-        toast={toastId === null ? null : { id: toastId, message: copy.loggedOut }}
+        toast={toastId === null || leaving ? null : { id: toastId, message: copy.loggedOut }}
         onDismiss={dismissToast}
         noFooter
       />

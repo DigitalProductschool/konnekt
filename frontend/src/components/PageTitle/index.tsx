@@ -25,9 +25,15 @@ const HINT_CLASSES: Record<PageTitleSize, string> = {
  * the focus from script, which a page uses after its content changed; it is no control, so it
  * shows no focus ring.
  */
-export default function PageTitle({ title, hint, size = 'display', ref }: PageTitleProps) {
+export default function PageTitle({
+  title,
+  hint,
+  size = 'display',
+  ref,
+  className = '',
+}: PageTitleProps) {
   return (
-    <div className="flex flex-col">
+    <div className={`flex flex-col ${className}`}>
       <h1
         ref={ref}
         tabIndex={-1}
