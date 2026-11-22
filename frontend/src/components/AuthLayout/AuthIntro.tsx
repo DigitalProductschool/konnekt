@@ -2,6 +2,7 @@ import logoWhite from '../../assets/illustrations/logo-white.svg';
 import { APP_NAME } from '../../constants';
 import { useCopy } from '../../hooks/useLanguage';
 import { AUTH_INTRO_CLASSES, AUTH_INTRO_COPY } from './constants';
+import type { AuthIntroProps } from './types';
 
 /**
  * Figma "Hero" ("New visuals" 7741:61945, bug new-visuals B1): the white logo with the word
@@ -12,12 +13,13 @@ import { AUTH_INTRO_CLASSES, AUTH_INTRO_COPY } from './constants';
  * Sans sets "Connect to the" 373.3px wide, a fraction more than the column, so the headline may
  * reach 2px past it, which keeps the frame's break after "the" (the hero stays 373px). Stacked
  * (below 1021px) the headline and tagline keep KERN's 40/48 and 18/24, and under 320 CSS px the
- * logo shrinks to the column's width.
+ * logo shrinks to the column's width. `className` adds the sign-in motion's fade-out (bug
+ * login-welcome-motion).
  */
-export default function AuthIntro() {
+export default function AuthIntro({ className = '' }: AuthIntroProps) {
   const copy = useCopy(AUTH_INTRO_COPY);
   return (
-    <div className={AUTH_INTRO_CLASSES}>
+    <div className={`${AUTH_INTRO_CLASSES} ${className}`}>
       {/* KERN's `img { height: auto }` keeps the logo's proportions where it shrinks */}
       <img src={logoWhite} alt={APP_NAME} width={202} height={60} className="w-202 max-w-full" />
       <h1 className="text-kern-adaptive-2x-large text-kern-layout-text-inverse @min-[1021px]:text-hero-headline mt-42 font-medium wrap-break-word @min-[1021px]:-mr-2">

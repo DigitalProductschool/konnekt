@@ -107,7 +107,13 @@ The UI says "connection" for form connection and "variant" for branch, and calls
 - **Visuals** (`src/assets/illustrations/`): lossless WebP at 2× or more, at most 1.5 MB each,
   colour and rotation baked in (never CSS filters, opacity or rotation), `alt=""` and
   `aria-hidden`, a fixed size that never scales, cut only by a clip layer of their own, and text
-  24 px or more from them (ARCHITECTURE, "frontend", "The visuals").
+  24 px or more from them (ARCHITECTURE, "frontend", "The visuals"). The one exception is the
+  sign-in motion's travelling chain: moved, scaled and faded through its wrappers only.
+- **The sign-in motion** (bug `login-welcome-motion`): the signed-out screens are a second
+  `<Routes>` that holds the sign-in page over its destination until the motion ends; change it
+  through `components/SignInMotion/` and `hooks/useSignInMotion.ts`, measure boxes there, never
+  in a component, and keep its 200 ms cross-fade free of `.motion` (ARCHITECTURE, "frontend",
+  "The sign-in motion").
 - **Narrow windows**: below 320 CSS px (a 320 px window at 200 % zoom) use the `narrow:`
   variant; `index.css`'s narrow block already wraps words and halves the side paddings
   (`docs/KERN-DESIGN-SYSTEM.md` §3.1).

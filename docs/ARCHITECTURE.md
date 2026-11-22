@@ -229,7 +229,8 @@ frontend/
 - **Layouts** (spec 008, `contracts/ui-screens.md` L1–L4, research R4). Three route groups in
   `App.tsx`: the signed-out screens (`/login`, `/forgot-password`) inside `RequireSignedOut`,
   each in `AuthLayout` (L1: the blue surface with the white chain, the hero with the white
-  logo, and the card; bug `new-visuals` B1); the consent, account and approval
+  logo, and the card; bug `new-visuals` B1), in a `<Routes>` of their own (see "The sign-in
+  motion" below); the consent, account and approval
   pages inside `RequireSignIn` and `AppLayout` (L2: the header pills over a 1120 px column);
   and a layout-less group inside `RequireSignIn` whose pages render their own layout in every
   state, loading and errors included. In that group, `/` renders `AppLayout` itself for the
@@ -353,7 +354,36 @@ frontend/
   Text keeps at least 24 px from a picture's first visible pixel: the cards and bands reserve
   that room in their right padding, and below 768 px (the sign-in surface: 1021 px) the
   pictures go. `AuthLayout` puts the chain behind everything on the surface (`isolate`,
-  `-z-10`); the white logo (`logo-white.svg`) is the one picture with a name (`alt="Konnekt"`)
+  `-z-10`); the white logo (`logo-white.svg`) is the one picture with a name (`alt="Konnekt"`).
+  The one exception to "nothing on a picture" is the sign-in motion's travelling chain below:
+  it is moved, scaled and cross-faded through its wrappers, never on the `<img>`s, and nothing
+  is left on them at rest
+- **The sign-in motion** (bug `login-welcome-motion`, Figma "New visuals" note 3,
+  `7760:105890`; `components/SignInMotion/`, `hooks/useSignInMotion.ts`). After a successful
+  sign-in the sign-in page leaves over its destination instead of being replaced in one step.
+  `App.tsx` has two `<Routes>`: the first holds the signed-in screens and renders nothing for
+  `/login` and `/forgot-password`; the second holds the signed-out screens at
+  `location={held ?? location}` and is keyed by the count of ended exits. "Log in" arms the
+  motion (`SignInMotionProvider`, a reducer `idle → armed → holding → running → idle`), a
+  failure disarms it, and the signed-in state that follows is the success, read in the render
+  that changes it: `RequireSignedOut` then navigates once and keeps its children, and
+  `SignInExitLayer` fixes the very same page over the destination, `inert` and `aria-hidden`,
+  taking the pointer. The destination isn't inert: the homepage's `h1` takes the focus at the
+  start. Without the device's memory of the account the page holds until the list arrives, at
+  most 1000 ms, then cross-fades to the loading page. Into the welcome card (a sign-in page
+  from 1021 px wide, not scrolled, without reduced motion) the full motion runs, 800 ms: the
+  card's clip layer is the surface, fixed over the window under the page's content (`-z-10` in
+  `AppLayout`'s `isolate`), clipped from the window onto the card while it turns from blue to
+  the tint; the white chain travels in it and cross-fades into a copy of the card's picture
+  (`ChainTravel`); the sign-in texts fade out and the welcome header, title and content fade
+  in. Every box is measured at the start (the exit layer's own box, not the root's
+  `clientWidth`, which in Chromium still counts kern.css's scrollbar gutter) and set as CSS
+  custom properties on the surface. Everywhere else (reduced motion, the overview, a requested
+  route, a narrower or scrolled sign-in page) the sign-in page cross-fades in 200 ms, the one
+  fade that stays on under reduced motion (no `.motion`). The motion ends with its own
+  animation, or a timer 50 ms after its duration, and at once on a resize or when the welcome
+  page gives way to the overview; a sign-out drops the kept page. Durations and keyframes:
+  `index.css` (`--duration-signin`, `--animate-signin-*`), design-notes §4
 - The visual design comes from Figma ("Middleware – V5" on the KERN Revamp). Its decisions
   are recorded in `specs/008-kern-revamp-redesign/`: `spec.md` (what decides what, and the
   Clarifications), `contracts/ui-screens.md` (the layouts L1–L4 and screens S1–S22 with

@@ -37,6 +37,7 @@ export default function TopBar({
   brandSurface = false,
   onLeave,
   children,
+  className = '',
 }: TopBarProps) {
   const scrolled = useScrolled();
   const handleLeave = onLeave ? leaveClick(onLeave) : undefined;
@@ -52,7 +53,7 @@ export default function TopBar({
 
   return (
     <header
-      className={`motion top-0 z-30 flex flex-wrap items-center gap-y-8 px-16 pt-16 md:flex-nowrap [@media(width>=20rem)_and_(height>=30rem)]:sticky ${title ? 'gap-x-8' : 'gap-x-16'} ${headerBackgroundClasses(scrolled, brandSurface)}`}
+      className={`motion top-0 z-30 flex flex-wrap items-center gap-y-8 px-16 pt-16 md:flex-nowrap [@media(width>=20rem)_and_(height>=30rem)]:sticky ${title ? 'gap-x-8' : 'gap-x-16'} ${headerBackgroundClasses(scrolled, brandSurface)} ${className}`}
     >
       {!brandSurface &&
         (logoTo ? (

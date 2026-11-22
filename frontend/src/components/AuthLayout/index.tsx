@@ -1,4 +1,6 @@
 import chainLoginWhite from '../../assets/illustrations/chain-login-white@2x.webp';
+import { useSignInChainRef, useSignInExit } from '../../hooks/useSignInMotion';
+import { EXIT_CARD_CLASSES } from '../SignInMotion/constants';
 import TopBar from '../TopBar';
 import AuthIntro from './AuthIntro';
 import {
@@ -19,12 +21,24 @@ import type { AuthLayoutProps } from './types';
  * header, and behind everything else on the surface (`isolate`, `-z-10`), also where the header
  * scrolls away with the page. The header holds only the language switch (spec 009), and turns
  * the surface's blue once the page has scrolled.
+ *
+ * In the full motion after a successful sign-in (bug login-welcome-motion) the blue and the chain
+ * go to the welcome card's surface at the start, which lies in their place under this page, and
+ * the header, the hero and the card fade out in 240 ms, the card dropping 12px.
  */
 export default function AuthLayout({ children }: AuthLayoutProps) {
+  const chainRef = useSignInChainRef();
+  const card = useSignInExit() === 'card';
   return (
-    <div className="bg-kern-action-default @container relative isolate flex min-h-dvh flex-col">
-      <div aria-hidden="true" className={AUTH_CHAIN_LAYER_CLASSES}>
+    <div
+      className={`${card ? EXIT_CARD_CLASSES.surface : 'bg-kern-action-default'} @container relative isolate flex min-h-dvh flex-col`}
+    >
+      <div
+        aria-hidden="true"
+        className={`${AUTH_CHAIN_LAYER_CLASSES} ${card ? EXIT_CARD_CLASSES.chain : ''}`}
+      >
         <img
+          ref={chainRef}
           src={chainLoginWhite}
           alt=""
           aria-hidden="true"
@@ -33,11 +47,13 @@ export default function AuthLayout({ children }: AuthLayoutProps) {
           className={AUTH_CHAIN_CLASSES}
         />
       </div>
-      <TopBar brandSurface />
+      <TopBar brandSurface className={card ? EXIT_CARD_CLASSES.fade : undefined} />
       {/* Starts under the 64px header area, so that the content centres in the whole window */}
       <main className={`-mt-64 ${AUTH_MAIN_CLASSES}`}>
-        <AuthIntro />
-        <div className={AUTH_CARD_SLOT_CLASSES}>{children}</div>
+        <AuthIntro className={card ? EXIT_CARD_CLASSES.fade : undefined} />
+        <div className={`${AUTH_CARD_SLOT_CLASSES} ${card ? EXIT_CARD_CLASSES.drop : ''}`}>
+          {children}
+        </div>
       </main>
     </div>
   );

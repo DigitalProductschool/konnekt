@@ -1,12 +1,15 @@
-import { useReducer } from 'react';
+import { useReducer, useRef } from 'react';
 import { generatePath, Link, useNavigate } from 'react-router';
 
 import { createExample } from '../../api/form-connections';
 import chainWelcomeCard from '../../assets/illustrations/chain-welcome-card@2x.webp';
 import IconTile from '../../components/IconTile';
 import PageTitle from '../../components/PageTitle';
+import ChainTravel from '../../components/SignInMotion/ChainTravel';
+import { ARRIVAL_CARD_CLASSES } from '../../components/SignInMotion/constants';
 import { ROUTES } from '../../constants';
 import { useCopy, useLanguage } from '../../hooks/useLanguage';
+import { useSignInSurface } from '../../hooks/useSignInMotion';
 import { useSignOutOnUnauthorized } from '../../hooks/useSignOutOnUnauthorized';
 import {
   INITIAL_EXAMPLE_DIALOG_STATE,
@@ -66,8 +69,18 @@ function WelcomeStepItem({ step, joined, row }: WelcomeStepItemProps) {
  * first-connection flow at step 1 (`/get-started`). After the last connection was deleted it
  * shows with the deletion's toast, which the overview page owns; its "Undo" brings the overview
  * back with the connection (spec 010, FR-037).
+ *
+ * After a successful sign-in it is the full motion's destination (bug login-welcome-motion;
+ * "New visuals" 7741:61974: "In code, it is simply the card background"): the picture's clip
+ * layer is the surface, which starts as the sign-in page's blue over the window and shrinks onto
+ * the card while it takes the card's tint, with the travelling chain in it (`ChainTravel`); the
+ * card's own picture and background wait under it. The title and the card's content fade in
+ * above it. The hook measures it and starts it before the browser paints.
  */
 export default function WelcomePage({ titleRef }: WelcomePageProps) {
+  const cardRef = useRef<HTMLDivElement>(null);
+  const surfaceRef = useRef<HTMLDivElement>(null);
+  const { card: arriving } = useSignInSurface(cardRef, surfaceRef);
   const copy = useCopy(WELCOME_COPY);
   const steps = useCopy(WELCOME_STEPS);
   const { language } = useLanguage();
@@ -98,12 +111,26 @@ export default function WelcomePage({ titleRef }: WelcomePageProps) {
 
   return (
     <>
-      <PageTitle ref={titleRef} title={copy.title} size="x-large" />
-      <div className="bg-kern-layout-background-hued rounded-kern-large relative flex w-full items-center p-24 md:min-h-296 md:py-36 md:pr-301 md:pl-48">
-        {/* The picture's clip layer, so that the card clips no focus ring */}
+      <PageTitle
+        ref={titleRef}
+        title={copy.title}
+        size="x-large"
+        className={arriving ? ARRIVAL_CARD_CLASSES.title : ''}
+      />
+      <div
+        ref={cardRef}
+        className={`${arriving ? ARRIVAL_CARD_CLASSES.card : 'bg-kern-layout-background-hued'} rounded-kern-large relative flex w-full items-center p-24 md:min-h-296 md:py-36 md:pr-301 md:pl-48`}
+      >
+        {/* The picture's clip layer, so that the card clips no focus ring; the sign-in motion's
+            surface while that runs */}
         <div
+          ref={surfaceRef}
           aria-hidden="true"
-          className="rounded-kern-large pointer-events-none absolute inset-0 hidden overflow-hidden md:block"
+          className={
+            arriving
+              ? ARRIVAL_CARD_CLASSES.surface
+              : 'rounded-kern-large pointer-events-none absolute inset-0 hidden overflow-hidden md:block'
+          }
         >
           <img
             src={chainWelcomeCard}
@@ -111,11 +138,14 @@ export default function WelcomePage({ titleRef }: WelcomePageProps) {
             aria-hidden="true"
             width={480}
             height={320}
-            className="absolute top-0 right-0 h-320! w-480 max-w-none!"
+            className={`absolute top-0 right-0 h-320! w-480 max-w-none! ${arriving ? ARRIVAL_CARD_CLASSES.picture : ''}`}
           />
+          {arriving && <ChainTravel />}
         </div>
         {/* Positioned, so that it paints over the clip layer */}
-        <div className="@container relative flex w-full max-w-760 min-w-0 flex-col items-start gap-32">
+        <div
+          className={`@container relative flex w-full max-w-760 min-w-0 flex-col items-start gap-32 ${arriving ? ARRIVAL_CARD_CLASSES.content : ''}`}
+        >
           <div className="flex flex-col gap-8">
             <h2 className="text-kern-adaptive-large text-kern-layout-text-default font-semibold break-words">
               {copy.heading}

@@ -220,6 +220,69 @@
       opacity: 1;
     }
   }
+
+  /*
+   * The motion from sign-in to the welcome page (bug login-welcome-motion; Figma "New visuals"
+   * note 3, 7760:105890: Smart animate, 800 ms, ease-in-out), one clock from the start, as
+   * fractions of --duration-signin (components/SignInMotion/constants.ts has the class sets):
+   * the welcome card's surface shrinks from the window onto the card and turns from blue to the
+   * card's tint, and the chain travels with it (0–800 ms, ease-in-out); the sign-in page's header,
+   * hero and card fade out (0–240 ms, ease-out; the card drops 12 px); the white chain and the
+   * card's picture cross-fade (240–560 ms, linear); the welcome header and title fade in (320–640
+   * ms), the card's content after them (480–800 ms). Every keyframe runs from the start state to
+   * the element's resting style, which is the end state. These elements carry .motion; under
+   * reduced motion the motion never starts and the sign-in page cross-fades instead
+   * (--animate-signin-fade, 200 ms), the one fade that reduced motion keeps, without .motion
+   * (design-notes §4)
+   */
+  --duration-signin: 800ms;
+  --duration-signin-fade: 200ms;
+  --animate-signin-surface: signin-surface var(--duration-signin) ease-in-out;
+  --animate-signin-chain: signin-chain var(--duration-signin) ease-in-out;
+  --animate-signin-out: signin-out calc(var(--duration-signin) * 0.3) ease-out;
+  --animate-signin-out-drop: signin-out-drop calc(var(--duration-signin) * 0.3) ease-out;
+  --animate-signin-chain-out: signin-out calc(var(--duration-signin) * 0.4) linear
+    calc(var(--duration-signin) * 0.3) backwards;
+  --animate-signin-chain-in: signin-in calc(var(--duration-signin) * 0.4) linear
+    calc(var(--duration-signin) * 0.3) backwards;
+  --animate-signin-in-header: signin-in calc(var(--duration-signin) * 0.4) ease-out
+    calc(var(--duration-signin) * 0.4) backwards;
+  --animate-signin-in-content: signin-in calc(var(--duration-signin) * 0.4) ease-out
+    calc(var(--duration-signin) * 0.6) backwards;
+  --animate-signin-fade: signin-out var(--duration-signin-fade) ease-out;
+
+  @keyframes signin-surface {
+    from {
+      clip-path: inset(0 round 0);
+      background-color: var(--kern-color-action-default);
+    }
+  }
+
+  @keyframes signin-chain {
+    from {
+      translate: 0 0;
+      scale: 1;
+    }
+  }
+
+  @keyframes signin-out {
+    from {
+      opacity: 1;
+    }
+  }
+
+  @keyframes signin-out-drop {
+    from {
+      opacity: 1;
+      translate: 0 0;
+    }
+  }
+
+  @keyframes signin-in {
+    from {
+      opacity: 0;
+    }
+  }
 }
 
 /*

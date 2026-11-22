@@ -330,7 +330,9 @@ later use.
 | Heights (accordions, menus, the documents list, the rules list) | 150–200 ms | `grid-template-rows` 0fr → 1fr |
 | Dialogs | fade | opacity on the dialog and the scrim |
 | The "Published" state before the details | 0.5 s | behaviour (Clarification #33): kept under reduced motion |
-| `prefers-reduced-motion: reduce` | — | one rule: `transition: none; animation: none` on the transitioning elements; the pill just appears (U03 #40) |
+| Sign-in → welcome page (bug `login-welcome-motion`, "New visuals" note 3) | 800 ms on one clock (`--duration-signin`): surface and chain 0–800 ease-in-out; sign-in texts out 0–240 ease-out; chain pictures 240–560 linear; welcome header and title in 320–640, card content 480–800, ease-out | the welcome card's clip layer clipped from the window onto the card (`clip-path: inset()`) while its colour goes from `action-default` to `layout-background-hued`; the chain's wrapper `translate` + `scale`; opacities; all with `.motion`; see the note below |
+| Sign-in → any other destination, and under reduced motion | 200 ms ease-out (`--duration-signin-fade`) | the leaving sign-in page's opacity over the destination; **no `.motion`**: the one fade that reduced motion keeps (see the note below) |
+| `prefers-reduced-motion: reduce` | — | one rule: `transition: none; animation: none` on the transitioning elements; the pill just appears (U03 #40); the sign-in cross-fade is the one exception |
 
 **The `.motion` contract (T003, 2026-11-08)**: every element that carries a transition or an
 animation of the table above also carries the class `motion`, next to its utilities (for
@@ -382,6 +384,28 @@ browser without `overlay` transitions just removes it). These selectors (0,2,0) 
 `.motion` rule, so the block repeats `transition: none` under `prefers-reduced-motion: reduce`
 for itself; the shared rule is unchanged. Any other `kern-dialog` that adds the `motion` class
 (`RestoreDialog`, `TokenCreatedDialog` when T048/T087 rebuild them) gets the same fade.
+
+**The sign-in motion (bug `login-welcome-motion`, 2026-11-21; its record has the decisions P1–P8
+and the measurements)**: after a successful sign-in the sign-in page stays mounted over its
+destination (`SignInExitLayer`, a second `<Routes>` that holds its location) and leaves by one of
+two motions. The full motion (Figma "New visuals" note 3, Smart animate 800 ms ease-in-out) runs
+into the welcome card from a sign-in page that shows its chain (from 1021 px) and isn't scrolled:
+the card's clip layer is the surface, a window-sized blue that a `clip-path: inset(… round 12px)`
+shrinks onto the card while it takes the card's tint; the chain travels in it without turning
+(P1) and cross-fades into a copy of `chain-welcome-card` that lands on the card's own picture; the
+sign-in card, hero and header fade out (the card dropping 12 px), the welcome header and title
+fade in above the surface, then the card's content. Nothing slides sideways: the language switch
+fades out and in rather than moving its 60 px. Everywhere else the sign-in page cross-fades over
+the fully present destination in 200 ms. **Reduced motion keeps that 200 ms cross-fade**, by the
+design's note ("prefers-reduced-motion: replace with a 200 ms cross-fade") and the record's rule:
+an exception to FR-050 and F62 ("off", not "fades only"), so the leaving layer's fade carries no
+`.motion`, while every element of the full motion does and can never run under reduced motion
+(the kind is read with `matchMedia` at the start). The keyframes run from the start state to the
+resting style, the end state; the motion ends with the surface's (or the layer's) own
+`animationend`, or a timer 50 ms after its duration. Not the View Transitions API, as V5 below
+decided for the page change: nested view-transition groups (the chain clipped by the shrinking
+surface) were Chromium-only, the pseudo-elements can't take Tailwind classes, and the page would
+freeze while the list loads.
 
 **The page change (T037, V5 decided: a CSS animation, not the View Transitions API)**: `--animate-page-in` (`page-in`, opacity 0 → 1, `--duration-page` 150 ms ease-out) in `@theme` with its `@keyframes`; `main` carries `motion animate-page-in` and `key={pathname}`, so the animation starts again on every change of the path (React remounts `main`; the pages under it are new on a new path anyway) and not on a change of the query (the editor's `?local=` flow key, the edit link's parameters) or of the editor's step (component state, the same path: the window keeps its offset and the step's h1 takes the focus, T033). `WizardLayout` remembers the path it shows (`usePageFade`), so a layout that takes over on the same path (the loaded page after its skeleton, the editor after the restore screen) appears without a second fade. `App.tsx` scrolls the window to the top in a layout effect when the path changes, before the new page paints, with `behavior: 'instant'` (kern.css sets `scroll-behavior: smooth` on `html`; "nothing slides", U06 #94); the scroll is behaviour and stays under reduced motion, the fade goes (`.motion`; F62: turned off, not "fades only" as U06 #94 says). The opacity animation makes `main` a stacking context for 150 ms: the pills (z-30) are outside it, the menus (z-40) inside, so no order changes. **V5**: every browser the team uses has same-document View Transitions now (Chrome; Firefox 158 in the Playwright server: `document.startViewTransition` is a function, checked 2026-11-08), so support no longer decides it; the CSS animation stays because (1) the app uses React Router's declarative `BrowserRouter`, and its `viewTransition` option needs a data router, (2) a view transition snapshots the whole document, the pills included, and holds rendering while it captures, (3) reduced motion would need a second rule on `::view-transition-*` outside the one `.motion` rule. Checked with Playwright: overview → details, overview → `/account` and back (Chrome and Firefox): `main` opacity 0 → 1 over 150 ms (`page-in:150`), `scrollY` 146 → 0 in the first frame; under `reducedMotion: 'reduce'` no animation, the scroll the same.
 

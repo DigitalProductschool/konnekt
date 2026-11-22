@@ -15,4 +15,6 @@ export interface PageTitleProps {
   size?: PageTitleSize;
   /** The heading, so that a page can move the focus to it after its content changed */
   ref?: Ref<HTMLHeadingElement>;
+  /** Classes added to the title block: the sign-in motion's fade-in (bug login-welcome-motion) */
+  className?: string;
 }
