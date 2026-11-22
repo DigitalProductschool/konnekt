@@ -11,7 +11,7 @@ export const FORGOT_PASSWORD_COPY = defineTexts(
   {
     pageTitle: 'Passwort vergessen',
     title: 'Passwort vergessen?',
-    text: 'Bitten Sie Ihre Administratorin oder Ihren Administrator, es zurückzusetzen. Kommen Sie danach zurück und melden Sie sich an.',
+    text: 'Wenden Sie sich bitte an Ihre Administratoren, um das Passwort zurückzusetzen, und versuchen Sie es erneut.',
     backToLogin: 'Zurück zur Anmeldung',
   }
 );

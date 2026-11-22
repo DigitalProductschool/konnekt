@@ -237,7 +237,7 @@ describe('the rule editor in German', () => {
     const labels = dataSections(PID_DE, 'de').flatMap((section) =>
       section.choices.map((choice) => choice.label)
     );
-    expect(labels).toContain('Geburtsdatum (Alter)');
+    expect(labels).toContain('Alter (Geburtsdatum)');
   });
 
   it('words the date notes in German, the dates as dd.mm.yyyy', () => {
@@ -249,12 +249,12 @@ describe('the rule editor in German', () => {
         'de'
       )
     ).toEqual([
-      'Gezählt ab dem Tag, an dem die antragstellende Person ihre Daten teilt. Heute (25.10.2026) bedeutet das: geboren am oder vor dem 25.10.2005.',
-      'Wer an diesem Tag 21 wird, zählt mit.',
+      'Es zählt der Tag, an dem die antragstellende Person ihre Daten teilt. Heute (25.10.2026) bedeutet das: geboren am oder vor dem 25.10.2005.',
+      'Wer an diesem Tag 21 wird, erfüllt die Regel.',
       'Fehlt das Feld „Geburtsdatum“ oder kann es nicht gelesen werden, ist die Regel nicht erfüllt. Konnekt meldet dann „konnte nicht geprüft werden“.',
     ]);
     expect(hintsOf(resolvedDe('pid', 'place_of_birth'), null, TODAY, 'de')).toEqual([
-      'Das Feld „Geburtsort“ hat Bestandteile. Wählen Sie den zu prüfenden Bestandteil.',
+      'Das Feld „Geburtsort“ hat Bestandteile. Wählen Sie den zu prüfenden Bestandteil aus.',
     ]);
   });
 

@@ -19,7 +19,7 @@ export const RULE_ROW_COPY = defineTexts(
       `Not shown while this rule is in ${group}. Citizens see the group message instead.`,
   },
   {
-    messageLabel: 'Nachricht für Bürgerinnen und Bürger:',
+    messageLabel: 'Nachricht an die antragstellende Person:',
     identifier: 'Kennung',
     documentSeparator: '·',
     notShownInGroup: (group: string) =>
@@ -43,7 +43,8 @@ export const SMALL_TEXT =
  * of 560px or more (the caller's `@container`), the label keeps one line and the message wraps
  * beside it, its lines under its first word. In a narrower one, as at 320 px or 200 % zoom, the
  * message flows on under its label, as everywhere else. 560 rather than 480, so that the German
- * label ("Nachricht für Bürgerinnen und Bürger:", 243px at 14/600) leaves the message 200px or more
+ * label leaves the message room: sized for 200px beside the old label (243px at 14/600), it is
+ * about 184px beside "Nachricht an die antragstellende Person:" (259px at 14/600)
  */
 export const HANGING_MESSAGE = {
   line: '@min-[560px]:flex @min-[560px]:items-start',

@@ -444,14 +444,14 @@ export const RULES_STEP_COPY = defineTexts(
   },
   {
     title: 'Regeln zur Antragsberechtigung festlegen',
-    hint: 'Eine Regel ist eine Bedingung, die die Daten der antragstellenden Person erfüllen müssen. Konnekt prüft jede Regel und teilt Ihrem Dienst mit, ob sie erfüllt ist.',
+    hint: 'Eine Regel ist eine Bedingung, die die antragstellende Person erfüllen muss. Konnekt prüft jede Regel und teilt Ihrem Dienst mit, ob sie erfüllt ist.',
     loading: 'Die Dokumente und ihre Werte werden geladen …',
     loadErrorTitle: 'Die Dokumente und ihre Werte konnten nicht geladen werden',
     loadErrorText: 'Prüfen Sie Ihre Internetverbindung und versuchen Sie es erneut.',
     retry: 'Erneut versuchen',
     emptyTitle: 'Noch keine Regeln',
     emptyText:
-      'Auch ohne Regeln gibt Konnekt die geprüften Daten an Ihren Dienst weiter. Ihr Team entscheidet, wer einen Antrag stellen kann.',
+      'Legen Sie fest, welche Voraussetzungen eine antragstellende Person erfüllen muss. Wenn Sie keine Regeln festlegen, werden die angeforderten Daten trotzdem an Ihren Dienst weitergegeben.',
     addRule: 'Regel hinzufügen',
     menuLabel: (rule: string) => `Aktionen für ${rule}`,
     editRule: 'Regel bearbeiten',
@@ -482,8 +482,8 @@ export const RULES_STEP_COPY = defineTexts(
     show: 'Anzeigen',
     and: 'und',
     selectOneMore: (rule: string) =>
-      `Wählen Sie mindestens eine weitere Regel, um sie mit ${rule} zu gruppieren.`,
-    selectTwo: 'Wählen Sie zwei oder mehr Regeln zum Gruppieren.',
+      `Wählen Sie mindestens eine weitere Regel aus, um sie mit ${rule} zu gruppieren.`,
+    selectTwo: 'Wählen Sie zwei oder mehr Regeln zum Gruppieren aus.',
     selected: (count: number) => `${count} Regeln ausgewählt`,
     selectedSubGroup: (count: number, group: string) =>
       `${count} Regeln ausgewählt. Sie werden zu einer Untergruppe von ${group}.`,
@@ -533,7 +533,8 @@ export const RULES_STEP_COPY = defineTexts(
     restoreGroup: 'Gruppe wiederherstellen',
     restoreSubGroup: 'Untergruppe wiederherstellen',
     linkedTo: (main: string) => `Mit ${main} verknüpft`,
-    linkedText: (main: string) => `Unveränderte Regeln übernehmen alle Änderungen aus ${main}.`,
+    linkedText: (main: string) =>
+      `Regeln, die Sie hier nicht ändern, werden automatisch mit „${main}“ aktualisiert.`,
     removedRules: (removed: number, total: number, main: string) =>
       `${removed} von ${total} ${total === 1 ? 'Regel' : 'Regeln'} aus ${main} ${removed === 1 ? 'ist' : 'sind'} hier entfernt.`,
     removedGroups: (groups: string, count: number) =>
@@ -542,10 +543,10 @@ export const RULES_STEP_COPY = defineTexts(
     addVariant: 'Variante hinzufügen',
     aboutVariants: 'Informationen zu Varianten',
     variantsInfo:
-      'Eigene Regeln für Bürgerinnen und Bürger mit anderen Voraussetzungen. Jede Variante erhält einen eigenen Ergebnislink.',
+      'Mit Varianten prüfen Sie unterschiedliche Voraussetzungen innerhalb eines Dienstes, z. B. eine niedrigere Altersgrenze für den Krankentransport. Jede Variante hat eigene Regeln und einen eigenen Ergebnislink.',
     addVariantTitle: 'Variante hinzufügen',
     addVariantIntro:
-      'Eigene Regeln für Bürgerinnen und Bürger mit anderen Voraussetzungen. Jede Variante erhält einen eigenen Ergebnislink.',
+      'Mit Varianten prüfen Sie unterschiedliche Voraussetzungen innerhalb eines Dienstes, z. B. eine niedrigere Altersgrenze für den Krankentransport. Jede Variante hat eigene Regeln und einen eigenen Ergebnislink.',
     editVariantTitle: 'Variante bearbeiten',
     variantName: 'Name der Variante',
     description: 'Beschreibung',
@@ -553,10 +554,10 @@ export const RULES_STEP_COPY = defineTexts(
     startWith: 'Beginnen mit',
     basedOn: (main: string) => `Mit ${main} verknüpft (empfohlen)`,
     basedOnHelp: (main: string) =>
-      `Übernimmt alle Regeln aus ${main}. Unveränderte Regeln bleiben wie in ${main} und werden mit ${main} aktualisiert.`,
-    startEmpty: 'Leer beginnen',
+      `Startet mit allen Regeln aus „${main}“. Regeln, die Sie hier nicht ändern, werden automatisch mit „${main}“ aktualisiert.`,
+    startEmpty: 'Leer',
     startEmptyHelp: (main: string) =>
-      `Beginnt ohne Regeln. Änderungen an ${main} wirken sich nicht darauf aus.`,
+      `Beginnt ohne Regeln. Änderungen an „${main}“ wirken sich nicht auf diese Variante aus.`,
     saveVariant: 'Änderungen speichern',
     copyTitle: (rule: string) => `${rule} in Varianten kopieren`,
     copyHint: (main: string) => `Mit ${main} verknüpfte Varianten erhalten sie auch.`,

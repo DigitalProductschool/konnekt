@@ -131,7 +131,7 @@ describe('personaFieldsOf', () => {
     const english = personaFieldsOf(EXAMPLE, CONTEXT);
     const german = personaFieldsOf(EXAMPLE, CONTEXT_DE);
     expect(german.map((field) => [field.documentLabel, field.label])).toEqual([
-      ['Personalausweis', 'Geburtsdatum (Alter)'],
+      ['Personalausweis', 'Alter (Geburtsdatum)'],
       ['Personalausweis', 'Ort'],
       ['Führerschein', 'Führerscheinklassen'],
       ['Führerschein', 'Führerscheinklasse B – Ausstellungsdatum'],

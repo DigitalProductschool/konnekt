@@ -324,7 +324,7 @@ describe('deleteDialogCopyOf (FR-029c)', () => {
       )
     ).toEqual({
       title: 'Delete “Hunting licence”?',
-      text: 'Hunting licence will be deleted for good. It was never live, so nothing changes for serviceBW.',
+      text: 'Hunting licence will be deleted for good. It was never live, so nothing changes for your service.',
     });
   });
 
@@ -372,7 +372,7 @@ describe('deleteDialogCopyOf (FR-029c)', () => {
       )
     ).toEqual({
       title: '„Hunting licence“ löschen?',
-      text: 'Hunting licence wird endgültig gelöscht. Die Anbindung war nie aktiv, daher ändert sich für serviceBW nichts.',
+      text: 'Hunting licence wird endgültig gelöscht. Die Anbindung war nie aktiv, daher ändert sich für Ihren Dienst nichts.',
     });
     expect(deleteDialogCopyOf(summary({ name: 'Fishing licence' }), 'de').text).toBe(
       'Diese Anbindung ist aktiv. Bürgerinnen und Bürger können sie dann nicht mehr nutzen, und ihre Links funktionieren nicht mehr.'

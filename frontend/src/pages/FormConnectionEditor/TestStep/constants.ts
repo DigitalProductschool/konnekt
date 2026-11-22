@@ -67,13 +67,13 @@ export const TEST_STEP_COPY = defineTexts(
   {
     title: 'Regeln mit Daten von Beispielpersonen testen',
     intro:
-      'Wählen Sie eine Beispielperson, um zu prüfen, ob Ihre Regeln wie beabsichtigt funktionieren. Sie sehen, welche Regeln die Person erfüllt und welche Nachricht sie sehen würde. Die Daten sind erfunden.',
+      'Wählen Sie eine Beispielperson aus, um zu prüfen, ob Ihre Regeln wie beabsichtigt funktionieren. Sie sehen, welche Regeln die Person erfüllt und welche Nachricht sie sehen würde. Die Daten sind erfunden.',
     applicants: 'Beispielpersonen',
-    generateAll: 'Alle neu erstellen',
+    generateAll: 'Für alle neue Daten erstellen',
     editData: 'Daten bearbeiten',
-    generateAgain: 'Neu erstellen',
+    generateAgain: 'Neue Daten erstellen',
     dateOfBirth: 'Geburtsdatum',
-    notShared: 'Nicht geteilt',
+    notShared: 'Nicht abgerufen',
     edited: '· bearbeitet',
     editDataIntro:
       'Ändern Sie die Werte, um einen bestimmten Fall zu testen. Die Ergebnisse werden beim Speichern aktualisiert.',

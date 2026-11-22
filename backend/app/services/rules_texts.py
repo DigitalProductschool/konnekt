@@ -208,7 +208,7 @@ def choose_data(rule: str, branch: Label) -> Text:
     en, de = _forms(branch)
     return Text(
         en=f'{rule} in {en}: choose the data to check.',
-        de=f'{rule} in {de}: Wählen Sie die zu prüfenden Daten.',
+        de=f'{rule} in {de}: Wählen Sie die zu prüfenden Daten aus.',
     )
 
 
@@ -281,20 +281,20 @@ def too_few_members(group: str, branch: Label) -> Text:
 
 
 CONDITION_PROBLEMS: dict[str, Text] = {
-    'choose_check': Text(en='choose a check.', de='Wählen Sie eine Prüfung.'),
+    'choose_check': Text(en='choose a check.', de='Wählen Sie eine Prüfung aus.'),
     'enter_number': Text(en='enter a number.', de='Geben Sie eine Zahl ein.'),
     'enter_text': Text(
         en='enter a text to compare with.',
         de='Geben Sie einen Text zum Vergleichen ein.',
     ),
     'choose_value': Text(
-        en='choose at least one value.', de='Wählen Sie mindestens einen Wert.'
+        en='choose at least one value.', de='Wählen Sie mindestens einen Wert aus.'
     ),
     'values_from_list': Text(
         en='choose values from the list.', de='Wählen Sie Werte aus der Liste.'
     ),
     'value_once': Text(
-        en='choose each value only once.', de='Wählen Sie jeden Wert nur einmal.'
+        en='choose each value only once.', de='Wählen Sie jeden Wert nur einmal aus.'
     ),
     'enter_date': Text(en='enter a date.', de='Geben Sie ein Datum ein.'),
     'years_at_least_1': Text(
@@ -302,7 +302,7 @@ CONDITION_PROBLEMS: dict[str, Text] = {
         de='Geben Sie mindestens 1 Jahr ein.',
     ),
     'choose_unit': Text(
-        en='choose years or months.', de='Wählen Sie Jahre oder Monate.'
+        en='choose years or months.', de='Wählen Sie Jahre oder Monate aus.'
     ),
 }
 """The condition problems without a parameter, by their key in `rules/src/`."""

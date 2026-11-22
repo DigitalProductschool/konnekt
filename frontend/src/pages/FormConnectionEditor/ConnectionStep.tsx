@@ -77,13 +77,7 @@ export default function ConnectionStep({
             labelAddon={
               <InfoTooltip
                 label={copy.nameInfoLabel}
-                text={
-                  <>
-                    {copy.nameInfo}
-                    <br />
-                    {copy.nameInfoAdvice}
-                  </>
-                }
+                text={<span className="whitespace-pre-line">{copy.nameInfoLines.join('\n')}</span>}
                 iconSize="small"
               />
             }

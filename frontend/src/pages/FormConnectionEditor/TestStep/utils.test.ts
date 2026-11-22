@@ -192,8 +192,8 @@ describe('valueTextOf', () => {
   });
 
   it('writes an empty value and an expiry date in German, a date as dd.mm.yyyy (spec 009)', () => {
-    expect(valueTextOf(birth, null, OPTION_SETS, 'de')).toBe('Nicht geteilt');
-    expect(valueTextOf(classes, [], OPTION_SETS, 'de')).toBe('Nicht geteilt');
+    expect(valueTextOf(birth, null, OPTION_SETS, 'de')).toBe('Nicht abgerufen');
+    expect(valueTextOf(classes, [], OPTION_SETS, 'de')).toBe('Nicht abgerufen');
     expect(valueTextOf(expiry, '2040-08-19', OPTION_SETS, 'de')).toBe('Gültig bis 19.08.2040');
     expect(valueTextOf(birth, '2007-07-08', OPTION_SETS, 'de')).toBe('08.07.2007');
     expect(valueTextOf(classes, ['BE', 'B'], OPTION_SETS, 'de')).toBe('B, BE');
@@ -289,7 +289,7 @@ describe('dataRowTextOf (spec 008 FR-024, CLAR #46; U65 7057:58772, 7057:59186)'
         },
         'de'
       )
-    ).toEqual(['14.03.1992', 'AM', 'B, BE seit 02.05.2010', 'Nicht geteilt']);
+    ).toEqual(['14.03.1992', 'AM', 'B, BE seit 02.05.2010', 'Nicht abgerufen']);
   });
 
   const persona = (values: Persona['values']): Persona => ({
@@ -319,7 +319,7 @@ describe('dataRowTextOf (spec 008 FR-024, CLAR #46; U65 7057:58772, 7057:59186)'
 
   it('labels the date of birth in German, any other row by its (German) label (spec 009)', () => {
     const rows = dataRowsOf(persona({}), [
-      { ...birth, label: 'Geburtsdatum (Alter)' },
+      { ...birth, label: 'Alter (Geburtsdatum)' },
       { ...expiry, label: 'Ablaufdatum' },
     ]);
     expect(rows.map((row) => dataRowLabelOf(row, 'de'))).toEqual(['Geburtsdatum', 'Ablaufdatum']);
@@ -386,7 +386,7 @@ describe('resultStatementOf in German (spec 009, FR-006)', () => {
   });
 
   it('keeps a rule’s statement as composed', () => {
-    const statement = 'Personalausweis · Geburtsdatum (Alter) ist mindestens 21 Jahre alt';
+    const statement = 'Personalausweis · Alter (Geburtsdatum) ist mindestens 21 Jahre alt';
     expect(resultStatementOf({ type: 'rule', statement }, 'de')).toBe(statement);
   });
 });

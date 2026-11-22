@@ -1701,7 +1701,7 @@
           },
           {
             "key": "weight",
-            "label": "Gewicht (kg)",
+            "label": "Körpergewicht (kg)",
             "kind": "number",
             "option_set": null,
             "date_of_birth": false,
@@ -1751,7 +1751,7 @@
           },
           {
             "key": "portrait_capture_date",
-            "label": "Aufnahmedatum des Lichtbilds",
+            "label": "Aufnahmedatum des Lichtbildes",
             "kind": "date",
             "option_set": null,
             "date_of_birth": false,
@@ -1831,7 +1831,7 @@
           },
           {
             "key": "resident_country",
-            "label": "Land des Wohnorts",
+            "label": "Wohnsitzland",
             "kind": "enum",
             "option_set": "countries",
             "date_of_birth": false,
@@ -1861,7 +1861,7 @@
           },
           {
             "key": "signature_usual_mark",
-            "label": "Unterschrift oder übliches Zeichen",
+            "label": "Unterschrift",
             "kind": "image",
             "option_set": null,
             "date_of_birth": false,

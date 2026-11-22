@@ -203,7 +203,7 @@ const MDL_ROW: DocumentRow = {
     row('administrative_number', 'Administrative number', 'Verwaltungsnummer', 'text', 'licence'),
     row('sex', 'Sex', 'Geschlecht', 'enum', 'birth', { option_set: 'sex' }),
     row('height', 'Height (cm)', 'Körpergröße (cm)', 'number', 'appearance'),
-    row('weight', 'Weight (kg)', 'Gewicht (kg)', 'number', 'appearance'),
+    row('weight', 'Weight (kg)', 'Körpergewicht (kg)', 'number', 'appearance'),
     row('eye_colour', 'Eye colour', 'Augenfarbe', 'enum', 'appearance', {
       option_set: 'eye_colours',
     }),
@@ -215,7 +215,7 @@ const MDL_ROW: DocumentRow = {
     row(
       'portrait_capture_date',
       'Portrait capture date',
-      'Aufnahmedatum des Lichtbilds',
+      'Aufnahmedatum des Lichtbildes',
       'date',
       'appearance'
     ),
@@ -240,7 +240,7 @@ const MDL_ROW: DocumentRow = {
       'text',
       'address'
     ),
-    row('resident_country', 'Resident country', 'Land des Wohnorts', 'enum', 'address', {
+    row('resident_country', 'Resident country', 'Wohnsitzland', 'enum', 'address', {
       option_set: 'countries',
     }),
     row(
@@ -257,13 +257,7 @@ const MDL_ROW: DocumentRow = {
       'text',
       'name'
     ),
-    row(
-      'signature_usual_mark',
-      'Signature or usual mark',
-      'Unterschrift oder übliches Zeichen',
-      'image',
-      'other'
-    ),
+    row('signature_usual_mark', 'Signature or usual mark', 'Unterschrift', 'image', 'other'),
   ],
 };
 

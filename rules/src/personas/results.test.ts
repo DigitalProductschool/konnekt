@@ -522,7 +522,7 @@ describe('resultViewOf in German (spec 009)', () => {
     const { view } = viewOf([AGE, CITY, CLASS_B, HELD_B], failing, 'and', CONTEXT_DE);
     expect(view.heading).toBe('Ergebnis: erfüllt 2 Regeln nicht');
     expect(view.rows[0].statement).toBe(
-      'Personalausweis · Geburtsdatum (Alter) ist mindestens 21 Jahre alt'
+      'Personalausweis · Alter (Geburtsdatum) ist mindestens 21 Jahre alt'
     );
     expect(view.rows[0].parts).toEqual(statementPartsOf(AGE, CONTEXT_DE));
   });

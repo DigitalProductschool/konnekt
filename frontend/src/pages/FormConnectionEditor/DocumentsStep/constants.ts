@@ -110,7 +110,7 @@ export const DOCUMENTS_COPY = defineTexts(
     findDocument: 'Dokument suchen',
     addedTag: 'Hinzugefügt',
     emptyTitle: 'Noch keine Dokumente',
-    emptyText: 'Hinzugefügte Dokumente erscheinen hier, mit den Daten, die Sie auswählen können.',
+    emptyText: 'Sobald Sie ein Dokument hinzufügen, erscheinen hier die verfügbaren Felder.',
     allDataItems: 'Alle Felder',
     previousDocument: 'Vorheriges Dokument',
     nextDocument: 'Nächstes Dokument',

@@ -208,11 +208,11 @@ export const CONNECTION_DETAIL_COPY = defineTexts(
     requestLink: 'Anfragelink',
     requestLinkInfoLabel: 'Informationen zum Anfragelink',
     requestLinkInfo:
-      'Ihr Dienst erzeugt mit diesem Link einen QR-Code, mit dem Bürgerinnen und Bürger ihre Daten über die EUDI-Wallet teilen. Es gibt einen Link für alle Varianten.',
+      'Ihr Dienst zeigt mit diesem Link einen QR-Code, mit dem Bürgerinnen und Bürger ihre Daten über das EUDI-Wallet teilen können. Es gibt einen Anfragelink für alle Varianten.',
     resultLink: 'Ergebnislink',
     resultLinkInfoLabel: 'Informationen zum Ergebnislink',
     resultLinkInfo:
-      'Über diesen Link erhält Ihr Dienst die geteilten Daten der antragstellenden Person. Jede Variante hat einen eigenen.',
+      'Über diesen Link ruft Ihr Dienst das Ergebnis ab: die geteilten Daten und ob die Regeln erfüllt sind. Jede Variante hat einen eigenen Ergebnislink.',
     summaryTitle: 'Zusammenfassung',
     summaryCounts: (documents: number, dataItems: number, rulesCounts: string) =>
       `${documents}\u00a0${documents === 1 ? 'Dokument' : 'Dokumente'} · ${dataItems}\u00a0${dataItems === 1 ? 'Feld' : 'Felder'} · ${rulesCounts}`,

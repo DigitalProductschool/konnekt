@@ -627,7 +627,7 @@ def test_the_option_sets_have_german_labels_and_the_same_values(
 @pytest.mark.parametrize(
     ('headers', 'message'),
     [
-        (GERMAN, 'Rule 01 in Standard: Wählen Sie die zu prüfenden Daten.'),
+        (GERMAN, 'Rule 01 in Standard: Wählen Sie die zu prüfenden Daten aus.'),
         ({}, 'Rule 01 in Standard: choose the data to check.'),
     ],
 )

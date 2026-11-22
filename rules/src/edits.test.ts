@@ -920,7 +920,7 @@ describe('the documents’ order (spec 010, R6; FR-045)', () => {
       expect(german.documentNotRequested('photo_id')).toBe(
         'Die Anbindung fordert „photo_id“ nicht an.'
       );
-      expect(german.positionOutside(3)).toBe('Wählen Sie eine Position von 1 bis 3.');
+      expect(german.positionOutside(3)).toBe('Wählen Sie eine Position von 1 bis 3 aus.');
       expect(german.alreadyInPosition('pid', 1)).toBe('„pid“ ist bereits auf Position 1.');
     });
   });

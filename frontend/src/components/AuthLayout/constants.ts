@@ -7,8 +7,8 @@ export const AUTH_INTRO_COPY = defineTexts(
     lead: 'Receive verified citizen data with ease',
   },
   {
-    headline: 'Mit der EUDI-Wallet verbinden',
-    lead: 'Geprüfte Daten von Bürgerinnen und Bürgern einfach empfangen',
+    headline: 'Mit dem EUDI-Wallet verbinden',
+    lead: 'Verifizierte Daten von Bürgerinnen und Bürgern einfach empfangen',
   }
 );
 

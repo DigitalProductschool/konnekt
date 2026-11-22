@@ -907,7 +907,7 @@ describe('ruleProblemOf and ruleProblem (spec 009, R4, R10)', () => {
       ageRule({ target: null }),
       'chooseData',
       'Rule 01 in Standard: choose the data to check.',
-      'Rule 01 in Standard: Wählen Sie die zu prüfenden Daten.',
+      'Rule 01 in Standard: Wählen Sie die zu prüfenden Daten aus.',
     ],
     [
       'an image',
@@ -928,7 +928,7 @@ describe('ruleProblemOf and ruleProblem (spec 009, R4, R10)', () => {
       ageRule({ condition: null }),
       'choose_check',
       'Rule 01 in Standard: choose a check.',
-      'Rule 01 in Standard: Wählen Sie eine Prüfung.',
+      'Rule 01 in Standard: Wählen Sie eine Prüfung aus.',
     ],
     [
       '0 months',
@@ -1073,7 +1073,7 @@ describe('firstProblem in German (spec 009, R4)', () => {
     [
       'a rule without data in a variant',
       [mainBranch(), ambulance([group(1, [US1_RULES[0], { ...US1_RULES[1], target: null }])])],
-      'Rule 02 in Ambulance: Wählen Sie die zu prüfenden Daten.',
+      'Rule 02 in Ambulance: Wählen Sie die zu prüfenden Daten aus.',
     ],
     [
       'a group with one rule',
@@ -1569,7 +1569,7 @@ describe('publishProblems (spec 011, R10)', () => {
       },
     ]);
     expect(publishProblems(branches, GERMAN).map(({ message }) => message)).toEqual([
-      'Rule 02 in Standard: Wählen Sie die zu prüfenden Daten.',
+      'Rule 02 in Standard: Wählen Sie die zu prüfenden Daten aus.',
       'Rule 03 in Ambulance hat keine Fehlermeldung.',
     ]);
   });

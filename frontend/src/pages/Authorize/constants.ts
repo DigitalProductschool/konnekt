@@ -40,7 +40,7 @@ export const CONSENT_COPY = defineTexts(
     fallbackTitle: 'Zugriff erlauben',
     title: (clientName: string) => `Zugriff für ${clientName} erlauben?`,
     intro: (clientName: string) =>
-      `${clientName} möchte in Konnekt in Ihrem Namen handeln. Wählen Sie, was der Agent tun darf.`,
+      `${clientName} möchte in Konnekt in Ihrem Namen handeln. Wählen Sie aus, was der Agent tun darf.`,
     levelLegend: 'Zugriffsstufe',
     stepUp: (clientName: string) => `${clientName} bittet um mehr Zugriff als bisher.`,
     allow: 'Erlauben',

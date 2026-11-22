@@ -2289,11 +2289,11 @@ describe('in German (spec 009, T037; glossary G§2, G§3)', () => {
   it('says what is chosen and what grouping makes', () => {
     const branch = stateWith([group(1, FLAT)]).branches[0];
     expect(selectionText({ branchKey: BRANCH, parentId: null, ids: [] }, branch, 'de')).toBe(
-      'Wählen Sie zwei oder mehr Regeln zum Gruppieren.'
+      'Wählen Sie zwei oder mehr Regeln zum Gruppieren aus.'
     );
     expect(
       selectionText({ branchKey: BRANCH, parentId: 'group-1', ids: ['rule-2'] }, branch, 'de')
-    ).toBe('Wählen Sie mindestens eine weitere Regel, um sie mit Rule 02 zu gruppieren.');
+    ).toBe('Wählen Sie mindestens eine weitere Regel aus, um sie mit Rule 02 zu gruppieren.');
     expect(
       selectionText(
         { branchKey: BRANCH, parentId: 'group-1', ids: ['rule-2', 'rule-1'] },
@@ -2401,10 +2401,10 @@ describe('in German (spec 009, T037; glossary G§2, G§3)', () => {
       text(
         stateWith(items),
         'rule-1',
-        'Personalausweis · Geburtsdatum (Alter) ist mindestens 21 Jahre alt'
+        'Personalausweis · Alter (Geburtsdatum) ist mindestens 21 Jahre alt'
       )
     ).toBe(
-      'Bürgerinnen und Bürger werden nicht mehr auf „Personalausweis · Geburtsdatum (Alter) ist mindestens 21 Jahre alt“ geprüft. Sie können das direkt danach rückgängig machen.'
+      'Bürgerinnen und Bürger werden nicht mehr auf „Personalausweis · Alter (Geburtsdatum) ist mindestens 21 Jahre alt“ geprüft. Sie können das direkt danach rückgängig machen.'
     );
     expect(text(stateWith(items), 'group-1')).toBe(
       'Group 01 und die Regeln darin werden gelöscht. Sie können das direkt danach rückgängig machen.'

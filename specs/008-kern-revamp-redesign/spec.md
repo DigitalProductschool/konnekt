@@ -1354,9 +1354,11 @@ draft (design-notes, V5 `7599:55726`; the bug's `fix.md`).
   - Behaviour and wording: the head is a column of two 24 px lines without a gap in the 48 px
     row: the heading (`h2`, title/small 16/24 600, unchanged, still the name of the card's
     scroll area) and under it the date in body/small 14/24 muted: "Tested as if shared today,
-    19.11.2026" / "Getestet, als würden die Daten heute geteilt: 19.11.2026", without a final
-    full stop in either language; the date stays dd.mm.yyyy, today in Germany (FR-024). The head
-    grows past 48 when either line wraps (German, a narrow card, 200 % zoom). The date shows
+    19.11.2026", without a final full stop / "Sie testen Ihre Regeln anhand von Beispieldaten. Als
+    Referenzdatum wird das heutige Datum verwendet (19.11.2026).", two sentences with their full
+    stops (2026-11-22, the user tests, spec 009 design-notes §3.2); the date stays dd.mm.yyyy,
+    today in Germany (FR-024). The head grows past 48 when either line wraps (German, a narrow
+    card, 200 % zoom). The date shows
     whenever the card has a result view, with the no-rules note too (Open Question 5, default:
     004-S8.6.8's note stays under the new head; the archived frames 11–13's "a variant always has
     rules" isn't adopted, since a variant can still be empty). It doesn't show on a skeleton
@@ -1417,13 +1419,15 @@ draft (design-notes, V5 `7599:55726`; the bug's `fix.md`).
     Anna meets" `7599:55953` is hidden); "Long rules" `7644:65780` (a long message hanging
     beside its label); the component "Rules/Error message" ("Shown under every saved rule").
   - Behaviour and wording: every row ends with the rules step's `RuleMessage` line, "Message for
-    citizens:" (DE "Nachricht für Bürgerinnen und Bürger:") in label/small muted, 8, then the
+    citizens:" (DE "Nachricht an die antragstellende Person:") in label/small muted, 8, then the
     item's current stored message in body/small, so an edited message shows at once. In a result
     card whose container is 560 px wide or more, the message hangs beside its label, its lines
     under its first word ("Long rules"); in a narrower one (320 px, 200 % zoom) it flows on under
-    the label. 560 rather than the assessment's 480, so that the German label (243 px measured)
-    leaves the message 200 px or more. A rule member under a reported group that has its own
-    message shows, in place of its message, the rules step's sentence "Not shown while this rule
+    the label. 560 rather than the assessment's 480, so that the German label leaves the message
+    room: 200 px beside the label it was sized for (243 px measured), about 184 px beside
+    "Nachricht an die antragstellende Person:" (259 px, measured from the font; 2026-11-22, the
+    user tests). A rule member under a reported group that has its own message shows, in place
+    of its message, the rules step's sentence "Not shown while this rule
     is in <group>. Citizens see the group message instead." (Open Question 4, default; F32,
     FR-037; the copy moved from `RULES_STEP_COPY` to `RULE_ROW_COPY`). A group without a
     message, and a sub-group inside a group with one, show no message line. There is no message
