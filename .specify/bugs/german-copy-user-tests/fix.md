@@ -142,3 +142,30 @@ within 100 columns:
 - `npm install`'s `prepare` couldn't run `pre-commit install` (git can't find the repository
   through the worktree's `.git`). The shared hooks directory already has the hook from an
   earlier install, so a commit made with the `GIT_DIR` / `GIT_WORK_TREE` pair still runs it.
+
+## Amendment after the test (2026-11-22)
+
+The fix was committed as `49a3cde`. The test step (`test.md`, R1) then found one regression. The
+longer "Neue Daten erstellen" squeezed the Test step's heading "Daten von <Name>" to 26 px at
+1024 px and up, where it broke mid-word over six lines. The wording stays; the layout changes.
+This change is not committed yet.
+
+| File | Change | Notes |
+|---|---|---|
+| `frontend/src/pages/FormConnectionEditor/TestStep/PersonaHead.tsx` | modified | The heading is `flex-auto` (it keeps the width of its words) instead of `flex-1` (basis 0), and both buttons sit in one wrapping group. Where they don't fit beside the heading, they move together to the line under it, at its start, as "Generate all again" does in the chips row |
+| `specs/008-kern-revamp-redesign/spec.md` | modified | The 48 px data-card head may now grow when its buttons wrap (the result head already could) |
+
+Measured in the running app (`PersonaHead`'s row, DE and EN):
+
+| Width | German | English |
+|---|---|---|
+| 1455, 1024 | heading 376 px on one line; both buttons on the line below (head 72 px) | one 48 px line, as before |
+| 641 | one line, as before | one line, as before |
+| 320 | heading 205 px on one line (it was "Date / n von" before, at `main` too); buttons below | heading on one line; buttons below |
+| 160 | heading on two lines, split at the space; buttons break mid-word, like all text in the narrow block | the same |
+
+No horizontal overflow at any width. "Daten bearbeiten" still opens its dialog and gets the focus
+back; "Neue Daten erstellen" still makes new values. Checks, all passing: `npm run lint`,
+`npm run format:check`, `npm test` (rules 2678, frontend 2041, mcp 513) and `npm run build`.
+No backend change. Not changed: test.md's N1 (the "about 184px" in `RuleRow/constants.ts` and
+spec 008).

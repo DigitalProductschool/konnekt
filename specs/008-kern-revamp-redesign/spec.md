@@ -1287,7 +1287,9 @@ supersedes. The code was changed the same day.
     `7599:57593`, the result card `7599:57632` with its scroll area `7599:57635`.
   - Behaviour: where the wizard pins its step header (`wizard-pinned:`, ≥ 768 × 640) and the
     cards sit side by side (`lg`, ≥ 1024), each card is as high as the panel; its head (the 48 px
-    row with "Mia's data", "Edit data" and "Generate again"; the result heading) stays put, and
+    row with "Mia's data", "Edit data" and "Generate again", whose two buttons move together under
+    the heading where they don't fit beside it, as in German, and the head grows past 48: bug
+    german-copy-user-tests, 2026-11-22; the result heading) stays put, and
     only its rows scroll, each card on its own. Each scroll area is a region named by its card's
     heading and takes the keyboard focus, because nothing in the rows is focusable (WCAG 2.1.1),
     with the keyboard-only focus ring: two new tab stops on the step. The browser's own
