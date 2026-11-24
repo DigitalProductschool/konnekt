@@ -505,16 +505,18 @@ statement ready to post.
   FR-008, FR-009, FR-010; files: `pr.md`; gates: none.
 - [ ] T034 [US5] [medium] `specs/012-open-source-release/handover.md` for the mentor, in FR-043's
   order, each line with what "done" looks like, from research R11's table as amended by the
-  spec's Clarifications: first the two decisions that wait for the mentor (into which
-  repository the rewritten history is published, with what stays reachable in the existing one
-  and who needs which access: research R11, "The history rewrite", and `history-rewrite.md`;
-  the repository's final name);
+  spec's Clarifications: first what the route decided on 2026-11-24 needs from the mentor
+  (the new repository `DigitalProductschool/konnekt`, created empty and private, with push
+  access for the user; why the existing one stays private, what stays reachable in it and who
+  needs which access: research R11, "The history rewrite", and `history-rewrite.md`), and the
+  one open question (whether the consent statements must be visible in the public repository);
   then the 18 merged branches to delete, by name (research R5, "Branches"), and `opensource`
-  after the merge; detaching infrastructure, connectors and the review bot; renaming the
-  repository; the protection rules for `main`; closing issues and pull requests as the banner
-  says; a tag on the published commit; the hosted instance (research R11, item 10). Not in it:
-  archiving, `tmp-german`, the pull requests' texts and logs, Coolify's previews (decided or
-  handled outside, spec Clarifications). Items: FR-043, SC-010; files: `handover.md`; gates:
+  after the merge; detaching infrastructure, connectors and the review bot from the existing
+  repository and archiving it; the new repository's protection rules for `main`; closing
+  issues and pull requests there as the banner says; a tag on the published commit; the hosted
+  instance (research R11, item 10). Not in it: `tmp-german`, the pull requests' texts and
+  logs, which stay private, Coolify's previews (decided or handled outside, spec
+  Clarifications). Items: FR-043, SC-010; files: `handover.md`; gates:
   none.
 
 ### Delegation
@@ -569,7 +571,7 @@ failure goes back to the task that owns the file. Everything is appended to `ver
 - T035 [high]; batch (T036, T037) [medium] in parallel with it; then T038 [high]; then T039
   [medium].
 - **Needs a person**, in order: the commits (below); the consent statements on `LICENSE`, counted
-  against research R8 before the merge (SC-003); the mentor's two decisions; the manual checks
+  against research R8 before the merge (SC-003); the mentor's new repository; the manual checks
   of phase 6; in a browser that holds a local draft from before the rename, the draft is still
   offered (spec, US3, scenario 2); the Account page's "Installing the plugin" link (scenario 3);
   last, the history rewrite of phase 9.
@@ -589,7 +591,9 @@ repository or the one on GitHub.
   (checked 2026-11-21): `27f50dd49ece474eb385266a7f60dcaf507d4d9d` (`login-art@2x.png`),
   `04ddbc085f557cb8139edd25b16946090bcf230d` (`wallet-star@2x.png`),
   `c04e0e40a340dc714f86585586ac4e033c83b921` (`published-art@2x.png`),
-  `d932b5ab1c2a697195d8316766595d1f9a237bcc` (`published-art-grey@2x.png`). Check them again
+  `d932b5ab1c2a697195d8316766595d1f9a237bcc` (`published-art-grey@2x.png`); on 2026-11-24, with
+  the new visuals in `main`, they were still the only versions, deleted from the tree by
+  `320728d`, and the eight new pictures are `.webp` files under other names. Check them again
   (`git log --all --format= --raw --no-abbrev -- 'frontend/src/assets/illustrations/*.png'`),
   then look at every other picture of the history (`git rev-list --all --objects`, the paths
   ending in an image extension: nine screenshots under `.specify/bugs/`, two test images, the
@@ -601,19 +605,19 @@ repository or the one on GitHub.
   name.
   **The runbook** is for a person who has not read this spec, every command written out, in
   this order: what must be true before (everything merged into `main`, the consent statements
-  counted, the new visuals and T014 in `main`, nobody holding unpushed work, the target repository named by the
-  mentor); the fresh clone; the tree's hash and the commit count noted; the rewrite; the checks
+  counted, the new visuals and T014 in `main`, nobody holding unpushed work, the new repository
+  `DigitalProductschool/konnekt` created by the mentor, empty and private, with push access); the fresh clone; the tree's hash and the commit count noted; the rewrite; the checks
   (`git cat-file -e <id>` fails for every ID, and `git rev-list --all --objects` names none of
   them; `git rev-parse 'HEAD^{tree}'` and `git rev-list --count HEAD` equal the noted values;
   `sha256sum LICENSE` equals rule 1; gitleaks over the result); the push of `main` into the
   new, empty, still private repository and the look at it on GitHub; the tag; then what every
   holder of an old clone does (delete it and clone anew; a branch pushed from an old clone
   brings the files back) with the one command that tells whether a clone still holds them.
-  After it, the fallback for the case that the mentor keeps the existing repository: the forced
-  push there, the access it needs, and what still shows the files afterwards (the pull request
-  that merged `48fb277`, by its number from the merge commit, and the old hashes).
-  **What it must say plainly**: every commit gets a new hash and loses its signature (292 of
-  293 are signed); the hashes that the specs and bug records cite are those of the history
+  Nothing rewritten is pushed to the existing repository (decided 2026-11-24): the runbook says
+  in one paragraph why it stays private, naming what would still show the files there (the
+  pull request that merged `48fb277`, by its number from the merge commit, and the old hashes).
+  **What it must say plainly**: every commit gets a new hash and loses its signature (count
+  the signed ones again; 300 of the 301 on `main` on 2026-11-24); the hashes that the specs and bug records cite are those of the history
   before the rewrite (count the cited strings that resolve to a commit and give the number;
   add one sentence saying so to `specs/README.md`); done after publication, the rewrite no
   longer removes anything from GitHub or from anyone's copy.
@@ -645,8 +649,8 @@ repository or the one on GitHub.
 2. Phase 2, the rename, as one commit.
 3. Phases 3 to 6, one commit per package, in any order.
 4. Phases 7 and 8.
-5. The new visuals (the bug record `new-visuals`) are a pull request of their own, outside
-   this spec, merged before the rewrite; it may be merged before all others.
+5. The new visuals (the bug records `new-visuals` and `login-welcome-motion`) were pull
+   requests of their own, outside this spec, and are in `main` since 2026-11-24.
 6. Last, after the merge and before anything is public: the history rewrite by
    `history-rewrite.md` (phase 9). It is not a commit; it gives every commit a new hash.
 
@@ -716,9 +720,14 @@ repository or the one on GitHub.
 - Git: `GIT_DIR=/home/debian/batch27-faro/worktrees/opensource` and
   `GIT_WORK_TREE=/home/debian/batch27-faro/opensource`; a task agent never commits, and the
   coordinator commits only when the user asks.
-- Two decisions wait for the mentor and stop no task: into which repository the rewritten
-  history is published (T040 prepares a new one, with the existing one as the fallback) and the
-  repository's final name (T004's step 5 again).
+- Decided by the mentor on 2026-11-24: the repository's name `DigitalProductschool/konnekt` is
+  final, and it is a new repository that receives the rewritten history; T040 has no other
+  route. Open and stopping no task: whether the consent statements must be visible in the
+  public repository.
+- The branch must be based on `main` at `2d3f0f3` or later, which holds the new visuals, the
+  sign-in motion and the German copy of the user tests (`git merge-base --is-ancestor 2d3f0f3
+  HEAD`); if it is not, stop and say so. Counts and line numbers that research.md gives were
+  taken at `9fbce6c`: check a cited line before relying on it.
 - Avoid: opening `LICENSE` for writing; per-file SPDX headers; a second licence text that
   differs from the root's; renaming a storage key, an environment variable or a migration;
   hand edits to lockfiles or generated fixtures; a new dependency for the notices, the REUSE

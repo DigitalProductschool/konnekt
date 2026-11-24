@@ -67,7 +67,7 @@ a recorded source; internal host names, local paths and Figma file keys in `spec
 ### Session 2026-11-20
 
 - Q: Which name? → A: **Konnekt**, everywhere. The repository becomes
-  `DigitalProductschool/konnekt` (the mentor confirms the final repository name), the packages
+  `DigitalProductschool/konnekt` (final: the mentor, 2026-11-24), the packages
   `@konnekt/api-types`, `@konnekt/rules`, `@konnekt/mcp` and `@konnekt/frontend`, the root package
   `konnekt`, the backend project `konnekt-backend`, the agents' plugin and its marketplace
   `konnekt`, the databases `konnekt_db` and `konnekt_db_test`. The browser's storage key prefix
@@ -95,7 +95,8 @@ session above where they differ.
 - Q: Is the pasted connection ID a problem? → A: No. That connection is deleted on the hosted
   instance; the ID is still replaced in the tree with the rest of the scrub.
 - Q: The author addresses in the history, the pull requests' texts and the workflow logs? → A:
-  Accepted. The existing repository is made public as it is, under its new name.
+  Accepted for the history's author addresses. The pull requests and logs are no longer
+  published: see the session of 2026-11-21.
 - Q: Who contributed without committing? → A: The designer, Vrinda Pasrija, and the product
   manager, Amber Rafique (FR-008). The DPS mentor confirmed that the template may be published
   under the EUPL-1.2.
@@ -138,13 +139,17 @@ These answers take precedence over both sessions above where they differ.
 - Q: What else does the rewrite change? → A: Every commit gets a new hash and loses its
   signature, since 292 of the 293 commits are signed and a rewritten commit cannot keep its
   signature. The last commit's tree is the same before and after.
-- Q: Is the existing repository still the one that is made public? → A: Open, the mentor's. On
-  GitHub a rewrite does not reach the pull request that added the files, nor the commits that
-  stay fetchable by hash, and GitHub's support removes only sensitive data such as credentials.
-  The removal therefore holds only if the rewritten history is pushed into a new repository,
-  which is then published, while the existing one stays private with its pull requests, its
-  logs and the consent statements. Until the mentor answers, the tasks prepare this route
-  (research R11).
+- Q: Is the existing repository still the one that is made public? → A: No (the mentor,
+  2026-11-24). On GitHub a rewrite does not reach the pull request that added the files, nor
+  the commits that stay fetchable by hash, and GitHub's support removes only sensitive data
+  such as credentials. The rewritten history is therefore pushed into a new repository,
+  `DigitalProductschool/konnekt`, and that one is published; the existing one stays private
+  with its pull requests and its logs, and nothing rewritten is pushed to it (research R11).
+- Q: Is the repository's name final? → A: Yes, `DigitalProductschool/konnekt` (the mentor,
+  2026-11-24). The consent statement carries it and can be posted.
+- Q: Where are the consent statements posted? → A: On this spec's pull request in the existing
+  repository, which stays private. Whether they must also be visible in the public repository
+  is the one question left with the mentor; it stops no work.
 
 ## User Scenarios & Testing *(mandatory)*
 
@@ -474,19 +479,21 @@ what it means.
 - **FR-042**: `research.md` MUST record, per audit, what was checked, how, when, and what was
   not checked.
 - **FR-043**: `handover.md` in the feature directory MUST list for the mentor, in order: the
-  decisions that wait for them (into which repository the rewritten history is published,
-  FR-044; the repository's final name); deleting the listed merged branches; detaching
-  infrastructure, connectors and the review bot; renaming the repository; the protection rules;
-  closing issues; a tag on the published commit; and what happens to the hosted instance, whose
-  weak points the bug records describe.
+  new repository `DigitalProductschool/konnekt`, created empty and private, with push access for
+  the user (FR-044); the one open question, whether the consent statements must be visible in
+  it; deleting the listed merged branches; detaching infrastructure, connectors and the review
+  bot; archiving the existing repository, which stays private; the new repository's protection
+  rules; closing issues; a tag on the published commit; and what happens to the hosted
+  instance, whose weak points the bug records describe.
 - **FR-044**: Before publication the star artwork MUST be removed from the history: the four
   files' contents, and any other file of the history that reproduces the artwork, are in no
   commit of any branch or tag that is published. The rewrite is one scripted step, written down
   in `history-rewrite.md` and rehearsed on a copy beforehand. The user runs it once, after
   everything else is merged, and checks it: none of the removed objects exists, the last
   commit's tree is unchanged, the number of commits is unchanged, `LICENSE` has its checksum.
-  What the rewrite cannot reach (the existing repository's pull requests, commits fetchable by
-  hash, other people's clones) is named in `handover.md` with the route that avoids it.
+  The rewritten history is pushed into the new repository only. What a rewrite cannot reach
+  (the existing repository's pull requests, commits fetchable by hash, other people's clones)
+  is named in `handover.md`: the existing repository stays private for that reason.
 
 ### Key Entities
 
@@ -533,16 +540,15 @@ what it means.
   optional. The root's `LICENSE` and the copy in `LICENSES/` are the same text.
 - The team's name is written "Batch#27" everywhere, also in the consent statement, whose text
   from the mentor has "batch#27" (Clarifications).
-- Two decisions wait for the mentor and do not stop the work: into which repository the
-  rewritten history is published (FR-044; Clarifications, 2026-11-21) and the repository's
-  final name, which the consent statement carries (FR-009). Until the name is final,
-  `DigitalProductschool/konnekt` is used.
+- The mentor decided on 2026-11-24: the repository's name `DigitalProductschool/konnekt` is
+  final, and it is a new repository that receives the rewritten history (FR-044). One question
+  is left with the mentor and stops no work: whether the consent statements must be visible in
+  the public repository (Clarifications, 2026-11-21).
 - The README and the documentation keep describing the City of Stuttgart's DO.IT team as the
   product's users; only the plugin's owner changes to Team Faro.
-- The repository's settings on GitHub, its renaming and its publication are the mentor's. If
-  the existing repository is the one made public, its pull requests, issues and workflow logs
-  become public with it, which the user accepts; they were not read by the audits. If a new
-  repository receives the rewritten history (Clarifications, 2026-11-21), they stay private.
+- Creating the new repository, its settings on GitHub and its publication are the mentor's.
+  The existing repository's pull requests, issues and workflow logs stay private with it; the
+  audits did not read them.
 - The implementation runs in a session of its own, started by the user: `tasks.md` and
   `research.md` must be enough for it without this session's conversation.
 - The history is rewritten once, only to remove the star artwork (FR-044). The user accepts that

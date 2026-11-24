@@ -1035,12 +1035,12 @@ branches.
 accept that this content becomes public unread.
 
 **Reopened on 2026-11-21** by the decision to remove the star artwork from the history (R3,
-FR-044), because that removal does not hold in the existing repository (below). The user's
-proposal, which waits for the mentor (Open points 1): the rewritten `main` is pushed into a new
-repository under the final name, and that one is published; `batch27-faro` stays private and
-archived and keeps its pull requests, its logs and the consent statements. The fallback, if the
-mentor keeps the existing repository: the rewritten branches are force-pushed there, and
-`handover.md` names what still shows the files.
+FR-044), because that removal does not hold in the existing repository (below).
+
+**Decision** of 2026-11-24 (the mentor), which replaces that of 2026-11-20: the rewritten `main`
+is pushed into a new repository, `DigitalProductschool/konnekt` (the name is final), and that
+one is published. `batch27-faro` is not renamed: it stays private and is archived, and keeps its
+pull requests, its logs and the consent statements. Nothing rewritten is pushed to it.
 
 **The history rewrite** (FR-044; T040 writes `history-rewrite.md`):
 
@@ -1060,6 +1060,11 @@ mentor keeps the existing repository: the rewritten branches are force-pushed th
   commits are unsigned afterwards. The tool writes the old and new hashes to
   `.git/filter-repo/commit-map` and updates hashes in commit messages, not in files: the hashes
   that the specs and bug records cite stay those of the old history.
+- State on 2026-11-24: `main` is at `2d3f0f3` with the new visuals (#172), the sign-in motion
+  (#173) and the German copy of the user tests (#174); 301 commits on `main`, 300 of them
+  signed. The four objects are still the only versions of the old files; `320728d` deleted the
+  files from the tree. The eight new pictures are `.webp` files under other names, and those
+  three pull requests added no other picture than these and `logo-white.svg`.
 - When: after everything is merged and before anything is public. Done after publication it
   removes nothing from GitHub or from anyone's clone or fork, and it breaks every clone.
 - What it does not reach in the existing repository, private or public: the pull request that
@@ -1068,17 +1073,19 @@ mentor keeps the existing repository: the rewritten branches are force-pushed th
   from a repository", read 2026-11-21): its support "won't remove non-sensitive data".
 - Access: the new-repository route needs read access to the existing repository and push access
   to the new, empty one; no forced push and no write access to the existing `main`. The mentor
-  can also run the runbook themselves. The fallback needs a forced push to the protected `main`.
+  can also run the runbook themselves.
 - Cost of the new repository: the pull requests, their reviews and the consent statements are
   not in the public repository; the mentor decides whether the statements must be public, in
   which case the pull request with `LICENSE` is opened in the new repository instead, before
   anyone posts.
 
-**Rationale**: it keeps the pull requests, their reviews and the links to them; GitHub forwards the
-old name's links.
+**Rationale**: it is the only route on which the star artwork is gone from what is published,
+and it publishes only what the audits read. Its price: the pull requests, their reviews and the
+links to them are not public.
 
-**Alternatives considered**: a new private repository with the full history pushed, the consent
-pull request there, then made public, which would have published only what the audits read.
+**Alternatives considered**: renaming the existing repository and making it public (the decision
+of 2026-11-20), which keeps the pull requests but also the removed files in them; a forced push
+of the rewritten history to the existing repository, which does not remove them either.
 
 **Handover** (`handover.md`, in FR-043's order):
 
@@ -1087,12 +1094,12 @@ pull request there, then made public, which would have published only what the a
 | 1 | Rotate what FR-031 names: no credential was found, so nothing; run `gitleaks git --log-opts=--all` once more just before publishing, since the CI scans only what is pushed | R5 |
 | 2 | Delete the 18 merged branches, and `opensource` after the merge | R5 |
 | 4 | Detach infrastructure, connectors and the review bot (Coolify's pull-request previews are the team's, R6 finding 1) | R11, R6 |
-| 5 | Rename the repository to `DigitalProductschool/konnekt` | R7 |
-| 6 | Protection rules for `main`; the CI keeps read-only permissions | R6, FR-041 |
+| 5 | Create `DigitalProductschool/konnekt` as a new, empty, private repository with push access for the user; archive `batch27-faro`, which stays private | R11, decision of 2026-11-24 |
+| 6 | Protection rules for `main` in the new repository, set after the first push; the CI keeps read-only permissions | R6, FR-041 |
 | 7 | Close issues and pull requests as the status banner says | FR-024 |
 | 9 | A tag on the published commit | FR-043 |
-| 10 | The hosted instance: shut down, or kept with its own tenant and trust list, a strong password on every account and `SERVICEBW_ALLOWED_CIDRS` closed; the history names its hosts and set-up; a redeploy from the renamed repository meets the database rename (R7) | R5, R6 finding 2 |
-| 11 | The decisions that wait for the mentor, which `handover.md` puts first: into which repository the rewritten history is published ("The history rewrite" above); the repository's final name, which the consent statement carries | FR-044; spec, Assumptions |
+| 10 | The hosted instance: shut down, or kept with its own tenant and trust list, a strong password on every account and `SERVICEBW_ALLOWED_CIDRS` closed; the history names its hosts and set-up; a redeploy from the new repository meets the database rename (R7) | R5, R6 finding 2 |
+| 11 | What `handover.md` puts first: item 5, which the history rewrite needs ("The history rewrite" above), and the one open question, whether the consent statements must be visible in the public repository | FR-044; spec, Assumptions |
 
 **Not checked**: everything listed under Findings.
 
@@ -1100,8 +1107,8 @@ pull request there, then made public, which would have published only what the a
 
 | # | Point | Who | By | Fallback |
 |---|---|---|---|---|
-| 1 | Into which repository the rewritten history is published: a new one under the final name (the user's proposal; the only route on which the star artwork is gone from GitHub), or the existing one, renamed (R11, "The history rewrite"); and whether the consent statements must be in the public repository | mentor | before the first consent statement | the existing repository with a forced push, and `handover.md` names what still shows the files |
-| 2 | The repository's final name (`DigitalProductschool/konnekt` until then); the consent statement and every link carry it | mentor | before the first consent statement | the rename's last rule (R7, step 5) is run again with the final name |
+| 1 | Closed on 2026-11-24 (the mentor): the rewritten history is published in a new repository (R11). Still open: whether the consent statements must be visible in the public repository | mentor | before the first consent statement | they are posted on the pull request in `batch27-faro`, which stays private |
+| 2 | Closed on 2026-11-24 (the mentor): the name `DigitalProductschool/konnekt` is final | | | |
 | 5 | The terms of KERN's file on Figma Community, from which the designer derived the design's values (R5, item 4) | task | 2026-11-27 | named in `NOTICE.md` with its source and "terms not stated" |
 | 3 | The source of the English country names (`backend/app/option_sets.py`) and of the name and town pools (`rules/src/personas/samples.ts`, `backend/scripts/issue_test_credentials/person.py`) (R3) | task | 2026-11-27 | FR-018: replace or remove (for the country names, re-derive from a list with clear terms) |
 | 4 | The consent statements of Samuele Musiani, Vrinda Pasrija and Amber Rafique, and DPS's through the mentor (R8) | team | 2026-11-27 | no merge (FR-010); the mentor and the team decide on the work of anyone who declines |

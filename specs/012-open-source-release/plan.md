@@ -176,12 +176,13 @@ Notes on the split:
 
 None of these stops phases B to E; each has a fallback in research's "Open points":
 
-- The mentor: into which repository the rewritten history is published (research R11, "The
-  history rewrite"; phase F prepares a new repository, with the existing one as the fallback),
-  and the repository's final name (the rename's last rule is run again if it differs). The star
-  artwork is decided: replaced (T014) and removed from the history (FR-044).
-- The user: the new visuals, built as the bug record `.specify/bugs/new-visuals/` in a session
-  of its own (T014 checks and records the result), and the rewrite itself, last.
+- The mentor: creating the new repository and giving push access to it. Decided on 2026-11-24:
+  the name `DigitalProductschool/konnekt` is final, and it is a new repository that receives the
+  rewritten history (research R11, "The history rewrite"); the existing one stays private. Open:
+  whether the consent statements must be visible in the public repository. The star artwork is
+  decided: replaced (T014) and removed from the history (FR-044).
+- The user: the rewrite itself, last. The new visuals are in `main` since 2026-11-24 (the bug
+  records `new-visuals` and `login-welcome-motion`); T014 checks and records the result.
 - The team: the consent statements of the three contributors and DPS, by 27.11.2026.
 
 The implementation runs in a session of its own, started by the user. `tasks.md` and
