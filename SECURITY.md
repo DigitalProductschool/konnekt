@@ -10,6 +10,14 @@ issue. There is no promise of an answer or a fix.
 
 ## Known limitations
 
+The review's findings that publication would have made easy to exploit were fixed before
+publication: nginx's security headers on every answer (no framing), a throttle on sign-in
+attempts per username and per address, limits on open OAuth client registration, and a consent
+page that shows where the agent's answer goes and preselects "Read only" for a new agent. So were
+a few one-line hardenings: the backend image runs as production by default and syncs nothing at
+start, the development compose file publishes its ports on `127.0.0.1` only, and nginx hides its
+version. [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) describes them.
+
 These follow from the design or were found in a security review before publication and not
 fixed. Read them before deciding to run Konnekt.
 
@@ -24,13 +32,14 @@ fixed. Read them before deciding to run Konnekt.
    reverse proxy's addresses and nothing else: a range that includes a client lets that client
    name any address in `X-Forwarded-For`. `SERVICEBW_ALLOWED_CIDRS` must never hold the proxy's
    or Docker's range. A proxy that passes a client's own `X-Forwarded-For` on unchanged defeats
-   the allow-list too.
+   the allow-list too. Without `TRUSTED_PROXY_CIDRS`, nginx's rate limits on sign-in and OAuth
+   see every client behind the proxy as one address, so all of them share one limit.
 3. **Triggering is not rate-limited.** Every call creates an EUDIPLO session and a database row
    that is kept seven days.
 4. **There is one permission level for people.** Every team member, and every agent from
    "Read only" on, reads every connection with its URLs; every agent from "Read and edit
    drafts" on changes every draft. Accounts are created only with the command-line tool. There
-   is no second factor and no account lockout.
+   is no second factor and no account lockout: failed sign-ins only make the username wait.
 5. **Agents read what others wrote.** Connection names, descriptions and rule messages reach an
    agent as tool results, and can try to steer another team member's agent. The approval step
    stands between such an attempt and a published change.
@@ -42,8 +51,15 @@ fixed. Read them before deciding to run Konnekt.
 8. **The EUDIPLO client reads every session of its tenant.** Installations that share a tenant
    share that exposure.
 9. **The application connects to PostgreSQL as the superuser `postgres`.**
-10. **No security updates are planned** (see above).
-11. **Smaller findings of the review, not fixed**, each with the fix it would need:
+10. **Anyone who knows a username can keep it waiting.** After five failed sign-ins in a row
+    every attempt for that username waits, up to 15 minutes, whoever made the failures; one
+    wrong attempt after each wait starts the next one, so the account's owner may find it
+    waiting for as long as someone keeps trying. The waits are settings (`SIGN_IN_*`); a first
+    wait of `0` switches them off.
+11. **A password longer than 1,024 characters can't sign in.** The sign-in refuses longer
+    fields, but the command-line tool still sets such a password.
+12. **No security updates are planned** (see above).
+13. **Smaller findings of the review, not fixed**, each with the fix it would need:
     - `/docs` and `/openapi.json` are public in production, and the API documentation page
       loads its script from `cdn.jsdelivr.net` without an integrity check, on the application's
       origin. Fix: switch the documentation off outside development (`docs_url`, `redoc_url`

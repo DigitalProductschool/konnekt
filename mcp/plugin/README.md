@@ -33,14 +33,17 @@ The plugin adds the MCP server `konnekt` and the eight skills in one step.
    Without it, `claude mcp list` shows the server with "Missing environment variables:
    KONNEKT_MCP_URL" and Claude Code doesn't connect to it.
 
-2. Add the marketplace (the repository, as `owner/repo`, a git URL or a local checkout) and
-   install the plugin from it. The marketplace is called `konnekt`, after
-   `.claude-plugin/marketplace.json`:
+2. Add the marketplace, the repository
+   [`DigitalProductschool/konnekt`](https://github.com/DigitalProductschool/konnekt), and
+   install the plugin from it. The marketplace and the plugin are both called `konnekt`, after
+   `.claude-plugin/marketplace.json`, which lists the plugin in `mcp/plugin/`:
 
    ```bash
-   claude plugin marketplace add <repository>
+   claude plugin marketplace add DigitalProductschool/konnekt
    claude plugin install konnekt@konnekt
    ```
+
+   To try a fork or a local checkout, add its `owner/repo`, git URL or path instead.
 
 3. Start Claude Code. The first call to the server opens the browser on Konnekt's
    consent page, where you sign in and choose the agent's access level.

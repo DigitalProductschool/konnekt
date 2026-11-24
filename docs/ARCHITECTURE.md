@@ -522,9 +522,11 @@ frontend/
   `h1` (`contracts/ui-screens.md` of the spec, S1 to S3):
   - the **consent page** (`/authorize`, `pages/Authorize/`): an agent's OAuth authorization
     request, read from the query string, which a sign-in round trip keeps. It names the
-    client (`GET /api/oauth/clients/{client_id}`), preselects the access level from the
-    requested `scope` in `AccessLevelChoice`, says so when the agent asks for more than its
-    current level, and sends "Allow" or "Deny" to `POST /api/oauth/authorize`, then follows
+    client (`GET /api/oauth/clients/{client_id}`), says who chose its name and where the
+    browser goes after the answer (`ClientFacts`), preselects "Read only" for a client the
+    account has no connection with and the requested `scope`'s level otherwise
+    (`preselectedLevelOf()`, in `AccessLevelChoice`), says so when the agent asks for more than
+    its current level, and sends "Allow" or "Deny" to `POST /api/oauth/authorize`, then follows
     the answer's `redirect_to` to the agent. A bad request is shown on the page, without a
     redirect;
   - the **user page** (`/account`, `pages/Account/`, reached through "Your account" in
@@ -647,6 +649,33 @@ backend/
   `HttpOnly`, `SameSite=Strict`, `Path=/api`, and `Secure` unless
   `APP_ENV=development`. A session lasts `LOGIN_SESSION_HOURS`; signing out
   deletes the row, and the worker deletes expired ones.
+- **The throttle** (spec 012, research R6, finding 4; `services/sign_in_throttle.py`): each
+  attempt costs an Argon2id hash of 64 MiB, so guessing is slowed per username and per
+  address. `LoginRequest` bounds the username to 200 and the password to 1,024 characters,
+  refused with `400` before anything counts. `count_attempt()` then counts the attempt against
+  the submitted username, whether or not an account has it, so the answer shows no
+  difference: one row per username in `sign_in_throttles`, keyed by the SHA-256 of
+  `normalize_username()`'s form (no username in clear), inserted or locked with an upsert and
+  `FOR UPDATE`, so that every process and parallel attempts share the count. The attempt counts
+  and commits before its hash runs, so parallel attempts can't pass the limit together. After
+  `SIGN_IN_FAILURES_BEFORE_WAIT` (5) attempts without a correct one, the next must wait
+  `SIGN_IN_FIRST_WAIT_SECONDS` (30), doubling with each further failure up to
+  `SIGN_IN_MAX_WAIT_SECONDS` (900); `0` as the first wait switches the waits off. An attempt
+  during the wait answers `429 rate_limited` with `Retry-After` and a `Text` message that
+  names the rest of the wait; it checks no password and isn't counted, so the wait doesn't
+  grow while no password can be tried. A correct sign-in after the wait works and deletes the
+  row (`forget_attempts()`), so nobody can lock an account for good; failures are otherwise
+  forgotten `SIGN_IN_MAX_WAIT_SECONDS` after the last wait ended (`expires_at`), and the
+  worker deletes the row. Nothing logs a username, its hash or a password. In front of it,
+  nginx limits `= /api/auth/login` per client address (as `real-ip.conf` resolves it) to 30 a
+  minute with a burst of 5 that waits its turn, so one address can't run hashes side by side,
+  and answers beyond it with its own `429` in the `{error, message}` envelope (`rate_limited`,
+  German when `Accept-Language` starts with `de`), which the sign-in page shows like the
+  backend's; bodies are limited to 16 KB. Behind a proxy without `TRUSTED_PROXY_CIDRS`, every
+  client has the proxy's address and shares that one limit. What it leaves: whoever knows a
+  username can keep it waiting with one wrong attempt per wait (at most 15 minutes each), and
+  a password longer than 1,024 characters, which the CLI can still set, can't sign in
+  (`SECURITY.md`).
 - **Protected routes** depend on `get_current_user`, which answers `401` without a
   valid session, or on `get_current_principal`, which also accepts an agent's bearer token
   (see [Agent access and the MCP server](#agent-access-and-the-mcp-server-spec-007)).
@@ -1339,6 +1368,39 @@ states its [data-model.md](../specs/007-agent-mcp-server/data-model.md), the sha
   (`oauth_clients`, `oauth_codes`, `agent_authorizations`, `agent_tokens`) hold the SHA-256 of
   every code and token, never the secret. The OAuth endpoints answer RFC 6749 and RFC 7591
   bodies, not the `{data}` envelope (constitution, Principle I).
+- **Limits on open registration** (spec 012, research R6, finding 5): registration is open, so
+  what one call stores is bounded. `RegisterRequest` takes at most 10 redirect URIs of at most
+  2,000 characters (the size of `oauth_codes.redirect_uri`), a `client_name` of at most 1,000
+  (stored trimmed to 200), and at most 10 `grant_types` and `response_types` of at most 100
+  characters each; a body beyond a bound answers RFC 7591's `400 invalid_client_metadata`,
+  described by the first field that fails (`oauth.invalid_registration()`). At most
+  `OAUTH_MAX_UNUSED_REGISTRATIONS` (1,000) registrations that nothing uses are kept
+  (`oauth.UNUSED_CLIENT`: a `dcr` client without an agent connection or authorization code,
+  the worker's condition too): a new registration **removes the oldest unused ones** beyond it
+  rather than being refused, because refusing would let anyone block every new client with a
+  few registrations a minute, while removing reaches a legitimate client only between its
+  registration and its consent. Registrations take turns under a transaction-level advisory
+  lock (`REGISTRATION_LOCK_KEY`), so parallel ones never pass the cap together; removal locks
+  the rows with `SKIP LOCKED` and checks the condition again in the delete, and `create_code`
+  locks the client (`FOR KEY SHARE`), so a consent racing a removal answers `400` instead of a
+  `500`. In front of it, nginx limits per client address `= /api/oauth/register` to 10 a minute
+  with a burst of 20 and the rest of `^~ /api/oauth/` (the token endpoint, the consent page's
+  calls) to 60 a minute with a burst of 60, both without waiting (`nodelay`), with bodies of at
+  most 16 KB; beyond the limit nginx answers `429` with the RFC-shaped
+  `{"error":"too_many_requests","error_description":…}`, which the MCP SDK reads as a rate
+  limit and keeps the agent's credentials. These refusals are logged at `info`, below the
+  image's level, since nginx's error line would quote the query the access log redacts.
+- **The consent page and self-registered clients** (spec 012, research R6, finding 6): the
+  client's name is its own claim, so the page says so under the intro (`ClientFacts`): that the
+  agent registered itself and chose its name (`dcr`), or publishes it on its host (a metadata
+  document), and where the browser goes after "Allow" or "Deny": the redirect URI's host as
+  the browser parses it (no userinfo, no port, an IDN as `xn--`), "an app on this computer"
+  for a loopback URI, or the scheme of an app's own links. Only the host or scheme is shown,
+  never the URI. "Read only" is preselected for a client the account has no connection with,
+  whatever the request asks for, so a first connection gets more only when the member chooses
+  it; with a connection, the requested level is preselected as before, with the step-up line.
+  The API is unchanged: the page reads `current_access_level` from
+  `GET /api/oauth/clients/{client_id}`.
 - **The bearer principal** (research R5; `services/auth.py`): `get_current_principal` reads an
   `Authorization: Bearer` header (an unexpired access or personal access token) or, without
   one, the cookie session, and answers a `Principal { user, authorization }`, whose
@@ -1753,7 +1815,8 @@ and call the steps directly.
 
 Implemented steps: first the scheduled starts (spec 010), then those of research R7 in spec
 001's folder, in its order, then those of agents' access (spec 007), and last the deletions
-made final (spec 010). The steps of specs 007 and 010 log counts and ids only.
+made final (spec 010); spec 012 adds the forgotten sign-in attempts after the expired sign-ins.
+The steps of specs 007, 010 and 012 log counts and ids only.
 
 1. **Activate scheduled connections** (`activate_scheduled_connections`, spec 010, research
    R2): `activate_due_connections()` with today in Germany locks the published, not deleted
@@ -1801,22 +1864,26 @@ made final (spec 010). The steps of specs 007 and 010 log counts and ids only.
    refused. A `404` counts as deleted. A revision that a draft's publish in flight has
    reserved is never one of them, since a draft's `current_revision` is null.
 8. **Delete expired sign-in sessions.**
-9. **Delete request records** `REQUEST_RECORD_RETENTION_SECONDS` after the request
-   ended.
-10. **Delete expired authorization codes**, used or not, after their 5 minutes.
-11. **Delete expired agent tokens**: access tokens past their expiry, and refresh tokens
+9. **Delete forgotten sign-in attempts** (`delete_expired_sign_in_throttles`, spec 012,
+   research R6): the rows of `sign_in_throttles` past their `expires_at`, so that usernames
+   attackers invent don't fill the table. A row whose username is signing in meanwhile is
+   locked; the delete waits for it and checks `expires_at` again.
+10. **Delete request records** `REQUEST_RECORD_RETENTION_SECONDS` after the request
+    ended.
+11. **Delete expired authorization codes**, used or not, after their 5 minutes.
+12. **Delete expired agent tokens**: access tokens past their expiry, and refresh tokens
     past theirs or replaced more than a day ago (until then, a replaced one used again still
     finds its row and revokes its agent connection).
-12. **Delete idle agent connections**: an agent connection without an unexpired, unreplaced
+13. **Delete idle agent connections**: an agent connection without an unexpired, unreplaced
     refresh token can't be renewed, because it was unused for `AGENT_CONNECTION_IDLE_DAYS`.
     Its tokens go with it; its waiting approval requests then read as cancelled.
-13. **Delete expired personal access tokens**, past the expiry chosen at creation.
-14. **Delete unused OAuth clients**: dynamically registered clients older than an hour that
-    no agent connection or authorization code uses. Clients of metadata documents stay, as
-    their cache.
-15. **Delete old approval requests** a day after they ended or expired; their approval page
+14. **Delete expired personal access tokens**, past the expiry chosen at creation.
+15. **Delete unused OAuth clients**: dynamically registered clients older than an hour that
+    no agent connection or authorization code uses (`oauth.UNUSED_CLIENT`, the condition the
+    registration cap uses too). Clients of metadata documents stay, as their cache.
+16. **Delete old approval requests** a day after they ended or expired; their approval page
     then answers `404`.
-16. **Finish deletions** (`finish_deletions`, spec 010, research R5): for the rows deleted at
+17. **Finish deletions** (`finish_deletions`, spec 010, research R5): for the rows deleted at
     or before `deletions.restore_cutoff()`, the same clock as step 7's, it deletes their
     activity entries and the rows of deleted drafts (with any revision a publish in flight
     had reserved): what a deletion was before spec 010. A deleted published connection keeps
@@ -1825,10 +1892,10 @@ made final (spec 010). The steps of specs 007 and 010 log counts and ids only.
     (`FINISH_BATCH_SIZE`), each locked `FOR UPDATE SKIP LOCKED` and committed, and the draft
     rows' delete checks its conditions again.
 
-Steps 12 to 14 lock the rows they delete (`skip_locked`) and check their conditions again
+Steps 13 to 15 lock the rows they delete (`skip_locked`) and check their conditions again
 in the deleting statement, so that, for example, a consent that renews an agent connection at
-the same moment keeps it. Steps 1 and 16 skip a row another transaction holds the same way,
-and a later cycle takes it. The steps that act on a deletion (7 and 16) wait for
+the same moment keeps it. Steps 1 and 17 skip a row another transaction holds the same way,
+and a later cycle takes it. The steps that act on a deletion (7 and 17) wait for
 `deletions.restore_cutoff()` and check it again under the row lock a restore takes. The
 clock seams are `worker._now()` and `deletions._now()`, which the tests move.
 
@@ -1935,7 +2002,7 @@ handlers on the app:
 
 | Exception | Status | Behaviour |
 |-----------|--------|-----------|
-| `HTTPException` | as raised | Passes a `{error, message}` dict detail (and its `error_id`) through, its `message` resolved if it is a `Text`; otherwise wraps it |
+| `HTTPException` | as raised | Passes a `{error, message}` dict detail (and its `error_id`) through, its `message` resolved if it is a `Text`; otherwise wraps it. The exception's headers go with the answer, such as the sign-in's `Retry-After` (spec 012) |
 | `RequestValidationError` | **400** | Returns a generic message, `INVALID_PAYLOAD_MESSAGE` (FastAPI's default would be 422 with field details) |
 | `Exception` | 500 | Generic message, `INTERNAL_ERROR_MESSAGE`, and an `error_id`, in every environment; the log line under that ID has the method, the route's template and the error's type and code location |
 
@@ -1974,7 +2041,8 @@ reuse its detail resolves the `Text` there (`resolve_text()` in
 
 **`APP_ENV` must be set to something other than `development` in production**:
 development drops the session cookie's `Secure` flag and fills in a default
-`CONNECTION_BASE_URL`.
+`CONNECTION_BASE_URL`. The production image (`backend/Dockerfile`) sets
+`APP_ENV=production`, so only an explicit value makes it development.
 
 **Frontend**: the `ApiError` class in `src/api/client.ts` wraps HTTP errors with
 status and response data. `errorNoticeOf(error, fallback)` turns a failure into
@@ -2052,6 +2120,9 @@ declared there is ignored (`extra='ignore'`).
 | `ALLOW_PLAIN_HTTP` | Allows `http://` for `CONNECTION_BASE_URL` outside development (closed networks only) | `false` |
 | `WORKER_ENABLED` | Runs the background worker thread | `true` |
 | `LOGIN_SESSION_HOURS` | How long a DO.IT sign-in lasts | `8` |
+| `SIGN_IN_FAILURES_BEFORE_WAIT` | Failed sign-ins in a row for one username after which every further attempt waits ([Sign-in](#sign-in-doit-team-members)) | `5` |
+| `SIGN_IN_FIRST_WAIT_SECONDS` | The first wait, doubled with each further failure; `0` switches the waits off | `30` |
+| `SIGN_IN_MAX_WAIT_SECONDS` | The longest wait, and how long failures are remembered after the last wait ended | `900` |
 | `PORTAL_URL` | Public origin of the management interface: links and the OAuth authorization endpoint (`{PORTAL_URL}/authorize`) are built from it | `http://localhost:5173` in development; `CONNECTION_BASE_URL` otherwise |
 | `MCP_URL` | Public URL of the MCP endpoint, the resource indicator every agent token is bound to | `http://localhost:3100/mcp` in development; `{CONNECTION_BASE_URL}/mcp` otherwise |
 | `OAUTH_ISSUER` | Issuer of the OAuth authorization server | `CONNECTION_BASE_URL` |
@@ -2060,6 +2131,7 @@ declared there is ignored (`extra='ignore'`).
 | `AGENT_TOKEN_MAX_DAYS` | Longest expiry of a personal access token | `90` |
 | `APPROVAL_REQUEST_MINUTES` | How long an approval link is valid | `10` |
 | `AGENT_DRAFTS_PER_HOUR` | Drafts one agent connection or token may create per hour | `20` |
+| `OAUTH_MAX_UNUSED_REGISTRATIONS` | Dynamic client registrations that no agent connection or authorization code uses are kept at most this many; a new one removes the oldest beyond it ([Agent access](#agent-access-and-the-mcp-server-spec-007)). At least `1` | `1000` |
 | `DELETION_UNDO_SECONDS` | How long the team member who deleted a connection or draft can take the deletion back ("Undo"); afterwards the worker deletes its configurations, its activity and a draft's row. `0` switches restoring off: every "Undo" answers `409 not_restorable` | `300` |
 
 The three URLs are resolved by `resolve_agent_urls`, after the check of
@@ -2122,6 +2194,27 @@ but an address or a range stops the container.
 a connection at the product's limits (spec 011, FR-045) saves a body of about 1.56 MB,
 which nginx's default of 1 MB would refuse with `413`.
 
+Three `limit_req_zone`s count requests per client address (`$binary_remote_addr`, after
+`real-ip.conf`), 10 MB of state each: `sign_in` (30 a minute, burst 5, queued) for
+`= /api/auth/login`, `oauth_register` (10 a minute, burst 20, `nodelay`) for
+`= /api/oauth/register`, and `oauth` (60 a minute, burst 60, `nodelay`) for the rest of
+`^~ /api/oauth/`. Each location answers its own `429`: the sign-in's in the API's
+`{error, message}` envelope (`@sign_in_limited`, its message chosen from `Accept-Language` by a
+`map`), OAuth's in RFC 6749's shape with `too_many_requests` (`@oauth_limited`). These locations
+accept 16 KB bodies. Without `TRUSTED_PROXY_CIDRS`, every request behind a proxy has the proxy's
+address, and all clients share one bucket per zone (spec 012, research R6, findings 4 and 5;
+details in [Sign-in](#sign-in-doit-team-members) and
+[Agent access](#agent-access-and-the-mcp-server-spec-007)).
+
+Every answer carries `X-Frame-Options: DENY`, `X-Content-Type-Options: nosniff` and
+`Content-Security-Policy: frame-ancestors 'none'` (no page of the app frames another, so the
+consent and approval pages can't be framed), plus the obsolete `X-XSS-Protection`.
+`add_header_inherit merge;` at server level (nginx 1.29.3 or later; the image is 1.31.9) adds
+them in the locations that set headers of their own too (the assets', `index.html`'s), and in
+any location added later (spec 012, finding 3). `server_tokens off;` keeps nginx's version out
+of the `Server` header and its error pages. `/THIRD-PARTY-NOTICES.txt`, the served notices that
+`npm run notices -w frontend` writes, is sent with `charset=utf-8`.
+
 ## Docker Development
 
 The `docker-compose.yml` orchestrates four services:
@@ -2134,6 +2227,10 @@ The `docker-compose.yml` orchestrates four services:
    development URLs; it mounts `mcp/src/`, `mcp/plugin/`, `api-types/` and `rules/`.
    `vite-node` doesn't watch, so a change to the sources or the skills takes effect when the
    container restarts (`docker compose restart mcp`)
+
+Every published port is bound to `127.0.0.1` (spec 012, research R6, finding 13), so the
+database with its `postgres:postgres` account and the backend, which checks nothing on
+`/api/connect/`, aren't reachable from other machines.
 
 Every image builds with the repository root as context, so the root
 `.dockerignore` is the only one Docker reads. Volumes enable hot reload by
@@ -2215,6 +2312,10 @@ Consequences of this design:
   stops with a message when it is unset. `SERVICE_FQDN_FRONTEND` is declared on the
   frontend service and passed through when set; nothing in the container reads it, and
   it matters only to a hosting platform that reads it to route the domain
+- The backend image sets `APP_ENV=production` itself, and `UV_NO_SYNC=1`, so that its start
+  command's `uv run` syncs nothing: it runs the migrations and uvicorn in the environment the
+  build's `uv sync --frozen --no-dev` made, without the `dev` group. All three production images
+  hold `LICENSE` and `NOTICE.md` at `/usr/share/doc/konnekt/`
 - Database data lives in the `postgres-data` named volume; a new stack starts with an
   empty database, whose schema is created by the migration run on backend startup
 

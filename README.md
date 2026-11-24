@@ -183,7 +183,9 @@ labels), never a field, key or code; serviceBW's connection URLs under `/api/con
 server and the logs stay English. The two languages add no dependency and no environment
 variable. Details: [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md), "Languages (spec 009)".
 
-The backend container reads `backend/.env` if it exists; the values set in
+The development compose file publishes its ports (5435, 3000, 5173, 3100) on `127.0.0.1`
+only, so that the database, with its password `postgres`, and the backend aren't reachable from
+other machines. The backend container reads `backend/.env` if it exists; the values set in
 `docker-compose.yml` take precedence. The `mcp` service gets its settings from
 `docker-compose.yml` alone.
 
@@ -426,6 +428,13 @@ Linting and code formatting is set up for both parts of the stack. The tools are
   `mcp/`, the `*.test.ts` files next to the modules they test, in Node, and the MCP server's
   integration tests in `mcp/test/`; `npm run build` type-checks them with the rest of each
   package's sources.
+- **Licensing** — [REUSE](https://reuse.software/) checks that every file has a licence and a
+  copyright holder, from `REUSE.toml` at the root, and that `LICENSES/` holds exactly the
+  licence texts those name: `uvx --from reuse==6.3.0 reuse lint` from the root. A new file
+  that `REUSE.toml` doesn't cover needs an entry there. `npm run notices -w frontend` writes
+  `frontend/public/THIRD-PARTY-NOTICES.txt`, the licence texts of the packages that reach the
+  built frontend, which nginx serves at `/THIRD-PARTY-NOTICES.txt`; run it after changing
+  those packages and commit the result (a rerun leaves the file unchanged).
 
 ### Git hooks (pre-commit)
 
@@ -460,9 +469,9 @@ uv run pre-commit autoupdate
 ### Continuous integration
 
 GitHub Actions runs `.github/workflows/ci.yml` on every push to any branch, on every pull
-request, and by hand from the Actions tab (*Run workflow*). It has seven jobs, one per kind of
-check and side and a secret scan, so each is its own status check on a pull request. They run
-in parallel:
+request, and by hand from the Actions tab (*Run workflow*). It has eight jobs, one per kind of
+check and side, a secret scan and the licensing check, so each is its own status check on a pull
+request. They run in parallel:
 
 | | Lint & format | Types | Tests |
 |---|---|---|---|
@@ -473,15 +482,17 @@ Each job installs its own dependencies: `uv sync --locked`, which fails when `uv
 matches `pyproject.toml`, or `npm ci`. `pytest` runs against a `postgres:18-alpine` service with
 the database `konnekt_db_test`; EUDIPLO is faked as on your machine, so no job needs a secret.
 In the lint & format jobs, the format check runs after a failed lint too, so one run reports
-both.
+both. The `licensing` job runs `reuse lint` (REUSE 6.3.0 through `uvx`; see
+[What runs where](#what-runs-where)), and `secrets` runs gitleaks over the history
+([Secrets (gitleaks)](#secrets-gitleaks)).
 
 The versions match the Dockerfiles: Python from `backend/.python-version`, uv 0.12.9 and
 Node 26. Change them together, and add a new check to the workflow when you add one to "Before
 you finish" in `CLAUDE.md`.
 
 To block merging a red pull request, make the jobs required status checks in the repository's
-branch protection for `main` (all seven, or only types, tests and secrets if formatting should
-stay advisory).
+branch protection for `main` (all eight, or only types, tests, secrets and licensing if
+formatting should stay advisory).
 
 ### Secrets (gitleaks)
 
@@ -623,6 +634,9 @@ The middleware's own settings:
 | `ALLOW_PLAIN_HTTP` | Allows `http://` for `CONNECTION_BASE_URL` outside development. Only for a closed network | `false` |
 | `WORKER_ENABLED` | Runs the background worker thread (the tests switch it off) | `true` |
 | `LOGIN_SESSION_HOURS` | How long a DO.IT sign-in lasts | `8` |
+| `SIGN_IN_FAILURES_BEFORE_WAIT` | Failed sign-ins in a row for one username, whether or not an account has it, after which every further attempt must wait; an attempt during the wait answers `429` without checking the password | `5` |
+| `SIGN_IN_FIRST_WAIT_SECONDS` | The first wait; it doubles with each further failure. `0` switches the waits off | `30` |
+| `SIGN_IN_MAX_WAIT_SECONDS` | The longest wait, and how long the failures are remembered after it ended (a correct sign-in forgets them at once) | `900` (15 minutes) |
 | `PORTAL_URL` | Public origin of the management UI: the links agents get and the OAuth consent page (`{PORTAL_URL}/authorize`) are built from it | `http://localhost:5173` in development, `CONNECTION_BASE_URL` otherwise |
 | `MCP_URL` | Public URL of the MCP endpoint, which agents' tokens are bound to | `http://localhost:3100/mcp` in development, `CONNECTION_BASE_URL` + `/mcp` otherwise |
 | `OAUTH_ISSUER` | Issuer of the OAuth authorization server that signs agents in | `CONNECTION_BASE_URL` |
@@ -631,6 +645,7 @@ The middleware's own settings:
 | `AGENT_TOKEN_MAX_DAYS` | Longest expiry of a personal access token | `90` |
 | `APPROVAL_REQUEST_MINUTES` | How long an approval link is valid | `10` |
 | `AGENT_DRAFTS_PER_HOUR` | Drafts one agent connection or token may create per hour | `20` |
+| `OAUTH_MAX_UNUSED_REGISTRATIONS` | Dynamically registered OAuth clients that no agent connection or authorization code uses yet are kept at most this many: a new registration removes the oldest beyond it. At least `1` | `1000` |
 | `DELETION_UNDO_SECONDS` | How long the team member who deleted a connection or draft can take it back with the toast's "Undo"; afterwards the deletion is final and the worker deletes its EUDIPLO configurations, its activity and a draft's row. `0` switches restoring off | `300` (5 minutes) |
 
 See `backend/.env.example` for the authoritative list. Settings are loaded by
@@ -683,6 +698,14 @@ At container start, `frontend/nginx/40-servicebw-access.sh` turns the two lists 
 `allow` and `set_real_ip_from` rules. An entry that isn't an address or a range stops the
 container. Request references never reach nginx's logs: the access log shows
 `/requests/<reference>` instead.
+
+nginx also limits requests per client address, as `TRUSTED_PROXY_CIDRS` resolves it: the sign-in
+(`/api/auth/login`) to 30 a minute with a queued burst of 5, client registration
+(`/api/oauth/register`) to 10 a minute with a burst of 20, and the rest of `/api/oauth/` to 60 a
+minute with a burst of 60. Beyond that it answers `429` itself. Behind a proxy, set
+`TRUSTED_PROXY_CIDRS` even without serviceBW: without it every request seems to come from the
+proxy, so all clients share one limit: 30 sign-ins a minute for everyone together.
+Details: [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md), "Sign-in (DO.IT team members)".
 
 ## EUDIPLO
 
@@ -835,14 +858,15 @@ skills in one step.
    export KONNEKT_MCP_URL=https://<domain>/mcp
    ```
 
-2. Add the marketplace, the repository (as `owner/repo`, a git URL or a local checkout), and
-   install the plugin. The marketplace is called `konnekt`, after
-   `.claude-plugin/marketplace.json`:
+2. Add the repository as a marketplace and install the plugin from it. The marketplace and the
+   plugin are both called `konnekt`, after `.claude-plugin/marketplace.json`:
 
    ```bash
-   claude plugin marketplace add <repository>
+   claude plugin marketplace add DigitalProductschool/konnekt
    claude plugin install konnekt@konnekt
    ```
+
+   To try a fork or a local checkout, add its `owner/repo`, git URL or path instead.
 
 3. Start Claude Code. The first call to the server opens the browser on the consent page.
 
@@ -906,13 +930,14 @@ The others have defaults and can be set in the same file: `REQUEST_LIFETIME_SECO
 `ALLOW_PLAIN_HTTP`, `WORKER_ENABLED`, `LOGIN_SESSION_HOURS`, `AGENT_ACCESS_TOKEN_MINUTES`,
 `AGENT_CONNECTION_IDLE_DAYS`, `AGENT_TOKEN_MAX_DAYS`, `APPROVAL_REQUEST_MINUTES` and
 `AGENT_DRAFTS_PER_HOUR` ([Environment Variables](#environment-variables)). A backend setting
-that the compose file doesn't pass, such as `DELETION_UNDO_SECONDS`, keeps its default.
+that the compose file doesn't pass, such as `DELETION_UNDO_SECONDS` or the sign-in throttle's
+`SIGN_IN_*`, keeps its default.
 
-The compose file sets `APP_ENV` to `production`. Any value other than `development` changes
-three things: `CONNECTION_BASE_URL` is required and must use `https://` (unless
-`ALLOW_PLAIN_HTTP=true`), the sign-in cookie is `Secure`, and `PORTAL_URL`, `MCP_URL` and
-`OAUTH_ISSUER` default to addresses under `CONNECTION_BASE_URL`. Error responses are the same in
-every environment.
+The compose file sets `APP_ENV` to `production`, as the backend image already does. Any value
+other than `development` changes three things: `CONNECTION_BASE_URL` is required and must use
+`https://` (unless `ALLOW_PLAIN_HTTP=true`), the sign-in cookie is `Secure`, and `PORTAL_URL`,
+`MCP_URL` and `OAUTH_ISSUER` default to addresses under `CONNECTION_BASE_URL`. Error responses
+are the same in every environment.
 
 ### 2. The reverse proxy
 

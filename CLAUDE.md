@@ -11,6 +11,7 @@ task touches its subject.
 | `docs/EUDIPLO.md` | You call or change anything that talks to EUDIPLO |
 | `docs/FIGMA-WORKFLOW.md` | A task comes with a Figma URL: follow it step by step |
 | `README.md` | Setup, the full command list, accounts, test credentials, Docker, deployment |
+| `NOTICE.md`, `REUSE.toml` | You add a dependency, font, icon or picture, or copy in a file: what is others' and each file's licence |
 | `specs/<feature>/` | You work on a speckit task: spec, plan, research (R#), data model, contracts, design notes |
 | `.specify/memory/constitution.md` | The binding principles; it wins where this file disagrees |
 
@@ -49,6 +50,15 @@ The UI says "connection" for form connection and "variant" for branch, and calls
   and the MCP server (spec 007)"); their `POST`, `PUT` and `DELETE` endpoints also on
   `require_json` (`415`, the CSRF protection). Only `/api/health`, the sign-in, the open OAuth
   endpoints and `/api/connect/` (restricted by the network) are open.
+- **Sign-in throttle** (`services/sign_in_throttle.py`, the `SIGN_IN_*` settings): every attempt
+  counts against its username in `sign_in_throttles`, under the row lock and before the password
+  is checked; one during the wait answers `429 rate_limited` with `Retry-After` and runs no hash;
+  the table keeps the username's hash only, and nothing logs a username or its hash
+  (ARCHITECTURE, "Sign-in (DO.IT team members)").
+- **OAuth registrations** (`services/oauth.py`): at most `OAUTH_MAX_UNUSED_REGISTRATIONS` unused
+  ones stay, each registration removing the oldest beyond it under the registration lock, never
+  one an agent connection or an authorization code uses; a refused body answers RFC 7591's
+  `invalid_client_metadata` (ARCHITECTURE, "Agent access and the MCP server (spec 007)").
 - **Answers**: annotate with `ApiResponse[...]` and return `ApiResponse(data=..., message=...)`
   (`data=None` when there is nothing). Errors raise `HTTPException` with a
   `{'error': ..., 'message': ...}` detail.
@@ -249,15 +259,18 @@ npm run lint && npm test && npm run build
 npm run format
 npm run dev -w frontend   # the SPA on 5173
 npm run dev -w mcp        # the MCP server on 3100 (vite-node; restart after a change)
+npm run notices -w frontend   # rewrites frontend/public/THIRD-PARTY-NOTICES.txt
+uvx --from reuse==6.3.0 reuse lint   # the REUSE check: every file's licence, from REUSE.toml
 ```
 
 Before you finish: Ruff and mypy pass for backend changes (run pytest too), and `npm run lint`,
 `npm test` and `npm run build` from the root for changes in `api-types/`, `rules/`, `frontend/`
-or `mcp/`. Everything else is in `README.md`, "Common Commands".
+or `mcp/`, and the REUSE check when files are added, moved or copied in. Everything else is in
+`README.md`, "Common Commands".
 
-CI (`.github/workflows/ci.yml`) runs the same checks, and gitleaks over the history, on every
-push and pull request: a new check, or a new Python, uv, Node or gitleaks version, goes into it
-too (`README.md`, "Continuous integration").
+CI (`.github/workflows/ci.yml`) runs the same checks, the REUSE check, and gitleaks over the
+history, on every push and pull request: a new check, or a new Python, uv, Node, gitleaks or reuse
+version, goes into it too (`README.md`, "Continuous integration").
 
 ## Adding a feature
 
@@ -270,6 +283,8 @@ too (`README.md`, "Continuous integration").
 ## Never
 
 - Commit `.env` files (use `.env.example`) or any secret.
+- Change `LICENSE` (the EUPL-1.2's English text): `LICENSES/EUPL-1.2.txt` and `backend/LICENSE`
+  are byte-identical copies of it.
 - Get past a gitleaks finding with `--no-verify` or `SKIP=gitleaks`: rotate a real secret, allow
   a false positive (`README.md`, "Secrets (gitleaks)").
 - Edit generated files: Alembic migrations after creation, `rules/src/checks/caseFolding.ts`,
@@ -283,3 +298,5 @@ too (`README.md`, "Continuous integration").
   holding the details
 - Architectural changes → `docs/ARCHITECTURE.md`
 - New dependencies → `README.md`, with the reason they were added
+- A new dependency, font, icon, picture or copied file → `NOTICE.md` and `REUSE.toml`; a package
+  bundled into the SPA → the served notices (`npm run notices -w frontend`)

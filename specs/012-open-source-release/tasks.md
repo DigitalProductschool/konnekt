@@ -478,7 +478,7 @@ texts. Starts when phases 3 to 6 are done.
 **Independent Test**: `handover.md` can be acted on line by line; `pr.md` holds the consent
 statement ready to post.
 
-- [ ] T029 [P] [medium] `CLAUDE.md` in line with the repository (FR-029): the title and the
+- [X] T029 [P] [medium] `CLAUDE.md` in line with the repository (FR-029): the title and the
   names (T004 did the mechanical part; read it through); the REUSE check among the commands and
   in "Before you finish" and the CI paragraph; a rule that `LICENSE` never changes and that
   `LICENSES/EUPL-1.2.txt` and `backend/LICENSE` are its copies; in the documentation checklist,
@@ -486,24 +486,24 @@ statement ready to post.
   `REUSE.toml`, and a bundled package into the served notices (`npm run notices -w frontend`);
   the backend rules for the sign-in throttle and the registration limits in one line each,
   pointing to ARCHITECTURE. Items: FR-029; files: `CLAUDE.md`; gates: none.
-- [ ] T030 [P] [medium] `.specify/memory/constitution.md` as a patch amendment (FR-029): the
+- [X] T030 [P] [medium] `.specify/memory/constitution.md` as a patch amendment (FR-029): the
   wording "this template" and the template's name where they describe this repository, the
   package names, the REUSE check under Principle III's gates as run by the CI; version and
   amendment note as the file's own governance section prescribes. Items: FR-029; files:
   `.specify/memory/constitution.md`; gates: none.
-- [ ] T031 [P] [medium] The MCP guidance read through after the rename (FR-015, FR-029):
+- [X] T031 [P] [medium] The MCP guidance read through after the rename (FR-015, FR-029):
   `mcp/plugin/README.md`, `mcp/plugin/skills/*`, the server's instructions in `mcp/src/`: the
   plugin's and the server's names, the installation commands, the repository's address; `npm
   test -w mcp` (the guidance tests). Items: FR-015, FR-029; files: `mcp/plugin/**`, `mcp/src/`
   texts only; gates: Node.
-- [ ] T032 [medium] Documentation of what phases 3 to 6 added, in the files phase 4 owned: the
+- [X] T032 [medium] Documentation of what phases 3 to 6 added, in the files phase 4 owned: the
   README's "Continuous integration", "What runs where" and "Environment Variables" (the REUSE
   job; every new setting of T025 and T026, also in `docs/ARCHITECTURE.md`); ARCHITECTURE's
   sign-in and OAuth sections for the throttle, the registration limits and the consent page;
   `SECURITY.md` reconciled with what phase 6 really fixed (a finding a task could not fix is
   listed as open, with its report's reason). Items: FR-027, FR-029, constitution IV; depends on
   phases 3 to 6; files: `README.md`, `docs/ARCHITECTURE.md`, `SECURITY.md`; gates: none.
-- [ ] T033 [US1] [medium] `specs/012-open-source-release/pr.md`: the pull request's title and
+- [X] T033 [US1] [medium] `specs/012-open-source-release/pr.md`: the pull request's title and
   description: what the change does in five lines; the consent statement in the mentor's words
   (spec.md, Context, step 9) with `DigitalProductschool/konnekt`, "up to and including
   27.11.2026" and the notice "Copyright 2026 Team Faro, Batch#27, Digital Product School"
@@ -512,7 +512,7 @@ statement ready to post.
   for DPS's template); the sentence that `LICENSE` is the first commit and never changes, with
   its SHA-256; the pull request's attribution line as the session's rules give it. Items:
   FR-008, FR-009, FR-010; files: `pr.md`; gates: none.
-- [ ] T034 [US5] [medium] `specs/012-open-source-release/handover.md` for the mentor, in FR-043's
+- [X] T034 [US5] [medium] `specs/012-open-source-release/handover.md` for the mentor, in FR-043's
   order, each line with what "done" looks like, from research R11's table as amended by the
   spec's Clarifications: first what the route decided on 2026-11-24 needs from the mentor
   (the new repository `DigitalProductschool/konnekt`, created empty and private, with push

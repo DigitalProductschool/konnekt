@@ -420,3 +420,46 @@ checks at the end, below.
 On a running stack: a wrong password six times, then the refusal and its message in both
 languages, then the right password after the wait; the consent page for a client the account
 has never connected, with a real agent (Claude Code or another MCP client).
+
+## Phase 7: the checklist and the files for agents (2026-11-24)
+
+T029 to T034, by four task agents side by side on `HEAD` `c57dffc`, branch `opensource`, each on
+its own files; nothing committed. The coordinator's checks at the end, below.
+
+### What was made
+
+| Task | Files | Result |
+|---|---|---|
+| T029 | `CLAUDE.md` | the rename was complete; added: `NOTICE.md` and `REUSE.toml` in the documents' table, one rule each for the sign-in throttle and the registration limits (pointing to ARCHITECTURE's "Sign-in (DO.IT team members)" and "Agent access and the MCP server (spec 007)"), `npm run notices -w frontend` and `uvx --from reuse==6.3.0 reuse lint` among the commands, the REUSE check in "Before you finish" and the CI paragraph, `LICENSE` under "Never" with its two copies, and the notices in the documentation checklist |
+| T030 | `.specify/memory/constitution.md` | 1.2.1 → 1.2.2 (patch), with its Sync Impact Report: the title "Konnekt Constitution", "this repository" for "this template", the `@konnekt/` package names, the REUSE check as a gate of Principle III |
+| T031 | `mcp/plugin/README.md` | the install command names `DigitalProductschool/konnekt` instead of a placeholder; the manifests, the server's name, its instructions and the eight skills already used the new names. The Account page's link `#installing-the-plugin` resolves in the root README |
+| T032 | `README.md`, `docs/ARCHITECTURE.md`, `SECURITY.md` | everything phases 3 and 6 handed on: the eighth CI job and the REUSE check, the served notices, the four settings, the throttle, the registration limits, the consent page, nginx's three zones and headers, the worker's new step 9 (later steps renumbered), the error handler's headers, the images' `APP_ENV`, `UV_NO_SYNC` and licence files, the ports on `127.0.0.1`; the README's plugin command as in T031; `SECURITY.md` names what was fixed and the two limitations the fixes leave (items 10 and 11); the open findings checked against the code, none changed |
+| T033 | `pr.md` | title, five-line summary, who posts (research R8), how to post, what the mentor's statement fills in (the repository, the date, the notice), `LICENSE`'s SHA-256, the attribution line |
+| T034 | `handover.md` | ten steps in FR-043's order, each with "When" and "Done when"; the existing repository only as "the existing repository" and `<existing-repository-url>` |
+
+### Decisions taken during the phase
+
+- **The consent statement's wording** (T033): the mentor's text is not in the repository (spec,
+  Context, step 9 names the step, not the words). The statements are posted with the mentor's
+  wording as comments on `LICENSE` in the pull request (user, 2026-11-24), so `pr.md` names what
+  is filled in (repository, date, notice) and does not repeat the text.
+- **Three more merged branches** (T034, coordinator): `german-copy-user-tests`,
+  `login-welcome-motion` and `new-visuals` were merged after research R5's audit; `handover.md`
+  lists them with the 18 (21, then `opensource`). `tmp-german` is still not merged; its tip has
+  moved since R5.
+- **`SECURITY.md`** (coordinator): the paragraph on what was fixed stands before the list of what
+  was not, so that the list's introduction leads into it.
+
+### The gates (coordinator, on the finished phase)
+
+| Gate | Result |
+|---|---|
+| `npm test -w mcp`, `npm run lint -w mcp` (T031) | **513** passed; clean |
+| `reuse lint` (6.3.0, with the two git variables) | compliant; 1,176 of 1,176 files |
+| The old names over the eight changed files | nothing |
+| Machine paths over the same files | nothing |
+| `sha256sum LICENSE` | `6fc9e709…1e665` |
+| Prettier | `SECURITY.md`, `pr.md`, `handover.md`, the constitution and the plugin's README pass; `README.md`, `docs/ARCHITECTURE.md` and `CLAUDE.md` failed before the phase too and are outside the hook's scope |
+
+Only Markdown changed, so the other gates were not rerun; T035 runs all of them on the finished
+tree.
