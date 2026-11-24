@@ -200,3 +200,72 @@ No formatter had to run: lint and the format check passed on the first try.
 - `git ls-files | grep -v '^specs/012-open-source-release/' | xargs grep -nIiE
   'connection[ _-]?portal|community-template|template_db|batch27'` prints exactly the 31
   `batch27-faro` lines listed for phase 5 above, and nothing else.
+
+## Phase 3, package C1: the terms (2026-11-24)
+
+T007 to T014, by task agents on `HEAD` `a2adea1`, branch `opensource`; nothing committed. The
+coordinator's checks at the end, below.
+
+### What was made
+
+| Task | Files | Result |
+|---|---|---|
+| T007 | the five `package.json`, `package-lock.json`, `backend/LICENSE`, `backend/pyproject.toml` | `"license": "EUPL-1.2"` in each manifest (`"private": true` kept); `backend/LICENSE` byte-identical to `LICENSE`; `license = "EUPL-1.2"` and `license-files = ["LICENSE"]`, no classifier; the lockfile gained the five licence lines only; `backend/uv.lock` unchanged (`uv lock`; uv 0.12.9's `lock --check` passes) |
+| T008 | `frontend/src/index.css`, `docs/KERN-DESIGN-SYSTEM.md` | attribution comments at A's three sub-blocks, B's six rules and C's rule (`@kern-ux/native` 2.8.2, `dist/kern.css` lines, EUPL-1.2); the "add the kit's styles" sentence in both files asks for the same attribution; D's section names `@kern-ux-annex/kern-react-kit` 2.40.0 and EUPL-1.2. A Vite build before and after: all 39 output files byte-identical |
+| T009 | `NOTICE.md` | from R4's draft with R2 and R3; KERN's design kit on Figma Community: publisher "KERN UX-Standard", "KERN 2 Design-Kit"; the page states no terms, so "terms not stated here" |
+| T010 | `LICENSES/` (`EUPL-1.2.txt` = `LICENSE`, `OFL-1.1.txt`, `Apache-2.0.txt`, `MIT.txt`, `Unicode-3.0.txt`), `REUSE.toml`, research R9 | `reuse` 6.3.0 compliant with REUSE 3.3; R9's "To be verified" answered there; the Unicode data's identifier is `Unicode-3.0` |
+| T011 | research R3, "Data sets" | the English country names, the persona pools and the Stuttgart streets are the team's own compilations: clear, nothing replaced |
+| T012 | `frontend/scripts/third-party-notices.mjs`, `frontend/public/THIRD-PARTY-NOTICES.txt`, `frontend/package.json` (`notices`), `eslint.config.mjs` (Node globals for `frontend/scripts/*.mjs`) | 26 packages, the same set as R4, checked against the build's source maps; hand-kept sections for the theme, lodash and the JSX runtime, the Fira fonts with the OFL, the ICC profile, brotli, `dfa`, `fontkit`; 84,024 bytes, SHA-256 `373b371a…`; the build copies it to the output's root, and nginx 1.31.9 with the repository's `nginx.conf` serves `/THIRD-PARTY-NOTICES.txt` with `200` |
+| T013 | `.github/workflows/ci.yml` | new job `licensing` (`uvx --from reuse==6.3.0 reuse lint`); `actions/checkout` pinned to v7.0.1's commit, `actions/setup-node` to v7.1.0's, each checked with `git ls-remote` and GitHub's API |
+| T014 | research R3 | the four star files are gone (`320728d`) and nothing imports them; the eight `.webp` pictures viewed, none shows the star; the user's answer (2026-11-24): the designer drew and rendered them herself in a design or 3D tool, no third-party images or models |
+
+### Decisions taken during the phase
+
+- **The Tailwind packages** (T007, research R4's proposal): the task's condition, "the MCP image
+  then installs just the six runtime packages", failed by one package: after the move,
+  `npm ci -w mcp --omit=dev` installs seven, the six and `fast-deep-equal` 3.1.3 (MIT), which npm
+  lets through from the frontend's tree (before the move: 29, with Vite, rolldown, postcss and
+  `lightningcss` 1.33.0). The research's reading that every extra package came from Tailwind's
+  placement was partly wrong. The user decided on 2026-11-24 to make the move: the coordinator
+  moved `@tailwindcss/vite` and `tailwindcss` to `devDependencies` and ran `npm install`;
+  `package-lock.json` keeps every entry and version, only `dev` flags and the workspace's manifest
+  copy changed. Rechecked in a scratch copy: seven packages. No image or CI step installs with
+  `--omit=dev` apart from the MCP image's last stage. `NOTICE.md` says what the MCP image holds.
+- **Email addresses in the served notices**: `THIRD-PARTY-NOTICES.txt` holds two authors'
+  addresses, both inside upstream licence notices reproduced verbatim (`@noble/ciphers`,
+  `clone`), which their MIT licences require to be kept. They stay; no other file of the phase
+  holds an address.
+
+### The gates (coordinator, on the finished phase, after a reboot of the machine)
+
+| Gate | Result |
+|---|---|
+| `npm run lint`, `npm run format:check` | pass |
+| `npm test` | rules **2,678**, frontend **2,041**, mcp **513** (T003: the same) |
+| `npm run build` | passes; `dist/THIRD-PARTY-NOTICES.txt` identical to `public/`'s |
+| `npm run notices -w frontend` | leaves the file unchanged |
+| `reuse lint` (6.3.0, with the two git variables) | compliant; 1,168 of 1,168 files with copyright and licence information |
+| `uv run ruff check .`, `ruff format --check .`, `mypy app/ scripts/ tests/` | pass (111 files; 97 source files) |
+| `uv run pytest` | **2,643 passed**, by T007 after its backend changes; nothing under `backend/` changed afterwards except the new `backend/LICENSE` |
+| `uvx uv@0.12.9 lock --check` in `backend/` | passes |
+| `sha256sum LICENSE`; `cmp LICENSE backend/LICENSE LICENSES/EUPL-1.2.txt` | `6fc9e709…1e665`; identical |
+| `git diff` of `LICENSE`, `LICENSE.de`, `backend/alembic/versions/`, the four generated files | no change |
+| T005's old-name search outside this feature's directory | only the 31 lines of machine paths that phase 5 replaces; none in a file of this phase |
+
+### Handed on
+
+- **T028**: the backend Dockerfiles need not copy `backend/LICENSE` before `uv sync`: hatchling
+  1.33.0 builds and installs the project without the file (it then leaves `License-File` out of
+  the metadata, without a warning), and both images' `uv sync` steps passed without it in
+  throwaway builds. Hatchling is not pinned in `[build-system]`; a later version could start
+  failing on a pattern without a match, and one `COPY` line would remove that risk.
+- **Phase 6** (`frontend/nginx.conf`): nginx serves `THIRD-PARTY-NOTICES.txt` as `text/plain`
+  without a charset, and the file is UTF-8 (the German EUPL text, ©); `charset utf-8;` would fix
+  it.
+- **T029 and T032**: README's "Continuous integration" still counts seven jobs; the REUSE job and
+  `npm run notices -w frontend` are in neither README nor `CLAUDE.md` yet.
+- **T036**: this checkout's `.venv` still holds the project's distribution under its old name
+  beside `konnekt-backend`, which the `pip-licenses` command of `NOTICE.md` would list; a fresh
+  `uv sync` or clone does not.
+- **The `licensing` job** runs `uvx` on the runner's own Python (the root has no
+  `.python-version`); `--python 3.13` would pin it. Not run on GitHub yet.

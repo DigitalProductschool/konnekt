@@ -176,7 +176,7 @@ files, `package-lock.json`, `backend/pyproject.toml`, `backend/uv.lock`,
 `.github/workflows/ci.yml`, `frontend/src/index.css`, `docs/KERN-DESIGN-SYSTEM.md`,
 `frontend/public/`, `frontend/scripts/`, `frontend/src/assets/`.
 
-- [ ] T007 [P] [US1] [high] Licence metadata. `"license": "EUPL-1.2"` in the root's,
+- [X] T007 [P] [US1] [high] Licence metadata. `"license": "EUPL-1.2"` in the root's,
   `api-types/`, `rules/`, `frontend/` and `mcp/` `package.json`, `"private": true` kept, then
   `npm install`. `backend/LICENSE` as a byte-identical copy of the root's (`cmp`). In
   `backend/pyproject.toml`'s `[project]`: `license = "EUPL-1.2"` and
@@ -190,7 +190,7 @@ files, `package-lock.json`, `backend/pyproject.toml`, `backend/uv.lock`,
   scratch copy then installs just the six runtime packages; otherwise leave them and say so for
   T009. Items: FR-003, FR-004; files: the five `package.json`, `package-lock.json`,
   `backend/LICENSE`, `backend/pyproject.toml`, `backend/uv.lock`; gates: all.
-- [ ] T008 [P] [US1] [medium] KERN attribution, comments only (research R2, exceptions A to D and
+- [X] T008 [P] [US1] [medium] KERN attribution, comments only (research R2, exceptions A to D and
   its Decision): in `frontend/src/index.css` a comment at each of A's three sub-blocks, at each
   of B's six rules and at C's rule, naming the upstream file and lines, `@kern-ux/native` 2.8.2
   and EUPL-1.2; the sentence at `index.css:5-7` and at `docs/KERN-DESIGN-SYSTEM.md:88-91` gains
@@ -199,7 +199,7 @@ files, `package-lock.json`, `backend/pyproject.toml`, `backend/uv.lock`,
   version and licence. No declaration changes: build the frontend into scratch before and after
   and show that the CSS output is byte-identical. Items: FR-019; files: `frontend/src/index.css`,
   `docs/KERN-DESIGN-SYSTEM.md`; gates: Node.
-- [ ] T009 [US1] [high] `NOTICE.md` in the root, from research R4's draft, as proper Markdown
+- [X] T009 [US1] [high] `NOTICE.md` in the root, from research R4's draft, as proper Markdown
   with a header row per table and working links, corrected by R2 and R3 where they are more
   precise. It must hold: the three KERN packages (the Tailwind theme under MIT with its
   copyright line); both Fira families with the OFL's exact title and the copyright lines of
@@ -218,7 +218,7 @@ files, `package-lock.json`, `backend/pyproject.toml`, `backend/uv.lock`,
   T012 is. The data sources come from T011. Items: FR-017, FR-018, FR-020 to FR-022; depends on
   T007 (the MCP image's sentence), T011, T014 (R3's record of the illustrations); files:
   `NOTICE.md`; gates: none (links: T039).
-- [ ] T010 [US1] [high] `LICENSES/` and `REUSE.toml` (research R9). `LICENSES/EUPL-1.2.txt` is a
+- [X] T010 [US1] [high] `LICENSES/` and `REUSE.toml` (research R9). `LICENSES/EUPL-1.2.txt` is a
   byte-identical copy of the root's `LICENSE`; `OFL-1.1.txt`, `Apache-2.0.txt`, `MIT.txt` and the
   Unicode licence come from SPDX's licence list by identifier; there is no `LicenseRef-` text,
   since the illustrations are the team's (T014). `REUSE.toml` as R9's draft, then settle R9's "To be
@@ -230,7 +230,7 @@ files, `package-lock.json`, `backend/pyproject.toml`, `backend/uv.lock`,
   and no unused licence text. Record what was settled in research R9 (replace its "To be
   verified" paragraph by the answers). Items: FR-006, SC-001; depends on T007, T009 (the same
   groups); files: `LICENSES/*`, `REUSE.toml`, `research.md` (R9 only); gates: `reuse lint`.
-- [ ] T011 [P] [US1] [medium] Record the sources research R3 leaves open, by reading the history
+- [X] T011 [P] [US1] [medium] Record the sources research R3 leaves open, by reading the history
   and the specs (`git log -S`, `git blame`) for the commit and the task that added each: the
   English country names (`backend/app/option_sets.py`), the name and town pools
   (`rules/src/personas/samples.ts`), the streets and postcodes
@@ -239,7 +239,7 @@ files, `package-lock.json`, `backend/pyproject.toml`, `backend/uv.lock`,
   list for T009 and into research R3's table (status "clear"). Replace nothing unless a list
   turns out to be copied from a source with terms that forbid it; then stop and report. Items:
   FR-017, FR-018; files: `research.md` (R3's "Data sets" table only); gates: none.
-- [ ] T012 [US1] [high] The served third-party notices (research R4, "The built frontend"):
+- [X] T012 [US1] [high] The served third-party notices (research R4, "The built frontend"):
   `frontend/scripts/third-party-notices.mjs` (Node only, no dependency) writes
   `frontend/public/THIRD-PARTY-NOTICES.txt` from the licence files of the packages that reach
   the bundle (R4 lists 26), and appends by hand-kept sections what has no file: lodash inside
@@ -251,13 +251,13 @@ files, `package-lock.json`, `backend/pyproject.toml`, `backend/uv.lock`,
   depends on T007 (`frontend/package.json`); files: `frontend/scripts/third-party-notices.mjs`,
   `frontend/public/THIRD-PARTY-NOTICES.txt`, `frontend/package.json`, and `eslint.config.mjs`
   only if the linter must be told about the new folder; gates: Node.
-- [ ] T013 [US1] [medium] The CI (the only task that edits `.github/workflows/ci.yml`): a new
+- [X] T013 [US1] [medium] The CI (the only task that edits `.github/workflows/ci.yml`): a new
   read-only job that runs the REUSE check of T010 at its pinned version, and research R6's
   finding 22: `actions/checkout` and `actions/setup-node` pinned by commit with the tag in a
   comment, as `setup-uv` is. Items: FR-006, FR-041; depends on T010; files:
   `.github/workflows/ci.yml`; gates: the file parses (`python -c 'import yaml…'` or `actionlint`
   if present).
-- [ ] T014 [US1] [medium] The star artwork's replacement, checked and recorded (research R3,
+- [X] T014 [US1] [medium] The star artwork's replacement, checked and recorded (research R3,
   decision 1; decided on 2026-11-21). The replacement itself is not this spec's work: the
   designer's new visuals (the Figma page "New visuals": eight pictures in place of the four, a
   rebuilt sign-in page, a redrawn not-found page, changed placements on the welcome page, the

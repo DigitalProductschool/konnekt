@@ -141,10 +141,11 @@ export default defineConfig([
     rules: { 'no-console': 'off' },
   },
 
-  // Build and test configs (vite.config.ts, vitest.config.ts, eslint.config.mjs): Node globals.
-  // `*` does not cross directories, so these match only a package's root and the workspace root
+  // Build and test configs (vite.config.ts, vitest.config.ts, eslint.config.mjs) and the frontend's
+  // Node scripts (third-party-notices.mjs): Node globals. `*` does not cross directories, so these
+  // match only a package's root, the workspace root and frontend/scripts/
   {
-    files: ['*/vite.config.ts', '*/vitest.config.ts', '*.mjs'],
+    files: ['*/vite.config.ts', '*/vitest.config.ts', '*.mjs', 'frontend/scripts/*.mjs'],
     extends: [js.configs.recommended, tseslint.configs.recommended],
     languageOptions: { globals: globals.node },
   },
