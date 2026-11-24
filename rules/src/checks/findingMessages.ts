@@ -21,7 +21,7 @@
 // Both languages (spec 009, research R4): every composer takes a trailing `language`, English by
 // default, so that the MCP server, which passes none, keeps answering agents in English (FR-017).
 // The words and templates are in `findingTexts.ts`; the composing stays here.
-import type { RuleTreeItem } from '@connection-portal/api-types/form-connections';
+import type { RuleTreeItem } from '@konnekt/api-types/form-connections';
 
 import { DEFAULT_LANGUAGE, type Language } from '../language';
 import { flattenItems } from '../tree';

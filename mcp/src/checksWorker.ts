@@ -4,8 +4,8 @@
 // finishes, then 'done'. It holds no state between messages, logs nothing and sends nothing
 // elsewhere (FR-035). `runChecks()` in `checks.ts` starts it and ends it
 import { parentPort } from 'node:worker_threads';
-import { checkBranch } from '@connection-portal/rules/checks/findings';
-import type { CheckMessage, WorkerMessage } from '@connection-portal/rules/checks/types';
+import { checkBranch } from '@konnekt/rules/checks/findings';
+import type { CheckMessage, WorkerMessage } from '@konnekt/rules/checks/types';
 
 /** The clock the deadline is measured on, the same as the main thread's */
 function now(): number {

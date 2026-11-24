@@ -1,5 +1,5 @@
-import type { ApiErrorResponse, ApiResponse, ErrorNotice } from '@connection-portal/api-types/api';
-import { DEFAULT_LANGUAGE, defineTexts, type Language } from '@connection-portal/rules/language';
+import type { ApiErrorResponse, ApiResponse, ErrorNotice } from '@konnekt/api-types/api';
+import { DEFAULT_LANGUAGE, defineTexts, type Language } from '@konnekt/rules/language';
 
 // In production VITE_API_URL is unset and the app calls its own origin ('/api'),
 // which nginx proxies to the backend. In dev it points at the backend directly.

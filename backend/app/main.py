@@ -115,7 +115,7 @@ async def lifespan(_app: FastAPI) -> AsyncIterator[None]:
 
 
 app = FastAPI(
-    title='serviceBW ↔ EUDI Wallet Middleware',
+    title='Konnekt',
     description='FastAPI backend with PostgreSQL',
     version='0.1.0',
     lifespan=lifespan,

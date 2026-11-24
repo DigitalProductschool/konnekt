@@ -6,7 +6,7 @@ Team members can now use the whole website in English or German. A "DE | EN" swi
 header's right group (every layout, signed in or out; the buttons named "Deutsch" and "English"
 for screen readers) changes every text of the screen in one activation, with no reload and
 nothing typed, selected or opened lost. The choice is remembered in the browser
-(`connection-portal:language:v1`) and followed by other tabs; on a first visit a German browser
+(`konnekt:language:v1`) and followed by other tabs; on a first visit a German browser
 language opens German, anything else English. `<html lang>` and the tab title follow the choice.
 
 How it's built:

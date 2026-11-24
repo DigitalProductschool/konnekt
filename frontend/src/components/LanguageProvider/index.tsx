@@ -1,5 +1,5 @@
-import type { Language } from '@connection-portal/rules/language';
 import { KernContextProvider } from '@kern-ux-annex/kern-react-kit';
+import type { Language } from '@konnekt/rules/language';
 import { useCallback, useEffect, useLayoutEffect, useMemo, useState } from 'react';
 
 import { setRequestLanguage } from '../../api/client';
@@ -55,7 +55,7 @@ function initialLanguage(browserLanguage: string | null): Language {
  * every change; the kit's own texts too, through the `KernContextProvider` inside.
  *
  * Besides `useLocalDraftStore` and `useRememberedHomepage`, this is the only code that touches
- * `window.localStorage`: one key, `connection-portal:language:v1`. It also is the only code that
+ * `window.localStorage`: one key, `konnekt:language:v1`. It also is the only code that
  * reads `navigator.language`. Nothing here logs.
  */
 export default function LanguageProvider({ children }: LanguageProviderProps) {

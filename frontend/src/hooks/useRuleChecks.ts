@@ -3,19 +3,19 @@
 // `checks/runState.ts`; this hook does what touches the browser: the dynamic import of the checked
 // tree, the clock, today in Germany, the worker, its messages and the watchdog. Nothing about the
 // findings is stored, sent or logged (FR-018 to FR-020)
-import type { LiteralContext } from '@connection-portal/rules/checks/literals';
+import type { LiteralContext } from '@konnekt/rules/checks/literals';
 import {
   checkMessageOf,
   initialRunState,
   runStateReducer,
   watchdogAt,
-} from '@connection-portal/rules/checks/runState';
+} from '@konnekt/rules/checks/runState';
 import type {
   CheckMessage,
   RuleChecks,
   RunAction,
   WorkerMessage,
-} from '@connection-portal/rules/checks/types';
+} from '@konnekt/rules/checks/types';
 import {
   type Dispatch,
   type RefObject,
@@ -49,7 +49,7 @@ function useCheckedTree(ready: boolean): CheckedTreeModule | null {
       return;
     }
     let ignore = false;
-    import('@connection-portal/rules/checks/checkedTree').then(
+    import('@konnekt/rules/checks/checkedTree').then(
       ({ buildCheckedBranch }) => {
         if (!ignore) setCheckedTree({ buildCheckedBranch });
       },

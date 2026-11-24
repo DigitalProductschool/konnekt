@@ -2,8 +2,8 @@
 // contracts/rule-checks.md "Worker protocol"). On a 'check' message, it checks the branches in the
 // order given and posts each branch's result as it finishes, then 'done'. It holds no state between
 // messages, logs nothing and sends nothing elsewhere (FR-018 to FR-020)
-import { checkBranch } from '@connection-portal/rules/checks/findings';
-import type { CheckMessage, WorkerMessage } from '@connection-portal/rules/checks/types';
+import { checkBranch } from '@konnekt/rules/checks/findings';
+import type { CheckMessage, WorkerMessage } from '@konnekt/rules/checks/types';
 
 /**
  * The part of the worker's global scope this entry uses. `tsconfig.app.json` has the `DOM`

@@ -1,6 +1,6 @@
-import { optionsOf } from '@connection-portal/rules/conditions';
-import { LICENCE_CLASSES_SET } from '@connection-portal/rules/constants';
-import type { PersonaField } from '@connection-portal/rules/personas/types';
+import { optionsOf } from '@konnekt/rules/conditions';
+import { LICENCE_CLASSES_SET } from '@konnekt/rules/constants';
+import type { PersonaField } from '@konnekt/rules/personas/types';
 
 import { ELEMENT_IDS } from '../constants';
 import EditorField from './EditorField';

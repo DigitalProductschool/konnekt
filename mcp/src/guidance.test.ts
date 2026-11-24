@@ -88,20 +88,20 @@ describe('the instructions', () => {
 });
 
 describe('the plugin', () => {
-  it('names the MCP server connection-portal in .mcp.json', () => {
+  it('names the MCP server konnekt in .mcp.json', () => {
     const mcp = readJson('../plugin/.mcp.json') as {
       mcpServers?: Record<string, { type?: string; url?: string }>;
     };
-    expect(Object.keys(mcp.mcpServers ?? {})).toEqual(['connection-portal']);
-    expect(mcp.mcpServers?.['connection-portal']).toEqual({
+    expect(Object.keys(mcp.mcpServers ?? {})).toEqual(['konnekt']);
+    expect(mcp.mcpServers?.['konnekt']).toEqual({
       type: 'http',
-      url: '${CONNECTION_PORTAL_MCP_URL}',
+      url: '${KONNEKT_MCP_URL}',
     });
   });
 
-  it('is named connection-portal in plugin.json', () => {
+  it('is named konnekt in plugin.json', () => {
     const plugin = readJson('../plugin/.claude-plugin/plugin.json') as { name?: string };
-    expect(plugin.name).toBe('connection-portal');
+    expect(plugin.name).toBe('konnekt');
   });
 
   it('is listed in the repository root marketplace.json', () => {
@@ -109,7 +109,7 @@ describe('the plugin', () => {
       plugins?: { name?: string; source?: string }[];
     };
     expect(marketplace.plugins).toContainEqual(
-      expect.objectContaining({ name: 'connection-portal', source: './mcp/plugin' })
+      expect.objectContaining({ name: 'konnekt', source: './mcp/plugin' })
     );
   });
 });

@@ -1,4 +1,4 @@
-import { chipNameOf } from '@connection-portal/rules/personas/messages';
+import { chipNameOf } from '@konnekt/rules/personas/messages';
 
 import { useLanguage } from '../../../hooks/useLanguage';
 import { ELEMENT_IDS } from '../constants';

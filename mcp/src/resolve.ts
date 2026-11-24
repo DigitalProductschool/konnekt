@@ -2,15 +2,11 @@
 // its id or a link; a variant, rule or group by its id, a link or its name; a rule's data by its
 // catalog keys. Pure: the tools pass what they read. A refusal is a `ReferenceRefusal` with the
 // tool error's code, which the registry (T029) answers
-import type {
-  BranchInput,
-  RuleTarget,
-  RuleTreeItem,
-} from '@connection-portal/api-types/form-connections';
-import type { OptionSet } from '@connection-portal/api-types/option-sets';
-import { LICENCE_CLASSES_SET } from '@connection-portal/rules/constants';
-import { findItem, flattenItems, foldName } from '@connection-portal/rules/tree';
-import type { FoundItem, RuleDocument } from '@connection-portal/rules/types';
+import type { BranchInput, RuleTarget, RuleTreeItem } from '@konnekt/api-types/form-connections';
+import type { OptionSet } from '@konnekt/api-types/option-sets';
+import { LICENCE_CLASSES_SET } from '@konnekt/rules/constants';
+import { findItem, flattenItems, foldName } from '@konnekt/rules/tree';
+import type { FoundItem, RuleDocument } from '@konnekt/rules/types';
 
 import { parseReference, type Reference, ReferenceRefusal } from './links';
 import { type ItemRef, itemRefOf, type VariantRef, variantRefOf } from './views';

@@ -72,6 +72,7 @@ a recorded source; internal host names, local paths and Figma file keys in `spec
   `konnekt`, the backend project `konnekt-backend`, the agents' plugin and its marketplace
   `konnekt`, the databases `konnekt_db` and `konnekt_db_test`. The browser's storage key prefix
   `connection-portal:local-draft:v1:` stays, so that stored local drafts survive (FR-012).
+  *Superseded on 2026-11-24: the storage keys are renamed too (session "no old name left").*
 - Q: Is the git history published? → A: Yes, as it is. The author addresses in it become public,
   which the user accepts. A finding that only a rewrite could remove is escalated, not rewritten
   (FR-031).
@@ -122,6 +123,27 @@ session above where they differ.
   project's UI with invented data and stay; the blank one is deleted (FR-034).
 - Q: The MCP server's own name? → A: `konnekt`, with the plugin (FR-015).
 - Not asked of this spec: whether the repository is archived, and the branch `tmp-german`.
+
+### Session 2026-11-24, no old name left
+
+These answers take precedence over every session in this section where they differ, also over
+the 2026-11-21 sessions below.
+
+- Q: Do the browser's storage keys keep the old prefix? → A: No. No old name stays anywhere in
+  the tree. Everything is redeployed, so the keys become `konnekt:local-draft:v1:` and
+  `konnekt:language:v1` without a migration: drafts and language choices stored under the old
+  keys are simply no longer read (FR-012). The plugin's variable `CONNECTION_PORTAL_MCP_URL`
+  becomes `KONNEKT_MCP_URL`, and "Connection Portal" in the earlier specs and bug records becomes
+  "Konnekt" (FR-013, FR-014).
+- Q: This spec's own files, which describe the rename? → A: They keep the old names while the
+  work runs, since the tasks read them, and are cleaned last: the old names, the old
+  repository's name and the checkout's paths replaced by neutral words (T041). After that the
+  search finds nothing anywhere.
+- Q: Are the old names also replaced in the git history? → A: No. The rewrite removes only the
+  star artwork (FR-044); the commits before the rename keep the names they had.
+- Q: The README's paragraph for an installation from before the rename? → A: Dropped
+  (FR-016): everything is redeployed. A team member who installed the plugin before follows the
+  README's plugin steps again.
 
 ### Session 2026-11-21, the star artwork
 
@@ -222,8 +244,8 @@ findings that block publication and check each is closed.
 
 A visitor reads "Konnekt" in the repository's name, in the README's title, in the packages'
 names, in the UI and in the agents' plugin. The names of the template the code started from and
-the working name `connection-portal` appear nowhere a reader would take them for the product's
-name.
+the working names `connection-portal` and "Connection Portal" appear nowhere in the tree, not
+even in the browser's storage keys (Clarifications, 2026-11-24).
 
 **Why this priority**: The mentor's step 2. It comes before the public-facing files and the
 consent statement in time, because both carry the name.
@@ -234,14 +256,16 @@ and nothing else. Run every check of "Before you finish" in `CLAUDE.md`.
 **Acceptance Scenarios**:
 
 1. **Given** the renamed repository, **When** the tree is searched for `connection-portal`,
-   `community-template`, `template_db` and `batch27-faro`, **Then** only the allowlisted
-   occurrences remain.
-2. **Given** a browser that holds a local draft from before the rename, **When** the team member
-   opens Konnekt after it, **Then** the draft is still offered.
+   `community-template`, `template_db`, `batch27` and "Connection Portal" in any case, **Then**
+   only this spec's own files match, and after T041 nothing does.
+2. **Given** a browser that holds a local draft or a language choice from before the rename,
+   **When** the team member opens Konnekt after it, **Then** Konnekt opens as on a first visit,
+   without an error: the old entries are no longer read.
 3. **Given** the Account page, **When** the team member follows "Installing the plugin", **Then**
    the link leads to the new repository's README.
 4. **Given** the rename, **When** the checks run, **Then** the same tests pass as before, and no
-   migration, generated file or stored identifier was edited by hand.
+   migration or generated file was edited by hand, and no stored identifier changed apart from
+   the browser's two storage keys (FR-012).
 
 ---
 
@@ -373,20 +397,22 @@ what it means.
   with EUDIPLO, the API's paths, the environment variables' names, the MCP tools' names.
   `research.md` lists the occurrences of the old names by kind before anything is renamed, and
   any exception to this rule is decided there. Generated files change only through their
-  generator.
+  generator. *Exception (Clarifications, 2026-11-24)*: the browser's two storage keys and the
+  plugin's variable `CONNECTION_PORTAL_MCP_URL` take the new name, without a migration.
 - **FR-013**: After the rename, a search for the old names (`connection-portal`,
-  `community-template`, `template_db`, `batch27-faro`, `batch27`) MUST return only an allowlist
-  that `research.md` holds, each line with its reason: the storage key, existing migrations, this
-  spec's own text, and the history notes of FR-014.
+  `community-template`, `template_db`, `batch27-faro`, `batch27`, and "Connection Portal" in any
+  case) MUST return nothing outside this spec's own files; once T041 has cleaned those, it MUST
+  return nothing at all (Clarifications, 2026-11-24).
 - **FR-014**: The earlier specs and bug records are renamed with the rest, so that the paths they
-  name exist; a note at the top of `specs/` says that the names were changed on this date and
-  what they were.
+  name exist; a note at the top of `specs/` says that the records were updated to the current
+  names after the fact, without naming the old ones (Clarifications, 2026-11-24).
 - **FR-015**: The Account page's link to the plugin's installation MUST point to the new
   repository, and every instruction that names the repository or the plugin (the README, the
   MCP guidance, the marketplace file) MUST use the new names; the MCP server's own name becomes
   `konnekt`, and the marketplace's owner Team Faro. The MCP guidance's tests MUST pass.
-- **FR-016**: The README MUST say, in one place, what the operator of an installation from
-  before the rename does: the database's name and the plugin's reinstallation.
+- **FR-016**: *Withdrawn on 2026-11-24* (Clarifications): everything is redeployed, so the
+  README has no paragraph for an installation from before the rename. A team member who
+  installed the plugin before follows the README's plugin steps again.
 
 #### Third-party material
 
@@ -517,8 +543,9 @@ what it means.
   (FR-018, FR-044).
 - **SC-003**: Every contributor on the list has posted the consent statement before the merge;
   the count of statements equals the count of contributors.
-- **SC-004**: The searches for the old names and for the scrub patterns return only allowlisted
-  lines, and each allowlist has fewer than 20 lines.
+- **SC-004**: The search for the old names returns nothing at all (FR-013, after T041); the
+  searches for the scrub patterns return only allowlisted lines, and that allowlist has fewer
+  than 20 lines.
 - **SC-005**: The secret scan over the full history reports no open finding, and no credential
   that ever appeared in the repository still works.
 - **SC-006**: No finding of the security review marked as blocking is open at publication.
@@ -558,5 +585,6 @@ what it means.
 - Git works in this checkout only with `GIT_DIR=/home/debian/batch27-faro/worktrees/opensource`
   and `GIT_WORK_TREE=/home/debian/batch27-faro/opensource`; no task commits, the user does, on
   another machine.
-- The browser's second storage key, `connection-portal:language:v1` (the language choice), stays
-  for the same reason as the local drafts' prefix (FR-012).
+- The browser's storage keys take the new name (Clarifications, 2026-11-24): local drafts and
+  language choices stored before the rename are no longer read, which the user accepts because
+  everything is redeployed.

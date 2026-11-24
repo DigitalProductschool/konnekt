@@ -1,4 +1,4 @@
-import { defineTexts } from '@connection-portal/rules/language';
+import { defineTexts } from '@konnekt/rules/language';
 
 // The product's name, in every screen and tab title (KERN Revamp design; spec 008, FR-019)
 export const APP_NAME = 'Konnekt';

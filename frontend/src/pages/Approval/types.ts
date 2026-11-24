@@ -1,15 +1,11 @@
-import type { ErrorNotice } from '@connection-portal/api-types/api';
-import type {
-  ApprovalAction,
-  ApprovalPreview,
-  ApprovalStatus,
-} from '@connection-portal/api-types/approvals';
-import type { DocumentType } from '@connection-portal/api-types/document-types';
+import type { ErrorNotice } from '@konnekt/api-types/api';
+import type { ApprovalAction, ApprovalPreview, ApprovalStatus } from '@konnekt/api-types/approvals';
+import type { DocumentType } from '@konnekt/api-types/document-types';
 import type {
   ConnectionUrls,
   FormConnection,
   FormConnectionDraft,
-} from '@connection-portal/api-types/form-connections';
+} from '@konnekt/api-types/form-connections';
 
 import type { DocumentTypesState } from '../../hooks/types';
 import type { LinkCardLink } from '../FormConnectionDetail/types';

@@ -1,5 +1,5 @@
-import type { AccessLevel } from '@connection-portal/api-types/agent-access';
 import { KernAlert } from '@kern-ux-annex/kern-react-kit';
+import type { AccessLevel } from '@konnekt/api-types/agent-access';
 import { useEffect, useMemo, useReducer, useRef } from 'react';
 import { Link, useSearchParams } from 'react-router';
 

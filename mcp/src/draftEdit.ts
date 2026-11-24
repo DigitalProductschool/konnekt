@@ -8,8 +8,8 @@ import type {
   FormConnectionDraft,
   FormConnectionOrDraft,
   RequestedDocument,
-} from '@connection-portal/api-types/form-connections';
-import type { EditRefusal, EditResult, EditState } from '@connection-portal/rules/types';
+} from '@konnekt/api-types/form-connections';
+import type { EditRefusal, EditResult, EditState } from '@konnekt/rules/types';
 import type { CallToolResult } from '@modelcontextprotocol/server';
 
 import { type Caller, insufficientAccessError, levelAllows } from './auth';

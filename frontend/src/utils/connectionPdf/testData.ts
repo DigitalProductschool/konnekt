@@ -10,7 +10,7 @@ import type {
   FieldKind,
   FieldPart,
   PartKind,
-} from '@connection-portal/api-types/document-types';
+} from '@konnekt/api-types/document-types';
 import type {
   Branch,
   BranchInput,
@@ -27,11 +27,11 @@ import type {
   RuleItem,
   RuleTarget,
   RuleTreeItem,
-} from '@connection-portal/api-types/form-connections';
-import type { OptionSet } from '@connection-portal/api-types/option-sets';
-import { requestedRuleDocuments } from '@connection-portal/rules/conditions';
-import type { Language } from '@connection-portal/rules/language';
-import type { RuleContext } from '@connection-portal/rules/types';
+} from '@konnekt/api-types/form-connections';
+import type { OptionSet } from '@konnekt/api-types/option-sets';
+import { requestedRuleDocuments } from '@konnekt/rules/conditions';
+import type { Language } from '@konnekt/rules/language';
+import type { RuleContext } from '@konnekt/rules/types';
 
 // ---------------------------------------------------------------------------------------------
 // The catalog (backend/app/catalog.py, option_sets.py): GET /api/document-types and

@@ -1,4 +1,4 @@
-import { kindTextOf } from '@connection-portal/rules/checks/findingMessages';
+import { kindTextOf } from '@konnekt/rules/checks/findingMessages';
 
 import { useLanguage } from '../../hooks/useLanguage';
 import { FINDING_LOOKS } from './constants';

@@ -327,7 +327,7 @@ is amended). The pure part is `utils/language/`: `resolveLanguage(stored, browse
 (a stored `'en'` / `'de'` wins; otherwise `de` when the browser's preferred language's primary
 subtag is `de`, for `de-AT`, `de-CH`, `de-LI` too; otherwise `en`; a stored third value counts as
 no choice), with its test. The provider reads `window.localStorage` under the key
-`connection-portal:language:v1` and `navigator.language` once, synchronously in the initial
+`konnekt:language:v1` and `navigator.language` once, synchronously in the initial
 state of `useState`, inside `try/catch` (a blocked storage gives the first-visit rule and the
 choice lasts for the visit), so the first render is already in the right language (FR-009) and no
 screen flashes English. `setLanguage()` updates the state, writes the key (in `try/catch`), and a

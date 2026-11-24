@@ -4,7 +4,7 @@ services:
     environment:
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: postgres
-      POSTGRES_DB: template_db
+      POSTGRES_DB: konnekt_db
     ports:
       - '5435:5432'
     volumes:
@@ -29,7 +29,7 @@ services:
       - path: ./backend/.env
         required: false
     environment:
-      DATABASE_URL: postgresql+psycopg://postgres:postgres@postgres:5432/template_db
+      DATABASE_URL: postgresql+psycopg://postgres:postgres@postgres:5432/konnekt_db
       PORT: 3000
       CORS_ORIGIN: http://localhost:5173
       APP_ENV: development

@@ -111,9 +111,8 @@ report lists them) and the exact wording to port. Adopted items are FR-019 to FR
 deferred item is collected with its frames and wording in [deferred.md](deferred.md), ready for a
 later `/speckit-specify`.
 
-- Q: Should the product be renamed "Konnekt" everywhere, as the design names it, or stay
-  "Connection Portal"? (Q1, C) → A: Adopt "Konnekt" in every place; "Connection Portal" remains
-  nowhere.
+- Q: Should the product be named "Konnekt" everywhere, as the design names it? (Q1, C)
+  → A: Adopt "Konnekt" in every place, and no other name.
   - Surfaces: the header product name in every frame U10–U100 (U11 6699:44242, U12 6699:45198,
     U17 6699:47945, U80 6701:40160, U99 6730:39734; sign-in U03 6703:39311); the h1 (U11
     6699:44486, U18 6793:47682); the rules intro in every rules frame (U29 6702:39345, U41
@@ -129,7 +128,7 @@ later `/speckit-specify`.
     reads "No agent is connected yet. Add Konnekt's MCP server to your agent to connect it."
   - Supersedes: no Clarification.
   - Scope (analysis 2026-11-07, research R2): texts, guidance and docs; code identifiers and the
-    npm scope `@connection-portal/*` keep their names (FR-019).
+    npm scope `@konnekt/*` keep their names (FR-019).
 
 - Q: Should the people who share wallet data be called "citizens", as the design writes everywhere,
   instead of "applicants"? (Q2, C) → A: Adopt "citizen" in every place; "applicant" remains
@@ -1747,8 +1746,8 @@ Decided drift items (Clarifications, session 2026-11-07):
 
 - **FR-019**: The product is named "Konnekt" in every screen and tab title, in the consent and
   account texts, in the MCP guidance, in the backend's and the MCP server's texts, and in the
-  README and docs; "Connection Portal" remains nowhere in a text (Q1). Code identifiers and the
-  npm scope `@connection-portal/*` keep their names (research R2).
+  README and docs; no other product name remains in a text (Q1). Code identifiers and the
+  npm scope `@konnekt/*` keep their names (research R2).
 - **FR-020**: The people who share wallet data are "citizens" in every screen, in the findings
   texts of the rules package, in its test-step texts and in the MCP guidance; "applicant" remains
   nowhere in a text (Q2). Code identifiers (`applicant.ts`, `ApplicantsRow.tsx`, the `applicants`

@@ -49,11 +49,11 @@ a developer machine. The nginx allow-list (R13) applies only to the production i
 
 ```bash
 # Backend: lint, types, tests. Tests need a database whose name ends in "_test".
-docker compose exec postgres createdb -U postgres template_db_test
+docker compose exec postgres createdb -U postgres konnekt_db_test
 cd backend
 uv run ruff check . && uv run ruff format --check .
 uv run mypy app/ scripts/ tests/
-DATABASE_URL=postgresql+psycopg://postgres:postgres@localhost:5435/template_db_test uv run pytest
+DATABASE_URL=postgresql+psycopg://postgres:postgres@localhost:5435/konnekt_db_test uv run pytest
 
 # Frontend: the constitution's gates
 cd ../frontend
@@ -80,7 +80,7 @@ Start with no form connection. On a local stack whose database already has some,
 deletion would (US4 adds deleting to the UI):
 
 ```bash
-docker compose exec postgres psql -U postgres -d template_db \
+docker compose exec postgres psql -U postgres -d konnekt_db \
   -c "UPDATE form_connections SET deleted_at = now() WHERE deleted_at IS NULL;"
 ```
 
@@ -207,7 +207,7 @@ Removed on 2026-10-19: webhook mode is out of scope (see the spec's Clarificatio
    - **Expected**: the EUDIPLO session is gone, and a pull returns `completed` with
      `documents: null`.
 3. Inspect the middleware's database, for example
-   `docker compose exec postgres psql -U postgres template_db -c '\dt'`, and the
+   `docker compose exec postgres psql -U postgres konnekt_db -c '\dt'`, and the
    `document_requests` table.
    - **Expected**: no claim values anywhere.
 4. Search the backend and nginx logs for the test person's family name and for `$REF`.

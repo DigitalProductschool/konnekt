@@ -8,7 +8,7 @@ import type {
   GroupItem,
   RuleItem,
   RuleTreeItem,
-} from '@connection-portal/api-types/form-connections';
+} from '@konnekt/api-types/form-connections';
 
 import { namesGivenBackByUndo, renameClash, takenNames } from './branches';
 import { conditionProblem, optionsOf } from './conditions';

@@ -3,7 +3,7 @@
 // authorization again with that level's scopes, so the consent page opens with it preselected. The
 // server checks for it before the SDK sees the request (`stepUpOf()`), in both protocol eras: in a
 // 2025-era session the response has started by the time a handler runs
-import type { AccessLevel } from '@connection-portal/api-types/agent-access';
+import type { AccessLevel } from '@konnekt/api-types/agent-access';
 import { z } from 'zod';
 
 import {

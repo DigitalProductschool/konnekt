@@ -1,28 +1,22 @@
 // The MCP server against the fake backend, over Streamable HTTP with the SDK's client (research
 // R2, R19): the bearer, the two protocol eras, the sessions, the skills, and the tools. The tool
 // tests of later phases add to this file
-import type { ApprovalRequest } from '@connection-portal/api-types/approvals';
+import type { ApprovalRequest } from '@konnekt/api-types/approvals';
 import type {
   ActivityEntry,
   Condition,
   FormConnection,
   FormConnectionDraft,
   RuleTreeItem,
-} from '@connection-portal/api-types/form-connections';
-import { dayNumber } from '@connection-portal/rules/checks/calendar';
-import { buildCheckedBranch } from '@connection-portal/rules/checks/checkedTree';
-import { checkBranch } from '@connection-portal/rules/checks/findings';
-import { todayInGermany } from '@connection-portal/rules/dates';
-import {
-  addRule,
-  addVariant,
-  changeRule,
-  deleteItem,
-  groupItems,
-} from '@connection-portal/rules/edits';
-import { evaluateBranch } from '@connection-portal/rules/evaluation';
-import { rule, target } from '@connection-portal/rules/testData';
-import type { EditResult, EditState } from '@connection-portal/rules/types';
+} from '@konnekt/api-types/form-connections';
+import { dayNumber } from '@konnekt/rules/checks/calendar';
+import { buildCheckedBranch } from '@konnekt/rules/checks/checkedTree';
+import { checkBranch } from '@konnekt/rules/checks/findings';
+import { todayInGermany } from '@konnekt/rules/dates';
+import { addRule, addVariant, changeRule, deleteItem, groupItems } from '@konnekt/rules/edits';
+import { evaluateBranch } from '@konnekt/rules/evaluation';
+import { rule, target } from '@konnekt/rules/testData';
+import type { EditResult, EditState } from '@konnekt/rules/types';
 import { Client, StreamableHTTPClientTransport } from '@modelcontextprotocol/client';
 import { SkillsClient } from '@modelcontextprotocol/client/ext/skills';
 import {
@@ -256,7 +250,7 @@ describe('the protocol eras', () => {
     const { client } = await connect('modern');
     expect(client.getNegotiatedProtocolVersion()).toBe('2026-07-28');
     expect(client.getInstructions()).toBe(instructions);
-    expect(client.getServerVersion()?.name).toBe('connection-portal');
+    expect(client.getServerVersion()?.name).toBe('konnekt');
     const capabilities = client.getServerCapabilities();
     expect(capabilities?.tools).toBeDefined();
     expect(capabilities?.resources).toBeDefined();
@@ -268,7 +262,7 @@ describe('the protocol eras', () => {
     expect(client.getNegotiatedProtocolVersion()).toBe('2025-11-25');
     expect(transport.sessionId).toBeTruthy();
     expect(client.getInstructions()).toBe(instructions);
-    expect(client.getServerVersion()?.name).toBe('connection-portal');
+    expect(client.getServerVersion()?.name).toBe('konnekt');
     const capabilities = client.getServerCapabilities();
     expect(capabilities?.tools).toBeDefined();
     expect(capabilities?.resources).toBeDefined();

@@ -36,7 +36,7 @@ npm run lint && npm test && npm run build
 
 # backend/
 uv run ruff check --fix . && uv run ruff format . && uv run mypy app/ scripts/ tests/
-DATABASE_URL=postgresql+psycopg://postgres:postgres@localhost:5435/template_db_test uv run pytest
+DATABASE_URL=postgresql+psycopg://postgres:postgres@localhost:5435/konnekt_db_test uv run pytest
 uv run python -m scripts.export_check_fixtures --check   # the generated fixtures are current
 ```
 

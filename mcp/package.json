@@ -1,5 +1,5 @@
 {
-  "name": "@connection-portal/mcp",
+  "name": "@konnekt/mcp",
   "private": true,
   "version": "0.0.0",
   "type": "module",
@@ -13,8 +13,8 @@
     "test": "vitest run"
   },
   "dependencies": {
-    "@connection-portal/api-types": "*",
-    "@connection-portal/rules": "*",
+    "@konnekt/api-types": "*",
+    "@konnekt/rules": "*",
     "@modelcontextprotocol/node": "2.1.2",
     "@modelcontextprotocol/server": "2.4.0",
     "zod": "4.6.7"

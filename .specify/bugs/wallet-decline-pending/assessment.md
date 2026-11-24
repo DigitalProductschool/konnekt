@@ -101,7 +101,7 @@ the pull URL (it is network-restricted, FR-017). It also needs EUDIPLO credentia
 
 1. **Middleware tests run**: `uv run pytest tests/unit/test_status_mapping.py
    tests/api/test_worker_requests.py tests/api/test_connect.py -k 'declin or failure or sync or
-   wallet or expires or last_check'`, against the local `template_db_test` (Postgres on
+   wallet or expires or last_check'`, against the local `konnekt_db_test` (Postgres on
    `localhost:5435`). Result: **43 passed**. They cover `failed` + `access_denied` → `declined`, both
    through the sync and through the last check after expiry.
 2. **EUDIPLO source read**: tag `v9.0.0` (`8f6abca`, 2026-10-05), the version the hosted instance

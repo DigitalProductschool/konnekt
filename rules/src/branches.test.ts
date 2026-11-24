@@ -4,7 +4,7 @@ import type {
   GroupItem,
   RuleItem,
   RuleTreeItem,
-} from '@connection-portal/api-types/form-connections';
+} from '@konnekt/api-types/form-connections';
 import { describe, expect, it } from 'vitest';
 
 import {

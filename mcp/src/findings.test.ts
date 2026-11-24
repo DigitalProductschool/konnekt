@@ -1,4 +1,4 @@
-import type { DocumentField } from '@connection-portal/api-types/document-types';
+import type { DocumentField } from '@konnekt/api-types/document-types';
 import type {
   BranchInput,
   Combinator,
@@ -7,21 +7,16 @@ import type {
   RuleItem,
   RuleTarget,
   RuleTreeItem,
-} from '@connection-portal/api-types/form-connections';
-import {
-  addRuleToBranch,
-  newBranch,
-  propagateMain,
-  removeItem,
-} from '@connection-portal/rules/branches';
-import { buildCheckedBranch } from '@connection-portal/rules/checks/checkedTree';
-import { namesOf, noteOf, resolutionOf } from '@connection-portal/rules/checks/findingMessages';
-import { checkBranch } from '@connection-portal/rules/checks/findings';
-import { ORACLE_CONTEXT } from '@connection-portal/rules/checks/testOracle';
-import type { BranchCheck, CheckOptions, ItemFinding } from '@connection-portal/rules/checks/types';
-import { mainBranch, MDL, OPTION_SETS, PID, rule, target } from '@connection-portal/rules/testData';
-import { deleteItem, duplicateRule, updateRule } from '@connection-portal/rules/tree';
-import type { RuleContext } from '@connection-portal/rules/types';
+} from '@konnekt/api-types/form-connections';
+import { addRuleToBranch, newBranch, propagateMain, removeItem } from '@konnekt/rules/branches';
+import { buildCheckedBranch } from '@konnekt/rules/checks/checkedTree';
+import { namesOf, noteOf, resolutionOf } from '@konnekt/rules/checks/findingMessages';
+import { checkBranch } from '@konnekt/rules/checks/findings';
+import { ORACLE_CONTEXT } from '@konnekt/rules/checks/testOracle';
+import type { BranchCheck, CheckOptions, ItemFinding } from '@konnekt/rules/checks/types';
+import { mainBranch, MDL, OPTION_SETS, PID, rule, target } from '@konnekt/rules/testData';
+import { deleteItem, duplicateRule, updateRule } from '@konnekt/rules/tree';
+import type { RuleContext } from '@konnekt/rules/types';
 import { describe, expect, it } from 'vitest';
 
 import { type VariantCheck, variantCheckOf } from './findings';

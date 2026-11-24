@@ -1,6 +1,6 @@
 // The calendar arithmetic of the backend's evaluator (research R7, FR-012), for the rule editor's
 // example (F4): dates are ISO strings, 'YYYY-MM-DD', counted in whole calendar days
-import type { Condition } from '@connection-portal/api-types/form-connections';
+import type { Condition } from '@konnekt/api-types/form-connections';
 
 import { GERMAN_TIME_ZONE, ISO_DATE_PATTERN, RELATION_WORDS, TIME_UNITS } from './constants';
 import { DEFAULT_LANGUAGE, defineTexts, type Language } from './language';

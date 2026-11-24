@@ -1,4 +1,4 @@
-import { defineTexts } from '@connection-portal/rules/language';
+import { defineTexts } from '@konnekt/rules/language';
 
 import documentActionGlyph from '../../../assets/icons/document-action.svg';
 import documentDangerGlyph from '../../../assets/icons/document-danger.svg';

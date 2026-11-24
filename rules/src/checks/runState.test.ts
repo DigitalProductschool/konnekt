@@ -1,4 +1,4 @@
-import type { RuleTreeItem } from '@connection-portal/api-types/form-connections';
+import type { RuleTreeItem } from '@konnekt/api-types/form-connections';
 import { describe, expect, it } from 'vitest';
 
 import type { Language } from '../language';

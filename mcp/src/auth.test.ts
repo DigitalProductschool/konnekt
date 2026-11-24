@@ -1,6 +1,6 @@
 import { createServer, type Server } from 'node:http';
 import type { AddressInfo } from 'node:net';
-import type { AgentMe } from '@connection-portal/api-types/agent-access';
+import type { AgentMe } from '@konnekt/api-types/agent-access';
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 
 import {

@@ -40,7 +40,7 @@ Decisions from the discussions on 2026-11-04 and 2026-11-05 (binding for this sp
 3. **Approval for outward-facing and destructive actions, enforced by the server**: publishing a
    draft, deleting a draft, and deactivating, reactivating and deleting a published connection.
    Such a tool doesn't act: it creates a pending action and returns a link to an approval page in
-   the Connection Portal (sent as an MCP URL-mode elicitation when the client supports it, in the
+   Konnekt (sent as an MCP URL-mode elicitation when the client supports it, in the
    tool's result otherwise). The action runs only when the same signed-in team member who
    authorized the agent approves it there. The page shows exactly what will happen: for
    publishing, the summary and the findings, as the wizard's Publish step does; for deactivating
@@ -53,8 +53,8 @@ Decisions from the discussions on 2026-11-04 and 2026-11-05 (binding for this sp
 4. **Sign-in for agents**: standard MCP authorization (OAuth 2.1, authorization code with PKCE). The
    backend is the authorization server and the MCP server the protected resource (protected
    resource metadata, resource indicators; Client ID Metadata Documents preferred, dynamic client
-   registration as fallback). The MCP client opens the browser, the team member signs in to the
-   Connection Portal (or uses their session) and sees a consent page that names the client and
+   registration as fallback). The MCP client opens the browser, the team member signs in to
+   Konnekt (or uses their session) and sees a consent page that names the client and
    offers three access levels, each including the one before: "Read only"; "Read and edit drafts";
    and "Read, edit drafts and manage live connections", which also lets the agent deactivate,
    reactivate and delete published connections (point 1). Access tokens are short-lived, with
@@ -75,7 +75,7 @@ Decisions from the discussions on 2026-11-04 and 2026-11-05 (binding for this sp
    identifier). A URL opens the editor at a given rule, group or variant (for example
    `/form-connections/{id}/edit?step=rules&variant={variant}&item=rule-7`), for people and agents
    alike. "Copy link" is added to the ⋯ menus of rules, groups and variants. Every tool accepts a
-   Connection Portal URL wherever it takes an identifier, and every result gives the Portal links
+   Konnekt URL wherever it takes an identifier, and every result gives the Portal links
    of what it touched, so the team member can open it.
 
 7. **Small, granular reads and a clear tool set**: there may be many connections, so agents find

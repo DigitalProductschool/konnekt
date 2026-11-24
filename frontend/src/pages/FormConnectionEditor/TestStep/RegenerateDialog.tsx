@@ -1,7 +1,7 @@
-import type { Language } from '@connection-portal/rules/language';
-import type { ConfirmText } from '@connection-portal/rules/personas/messages';
-import { confirmAllOf, confirmOneOf } from '@connection-portal/rules/personas/messages';
-import type { Persona, PersonaConfirm } from '@connection-portal/rules/personas/types';
+import type { Language } from '@konnekt/rules/language';
+import type { ConfirmText } from '@konnekt/rules/personas/messages';
+import { confirmAllOf, confirmOneOf } from '@konnekt/rules/personas/messages';
+import type { Persona, PersonaConfirm } from '@konnekt/rules/personas/types';
 
 import ConfirmDialog from '../../../components/ConfirmDialog';
 import { useLanguage } from '../../../hooks/useLanguage';

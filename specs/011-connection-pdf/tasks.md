@@ -93,7 +93,7 @@ Web application, the npm workspace (constitution 1.2.1):
   copied file for file, and nothing under `prototype/` except `seed.ts` is edited.
 - **Gates**: a task in a Node package ends with `npm run lint && npm test && npm run build` from
   the root ("Node gates"); a backend task with `uv run ruff check --fix . && uv run ruff format . &&
-  uv run mypy app/ scripts/ tests/` and `DATABASE_URL=postgresql+psycopg://postgres:postgres@localhost:5435/template_db_test
+  uv run mypy app/ scripts/ tests/` and `DATABASE_URL=postgresql+psycopg://postgres:postgres@localhost:5435/konnekt_db_test
   uv run pytest` in `backend/` ("backend gates"). A task that edits only `specs/` runs no gate.
   Backend batches never run side by side: the tests empty one database.
 - **Verification sweeps are script-first.** A sweep that checks many items across many states
@@ -159,7 +159,7 @@ typed and the German terms.
 - **Wave 3**: T004 [medium] ∥ T005 [medium] (the build files and the font files; no shared file;
   T005's `npm install` runs in `prototype/`, with its own lockfile).
 - **Wave 4**: T006 [lead].
-- **Needs a person**: PostgreSQL on 5435 with `template_db_test` for the backend gates, if Docker
+- **Needs a person**: PostgreSQL on 5435 with `konnekt_db_test` for the backend gates, if Docker
   isn't reachable from the chat. Network access for `npm install` (PDFKit, the prototype's font
   packages).
 

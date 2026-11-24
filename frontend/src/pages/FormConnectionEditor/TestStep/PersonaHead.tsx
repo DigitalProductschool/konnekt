@@ -1,4 +1,4 @@
-import { dataHeadingOf } from '@connection-portal/rules/personas/messages';
+import { dataHeadingOf } from '@konnekt/rules/personas/messages';
 
 import { useLanguage } from '../../../hooks/useLanguage';
 import { ELEMENT_IDS } from '../constants';

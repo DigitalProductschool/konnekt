@@ -1,4 +1,4 @@
-import { defineTexts } from '@connection-portal/rules/language';
+import { defineTexts } from '@konnekt/rules/language';
 
 // The first-connection flow's loading state, in both languages (spec 009, R1; glossary G§2
 // "Loading your connections…", "Create your first connection")

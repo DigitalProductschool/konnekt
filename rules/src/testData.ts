@@ -1,13 +1,13 @@
 // Test data of the rules modules' tests: a part of backend/app/catalog.py and option_sets.py,
 // with the same keys, labels and kinds
-import type { DocumentField } from '@connection-portal/api-types/document-types';
+import type { DocumentField } from '@konnekt/api-types/document-types';
 import type {
   BranchInput,
   Condition,
   RuleItem,
   RuleTarget,
-} from '@connection-portal/api-types/form-connections';
-import type { OptionSet } from '@connection-portal/api-types/option-sets';
+} from '@konnekt/api-types/form-connections';
+import type { OptionSet } from '@konnekt/api-types/option-sets';
 
 import type { RuleContext, RuleDocument } from './types';
 

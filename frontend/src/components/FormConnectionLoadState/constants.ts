@@ -1,4 +1,4 @@
-import { defineTexts } from '@connection-portal/rules/language';
+import { defineTexts } from '@konnekt/rules/language';
 
 /**
  * A connection's screen while the connection isn't there: the loading status, the failure's

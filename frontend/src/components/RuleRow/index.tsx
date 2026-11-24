@@ -1,4 +1,4 @@
-import { statementOf, statementPartsOf } from '@connection-portal/rules/statements';
+import { statementOf, statementPartsOf } from '@konnekt/rules/statements';
 
 import BranchMark from '../BranchMark';
 import { BRANCH_MARK_TINTS, INACTIVE_OPACITY } from '../BranchMark/constants';

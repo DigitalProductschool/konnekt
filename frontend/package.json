@@ -1,5 +1,5 @@
 {
-  "name": "community-template-frontend",
+  "name": "@konnekt/frontend",
   "private": true,
   "version": "0.0.0",
   "type": "module",
@@ -14,8 +14,8 @@
     "test": "vitest run"
   },
   "dependencies": {
-    "@connection-portal/api-types": "*",
-    "@connection-portal/rules": "*",
+    "@konnekt/api-types": "*",
+    "@konnekt/rules": "*",
     "@digitalservicebund/kern-ux-tailwind-theme": "4.0.0",
     "@kern-ux-annex/kern-react-kit": "2.40.0",
     "@kern-ux/native": "2.8.2",

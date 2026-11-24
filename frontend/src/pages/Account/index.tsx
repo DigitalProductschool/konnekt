@@ -1,5 +1,5 @@
-import type { AgentAccessItem } from '@connection-portal/api-types/agent-access';
 import { KernAlert } from '@kern-ux-annex/kern-react-kit';
+import type { AgentAccessItem } from '@konnekt/api-types/agent-access';
 import { useCallback, useEffect, useReducer, useRef, useState } from 'react';
 import { Link } from 'react-router';
 

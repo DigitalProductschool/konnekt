@@ -1,13 +1,13 @@
 // The tools that create a draft and change its connection, documents and variants
 // (contracts/mcp-tools.md "Changing drafts"; FR-012 to FR-020): each makes one change and stores
 // it at once. Every change to an existing draft runs through `editDraft()`, the read-apply-save
-// loop, with the editor's own actions of `@connection-portal/rules/edits`
+// loop, with the editor's own actions of `@konnekt/rules/edits`
 import type {
   BranchInput,
   DraftCreate,
   FormConnectionDraft,
   RequestedDocument,
-} from '@connection-portal/api-types/form-connections';
+} from '@konnekt/api-types/form-connections';
 import {
   addVariant,
   appendDocument,
@@ -18,8 +18,8 @@ import {
   resetOperator,
   rulesCheckingRemoval,
   switchOperator,
-} from '@connection-portal/rules/edits';
-import type { DataRemoval, EditState, RuleDocument } from '@connection-portal/rules/types';
+} from '@konnekt/rules/edits';
+import type { DataRemoval, EditState, RuleDocument } from '@konnekt/rules/types';
 import { z } from 'zod';
 
 import {

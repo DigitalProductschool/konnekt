@@ -1,6 +1,6 @@
 // The Rules step's copy: design-notes.md §2, §4 and §5, the Figma frames named, and F29's toasts
-import type { FindingTone } from '@connection-portal/rules/checks/types';
-import { defineTexts } from '@connection-portal/rules/language';
+import type { FindingTone } from '@konnekt/rules/checks/types';
+import { defineTexts } from '@konnekt/rules/language';
 
 import copyToIcon from '../../../assets/icons/copy-to-variant.svg';
 import groupIcon from '../../../assets/icons/group-brackets.svg';

@@ -1,13 +1,5 @@
-import { resolveTarget } from '@connection-portal/rules/conditions';
-import {
-  CONTEXT,
-  CONTEXT_DE,
-  MDL,
-  PID,
-  PID_DE,
-  rule,
-  target,
-} from '@connection-portal/rules/testData';
+import { resolveTarget } from '@konnekt/rules/conditions';
+import { CONTEXT, CONTEXT_DE, MDL, PID, PID_DE, rule, target } from '@konnekt/rules/testData';
 import { describe, expect, it } from 'vitest';
 
 import { matchesSearch } from '../../../../components/ValuesPicker/utils';

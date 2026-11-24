@@ -1,4 +1,4 @@
-import { defineTexts } from '@connection-portal/rules/language';
+import { defineTexts } from '@konnekt/rules/language';
 
 /**
  * "Active from" (C2): the frames' English (U75 6376:25536, 6383:66119; U76 6635:36265), the

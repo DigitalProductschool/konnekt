@@ -1,4 +1,4 @@
-import type { Language } from '@connection-portal/rules/language';
+import type { Language } from '@konnekt/rules/language';
 
 import { COPY_TEXTS, INITIAL_COPY_STATE } from './constants';
 import type { CopyableUrlVariant, CopyAction, CopyState, CopyTexts } from './types';

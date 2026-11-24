@@ -8,7 +8,7 @@ R4 to R7. **Shapes**: [../data-model.md](../data-model.md) §1–§4.
 
 | Path | Served by | Answer |
 |---|---|---|
-| `GET /.well-known/oauth-protected-resource`, `…/oauth-protected-resource/mcp` | MCP server | `{ resource: MCP_URL, authorization_servers: [OAUTH_ISSUER], scopes_supported: ['read', 'drafts', 'manage'], bearer_methods_supported: ['header'], resource_name: 'Connection Portal' }` |
+| `GET /.well-known/oauth-protected-resource`, `…/oauth-protected-resource/mcp` | MCP server | `{ resource: MCP_URL, authorization_servers: [OAUTH_ISSUER], scopes_supported: ['read', 'drafts', 'manage'], bearer_methods_supported: ['header'], resource_name: 'Konnekt' }` |
 | `GET /.well-known/oauth-authorization-server` | backend (open; nginx proxies it) | RFC 8414 document (research R4): `issuer`, `authorization_endpoint` = `{PORTAL_URL}/authorize`, `token_endpoint`, `registration_endpoint`, `client_id_metadata_document_supported: true`, `code_challenge_methods_supported: ['S256']`, `grant_types_supported`, `response_types_supported: ['code']`, `token_endpoint_auth_methods_supported: ['none']`, `scopes_supported` |
 
 Both answer `Cache-Control: max-age=3600` and plain JSON (not the `{data}` envelope: these are
@@ -88,7 +88,7 @@ one's level and resets its 30-day clock.
 - A bearer on an endpoint reserved to the browser (`PUT /api/form-connections/{id}`, the
   direct publish, draft delete, deactivate, activate and delete endpoints, the user page's and
   the approval page's endpoints, `/api/auth/*`): `403 { error: 'browser_only', message: 'This
-  action is done in the Connection Portal.' }`.
+  action is done in Konnekt.' }`.
 - `require_json` applies to bearer `POST`, `PUT` and `DELETE` as well (the MCP server sends
   JSON); the token and registration endpoints are exempt.
 

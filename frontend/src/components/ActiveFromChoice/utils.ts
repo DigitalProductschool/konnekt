@@ -1,4 +1,4 @@
-import { isValidIsoDate } from '@connection-portal/rules/dates';
+import { isValidIsoDate } from '@konnekt/rules/dates';
 
 import { START_DATE_PATTERN } from './constants';
 import type { StartDateResult } from './types';

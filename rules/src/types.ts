@@ -1,6 +1,6 @@
 // Types of the rules modules (specs/002-connection-rules, research R10). The API's shapes are in
 // api-types/src/; these describe what the modules derive from them
-import type { DocumentField, FieldPart } from '@connection-portal/api-types/document-types';
+import type { DocumentField, FieldPart } from '@konnekt/api-types/document-types';
 import type {
   BranchInput,
   Combinator,
@@ -10,8 +10,8 @@ import type {
   RuleItem,
   RuleTarget,
   RuleTreeItem,
-} from '@connection-portal/api-types/form-connections';
-import type { OptionSet } from '@connection-portal/api-types/option-sets';
+} from '@konnekt/api-types/form-connections';
+import type { OptionSet } from '@konnekt/api-types/option-sets';
 
 import type { Language } from './language';
 

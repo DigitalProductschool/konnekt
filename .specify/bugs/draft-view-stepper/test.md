@@ -32,7 +32,7 @@ own progress bar is unchanged.
 
 The browser check ran against a throwaway database (`draft_stepper_check`, migrated to head, with
 a temporary account), with the backend's worker off. Afterwards the database was dropped and both
-servers were stopped. The dev database (`template_db`) wasn't touched.
+servers were stopped. The dev database (`konnekt_db`) wasn't touched.
 
 ## Output Excerpts
 

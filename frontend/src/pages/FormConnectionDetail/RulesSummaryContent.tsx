@@ -1,5 +1,5 @@
-import { namesOf, tabFindingsOf } from '@connection-portal/rules/checks/findingMessages';
 import { KernAlert } from '@kern-ux-annex/kern-react-kit';
+import { namesOf, tabFindingsOf } from '@konnekt/rules/checks/findingMessages';
 import { type KeyboardEvent, useId, useMemo, useState } from 'react';
 
 import BranchName from '../../components/BranchName';

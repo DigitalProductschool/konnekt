@@ -1,4 +1,4 @@
-import type { Condition, RuleTarget } from '@connection-portal/api-types/form-connections';
+import type { Condition, RuleTarget } from '@konnekt/api-types/form-connections';
 import { describe, expect, it } from 'vitest';
 
 import { lowerFirst, orList, proposedMessage } from './messages';

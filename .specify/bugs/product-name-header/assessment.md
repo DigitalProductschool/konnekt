@@ -1,4 +1,4 @@
-# Bug Assessment: "Connection Portal" name and a left-aligned header brand on every page
+# Bug Assessment: "Konnekt" name and a left-aligned header brand on every page
 
 - **Slug**: product-name-header
 - **Created**: 2026-10-13
@@ -13,7 +13,7 @@
 ## Report (verbatim or summarized)
 
 > We have to fix two things. The first one is really simple: every time there is 'Product name' we
-> have to change it to 'Connection Portal' this is now the temporary name of this middleware. You
+> have to change it to 'Konnekt' this is now the temporary name of this middleware. You
 > can change this only in the frontend, backend and docs are fine as they are.
 > The second things is related to the header. From the old figma design the 'Product name' and
 > logo where changing position based on the page, so sometime they where completly on the left
@@ -29,7 +29,7 @@ What the Figma page shows (node `33:3`, "✅ Final Screens", every screen is 144
   `2131:4341`/`2131:4363`/`2131:4374` log in and forgot password, `2131:5013`/`2131:5028`
   loading and 404) is a 1440 × 64 instance with **padding 0 32**. The brand is at **x = 32**: a
   16 px mark, an 8 px gap, then the name at x = 56. No screen centres it.
-- The screenshots of `2131:4628` and `2131:4385` read **"Connection Portal"**.
+- The screenshots of `2131:4628` and `2131:4385` read **"Konnekt"**.
 - Wizard and details header, left to right with gaps of 16: brand (32–187), a 1 × 24 separator
   at x = 203, the title at x = 220, the status pill (documents step and details), a flexible
   spacer, the meta text (details only, ends at 1328), then the user menu at x = 1344–1408. The
@@ -40,7 +40,7 @@ What the Figma page shows (node `33:3`, "✅ Final Screens", every screen is 144
 
 1. The app calls itself "Product name": in the header's brand on every screen, in every tab title
    ("{page} – Product name"), and in the static `<title>` shown before the app loads. Expected:
-   "Connection Portal".
+   "Konnekt".
 2. On the overview and the sign-in screens the logo and name sit 32 px from the left edge. On the
    create wizard (`/form-connections/new`, `/get-started`) and the details (`/form-connections/:id`)
    they move inward to the left edge of the centred 1120 px column (x = 160 in a 1440 px window),
@@ -94,8 +94,8 @@ the product unnamed ("Product name", recorded as a decision in `design-notes.md`
 "App/Header" (`37:15`) put the wizard's header on the 1120 px content column (design-notes §3:
 "lined up with the wizard's 1120 px column (x = 160)"). `TopBar` implemented that as
 `width="column"`, and `WizardLayout`, which the create wizard, the first-connection screen and
-the details page all render, opted into it. The fixed Figma names the product "Connection
-Portal" and uses one full-width header with 32 px padding everywhere. The code is outdated, not
+the details page all render, opted into it. The fixed Figma names the product "Konnekt" and
+uses one full-width header with 32 px padding everywhere. The code is outdated, not
 broken. **Confidence: high.** Both causes are in single, well-located lines, and the Figma
 screenshots confirm the new text and position.
 
@@ -103,10 +103,10 @@ screenshots confirm the new text and position.
 
 **Preferred**:
 
-1. **Rename (frontend only)**: set `APP_NAME = 'Connection Portal'` in
+1. **Rename (frontend only)**: set `APP_NAME = 'Konnekt'` in
    `frontend/src/constants.ts`, and change its comment to say this is the middleware's temporary
    name, as in the fixed Figma (2026-10-13). Change `<title>` in `frontend/index.html` to
-   `Connection Portal`. The header brand and every tab title follow through `APP_NAME`. Leave the
+   `Konnekt`. The header brand and every tab title follow through `APP_NAME`. Leave the
    backend, `docs/` and `specs/` as they are, as the report asks.
 2. **Header**: remove the `width` prop from `TopBar`, since its only `'column'` caller goes
    away. The `<header>` then always gets `px-16 sm:px-32`, and the inner row loses the
@@ -149,7 +149,7 @@ screenshots confirm the new text and position.
     Expected on each: mark x = 32, name x = 56, header `padding-left` 32px, user-menu right
     edge 1408 (no menu on `/login`). The wizard title should be at x = 220. Compare with Figma
     screenshots `2131:4758`, `2131:4385`, `2131:4467` and `2131:4628`.
-  - `document.title` should end in "– Connection Portal" on each screen.
+  - `document.title` should end in "– Konnekt" on each screen.
   - At 375 px wide, the header padding should be 16 px and the title or name truncated, not
     overflowing, on the details screen.
 
@@ -186,8 +186,8 @@ screenshots confirm the new text and position.
 ## Unverified
 
 - The Figma node text was read from screenshots, not from text data. `get_metadata` returns no
-  characters, and the screenshots of `2131:4628` and `2131:4385` clearly read "Connection
-  Portal". The other header instances share the same component and brand geometry (a 155 px
+  characters, and the screenshots of `2131:4628` and `2131:4385` clearly read "Konnekt".
+  The other header instances share the same component and brand geometry (a 155 px
   brand frame with the name at x = 56), so they are assumed to read the same.
 - The current app's positions (x = 160 on wizard and details) are derived from the code and the
   earlier `detail-page-layout` measurement, not re-measured in a browser for this assessment.

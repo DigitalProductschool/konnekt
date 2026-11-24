@@ -1,7 +1,4 @@
-import {
-  editedHiddenTextOf,
-  failingValueHiddenTextOf,
-} from '@connection-portal/rules/personas/messages';
+import { editedHiddenTextOf, failingValueHiddenTextOf } from '@konnekt/rules/personas/messages';
 
 import { useLanguage } from '../../../hooks/useLanguage';
 import { TEST_STEP_COPY } from './constants';

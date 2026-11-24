@@ -2,7 +2,7 @@
 // "useLocalDraft"; research R9, R16; FR-014, FR-015, FR-018, SC-004). The decisions are the pure
 // helpers of `./utils.ts`; this hook adds the clock, the throttle's timer and the page's events.
 // Nothing about the record is logged or sent anywhere (FR-020)
-import type { EditorStep } from '@connection-portal/api-types/form-connections';
+import type { EditorStep } from '@konnekt/api-types/form-connections';
 import { type RefObject, useCallback, useEffect, useMemo, useRef } from 'react';
 
 import { LOCAL_DRAFT_FORMAT, LOCAL_DRAFT_WRITE_INTERVAL_MS } from '../utils/localDrafts/constants';

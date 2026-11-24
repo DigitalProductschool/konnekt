@@ -1,4 +1,4 @@
-import { nameProblem } from '@connection-portal/rules/validation';
+import { nameProblem } from '@konnekt/rules/validation';
 import { type FocusEvent, type KeyboardEvent, useEffect, useId, useReducer, useRef } from 'react';
 
 import { isLanguageSwitchTarget } from '../../../components/LanguageSwitch/utils';

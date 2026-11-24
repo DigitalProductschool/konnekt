@@ -15,8 +15,8 @@ import type {
   FormConnectionUpdate,
   RestoredConnections,
   StartDateUpdate,
-} from '@connection-portal/api-types/form-connections';
-import type { Language } from '@connection-portal/rules/language';
+} from '@konnekt/api-types/form-connections';
+import type { Language } from '@konnekt/rules/language';
 
 import { apiFetch } from './client';
 

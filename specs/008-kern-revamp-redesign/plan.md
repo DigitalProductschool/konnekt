@@ -318,5 +318,5 @@ change string literals and the guidance only, each with its tests, in the files 
 No constitution violations, so nothing needs justifying here. Two judgment calls of research R2
 are the record, applied by the analysis of 2026-11-07 (the user reverses them by amending the
 spec): code identifiers (`applicant.ts`, the `applicants` field of the MCP tools' answers, the
-`@connection-portal/*` npm scope) keep their names while every text changes (FR-019 and FR-020
+`@konnekt/*` npm scope) keep their names while every text changes (FR-019 and FR-020
 say so); and the duplicate-group message follows the design's rule-message template (C5, T011).

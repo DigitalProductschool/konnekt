@@ -1,6 +1,6 @@
-import { dataHeadingOf } from '@connection-portal/rules/personas/messages';
-import type { PersonaField } from '@connection-portal/rules/personas/types';
-import { shownFieldsOf } from '@connection-portal/rules/personas/values';
+import { dataHeadingOf } from '@konnekt/rules/personas/messages';
+import type { PersonaField } from '@konnekt/rules/personas/types';
+import { shownFieldsOf } from '@konnekt/rules/personas/values';
 import { useEffect, useReducer, useRef } from 'react';
 
 import ConfirmDialog from '../../../components/ConfirmDialog';

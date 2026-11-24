@@ -136,8 +136,8 @@ Principal { user: UserAccount, authorization: AgentAuthorization | None }
 A bearer resolves through `agent_tokens.token_hash` with `expires_at` in the future and, for
 `personal`, the authorization's `expires_at` too; an unknown, expired or replaced token answers
 `401`. `require_level(level)` answers `403 insufficient_access` naming the level needed;
-`require_browser_session()` answers `403` to any bearer ("This action is done in the Connection
-Portal.").
+`require_browser_session()` answers `403` to any bearer ("This action is done in
+Konnekt.").
 
 ## 5. `approval_requests` (R12)
 
@@ -255,7 +255,7 @@ approval:    {PORTAL_URL}/approvals/{requestId}
 - A link holds no name and no content; renaming and publishing don't change it.
 - The MCP server builds links from `PORTAL_URL`; the browser from `window.location.origin`.
 - A link whose origin isn't `PORTAL_URL`'s is refused by the tools ("This link doesn't belong
-  to this Connection Portal.").
+  to Konnekt.").
 
 ## 8. Tool identifiers and names (R8, R11; FR-019)
 

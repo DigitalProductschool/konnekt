@@ -6,8 +6,8 @@
 
 ```text
 mcp/plugin/
-├── .claude-plugin/plugin.json      # name: connection-portal, description, version, author
-├── .mcp.json                       # { "mcpServers": { "connection-portal": { "type": "http", "url": "${CONNECTION_PORTAL_MCP_URL}" } } }
+├── .claude-plugin/plugin.json      # name: konnekt, description, version, author
+├── .mcp.json                       # { "mcpServers": { "konnekt": { "type": "http", "url": "${KONNEKT_MCP_URL}" } } }
 ├── README.md                       # how to install (Claude Code), how to copy the skills elsewhere
 ├── instructions.md                 # the server instructions (FR-036)
 └── skills/
@@ -40,7 +40,7 @@ At most about 400 words, covering, in this order:
 4. That publishing or deleting a draft, and deactivating, reactivating or deleting a published
    connection, need the team member's approval through a link, and that the tool never acts
    itself.
-5. That every answer carries links to open in the Connection Portal, and that tools accept
+5. That every answer carries links to open in Konnekt, and that tools accept
    those links wherever they take an identifier.
 6. That the agent must never use real people's data in tests, and that `get_guide` has the
    details by topic.
@@ -70,7 +70,7 @@ Groups (`group_items`, `delete_item` with `keep_members`) are described in `cond
   `description`;
 - `instructions.md` names the three access levels and the five approval actions, and is at
   most 500 words (the target is 400; the gate leaves room for wording);
-- `.mcp.json` names the server `connection-portal`, and `marketplace.json` lists the plugin.
+- `.mcp.json` names the server `konnekt`, and `marketplace.json` lists the plugin.
 
 It runs with `npm test` in `mcp/`, one of the MCP server's gates.
 
@@ -80,7 +80,7 @@ CLAUDE.md gets the rule: "Every change to the MCP tools updates the skills in
 ## Installing (README)
 
 - Claude Code: `claude plugin marketplace add <repository>` then
-  `claude plugin install connection-portal@<marketplace>`, with `CONNECTION_PORTAL_MCP_URL` set
+  `claude plugin install konnekt@<marketplace>`, with `KONNEKT_MCP_URL` set
   to the deployment's `https://<domain>/mcp`; the first call opens the browser for the consent.
 - Other MCP clients: add the HTTP server `https://<domain>/mcp`; the skills are served through
   the extension or `get_guide`, and the files in `plugin/skills/` can be copied where the client

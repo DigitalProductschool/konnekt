@@ -1,6 +1,6 @@
-import type { EditorStep } from '@connection-portal/api-types/form-connections';
-import { namesOf } from '@connection-portal/rules/checks/findingMessages';
-import type { LiteralContext } from '@connection-portal/rules/checks/literals';
+import type { EditorStep } from '@konnekt/api-types/form-connections';
+import { namesOf } from '@konnekt/rules/checks/findingMessages';
+import type { LiteralContext } from '@konnekt/rules/checks/literals';
 import type {
   BranchCheck,
   ChangeCause,
@@ -8,8 +8,8 @@ import type {
   RunAction,
   RunBranch,
   WorkerMessage,
-} from '@connection-portal/rules/checks/types';
-import type { Language } from '@connection-portal/rules/language';
+} from '@konnekt/rules/checks/types';
+import type { Language } from '@konnekt/rules/language';
 
 import type { PdfDownloadAction, PdfDownloadState } from '../utils/connectionPdf/types';
 import { sameContent } from '../utils/localDrafts/content';

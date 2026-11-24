@@ -38,11 +38,7 @@
 // returns no later than the deadline plus one solver step, with at least the fallback set. Pure:
 // every random choice comes from the request's seed, and nothing is logged or kept. The module
 // reaches `checks/text.ts`, so it runs in the worker only (tasks.md, "Bundle")
-import type {
-  GroupItem,
-  RuleItem,
-  RuleTreeItem,
-} from '@connection-portal/api-types/form-connections';
+import type { GroupItem, RuleItem, RuleTreeItem } from '@konnekt/api-types/form-connections';
 
 import { dayNumber } from '../checks/calendar';
 import { allOf, negate, simplify } from '../checks/literals';

@@ -1,5 +1,5 @@
-import { RULES_MESSAGES } from '@connection-portal/rules/constants';
-import { checkedInBranch, checksUnrequestedData } from '@connection-portal/rules/validation';
+import { RULES_MESSAGES } from '@konnekt/rules/constants';
+import { checkedInBranch, checksUnrequestedData } from '@konnekt/rules/validation';
 
 import { useLanguage } from '../../../hooks/useLanguage';
 import { ELEMENT_IDS } from '../constants';

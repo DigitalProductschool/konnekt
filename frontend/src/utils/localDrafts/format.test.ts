@@ -1,4 +1,4 @@
-import type { GroupItem, RuleItem } from '@connection-portal/api-types/form-connections';
+import type { GroupItem, RuleItem } from '@konnekt/api-types/form-connections';
 import { describe, expect, it } from 'vitest';
 
 import { parseRecord, serializeRecord } from './format';

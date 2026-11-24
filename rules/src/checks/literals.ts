@@ -10,13 +10,9 @@
 // A rule that the evaluator couldn't evaluate, or that the save's checks would refuse, has no
 // formula: `ruleFormula()` returns null for it and never throws, whatever the rules state holds.
 // The checked tree (checkedTree.ts) leaves such a rule out, as it leaves out an incomplete one
-import type { DocumentField, FieldPart } from '@connection-portal/api-types/document-types';
-import type {
-  Condition,
-  RuleItem,
-  RuleTarget,
-} from '@connection-portal/api-types/form-connections';
-import type { Option, OptionSet } from '@connection-portal/api-types/option-sets';
+import type { DocumentField, FieldPart } from '@konnekt/api-types/document-types';
+import type { Condition, RuleItem, RuleTarget } from '@konnekt/api-types/form-connections';
+import type { Option, OptionSet } from '@konnekt/api-types/option-sets';
 
 import { resolveTarget } from '../conditions';
 import { LICENCE_CLASSES_SET } from '../constants';

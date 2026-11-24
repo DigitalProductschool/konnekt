@@ -1,8 +1,8 @@
 {
   "mcpServers": {
-    "connection-portal": {
+    "konnekt": {
       "type": "http",
-      "url": "${CONNECTION_PORTAL_MCP_URL}"
+      "url": "${KONNEKT_MCP_URL}"
     }
   }
 }

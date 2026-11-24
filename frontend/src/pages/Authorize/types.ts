@@ -1,6 +1,6 @@
-import type { AccessLevel } from '@connection-portal/api-types/agent-access';
-import type { ErrorNotice } from '@connection-portal/api-types/api';
-import type { AuthorizeRequest, OauthClientView } from '@connection-portal/api-types/oauth';
+import type { AccessLevel } from '@konnekt/api-types/agent-access';
+import type { ErrorNotice } from '@konnekt/api-types/api';
+import type { AuthorizeRequest, OauthClientView } from '@konnekt/api-types/oauth';
 
 /** The authorization request of the page's query string, as the decision sends it back */
 export type ConsentRequest = Omit<AuthorizeRequest, 'decision' | 'access_level' | 'scope'> & {

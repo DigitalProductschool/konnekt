@@ -1,20 +1,16 @@
-import type {
-  Condition,
-  RuleItem,
-  RuleTarget,
-} from '@connection-portal/api-types/form-connections';
+import type { Condition, RuleItem, RuleTarget } from '@konnekt/api-types/form-connections';
 import {
   changeOperator,
   conditionProblem,
   operatorDefinition,
   resolveTarget,
   withTarget,
-} from '@connection-portal/rules/conditions';
-import { LICENCE_CLASSES_SET } from '@connection-portal/rules/constants';
-import { todayInGermany } from '@connection-portal/rules/dates';
-import { ruleFieldLabel } from '@connection-portal/rules/statements';
-import type { RuleContext } from '@connection-portal/rules/types';
-import { ruleProblem } from '@connection-portal/rules/validation';
+} from '@konnekt/rules/conditions';
+import { LICENCE_CLASSES_SET } from '@konnekt/rules/constants';
+import { todayInGermany } from '@konnekt/rules/dates';
+import { ruleFieldLabel } from '@konnekt/rules/statements';
+import type { RuleContext } from '@konnekt/rules/types';
+import { ruleProblem } from '@konnekt/rules/validation';
 import { useEffect, useId, useMemo, useReducer, useRef } from 'react';
 
 import { useLanguage } from '../../../../hooks/useLanguage';

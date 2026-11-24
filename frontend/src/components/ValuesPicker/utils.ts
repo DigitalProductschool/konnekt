@@ -1,4 +1,4 @@
-import type { OptionSet } from '@connection-portal/api-types/option-sets';
+import type { OptionSet } from '@konnekt/api-types/option-sets';
 
 import { VALUES_MENU_METRICS } from './constants';
 import type { ValueChoice } from './types';

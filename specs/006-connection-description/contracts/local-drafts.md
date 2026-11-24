@@ -18,7 +18,7 @@ interface LocalDraftContent {
 }
 ```
 
-The key prefix stays `connection-portal:local-draft:v1:`.
+The key prefix stays `konnekt:local-draft:v1:`.
 
 ## Accepted records
 

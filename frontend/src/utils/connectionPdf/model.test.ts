@@ -6,11 +6,11 @@ import type {
   GroupItem,
   RuleItem,
   RuleTreeItem,
-} from '@connection-portal/api-types/form-connections';
-import { ruleDocumentsOf } from '@connection-portal/rules/conditions';
-import type { Language } from '@connection-portal/rules/language';
-import { statementOf } from '@connection-portal/rules/statements';
-import { flattenItems } from '@connection-portal/rules/tree';
+} from '@konnekt/api-types/form-connections';
+import { ruleDocumentsOf } from '@konnekt/rules/conditions';
+import type { Language } from '@konnekt/rules/language';
+import { statementOf } from '@konnekt/rules/statements';
+import { flattenItems } from '@konnekt/rules/tree';
 import { describe, expect, it } from 'vitest';
 
 import { draftRuleDocumentsOf, summaryNumbersOf } from '../connectionSummary';

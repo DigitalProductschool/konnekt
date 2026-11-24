@@ -27,10 +27,9 @@ open.
 ## 1. Language and naming
 
 - **Language**: English (`<html lang="en">`).
-- **Product name**: **Decision (2026-10-13, bug `product-name-header`)**: "Connection Portal",
-  the middleware's temporary name, as in the fixed Figma. Tab titles read "{page} – Connection
-  Portal". It replaces "Product name" (decision 2026-10-09, V2, which didn't name the product
-  yet; V1 called it "BridgeID").
+- **Product name**: **Decision (2026-10-13, bug `product-name-header`)**: "Konnekt",
+  as in the fixed Figma. Tab titles read "{page} – Konnekt". It replaces "Product name"
+  (decision 2026-10-09, V2, which didn't name the product yet; V1 called it "BridgeID").
   `APP_NAME` in `frontend/src/constants.ts` holds it, and `frontend/index.html` repeats it.
 - **"Connection"** is the UI's word for a form connection ("Your connections", "New
   connection"; V1 said "use case"). The API, the code and the spec keep "form connection".
@@ -479,7 +478,7 @@ The V2 sign-in replaced four more Phase 2 decisions: the forgot-password text, t
 links, the benefit wording and the logged-out alert.
 
 **Decided with the V2 sign-in** (2026-10-09, sections 1–4):
-- the product name "Product name", as in the design (now "Connection Portal", §1);
+- the product name "Product name", as in the design (now "Konnekt", §1);
 - a separate forgot-password screen at `/forgot-password`, which the contract now lists;
 - the plain sign-in screen after logging out, with no alert;
 - the illustration's chips as designed;

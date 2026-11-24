@@ -43,7 +43,7 @@ The stored draft's JSONB `draft` is **unchanged**: it never held the form ID.
 
 `LocalDraftRecord.format`: `1` → **`2`**. In `LocalDraftContent`, `servicebwForm: string` becomes
 **`description: string`**, as typed (untrimmed). The key
-`connection-portal:local-draft:v1:<username>:<flowKey>` is unchanged.
+`konnekt:local-draft:v1:<username>:<flowKey>` is unchanged.
 
 A record of format 1 is invalid. The store removes it the first time it lists or reads it, and
 never offers it (FR-009).

@@ -1,4 +1,4 @@
-import type { LoginLocationState } from '@connection-portal/api-types/routing';
+import type { LoginLocationState } from '@konnekt/api-types/routing';
 import { type KeyboardEvent, useEffect, useId, useReducer, useRef, useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router';
 

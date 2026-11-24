@@ -1,4 +1,4 @@
-import type { UserView } from '@connection-portal/api-types/auth';
+import type { UserView } from '@konnekt/api-types/auth';
 import type { ReactNode } from 'react';
 
 import type { SignInStatus } from '../../hooks/types';

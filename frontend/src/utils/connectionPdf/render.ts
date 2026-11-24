@@ -5,7 +5,7 @@
 // PDFKit's constructor (the browser build in the worker, the Node build in the smoke test) and the
 // fonts' bytes, imports PDFKit's types only and touches no browser API; nothing is stored, sent or
 // logged (FR-041, FR-042)
-import type { Language } from '@connection-portal/rules/language';
+import type { Language } from '@konnekt/rules/language';
 
 import { CONNECTION_DETAIL_COPY } from '../../pages/FormConnectionDetail/constants';
 import { blocksOf, layoutOf, reachOf } from './blocks';

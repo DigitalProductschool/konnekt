@@ -1,5 +1,5 @@
-import type { LoginLocationState } from '@connection-portal/api-types/routing';
 import { KernAlert } from '@kern-ux-annex/kern-react-kit';
+import type { LoginLocationState } from '@konnekt/api-types/routing';
 import { type FormEvent, useReducer } from 'react';
 import { Link, useLocation } from 'react-router';
 

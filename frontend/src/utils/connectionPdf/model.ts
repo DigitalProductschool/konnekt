@@ -5,7 +5,7 @@
 // `SummaryItem` show them, the counts as `summaryNumbersOf()` gives them. No finding, persona or
 // citizen data enters (FR-041), and a draft's model holds no URL (FR-013). Pure: no browser API,
 // nothing logged, and it never throws on incomplete content
-import type { DocumentType } from '@connection-portal/api-types/document-types';
+import type { DocumentType } from '@konnekt/api-types/document-types';
 import type {
   BranchInput,
   FormConnection,
@@ -14,16 +14,16 @@ import type {
   RequestedDocumentView,
   RuleItem,
   RuleTreeItem,
-} from '@connection-portal/api-types/form-connections';
-import type { OptionSet } from '@connection-portal/api-types/option-sets';
-import { requestedRuleDocuments, ruleDocumentsOf } from '@connection-portal/rules/conditions';
-import { GERMAN_TIME_ZONE } from '@connection-portal/rules/constants';
-import { formatDate, isValidIsoDate } from '@connection-portal/rules/dates';
-import { DEFAULT_LANGUAGE, type Language } from '@connection-portal/rules/language';
-import { STATEMENT_TEXTS, statementPartsOf } from '@connection-portal/rules/statements';
-import { shownItems } from '@connection-portal/rules/tree';
-import type { RuleContext, RulesProblem } from '@connection-portal/rules/types';
-import { publishProblems } from '@connection-portal/rules/validation';
+} from '@konnekt/api-types/form-connections';
+import type { OptionSet } from '@konnekt/api-types/option-sets';
+import { requestedRuleDocuments, ruleDocumentsOf } from '@konnekt/rules/conditions';
+import { GERMAN_TIME_ZONE } from '@konnekt/rules/constants';
+import { formatDate, isValidIsoDate } from '@konnekt/rules/dates';
+import { DEFAULT_LANGUAGE, type Language } from '@konnekt/rules/language';
+import { STATEMENT_TEXTS, statementPartsOf } from '@konnekt/rules/statements';
+import { shownItems } from '@konnekt/rules/tree';
+import type { RuleContext, RulesProblem } from '@konnekt/rules/types';
+import { publishProblems } from '@konnekt/rules/validation';
 
 import { draftRuleDocumentsOf, summaryNumbersOf } from '../connectionSummary';
 import { gapsOf, missingOf } from './gaps';

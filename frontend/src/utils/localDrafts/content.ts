@@ -1,7 +1,7 @@
 // A local draft's content: the empty flow, comparison and the name shown for it
 // (specs/005-connection-drafts/contracts/local-drafts.md "Pure modules"; data-model.md, section 6).
 // Pure: it never imports the editor, whose `localContentOf` the test pins `emptyContent()` against
-import { DEFAULT_LANGUAGE, type Language } from '@connection-portal/rules/language';
+import { DEFAULT_LANGUAGE, type Language } from '@konnekt/rules/language';
 
 import { LOCAL_DRAFT_COPY } from './constants';
 import type { LocalDraftContent } from './types';

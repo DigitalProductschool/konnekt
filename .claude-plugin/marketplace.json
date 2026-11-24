@@ -1,11 +1,11 @@
 {
-  "name": "connection-portal",
+  "name": "konnekt",
   "owner": {
-    "name": "DO.IT, City of Stuttgart"
+    "name": "Team Faro"
   },
   "plugins": [
     {
-      "name": "connection-portal",
+      "name": "konnekt",
       "source": "./mcp/plugin",
       "description": "Konnekt's MCP server and its skills for agents."
     }

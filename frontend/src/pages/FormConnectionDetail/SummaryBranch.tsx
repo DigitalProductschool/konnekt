@@ -1,4 +1,4 @@
-import { shownItems } from '@connection-portal/rules/tree';
+import { shownItems } from '@konnekt/rules/tree';
 
 import Connector from '../../components/Connector';
 import { useCopy } from '../../hooks/useLanguage';

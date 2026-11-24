@@ -1,7 +1,7 @@
 // The tools that change a draft's rules and groups (contracts/mcp-tools.md "Changing drafts";
 // FR-012 to FR-017): add a rule, change, delete, reset or copy an item, group items. Each makes one
 // change and stores it at once through `editDraft()`, the read-apply-save loop, with the editor's
-// own actions of `@connection-portal/rules/edits`, so Standard's changes reach the based variants
+// own actions of `@konnekt/rules/edits`, so Standard's changes reach the based variants
 // with the editor's marks. A condition is checked against the rule's data as the editor's check
 // menu limits it (research R8; FR-016). The answers describe the items as saved
 import type {
@@ -11,9 +11,9 @@ import type {
   RuleItem,
   RuleTarget,
   RuleTreeItem,
-} from '@connection-portal/api-types/form-connections';
-import { kindOfTarget, operatorDefinition, withTarget } from '@connection-portal/rules/conditions';
-import { OPERATORS } from '@connection-portal/rules/constants';
+} from '@konnekt/api-types/form-connections';
+import { kindOfTarget, operatorDefinition, withTarget } from '@konnekt/rules/conditions';
+import { OPERATORS } from '@konnekt/rules/constants';
 import {
   addRule,
   changeGroup,
@@ -24,9 +24,9 @@ import {
   groupItems,
   resetItem,
   restoreItem,
-} from '@connection-portal/rules/edits';
-import { findItem, isDissolved } from '@connection-portal/rules/tree';
-import type { ConditionKind, GroupChanges, RuleChanges } from '@connection-portal/rules/types';
+} from '@konnekt/rules/edits';
+import { findItem, isDissolved } from '@konnekt/rules/tree';
+import type { ConditionKind, GroupChanges, RuleChanges } from '@konnekt/rules/types';
 import { z } from 'zod';
 
 import {

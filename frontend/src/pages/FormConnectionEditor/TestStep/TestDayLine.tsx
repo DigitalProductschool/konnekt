@@ -1,4 +1,4 @@
-import { testDayLineOf } from '@connection-portal/rules/personas/messages';
+import { testDayLineOf } from '@konnekt/rules/personas/messages';
 
 import { useLanguage } from '../../../hooks/useLanguage';
 import type { TestDayLineProps } from './types';

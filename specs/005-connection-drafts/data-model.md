@@ -171,7 +171,7 @@ source of truth, and `frontend/src/types/form-connections.ts` mirrors it in the 
 
 A record in `window.localStorage`. It never leaves the device by itself (FR-020).
 
-**Key**: `connection-portal:local-draft:v1:<username>:<flowKey>`
+**Key**: `konnekt:local-draft:v1:<username>:<flowKey>`
 - `<username>` is the signed-in account's (`UserView.username`; R11).
 - `<flowKey>` is `new-<uuid>` for a connection that was never saved, or `draft-<form connection id>`
   for a stored draft. There is at most one per stored draft and one per new connection (FR-015).

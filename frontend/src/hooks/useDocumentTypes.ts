@@ -1,4 +1,4 @@
-import type { DocumentType } from '@connection-portal/api-types/document-types';
+import type { DocumentType } from '@konnekt/api-types/document-types';
 import { useEffect, useReducer } from 'react';
 
 import { getDocumentTypes } from '../api/document-types';

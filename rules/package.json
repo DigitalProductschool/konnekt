@@ -1,5 +1,5 @@
 {
-  "name": "@connection-portal/rules",
+  "name": "@konnekt/rules",
   "private": true,
   "version": "0.0.0",
   "type": "module",
@@ -14,7 +14,7 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "@connection-portal/api-types": "*"
+    "@konnekt/api-types": "*"
   },
   "devDependencies": {
     "@types/node": "^26.4.1",

@@ -46,7 +46,7 @@ describe('languageFromStorageEvent', () => {
   });
 
   it('ignores an event about another key', () => {
-    expect(languageFromStorageEvent('connection-portal:drafts:v1', 'de', 'en-US')).toBeNull();
+    expect(languageFromStorageEvent('konnekt:drafts:v1', 'de', 'en-US')).toBeNull();
     expect(languageFromStorageEvent('', 'de', 'de')).toBeNull();
   });
 

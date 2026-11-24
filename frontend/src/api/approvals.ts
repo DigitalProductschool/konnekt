@@ -1,4 +1,4 @@
-import type { ApprovalPreview } from '@connection-portal/api-types/approvals';
+import type { ApprovalPreview } from '@konnekt/api-types/approvals';
 
 import { apiFetch } from './client';
 

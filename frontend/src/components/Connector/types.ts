@@ -1,4 +1,4 @@
-import type { Combinator, Mark } from '@connection-portal/api-types/form-connections';
+import type { Combinator, Mark } from '@konnekt/api-types/form-connections';
 
 import type { MenuPlacement } from '../../utils/popupPlacement';
 

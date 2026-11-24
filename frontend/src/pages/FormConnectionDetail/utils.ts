@@ -1,4 +1,4 @@
-import type { ErrorNotice } from '@connection-portal/api-types/api';
+import type { ErrorNotice } from '@konnekt/api-types/api';
 import type {
   ActivityActor,
   ActivityEntry,
@@ -10,15 +10,12 @@ import type {
   FormConnectionOrDraft,
   RequestedDocument,
   RequestedDocumentView,
-} from '@connection-portal/api-types/form-connections';
-import type {
-  DetailLocationState,
-  OverviewLocationState,
-} from '@connection-portal/api-types/routing';
-import type { RuleChecks } from '@connection-portal/rules/checks/types';
-import { formatDate } from '@connection-portal/rules/dates';
-import type { Language } from '@connection-portal/rules/language';
-import { countRules } from '@connection-portal/rules/tree';
+} from '@konnekt/api-types/form-connections';
+import type { DetailLocationState, OverviewLocationState } from '@konnekt/api-types/routing';
+import type { RuleChecks } from '@konnekt/rules/checks/types';
+import { formatDate } from '@konnekt/rules/dates';
+import type { Language } from '@konnekt/rules/language';
+import { countRules } from '@konnekt/rules/tree';
 
 import { ApiError, errorNoticeOf } from '../../api/client';
 import type { ActiveFrom } from '../../components/ActiveFromChoice/types';

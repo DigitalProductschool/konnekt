@@ -49,3 +49,154 @@ Total: 7,875 tests (Node 5,232, pytest 2,643). SC-009 and T035 compare against t
   commands uses `node:26-alpine` in Docker, which this machine has.
 - **gitleaks**: not installed on this machine. T036 installs it at the version and checksum CI
   pins.
+
+## T004 and T005: The rename (2026-11-24)
+
+On `HEAD` `02037a9`, branch `opensource`, with nothing else in flight. The script (research R7,
+"The rename script") ran from scratch over the tracked files only (`git ls-files`), minus step 1's
+exclusions: `backend/alembic/versions/`, the four generated files, `specs/012-open-source-release/`,
+both lockfiles, `LICENSE`, `LICENSE.de` and binary files (none of the binary files holds an old
+name). It works on bytes, so line endings stay as they were.
+
+### What changed
+
+| Step | Rule | Lines | Files | Where (files) |
+|---|---|---|---|---|
+| 2 | `@connection-portal/` → `@konnekt/`; `"name": "community-template-frontend"` → `"name": "@konnekt/frontend"` (1 line) | 688 | 298 | `frontend` 191, `rules` 58, `mcp` 30, `specs` 14, root 3, `api-types` 1, `docs` 1 |
+| 3 | `connection-portal(?!:)` → `konnekt` | 34 | 15 | `mcp` 6, `specs/007` and `specs/008` 6, root 2 (`package.json`, `README.md`), `.claude-plugin` 1 |
+| 4 | `template_db` → `konnekt_db` (with `_test` and the throw-away names) | 151 | 37 | `specs` 21, `.specify/bugs` 8, root 4, `backend` 2 (`.env.example`, `app/config.py`), `.github` 1, `docs` 1 |
+| 5 | `github.com/DigitalProductschool/batch27-faro` → `github.com/DigitalProductschool/konnekt` | 1 | 1 | `frontend/src/pages/Account/constants.ts` |
+
+Step 6 and T004's list, by hand:
+
+- `backend/pyproject.toml`: the name `backend` → `konnekt-backend`; the description "FastAPI
+  backend with PostgreSQL" → "Konnekt's backend: the middleware between serviceBW forms and the
+  EUDI Wallet".
+- `README.md:1`: "serviceBW ↔ EUDI Wallet Middleware" → "Konnekt"; the first paragraph opens
+  "Konnekt is the middleware between serviceBW forms and the EUDI Wallet" and ends "in Konnekt's
+  management UI" (was "in **Konnekt**, the middleware's management UI").
+- `CLAUDE.md:1`: "AI Agent Instructions: Konnekt".
+- `backend/app/main.py:118`: the API's title "Konnekt".
+- `docs/ARCHITECTURE.md:85`: `dps-react-python-template/` → `konnekt/`.
+- `.claude-plugin/marketplace.json`: the owner "DO.IT, City of Stuttgart" → "Team Faro".
+- The plugin's, the marketplace's and the MCP server's name (`.claude-plugin/marketplace.json`,
+  `mcp/plugin/.claude-plugin/plugin.json`, `mcp/plugin/.mcp.json`, `mcp/src/server.ts`,
+  `mcp/plugin/README.md`, `README.md`) and `mcp/src/guidance.test.ts`, `mcp/test/server.test.ts`
+  were already `konnekt` after step 3; nothing left by hand.
+
+The rename changes the order of imports (`@konnekt/` sorts after `@kern-ux…`) and lets some
+imports fit on one line. The project's own tools fixed 31 of the renamed files and nothing else:
+`eslint --fix` (`simple-import-sort`) on 8 files of `frontend/src`, then `prettier --write` on
+those and on the 23 files `npm run format:check` named (`rules` 6, `frontend` 12, `mcp` 5).
+
+In all, 338 files changed (962 insertions, 1,059 deletions), the two lockfiles included and this
+record not.
+
+### The storage keys
+
+Before the script and after step 3, outside `specs/012-open-source-release/`: `connection-portal:`
+on **44 lines in 27 files**, as R7 counts, and no `connection-portal` without a colon after it
+outside the exclusions. Every match is a storage key or a test's key (`…:local-draft:v1:`,
+`…:language:v1`, two test keys of other shapes).
+
+### The lockfiles
+
+- `package-lock.json`: only the five names and their workspace links (`@konnekt/api-types`,
+  `@konnekt/rules`, `@konnekt/mcp`, `@konnekt/frontend`, `konnekt`), 27 lines in, 27 out; written
+  by `npm install` with npm 9.2.0 (Node 20.19.2). Node 26.13.1 / npm 11.20.0 (`node:26-alpine`,
+  `npm install --package-lock-only` on a copy) writes the same file byte for byte.
+- `backend/uv.lock`: only the project's entry, renamed `backend` → `konnekt-backend` and moved to
+  its sorted place, 49 lines in, 49 out; written by uv 0.13.0, unchanged by `uv lock` (no
+  `--upgrade`). uv 0.12.9, CI's (`uvx uv@0.12.9 lock --check`), accepts it.
+
+### The gates
+
+| Gate | Result | T003 |
+|---|---|---|
+| `uv run python -m scripts.export_check_fixtures --check` | passes | — |
+| `npm run lint` | passes | passes |
+| `npm run format:check` (CI's) | passes | — |
+| `npm test`, `rules` | 46 files, **2,678 tests passed** | 2,678 |
+| `npm test`, `frontend` | 49 files, **2,041 tests passed** | 2,041 |
+| `npm test`, `mcp` | 15 files, **513 tests passed** | 513 |
+| `npm run build` | passes; the same chunk warning (944.80 kB) | passes (944.81 kB) |
+| `uv run ruff check .` | passes | passes |
+| `uv run ruff format --check .` | passes (111 files) | passes (111 files) |
+| `uv run mypy app/ scripts/ tests/` | passes (97 source files) | passes (97 source files) |
+| `uv run pytest`, database `konnekt_db_test` on `localhost:5435` | **2,643 tests passed**, none skipped (13 min 29 s) | 2,643 |
+
+`konnekt_db_test` was created on the PostgreSQL of `docker compose up -d postgres`; the existing
+volume keeps its old databases (an existing installation, research R7).
+
+### Migrations and generated files
+
+`git diff --stat` shows nothing under `backend/alembic/versions/`, nothing in the four generated
+files, nothing in `specs/012-open-source-release/` before this section, and `LICENSE` and
+`LICENSE.de` with the SHA-256 of T003.
+
+### The search
+
+`grep -rnIE 'connection-portal|community-template|template_db|batch27'` over the tree without
+`node_modules`, `.venv`, `dist` and the lockfiles prints 144 lines (before this section). One of
+them is the checkout's `.git` pointer file, which git does not track and which is not part of the
+repository. The other 143, in tracked files:
+
+| Category | Lines | Files |
+|---|---|---|
+| `specs/012-open-source-release/**` (R7's allowlist: this spec's own text) | 70 | 4 |
+| `connection-portal:`, the storage keys (R7's allowlist) | 44 | 27 |
+| `batch27-faro` in paths of machines and scratch directories, which phase 5 replaces (R5: L1, L3, S1); two of them are also storage-key lines (`specs/010-revamp-backend-gaps/design-notes.md`) | 31 | 17 |
+| anything else | 0 | 0 |
+
+No `batch27` without `-faro` is left, and no `community-template` and no `template_db` outside
+this spec.
+
+## T004, amended (2026-11-24): no old name left
+
+The user decided on 2026-11-24 that no old product name stays anywhere in the tree, the browser's
+storage keys included (renamed without migration code: old local drafts and the old language
+choice are no longer read); R7's allowlist shrinks to `specs/012-open-source-release/**`. Same
+tracked files and step-1 exclusions as before.
+
+### What changed
+
+Hand edits first, where a blind replacement would make nonsense: 29 edits (35 places) in 14
+files: `.specify/bugs/product-name-header/assessment.md`;
+`specs/001-servicebw-eudi-middleware/design-notes.md`; `specs/007-agent-mcp-server/` `data-model.md`,
+`plan.md`, `spec.md` (the old name split over two lines); `specs/008-kern-revamp-redesign/`
+`design-notes.md`, `figma-audit/report.md`, `figma-audit/requirements.md`, `pr.md`,
+`quickstart.md`, `research.md`, `spec.md`, `tasks.md`; and
+`specs/010-revamp-backend-gaps/figma-audit/requirements.md`. Lines that set the old name against
+Konnekt now state Konnekt alone ("Konnekt" as the product's name; "named Konnekt, and by no other
+name"); a synonym list lost the old entry; and the old checks that searched for the old name now
+read `grep -rn "<earlier product name>…"` and "0 with the earlier product name". Two of the
+passages were re-wrapped afterwards.
+
+Then by script:
+
+| Replacement | Lines | Files |
+|---|---|---|
+| `connection-portal:` → `konnekt:` (`LOCAL_DRAFT_PREFIX`, `LANGUAGE_STORAGE_KEY`, their tests, comments, docs, specs) | 43 | 27 |
+| `CONNECTION_PORTAL_MCP_URL` → `KONNEKT_MCP_URL` | 17 | 8 |
+| `Connection Portal` → `Konnekt`, with an article before it on the same line ("the Connection Portal's" → "Konnekt's") | 59 | 22 |
+
+The 44th storage-key line was rewritten by hand (`specs/008-kern-revamp-redesign/design-notes.md`,
+§8.2, which listed it among identifiers that keep their names). By hand as well: the plugin's
+author in `mcp/plugin/.claude-plugin/plugin.json`, "DO.IT, City of Stuttgart" → "Team Faro"
+(`mcp/src/guidance.test.ts` doesn't pin it). The changed lines with "Konnekt" twice or an odd
+reading were read once more; none needed another change.
+
+No formatter had to run: lint and the format check passed on the first try.
+
+### Checks
+
+- `git diff -- backend/ | sha256sum` before and after: `f95393a2…1809093` both times; no file under
+  `backend/` changed.
+- `export_check_fixtures --check` passes; nothing under `backend/alembic/versions/`, in the four
+  generated files or in `LICENSE`/`LICENSE.de` changed.
+- `npm run lint` and `npm run format:check` pass; `npm test`: rules **2,678**, frontend **2,041**,
+  mcp **513** (T003: the same); `npm run build` passes, with the same chunk warning (944.76 kB).
+  pytest was not run again: no file under `backend/` changed.
+- `git ls-files | grep -v '^specs/012-open-source-release/' | xargs grep -nIiE
+  'connection[ _-]?portal|community-template|template_db|batch27'` prints exactly the 31
+  `batch27-faro` lines listed for phase 5 above, and nothing else.

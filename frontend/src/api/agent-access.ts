@@ -4,7 +4,7 @@ import type {
   AgentAccessUpdate,
   TokenCreate,
   TokenCreated,
-} from '@connection-portal/api-types/agent-access';
+} from '@konnekt/api-types/agent-access';
 
 import { apiFetch } from './client';
 

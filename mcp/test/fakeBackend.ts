@@ -6,17 +6,13 @@
 import { randomUUID } from 'node:crypto';
 import { createServer, type IncomingMessage, type ServerResponse } from 'node:http';
 import type { AddressInfo } from 'node:net';
-import type {
-  AccessLevel,
-  AccessLevelInfo,
-  AgentMe,
-} from '@connection-portal/api-types/agent-access';
+import type { AccessLevel, AccessLevelInfo, AgentMe } from '@konnekt/api-types/agent-access';
 import type {
   ApprovalAction,
   ApprovalPreview,
   ApprovalRequest,
-} from '@connection-portal/api-types/approvals';
-import type { DocumentField, DocumentType } from '@connection-portal/api-types/document-types';
+} from '@konnekt/api-types/approvals';
+import type { DocumentField, DocumentType } from '@konnekt/api-types/document-types';
 import type {
   ActivityEntry,
   ActivityPage,
@@ -32,10 +28,10 @@ import type {
   RequestedDocument,
   RequestedDocumentView,
   RuleTreeItem,
-} from '@connection-portal/api-types/form-connections';
-import type { OptionSet } from '@connection-portal/api-types/option-sets';
-import { isValidIsoDate, todayInGermany } from '@connection-portal/rules/dates';
-import { MDL, OPTION_SETS, PID, rule, target } from '@connection-portal/rules/testData';
+} from '@konnekt/api-types/form-connections';
+import type { OptionSet } from '@konnekt/api-types/option-sets';
+import { isValidIsoDate, todayInGermany } from '@konnekt/rules/dates';
+import { MDL, OPTION_SETS, PID, rule, target } from '@konnekt/rules/testData';
 
 /** The callers' bearer tokens, one per access level. */
 export const BEARERS = {

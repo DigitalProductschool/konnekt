@@ -6,10 +6,10 @@ import type {
   DocumentType,
   FieldKind,
   FieldPart,
-} from '@connection-portal/api-types/document-types';
-import type { Option } from '@connection-portal/api-types/option-sets';
-import { OPERATORS } from '@connection-portal/rules/constants';
-import type { OperatorInput } from '@connection-portal/rules/types';
+} from '@konnekt/api-types/document-types';
+import type { Option } from '@konnekt/api-types/option-sets';
+import { OPERATORS } from '@konnekt/rules/constants';
+import type { OperatorInput } from '@konnekt/rules/types';
 import { z } from 'zod';
 
 import { InvalidReference, ReferenceNotFound, RESOLVE_MESSAGES } from '../resolve';

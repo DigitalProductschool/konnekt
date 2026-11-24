@@ -2,7 +2,7 @@
 // contracts/rule-checks.md): the checked tree that the main thread builds, the formulas the solver
 // reads, the findings it returns, and the messages between the hook and the worker. Every shape is
 // plain data, so that it can be posted to the worker
-import type { Combinator } from '@connection-portal/api-types/form-connections';
+import type { Combinator } from '@konnekt/api-types/form-connections';
 
 import type { Language } from '../language';
 import type { ConditionKind } from '../types';

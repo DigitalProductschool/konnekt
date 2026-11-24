@@ -6,8 +6,8 @@
 // `CONNECTION_DETAIL_COPY`, `STATUS_PILL_COPY`, `CONNECTOR_COPY`, `RULE_ROW_COPY` and
 // `BRANCH_MARK_COPY` (design-notes 8.1), so that the screen and the file never word one thing
 // differently
-import { MESSAGE_MAX_LENGTH } from '@connection-portal/rules/constants';
-import { defineTexts } from '@connection-portal/rules/language';
+import { MESSAGE_MAX_LENGTH } from '@konnekt/rules/constants';
+import { defineTexts } from '@konnekt/rules/language';
 
 import type { HexColour, TextStyle } from './types';
 

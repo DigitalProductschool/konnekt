@@ -1,5 +1,5 @@
-import type { DocumentType } from '@connection-portal/api-types/document-types';
-import type { Language } from '@connection-portal/rules/language';
+import type { DocumentType } from '@konnekt/api-types/document-types';
+import type { Language } from '@konnekt/rules/language';
 
 import { apiFetch } from './client';
 

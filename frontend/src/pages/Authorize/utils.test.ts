@@ -1,4 +1,4 @@
-import type { OauthClientView } from '@connection-portal/api-types/oauth';
+import type { OauthClientView } from '@konnekt/api-types/oauth';
 import { describe, expect, it } from 'vitest';
 
 import { ApiError } from '../../api/client';

@@ -1,10 +1,10 @@
-import type { BranchInput } from '@connection-portal/api-types/form-connections';
-import { parseDayNumber } from '@connection-portal/rules/checks/calendar';
-import { evaluateBranch } from '@connection-portal/rules/evaluation';
-import { applicantOf } from '@connection-portal/rules/personas/applicant';
-import { personaFieldsOf } from '@connection-portal/rules/personas/fields';
-import type { Persona, PersonaValue } from '@connection-portal/rules/personas/types';
-import { MDL, OPTION_SETS, PID, rule, target } from '@connection-portal/rules/testData';
+import type { BranchInput } from '@konnekt/api-types/form-connections';
+import { parseDayNumber } from '@konnekt/rules/checks/calendar';
+import { evaluateBranch } from '@konnekt/rules/evaluation';
+import { applicantOf } from '@konnekt/rules/personas/applicant';
+import { personaFieldsOf } from '@konnekt/rules/personas/fields';
+import type { Persona, PersonaValue } from '@konnekt/rules/personas/types';
+import { MDL, OPTION_SETS, PID, rule, target } from '@konnekt/rules/testData';
 import { describe, expect, it } from 'vitest';
 
 import { APPLICANT_MESSAGES, checkApplicant, toApplicant } from './applicants';

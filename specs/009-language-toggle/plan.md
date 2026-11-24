@@ -64,7 +64,7 @@ texts; the kit's defaults are German), Tailwind CSS 4, React Router 7, Vite 8, V
 Pydantic 2, SQLAlchemy 2. No i18n library, no date library (R1, R5).
 
 **Storage**: no database or API shape change. One new `localStorage` key,
-`connection-portal:language:v1`, read and written only by `LanguageProvider` (R7).
+`konnekt:language:v1`, read and written only by `LanguageProvider` (R7).
 
 **Testing**:
 - **Vitest** (the gate) in `node`: `tsc` proves both columns of every table; `copy.test.ts`

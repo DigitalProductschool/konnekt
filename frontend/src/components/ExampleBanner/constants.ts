@@ -1,4 +1,4 @@
-import { defineTexts } from '@connection-portal/rules/language';
+import { defineTexts } from '@konnekt/rules/language';
 
 /**
  * The example's banners (FR-058, C4; U18 1h 6798:122695, 1i 7344:96396, 1i-c 7344:96451): the

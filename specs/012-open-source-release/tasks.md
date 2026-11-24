@@ -52,9 +52,10 @@ which only the user runs.
 
 1. **`LICENSE` never changes** (FR-002). No task opens it for writing. Its SHA-256 is
    `6fc9e709ccbfe0d77fbffa2427a983282be2eb88e47b1cdb49f21a83b4d1e665`.
-2. **No stored or sent identifier changes** (FR-012): storage keys (`connection-portal:` followed
-   by a colon), cookie names, tables, columns, API paths, environment variables' names
-   (`CONNECTION_PORTAL_MCP_URL`, `SERVICE_PASSWORD_POSTGRES` …), the MCP tools' names.
+2. **No stored or sent identifier changes** (FR-012): cookie names, tables, columns, API paths,
+   environment variables' names (`SERVICE_PASSWORD_POSTGRES` …), the MCP tools' names. The one
+   exception (user, 2026-11-24): the browser's two storage keys and the plugin's variable were
+   renamed with everything else (T004, amended); no old name is written back anywhere.
 3. **Generated files and migrations**: `rules/src/checks/caseFolding.ts`,
    `rules/src/checks/fixtures/evaluator-vectors.json`, `rules/src/fixtures/server-messages.json`,
    `rules/src/fixtures/example-connection.json`, `package-lock.json` and `backend/uv.lock` change
@@ -113,7 +114,14 @@ changes. Runs before everything else because every later file carries the name (
 **Independent Test**: the search of T005 prints only the allowlist; the same tests pass as in
 T003.
 
-- [ ] T004 [US3] [high] Rename by script, as research R7 "The rename script" gives it, steps 1 to
+**Amended on 2026-11-24 (user), after T004 and T005 had run**: no old name stays anywhere, the
+storage keys included (spec, Clarifications "no old name left"). T004's second pass renamed
+`connection-portal:` → `konnekt:`, `CONNECTION_PORTAL_MCP_URL` → `KONNEKT_MCP_URL` and
+"Connection Portal" → "Konnekt" (the lines that set it against Konnekt by hand), and the plugin's
+author → Team Faro. The search's allowlist is now only this feature's directory, which T041
+cleans last. Where T004's and T005's text below says otherwise, this paragraph wins.
+
+- [X] T004 [US3] [high] Rename by script, as research R7 "The rename script" gives it, steps 1 to
   6, with nothing else in flight. The script lives in scratch and is not committed. Step 1's
   exclusions exactly (`backend/alembic/versions/`, the four generated files, this feature's
   directory, both lockfiles, `LICENSE`, `LICENSE.de`, binary files). Steps 2 to 5 are the ordered
@@ -126,7 +134,7 @@ T003.
   Portal" spelled out in `specs/` and `.specify/bugs/`, the paths holding `batch27-faro` (phase
   5 replaces them). Items: FR-011, FR-012, FR-015; files: every file the rules match; gates:
   none yet (T005).
-- [ ] T005 [US3] [high] Regenerate and prove the rename: `npm install` from the root and `uv lock`
+- [X] T005 [US3] [high] Regenerate and prove the rename: `npm install` from the root and `uv lock`
   in `backend/` without `--upgrade` (rule 3), then
   `uv run python -m scripts.export_check_fixtures --check`; create `konnekt_db_test`; the Node
   gates and the backend gates, with the same test counts as T003; `git diff --stat` shows no
@@ -136,12 +144,13 @@ T003.
   allowlist plus the `batch27-faro` paths phase 5 removes, listed in the report. Append the
   result to `verification.md`. Items: FR-012, FR-013, SC-009; depends on T004; files:
   `package-lock.json`, `backend/uv.lock`, `verification.md`; gates: all.
-- [ ] T006 [US3] [medium] `specs/README.md` (new): one short page saying that on the rename's date
-  the names in the earlier specs and bug records were changed, what they were
-  (`@connection-portal/*`, `community-template-frontend`, `template_db`, the repository
-  `batch27-faro`), that "Connection Portal" was the product's earlier name and stays in the
-  records, and that the browser's storage keys keep the old prefix on purpose. Items: FR-014;
-  depends on T004; files: `specs/README.md`; gates: none.
+- [X] T006 [US3] [medium] `specs/README.md` (new): one short page saying what `specs/` and
+  `.specify/bugs/` hold (how the project was built, feature by feature and bug by bug), and that on
+  the rename's date (2026-11-24) the names in these records (packages, databases, the
+  repository, the product's earlier name, the browser's storage keys) were updated to the current
+  ones after the fact, so a record may name something by a name it did not have when it was
+  written. It names **no** old name (amended 2026-11-24, user). Items: FR-014; depends on T004;
+  files: `specs/README.md`; gates: the search of T005 finds nothing in it.
 
 ### Delegation
 
@@ -299,11 +308,11 @@ docker-compose.prod.yml config` works with only the documented variables.
   that `specs/` records how the project was built, with a link to Spec Kit; "Deployment"
   rewritten for any Docker host behind a reverse proxy that provides HTTPS: every variable the
   production compose file needs, how the proxy reaches nginx, the first account, backups, no
-  preview deployments; the wrong `APP_ENV` sentence corrected (research R6, finding 21); one
-  paragraph for an installation from before the rename (research R7, "An existing
-  installation": the database's name, the plugin's reinstallation); the scrub's README lines
-  (research R5: H2, T1a, T3, and item 5 of its confidential-items table). Items: FR-016,
-  FR-025, FR-026, FR-033; depends on T015 (same file); files: `README.md`; gates: none.
+  preview deployments; the wrong `APP_ENV` sentence corrected (research R6, finding 21); **no**
+  paragraph for an installation from before the rename (FR-016 withdrawn 2026-11-24) and no old
+  name anywhere in the README; the scrub's README lines (research R5: H2, T1a, T3, and item 5 of
+  its confidential-items table). Items: FR-025, FR-026, FR-033; depends on T015 (same file);
+  files: `README.md`; gates: none.
 - [ ] T017 [P] [US4] [high] `docker-compose.prod.yml` without what only Coolify provides
   (research R10): comments rewritten; `SERVICE_PASSWORD_POSTGRES` stays by name and fails with a
   clear message when unset (`${VAR:?…}`); the `SERVICE_NAME_*` indirections become the fixed
@@ -543,14 +552,16 @@ failure goes back to the task that owns the file. Everything is appended to `ver
   checksum the CI pins (`.github/workflows/ci.yml`), over the tree and with
   `--log-opts=--all`, `--redact`, both without findings; `npm run notices -w frontend` leaves
   the committed file unchanged. Items: FR-021, FR-030, SC-001, SC-005.
-- [ ] T037 [P] [medium] The searches: the old names (T005's command) against research R7's
-  allowlist; research R5's five checks against its allowlist; `README.md` and `docs/` for
+- [ ] T037 [P] [medium] The searches: the old names (T005's command, plus "Connection Portal"
+  in any case: `grep -rnIiE 'connection[ _-]?portal|community-template|template_db|batch27'`)
+  print nothing outside this feature's directory (research R7, as amended 2026-11-24); research
+  R5's five checks against its allowlist; `README.md` and `docs/` for
   `coolify` (any case) and for the Spec Kit installation command; every internal link of
   `README.md`, `NOTICE.md`, `SECURITY.md`, `CONTRIBUTING.md`, `docs/*.md` and `specs/README.md`
   resolves in the tree, every external one answers (list the ones that do not, with the
-  status). Write the two final allowlists into research (R5, R7) if a line was added or went
-  away, each with its reason; both stay under 20 lines (SC-004). Items: FR-013, FR-025, FR-035,
-  FR-040, SC-004; files: `research.md` (the two allowlists only).
+  status). Write R5's final allowlist into research if a line was added or went away, with its
+  reason; it stays under 20 lines (SC-004). Items: FR-013, FR-025, FR-035, FR-040, SC-004;
+  files: `research.md` (R5's allowlist only).
 - [ ] T038 [high] The fresh clone (FR-039): since nothing is committed here, copy exactly what a
   clone would hold, `git ls-files -co --exclude-standard`, into an empty scratch directory,
   and there follow `README.md`'s "Quick Start" word for word with nothing else: the time from
@@ -560,21 +571,37 @@ failure goes back to the task that owns the file. Everything is appended to `ver
   `NOTICE.md` says). Every place where the README was not enough is a finding for T016. Without
   Docker on this machine: write the exact commands under "Needs a person". Items: FR-039,
   SC-007.
+- [ ] T041 [US3] [high] Clean this feature's own files of the old names (spec, Clarifications
+  2026-11-24), last of all the edits: every file under `specs/012-open-source-release/`
+  (`spec.md`, `plan.md`, `research.md`, `tasks.md`, `verification.md`, `pr.md`, `handover.md`,
+  `history-rewrite.md`, `checklists/`). Replace each old name by neutral words that keep the
+  sentence true: "the old package scope", "the old database name", "the earlier working name",
+  "the existing repository", "the old storage prefix"; a command that needs the existing
+  repository's address takes the placeholder `<existing-repository-url>`, with one sentence saying
+  that the mentor and the user know it. Also remove the checkout's paths (the `GIT_DIR` and
+  `GIT_WORK_TREE` values, the clone path of T040's rehearsal): describe them in words. Keep
+  `LICENSE`'s hash, the commit hashes and everything else. Then
+  `grep -rnIiE 'connection[ _-]?portal|community-template|template_db|batch27'` over the whole
+  tree (without `node_modules`, `.venv`, `dist`, the lockfiles, the untracked `.git` pointer)
+  prints **nothing**; append that result to `verification.md` in the same neutral words. From
+  here on no task writes an old name. Items: FR-013, SC-004; depends on T035 to T038, and on
+  T040 if it runs before; files: this feature's directory; gates: the search.
 - [ ] T039 [medium] The record: `verification.md` ends with one table, one row per success
   criterion SC-001 to SC-010 and per user story's Independent Test, each "met", "not met" or
   "needs a person" with the evidence; the list of open points still open (research, "Open
-  points"); and what a person must still do, in order. Tick nothing that was not run. Items:
-  FR-042; depends on T035 to T038; files: `verification.md`.
+  points"); and what a person must still do, in order. Tick nothing that was not run. It writes
+  no old name (T041 ran before it; SC-004's row cites T041's search). Items: FR-042; depends on
+  T035 to T038 and T041; files: `verification.md`.
 
 ### Delegation
 
-- T035 [high]; batch (T036, T037) [medium] in parallel with it; then T038 [high]; then T039
-  [medium].
+- T035 [high]; batch (T036, T037) [medium] in parallel with it; then T038 [high]; then T041
+  [high]; then T039 [medium].
 - **Needs a person**, in order: the commits (below); the consent statements on `LICENSE`, counted
   against research R8 before the merge (SC-003); the mentor's new repository; the manual checks
-  of phase 6; in a browser that holds a local draft from before the rename, the draft is still
-  offered (spec, US3, scenario 2); the Account page's "Installing the plugin" link (scenario 3);
-  last, the history rewrite of phase 9.
+  of phase 6; in a browser that holds a local draft from before the rename, Konnekt opens as on
+  a first visit, without an error (spec, US3, scenario 2); the Account page's "Installing the
+  plugin" link (scenario 3); last, the history rewrite of phase 9.
 
 ---
 
@@ -642,6 +669,8 @@ repository or the one on GitHub.
 - Across them: T028 (phase 6) waits for T007's report and for T009's `NOTICE.md`; T019's
   `SECURITY.md` is reconciled by T032.
 - **Phase 7** after phases 3 to 6. **Phase 8** last.
+- **T041** after every other edit of this feature's directory (T040 included, if it runs in the
+  same session); a task that runs after T041 writes no old name.
 
 ### Commits (the user's, on their machine)
 
@@ -692,10 +721,10 @@ repository or the one on GitHub.
 | FR-006 | T010, T013, T036 |
 | FR-007 | T028 |
 | FR-008 to FR-010 | T033, the people's steps |
-| FR-011 to FR-013 | T004, T005, T037 |
+| FR-011 to FR-013 | T004, T005, T037, T041 |
 | FR-014 | T006 |
 | FR-015 | T004, T031 |
-| FR-016 | T016 |
+| FR-016 | withdrawn 2026-11-24 |
 | FR-017, FR-018 | T009, T011, T014 |
 | FR-019 | T008 |
 | FR-020 to FR-022 | T009 |
@@ -729,7 +758,8 @@ repository or the one on GitHub.
   HEAD`); if it is not, stop and say so. Counts and line numbers that research.md gives were
   taken at `9fbce6c`: check a cited line before relying on it.
 - Avoid: opening `LICENSE` for writing; per-file SPDX headers; a second licence text that
-  differs from the root's; renaming a storage key, an environment variable or a migration;
+  differs from the root's; renaming an environment variable (other than the plugin's, done) or a
+  migration; writing an old name back anywhere (amended 2026-11-24);
   hand edits to lockfiles or generated fixtures; a new dependency for the notices, the REUSE
   check or the throttle; scrubbing the Figma keys or `FS-20417` (both decided to stay);
   rewriting history anywhere but in T040's scratch clone; writing a secret, a full ID or a local path into any file; a `pytest.ini`

@@ -8,23 +8,23 @@ import type {
   BranchInput,
   FormConnectionOrDraft,
   RuleTreeItem,
-} from '@connection-portal/api-types/form-connections';
-import { dayNumber } from '@connection-portal/rules/checks/calendar';
-import { buildCheckedBranch } from '@connection-portal/rules/checks/checkedTree';
-import { variableKey } from '@connection-portal/rules/checks/literals';
-import { RULES_MESSAGES } from '@connection-portal/rules/constants';
-import { isValidIsoDate, todayInGermany } from '@connection-portal/rules/dates';
+} from '@konnekt/api-types/form-connections';
+import { dayNumber } from '@konnekt/rules/checks/calendar';
+import { buildCheckedBranch } from '@konnekt/rules/checks/checkedTree';
+import { variableKey } from '@konnekt/rules/checks/literals';
+import { RULES_MESSAGES } from '@konnekt/rules/constants';
+import { isValidIsoDate, todayInGermany } from '@konnekt/rules/dates';
 import {
   type Applicant,
   type BranchEvaluation,
   evaluateBranch,
   type EvaluatedItem,
   type Outcome,
-} from '@connection-portal/rules/evaluation';
-import { DEFAULT_LANGUAGE } from '@connection-portal/rules/language';
-import { effectiveItems } from '@connection-portal/rules/tree';
-import type { RuleContext } from '@connection-portal/rules/types';
-import { ruleProblemOf } from '@connection-portal/rules/validation';
+} from '@konnekt/rules/evaluation';
+import { DEFAULT_LANGUAGE } from '@konnekt/rules/language';
+import { effectiveItems } from '@konnekt/rules/tree';
+import type { RuleContext } from '@konnekt/rules/types';
+import { ruleProblemOf } from '@konnekt/rules/validation';
 import { z } from 'zod';
 
 import { checkApplicant, type TestApplicant, toApplicant } from '../applicants';

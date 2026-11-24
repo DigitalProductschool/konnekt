@@ -5,19 +5,19 @@
 // one; `check_approval` reads the outcome. Nothing here changes a connection. Spec 010 (research
 // R9): `publish` and `reactivate` may name a start date, and `set_start_date` moves, sets or
 // starts a connection's start
-import type { AccessLevel } from '@connection-portal/api-types/agent-access';
+import type { AccessLevel } from '@konnekt/api-types/agent-access';
 import type {
   ApprovalAction,
   ApprovalPreview,
   ApprovalRequest,
   ApprovalStatus,
-} from '@connection-portal/api-types/approvals';
+} from '@konnekt/api-types/approvals';
 import type {
   ConnectionUrls as ApiConnectionUrls,
   FormConnectionOrDraft,
-} from '@connection-portal/api-types/form-connections';
-import { GERMAN_TIME_ZONE } from '@connection-portal/rules/constants';
-import { isValidIsoDate, todayInGermany } from '@connection-portal/rules/dates';
+} from '@konnekt/api-types/form-connections';
+import { GERMAN_TIME_ZONE } from '@konnekt/rules/constants';
+import { isValidIsoDate, todayInGermany } from '@konnekt/rules/dates';
 import { CLIENT_CAPABILITIES_META_KEY, inputRequired } from '@modelcontextprotocol/server';
 import { z } from 'zod';
 

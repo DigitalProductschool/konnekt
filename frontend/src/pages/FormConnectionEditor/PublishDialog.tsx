@@ -1,6 +1,6 @@
-import { formatDate } from '@connection-portal/rules/dates';
-import type { Language } from '@connection-portal/rules/language';
 import { KernAlert } from '@kern-ux-annex/kern-react-kit';
+import { formatDate } from '@konnekt/rules/dates';
+import type { Language } from '@konnekt/rules/language';
 import { type ReactNode, type SyntheticEvent, useEffect, useLayoutEffect, useRef } from 'react';
 
 import ActiveFromChoice from '../../components/ActiveFromChoice';

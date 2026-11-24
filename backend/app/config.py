@@ -18,7 +18,7 @@ class Settings(BaseSettings):
     model_config = SettingsConfigDict(env_file='.env', extra='ignore')
 
     database_url: str = (
-        'postgresql+psycopg://postgres:postgres@localhost:5432/template_db'
+        'postgresql+psycopg://postgres:postgres@localhost:5432/konnekt_db'
     )
     port: int = 3000
     cors_origin: str = 'http://localhost:5173'

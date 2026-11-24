@@ -30,7 +30,7 @@
 // One part of `_date()` isn't ported: a date-time with a time zone (`_DATE_TIME`), read by
 // `datetime.fromisoformat()` in Germany's time zone. Such a value throws instead of risking an
 // answer Python wouldn't give; the oracle and the personas deliver dates as `YYYY-MM-DD`
-import type { FieldKind, PartKind } from '@connection-portal/api-types/document-types';
+import type { FieldKind, PartKind } from '@konnekt/api-types/document-types';
 import type {
   BranchInput,
   Combinator,
@@ -38,8 +38,8 @@ import type {
   RuleItem,
   RuleTarget,
   RuleTreeItem,
-} from '@connection-portal/api-types/form-connections';
-import type { OptionSet } from '@connection-portal/api-types/option-sets';
+} from '@konnekt/api-types/form-connections';
+import type { OptionSet } from '@konnekt/api-types/option-sets';
 
 import { isDayNumber, monthsAfter, parseDayNumber, yearsAfter } from './checks/calendar';
 import { caseFold, normalisedText } from './checks/text';

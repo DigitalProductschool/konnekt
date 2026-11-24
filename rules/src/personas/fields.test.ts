@@ -1,10 +1,10 @@
-import type { DocumentField } from '@connection-portal/api-types/document-types';
+import type { DocumentField } from '@konnekt/api-types/document-types';
 import type {
   BranchInput,
   GroupItem,
   RuleItem,
   RuleTreeItem,
-} from '@connection-portal/api-types/form-connections';
+} from '@konnekt/api-types/form-connections';
 import { describe, expect, it } from 'vitest';
 
 import { addRuleToBranch, changeItem, newBranch, removeItem } from '../branches';

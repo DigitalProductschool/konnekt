@@ -7,7 +7,7 @@ import type {
   NumberingBase,
   RuleItem,
   RuleTreeItem,
-} from '@connection-portal/api-types/form-connections';
+} from '@konnekt/api-types/form-connections';
 
 import { ITEM_NOUNS } from './constants';
 import { DEFAULT_LANGUAGE, type Language } from './language';

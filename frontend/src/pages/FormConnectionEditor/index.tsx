@@ -1,14 +1,14 @@
-import type { DocumentType } from '@connection-portal/api-types/document-types';
-import type { RequestedDocument } from '@connection-portal/api-types/form-connections';
+import type { DocumentType } from '@konnekt/api-types/document-types';
+import type { RequestedDocument } from '@konnekt/api-types/form-connections';
 import type {
   DetailLocationState,
   EditLocationState,
   OverviewLocationState,
-} from '@connection-portal/api-types/routing';
-import { droppedDataOf } from '@connection-portal/rules/dropped';
-import { rulesCheckingRemoval } from '@connection-portal/rules/edits';
-import type { Language } from '@connection-portal/rules/language';
-import { firstProblem } from '@connection-portal/rules/validation';
+} from '@konnekt/api-types/routing';
+import { droppedDataOf } from '@konnekt/rules/dropped';
+import { rulesCheckingRemoval } from '@konnekt/rules/edits';
+import type { Language } from '@konnekt/rules/language';
+import { firstProblem } from '@konnekt/rules/validation';
 import { useCallback, useEffect, useMemo, useReducer, useRef, useState } from 'react';
 import { flushSync } from 'react-dom';
 import { generatePath, Navigate, useNavigate, useSearchParams } from 'react-router';

@@ -2,7 +2,7 @@
 // a run's deadline and watchdog (research R9), the generation's budgets (research R6, R7), the
 // plausible ranges of generated values (research R7, FR-010) and the fields that describe the same
 // fact (research R7, step 1). Times are in milliseconds
-import type { Combinator } from '@connection-portal/api-types/form-connections';
+import type { Combinator } from '@konnekt/api-types/form-connections';
 
 import { defineTexts } from '../language';
 import type { PersonaId } from './types';

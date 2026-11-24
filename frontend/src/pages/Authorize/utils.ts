@@ -1,5 +1,5 @@
-import type { AccessLevel } from '@connection-portal/api-types/agent-access';
-import type { Language } from '@connection-portal/rules/language';
+import type { AccessLevel } from '@konnekt/api-types/agent-access';
+import type { Language } from '@konnekt/rules/language';
 
 import { ApiError } from '../../api/client';
 import { CONSENT_COPY, INITIAL_CONSENT_STATE, REQUIRED_PARAMETERS } from './constants';

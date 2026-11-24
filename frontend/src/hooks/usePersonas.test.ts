@@ -1,4 +1,4 @@
-import type { Persona } from '@connection-portal/rules/personas/types';
+import type { Persona } from '@konnekt/rules/personas/types';
 import { describe, expect, it } from 'vitest';
 
 import { lacksUnrequestedValue } from './usePersonas';

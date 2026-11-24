@@ -1,4 +1,4 @@
-import { defineTexts } from '@connection-portal/rules/language';
+import { defineTexts } from '@konnekt/rules/language';
 
 import type { CopyTexts } from '../../components/CopyableUrl/types';
 import type { AccountState, TokenForm } from './types';
@@ -142,7 +142,7 @@ export const ACCOUNT_COPY = defineTexts(
  * and connecting other MCP clients (contracts/guidance.md "Installing (README)")
  */
 export const MCP_README_URL =
-  'https://github.com/DigitalProductschool/batch27-faro#installing-the-plugin';
+  'https://github.com/DigitalProductschool/konnekt#installing-the-plugin';
 
 /**
  * What the token's field announces after each copy (FR-048); its button reads "Copy" and

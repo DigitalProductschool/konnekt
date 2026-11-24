@@ -1,4 +1,4 @@
-import { defineTexts } from '@connection-portal/rules/language';
+import { defineTexts } from '@konnekt/rules/language';
 
 import documentIcon from '../../assets/icons/document.svg';
 import drivingLicenceInkIcon from '../../assets/icons/driving-licence-ink.svg';

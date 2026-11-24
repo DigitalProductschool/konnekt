@@ -1,5 +1,5 @@
-import type { ErrorNotice } from '@connection-portal/api-types/api';
-import type { FormConnectionSummary } from '@connection-portal/api-types/form-connections';
+import type { ErrorNotice } from '@konnekt/api-types/api';
+import type { FormConnectionSummary } from '@konnekt/api-types/form-connections';
 import type { Ref, RefObject } from 'react';
 
 import type { Homepage } from '../../hooks/types';

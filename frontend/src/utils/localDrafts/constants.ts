@@ -1,13 +1,13 @@
 // The local drafts' fixed values (specs/005-connection-drafts/contracts/local-drafts.md "Format";
 // research R9, R10) and the one text this folder words
-import { defineTexts } from '@connection-portal/rules/language';
+import { defineTexts } from '@konnekt/rules/language';
 
 /**
  * What every key of this app's local drafts starts with. The app's name keeps them apart from
  * other apps' entries on the same origin, and `v1` lets a later format use keys of its own. Spec
  * 006 changed the format, not the prefix, so that old records are still found and removed
  */
-export const LOCAL_DRAFT_PREFIX = 'connection-portal:local-draft:v1:';
+export const LOCAL_DRAFT_PREFIX = 'konnekt:local-draft:v1:';
 
 /**
  * The record's `format`: a record of another format is invalid and removed (R9). Format 1 held the

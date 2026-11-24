@@ -1,5 +1,5 @@
-import type { BranchInput, GroupItem } from '@connection-portal/api-types/form-connections';
-import { MDL, OPTION_SETS, PID, rule, target } from '@connection-portal/rules/testData';
+import type { BranchInput, GroupItem } from '@konnekt/api-types/form-connections';
+import { MDL, OPTION_SETS, PID, rule, target } from '@konnekt/rules/testData';
 import { describe, expect, it } from 'vitest';
 
 import { config } from './config';

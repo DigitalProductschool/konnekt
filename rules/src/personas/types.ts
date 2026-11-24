@@ -3,7 +3,7 @@
 // shows of them, the shapes of generation, and the messages between the hook and the worker. Every
 // shape is plain data, so that it can be posted to the worker. Only types are imported, so this
 // module brings no code into the main bundle
-import type { RuleItem } from '@connection-portal/api-types/form-connections';
+import type { RuleItem } from '@konnekt/api-types/form-connections';
 
 import type { CheckedBranch, Formula, Literal } from '../checks/types';
 import type { EvaluatedItem } from '../evaluation';

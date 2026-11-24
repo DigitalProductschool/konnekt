@@ -58,7 +58,7 @@ function writeFlag(username: string, hasConnections: boolean): void {
  * per account, so the page's own writes don't change it.
  *
  * Besides `useLocalDraftStore`, this is the only code that touches `window.localStorage`. One
- * flag per account (`connection-portal:local-draft:v1:<username>:homepage:has-connections`);
+ * flag per account (`konnekt:local-draft:v1:<username>:homepage:has-connections`);
  * nothing else is stored, and nothing is logged.
  */
 export function useRememberedHomepage(hasConnections: boolean | null): RememberedHomepage {

@@ -1,4 +1,4 @@
-import { formatDate } from '@connection-portal/rules/dates';
+import { formatDate } from '@konnekt/rules/dates';
 
 import { useLanguage } from '../../hooks/useLanguage';
 import { STATUS_PILL_COPY, STATUS_PILL_TONES } from './constants';

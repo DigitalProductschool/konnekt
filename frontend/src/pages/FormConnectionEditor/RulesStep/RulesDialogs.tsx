@@ -1,5 +1,5 @@
-import { statementOf } from '@connection-portal/rules/statements';
-import { findItem } from '@connection-portal/rules/tree';
+import { statementOf } from '@konnekt/rules/statements';
+import { findItem } from '@konnekt/rules/tree';
 
 import ConfirmDialog from '../../../components/ConfirmDialog';
 import { useLanguage } from '../../../hooks/useLanguage';

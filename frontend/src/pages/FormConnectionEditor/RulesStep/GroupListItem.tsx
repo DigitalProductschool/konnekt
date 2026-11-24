@@ -1,4 +1,4 @@
-import { findItem, shownItems } from '@connection-portal/rules/tree';
+import { findItem, shownItems } from '@konnekt/rules/tree';
 
 import GroupFrame from '../../../components/GroupFrame';
 import type { GroupFrameMember } from '../../../components/GroupFrame/types';

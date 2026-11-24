@@ -23,7 +23,9 @@ carries the result of the earlier ones:
    Commission's text (R1). It is the first commit, alone, so that the pull request can be opened
    and the consent statements collected while the rest is built.
 2. **The rename to Konnekt** (R7): one scripted change over the whole tree, by one agent with
-   nothing else in flight, because it touches about 330 files. Stored and sent identifiers stay.
+   nothing else in flight, because it touches about 330 files. Stored and sent identifiers stay,
+   except the browser's storage keys and the plugin's variable (user, 2026-11-24: no old name
+   anywhere; this spec's own files are cleaned last, T041).
 3. **Four parallel work packages on files that don't overlap**: licence metadata and `REUSE.toml`
    with the notices (R1 to R4, R9); the public-facing files (R10); the scrub of specs and bug
    records (R5); the security fixes (R6).
@@ -43,7 +45,8 @@ file.
 
 **Storage**: one new table if the sign-in throttle is stored (R6); otherwise none. No existing
 table, column or migration changes. The databases' default names change (`konnekt_db`,
-`konnekt_db_test`), with the step for an existing installation in the README (FR-016).
+`konnekt_db_test`); everything is redeployed, so the README has no step for an existing
+installation (FR-016, withdrawn 2026-11-24).
 
 **Testing**: the existing gates (Ruff, mypy, pytest, ESLint, Prettier, Vitest, the build), plus
 tests for the four security fixes, plus the REUSE check as a new CI job.
@@ -57,7 +60,8 @@ release.
 **Performance Goals**: none.
 
 **Constraints**: `LICENSE` never changes after its commit (FR-002). No stored or sent identifier
-changes (FR-012). Generated files change only through their generators, and migrations are never
+changes (FR-012), apart from the browser's storage keys and the plugin's variable (amended
+2026-11-24). Generated files change only through their generators, and migrations are never
 edited. Everything is merged by 27.11.2026 (FR-010). No secret value, full connection id, session
 id or Figma key is written into any file of this feature. The history is rewritten once, by the
 user, only to remove the star artwork, after everything is merged and before anything is public

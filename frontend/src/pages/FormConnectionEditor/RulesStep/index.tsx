@@ -1,9 +1,9 @@
-import { namesOf, noteOf } from '@connection-portal/rules/checks/findingMessages';
-import type { Language } from '@connection-portal/rules/language';
-import { groupIdOf, ruleIdOf, shownItems } from '@connection-portal/rules/tree';
-import type { RuleContext } from '@connection-portal/rules/types';
-import { unrequestedRules } from '@connection-portal/rules/validation';
 import { KernAlert } from '@kern-ux-annex/kern-react-kit';
+import { namesOf, noteOf } from '@konnekt/rules/checks/findingMessages';
+import type { Language } from '@konnekt/rules/language';
+import { groupIdOf, ruleIdOf, shownItems } from '@konnekt/rules/tree';
+import type { RuleContext } from '@konnekt/rules/types';
+import { unrequestedRules } from '@konnekt/rules/validation';
 import { type RefObject, useEffect, useLayoutEffect, useMemo, useRef } from 'react';
 import { flushSync } from 'react-dom';
 

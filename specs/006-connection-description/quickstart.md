@@ -19,7 +19,7 @@ stack. The shapes are in [contracts/](contracts/), and the data in [data-model.m
 # backend/
 uv run ruff check . && uv run ruff format --check .
 uv run mypy app/ scripts/ tests/
-DATABASE_URL=postgresql+psycopg://postgres:postgres@localhost:5435/template_db_test uv run pytest
+DATABASE_URL=postgresql+psycopg://postgres:postgres@localhost:5435/konnekt_db_test uv run pytest
 #   tests/api/test_form_connections.py        create and update without a description, 501 characters
 #                                             refused, spaces stored as '', a description-only
 #                                             change creates no revision (FR-002, FR-003, FR-010)

@@ -26,7 +26,7 @@ npm run lint && npm test && npm run build
 
 # backend/ (for the C items that change server texts)
 uv run ruff check --fix . && uv run ruff format . && uv run mypy app/ scripts/ tests/
-DATABASE_URL=postgresql+psycopg://postgres:postgres@localhost:5435/template_db_test uv run pytest
+DATABASE_URL=postgresql+psycopg://postgres:postgres@localhost:5435/konnekt_db_test uv run pytest
 ```
 
 Expected: all green. A test fails only where an adopted item changed the behaviour or text it
@@ -257,7 +257,7 @@ label, menus and popups staying on screen (FR-009d). One row per screenshot in d
    validation tests of both sides assert the same strings).
 2. Run the removal checklist of design-notes §7: every grep comes back empty or lists identifiers
    and history only.
-3. `grep -rn "Connection Portal\|[Aa]pplicant" mcp/plugin` → empty; the agents' guidance names
+3. `grep -rn "<earlier product name>\|[Aa]pplicant" mcp/plugin` → empty; the agents' guidance names
    Konnekt and citizens.
 
 ### V13. Light only and reduced motion (FR-011, FR-050)

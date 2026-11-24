@@ -105,7 +105,7 @@ export default defineConfig([
           patterns: [
             NOT_THE_APPS,
             {
-              group: ['@connection-portal/rules', '@connection-portal/rules/**'],
+              group: ['@konnekt/rules', '@konnekt/rules/**'],
               message: 'api-types/ imports nothing, not even rules/.',
             },
           ],

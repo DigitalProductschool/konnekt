@@ -1,4 +1,4 @@
-import type { DocumentField } from '@connection-portal/api-types/document-types';
+import type { DocumentField } from '@konnekt/api-types/document-types';
 import type {
   ActivityActor,
   ActivityEntry,
@@ -10,9 +10,9 @@ import type {
   GroupItem,
   Mark,
   RuleTreeItem,
-} from '@connection-portal/api-types/form-connections';
-import type { BranchCheck, ItemFinding } from '@connection-portal/rules/checks/types';
-import { mainBranch, rule, US1_RULES } from '@connection-portal/rules/testData';
+} from '@konnekt/api-types/form-connections';
+import type { BranchCheck, ItemFinding } from '@konnekt/rules/checks/types';
+import { mainBranch, rule, US1_RULES } from '@konnekt/rules/testData';
 import { describe, expect, it, vi } from 'vitest';
 
 import { ApiError } from '../../api/client';

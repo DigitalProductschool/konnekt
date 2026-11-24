@@ -1,4 +1,4 @@
-import { requestedRuleDocuments } from '@connection-portal/rules/conditions';
+import { requestedRuleDocuments } from '@konnekt/rules/conditions';
 import { useId, useMemo } from 'react';
 
 import { useLanguage } from '../../hooks/useLanguage';

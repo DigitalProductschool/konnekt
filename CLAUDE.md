@@ -1,4 +1,4 @@
-# AI Agent Instructions: serviceBW ↔ EUDI Wallet Middleware
+# AI Agent Instructions: Konnekt
 
 Context for AI coding agents (Claude Code, GitHub Copilot, OpenAI Codex, Cursor, …). This file holds
 only the rules that every task needs. The details are in the documents below: read one when your
@@ -22,15 +22,15 @@ EUDI Wallet, through EUDIPLO.
 - `backend/`: FastAPI (Python 3.13), SQLAlchemy 2 (**sync**), Alembic, psycopg 3, PostgreSQL, a
   background worker thread and a client for the EUDIPLO management API
 - `frontend/`: React 19, Vite 8, TypeScript, Tailwind CSS 4, React Router 7, KERN design system
-- `api-types/` (`@connection-portal/api-types`): the TypeScript mirrors of the backend's schemas
-- `rules/` (`@connection-portal/rules`): the pure rules logic, its checks and test personas
-- `mcp/` (`@connection-portal/mcp`): the MCP server for the team members' LLM agents, a Node
+- `api-types/` (`@konnekt/api-types`): the TypeScript mirrors of the backend's schemas
+- `rules/` (`@konnekt/rules`): the pure rules logic, its checks and test personas
+- `mcp/` (`@konnekt/mcp`): the MCP server for the team members' LLM agents, a Node
   service (the `mcp` container, port 3100, behind nginx's `/mcp`) that calls the management API
   with the agent's bearer token; `mcp/plugin/` holds its guidance
 
 `api-types/`, `rules/`, `frontend/` and `mcp/` are the packages of one npm workspace at the root;
-`frontend/` and `mcp/` import the other two by name (`@connection-portal/api-types/<name>`,
-`@connection-portal/rules/<path>`) and never each other.
+`frontend/` and `mcp/` import the other two by name (`@konnekt/api-types/<name>`,
+`@konnekt/rules/<path>`) and never each other.
 
 The UI says "connection" for form connection and "variant" for branch, and calls the main branch
 "Standard" until it is renamed.
@@ -238,7 +238,7 @@ uv sync
 uv run ruff check --fix . && uv run ruff format .
 uv run mypy app/ scripts/ tests/
 # The tests empty their database, so its name must end in _test; EUDIPLO is faked
-DATABASE_URL=postgresql+psycopg://postgres:postgres@localhost:5435/template_db_test uv run pytest
+DATABASE_URL=postgresql+psycopg://postgres:postgres@localhost:5435/konnekt_db_test uv run pytest
 uv run alembic revision --autogenerate -m "msg"   # review the file, then:
 uv run alembic upgrade head
 uv run python -m scripts.export_check_fixtures [--check]

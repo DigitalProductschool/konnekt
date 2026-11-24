@@ -119,15 +119,15 @@ Every C item is adopted (Clarifications #1–#6, #58). The change set below was 
 the branch on 2026-11-07; the task that ports an item re-runs the search, because a text can
 repeat in a test or a docstring. **Rule**: user-facing and agent-facing texts, guidance and docs
 change; code identifiers (file names, type names, tool names and the JSON field names of the MCP
-tools' answers, the npm scope `@connection-portal/*`) stay, because a renamed identifier changes
+tools' answers, the npm scope `@konnekt/*`) stay, because a renamed identifier changes
 an interface for no visible gain and would ripple through every import. Where an identifier
-still says "applicant" or "connection portal", the guidance names the concept with the new word
+still says "applicant", the guidance names the concept with the new word
 ("the `applicants` field lists the sample citizens"). The removal checklist (R13) therefore
 greps texts, not identifiers.
 
 | C item | Text | Where it lives (2026-11-07) | What changes |
 |---|---|---|---|
-| **C1** "Konnekt" | product name | frontend: `src/constants.ts` (`APP_NAME`), `index.html` `<title>`, `pages/Authorize/constants.ts` (consent text), `pages/Account/constants.ts` (empty-state link); backend: `services/auth.py` (`403 browser_only` message "This action is done in the Connection Portal.", a docstring), `services/oauth.py` (`invalid_target` "The resource isn't this Connection Portal's MCP server.", three places), docstrings in `routers/form_connections.py` and `routers/approval_requests.py`; MCP: `mcp/plugin/instructions.md`, `mcp/plugin/README.md`, `plugin.json`, five skills (`access-levels`, `connection-workflow`, `links`, `documents-and-catalog`, `publishing-and-live-connections`), `mcp/src/auth.ts`, `backend.ts`, `links.ts`, `tools/*.ts` descriptions; tests: `mcp/test/server.test.ts`, `mcp/src/*.test.ts`, `backend/tests/api/test_agent_principal.py`, `test_approval_requests.py`; docs: `README.md`, `docs/ARCHITECTURE.md`, `.claude-plugin/marketplace.json` | every text and doc says "Konnekt"; tab titles per FR-012; the OAuth `invalid_target` message and the `403` message are API texts and change too (FR-019) |
+| **C1** "Konnekt" | product name | frontend: `src/constants.ts` (`APP_NAME`), `index.html` `<title>`, `pages/Authorize/constants.ts` (consent text), `pages/Account/constants.ts` (empty-state link); backend: `services/auth.py` (`403 browser_only` message "This action is done in Konnekt.", a docstring), `services/oauth.py` (`invalid_target` "The resource isn't Konnekt's MCP server.", three places), docstrings in `routers/form_connections.py` and `routers/approval_requests.py`; MCP: `mcp/plugin/instructions.md`, `mcp/plugin/README.md`, `plugin.json`, five skills (`access-levels`, `connection-workflow`, `links`, `documents-and-catalog`, `publishing-and-live-connections`), `mcp/src/auth.ts`, `backend.ts`, `links.ts`, `tools/*.ts` descriptions; tests: `mcp/test/server.test.ts`, `mcp/src/*.test.ts`, `backend/tests/api/test_agent_principal.py`, `test_approval_requests.py`; docs: `README.md`, `docs/ARCHITECTURE.md`, `.claude-plugin/marketplace.json` | every text and doc says "Konnekt"; tab titles per FR-012; the OAuth `invalid_target` message and the `403` message are API texts and change too (FR-019) |
 | **C2** "citizen" | the noun for people who share wallet data | frontend: 34 files, mostly `constants.ts` of the editor, the rules and test steps, `RuleRow`, `GroupFrame`, `BranchName`, `AccessLevelChoice`, the details and overview constants; rules: `src/checks/findingMessages.ts` (every finding text), `src/personas/` (`messages.ts`, `results.ts`, `constants.ts`, `substitute.ts`, `goals.ts`), their tests (`findingMessages.test.ts` alone has 67 mentions); MCP: `plugin/instructions.md`, skills `checks-and-tests`, `variants-and-standard`, `links`, `connection-workflow`, `src/applicants.ts`, `findings.ts`, `views.ts`, `tools/checks.ts`, `tools/read.ts` and their tests; docs: `docs/ARCHITECTURE.md`, `README.md`, `CLAUDE.md` | every text says "citizen(s)" ("Message for citizens:", "sample citizen", "Creating 3 sample citizens…"); the wording per Clarification #2 |
 | **C3** statements | `<document> · <field>[ – <part>] <condition>`, "must be met", the COPY-BRIEF's proposed messages | `rules/src/statements.ts` (" – " between document and data becomes " · "; " – " stays before a part), `rules/src/messages.ts` (the proposed messages, from U09's rule logic table), `frontend/src/components/Connector/constants.ts` and `rules/src/personas/constants.ts` ("must be true" → "must be met"); tests `statements.test.ts`, `messages.test.ts`, `mcp/src/views.test.ts`, `mcp/test/server.test.ts` | the rules package writes the design's form everywhere a statement shows (rules step, editor, publish summary, details, test step, approval page, MCP answers) |
 | **C4** findings | "contradict each other", counts joined by ", and ", one sentence per finding | `rules/src/checks/findingMessages.ts` (the only module that writes finding texts) and its test; `mcp/src/findings.ts` (`resolutionOf()` texts for agents), the `checks-and-tests` skill; the test-step tooltip and the approval page repeat the package's texts | the texts per Clarification #4; the undrawn texts keep their sentences with the two substitutions |
@@ -397,7 +397,7 @@ tables of `design-notes.md` are the only state between chats. The redesign lands
   the indeterminate-checkbox rule (replaced by the design's mixed state), `@theme` tokens no
   longer referenced (`--shadow-chip`, `--text-step`, and the shadows if the kit's elevations
   replace them), `.kern-btn--danger` re-derived or removed;
-- `constants.ts`: `CONNECTION_STEPS` with five steps, `APP_NAME` "Connection Portal";
+- `constants.ts`: `CONNECTION_STEPS` with five steps, `APP_NAME` with the earlier product name;
 - `assets/`: every SVG or image no file imports (`grep -rL` over `src/`);
 - CSS overrides and Tailwind classes that reproduced KERN 2.8 values (a grep for the old hexes
   `#131525`, `#2044aa`, `#51577a`, `#c0c3d5`, `#f3f4f7` and for `248` as the menu width);
@@ -405,7 +405,7 @@ tables of `design-notes.md` are the only state between chats. The redesign lands
   history), `docs/ARCHITECTURE.md`'s frontend section (layouts, scrolling, the five steps, the
   header), `docs/KERN-DESIGN-SYSTEM.md` (the overlay), `CLAUDE.md`'s UI rules; spec 002's
   `design-notes.md` §9 gets a "superseded by spec 008" note, its audit files stay as history;
-- texts: `grep -rn "Connection Portal\|[Aa]pplicant"` over `frontend/src`, `rules/src`,
+- texts: `grep -rn "<earlier product name>\|[Aa]pplicant"` over `frontend/src`, `rules/src`,
   `mcp/src`, `mcp/plugin`, `backend/app`, `docs`, `README.md`, `CLAUDE.md` finds only
   identifiers (R2) and history (`specs/00[1-7]`).
 

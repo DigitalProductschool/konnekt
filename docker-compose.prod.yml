@@ -12,7 +12,7 @@ services:
     environment:
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: ${SERVICE_PASSWORD_POSTGRES}
-      POSTGRES_DB: template_db
+      POSTGRES_DB: konnekt_db
     volumes:
       # postgres:18+ stores data in a major-version subdirectory and refuses to
       # start if the volume is mounted at the old /var/lib/postgresql/data path.
@@ -31,7 +31,7 @@ services:
       # SERVICE_NAME_POSTGRES resolves to the actual service name per
       # environment: 'postgres' in production, 'postgres-pr-<id>' in previews,
       # where Coolify suffixes every service name
-      DATABASE_URL: postgresql+psycopg://postgres:${SERVICE_PASSWORD_POSTGRES}@${SERVICE_NAME_POSTGRES:-postgres}:5432/template_db
+      DATABASE_URL: postgresql+psycopg://postgres:${SERVICE_PASSWORD_POSTGRES}@${SERVICE_NAME_POSTGRES:-postgres}:5432/konnekt_db
       PORT: 3000
       APP_ENV: production
       # Set in the Coolify environment. The backend refuses to start without an

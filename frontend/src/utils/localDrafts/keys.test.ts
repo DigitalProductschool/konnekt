@@ -53,7 +53,7 @@ describe('flow keys', () => {
 describe('storage keys', () => {
   it('has the documented format', () => {
     expect(storageKeyOf('alice', newFlowKey(UUID))).toBe(
-      `connection-portal:local-draft:v1:alice:new-${UUID}`
+      `konnekt:local-draft:v1:alice:new-${UUID}`
     );
   });
 
@@ -87,7 +87,7 @@ describe('storage keys', () => {
   });
 
   it.each([
-    `connection-portal:local-draft:v2:alice:new-${UUID}`,
+    `konnekt:local-draft:v2:alice:new-${UUID}`,
     `other-app:alice:new-${UUID}`,
     `alice:new-${UUID}`,
     'theme',

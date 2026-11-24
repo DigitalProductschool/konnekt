@@ -1,11 +1,11 @@
-import type { DocumentField } from '@connection-portal/api-types/document-types';
+import type { DocumentField } from '@konnekt/api-types/document-types';
 import type {
   BranchInput,
   FormConnectionDraft,
   GroupItem,
   RuleTreeItem,
-} from '@connection-portal/api-types/form-connections';
-import { rule } from '@connection-portal/rules/testData';
+} from '@konnekt/api-types/form-connections';
+import { rule } from '@konnekt/rules/testData';
 import { describe, expect, it } from 'vitest';
 
 import type { LocalDraftContent, LocalDraftRecord } from '../../utils/localDrafts/types';

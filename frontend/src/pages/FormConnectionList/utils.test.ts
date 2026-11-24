@@ -1,7 +1,4 @@
-import type {
-  FormConnectionSummary,
-  SelectionChanged,
-} from '@connection-portal/api-types/form-connections';
+import type { FormConnectionSummary, SelectionChanged } from '@konnekt/api-types/form-connections';
 import { describe, expect, it, vi } from 'vitest';
 
 import { ApiError } from '../../api/client';

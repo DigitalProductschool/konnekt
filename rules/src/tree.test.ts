@@ -1,8 +1,4 @@
-import type {
-  BranchInput,
-  GroupItem,
-  RuleTreeItem,
-} from '@connection-portal/api-types/form-connections';
+import type { BranchInput, GroupItem, RuleTreeItem } from '@konnekt/api-types/form-connections';
 import { describe, expect, it } from 'vitest';
 
 import { deleteFromBranch, newBranch, removeItem, restoreItem } from './branches';

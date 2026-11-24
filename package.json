@@ -1,5 +1,5 @@
 {
-  "name": "connection-portal",
+  "name": "konnekt",
   "private": true,
   "workspaces": [
     "api-types",

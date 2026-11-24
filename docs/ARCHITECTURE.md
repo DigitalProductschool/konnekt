@@ -82,19 +82,19 @@ the **example** connection and the catalog's **data groups**. See
 ## Repository Structure
 
 ```
-dps-react-python-template/
+konnekt/
 ├── package.json           # npm workspace root: api-types, rules, frontend, mcp; scripts over them
 ├── package-lock.json      # One lockfile for every Node package
 ├── eslint.config.mjs      # ESLint 9 flat config, one block per package
 ├── tsconfig.base.json     # Compiler options every package extends
 ├── .prettierrc            # Prettier formatting rules
-├── api-types/             # @connection-portal/api-types: the TypeScript mirrors of the schemas
-├── rules/                 # @connection-portal/rules: the pure rules logic, checks/ and personas/,
+├── api-types/             # @konnekt/api-types: the TypeScript mirrors of the schemas
+├── rules/                 # @konnekt/rules: the pure rules logic, checks/ and personas/,
 │                          # language.ts (spec 009), fixtures/server-messages.json and
 │                          # fixtures/example-connection.json (spec 010), both generated
 ├── frontend/              # React SPA (Vite), depends on api-types and rules
 │   └── .prettierrc        # The root's rules plus the Tailwind plugin
-├── mcp/                   # @connection-portal/mcp: the MCP server, depends on api-types and rules
+├── mcp/                   # @konnekt/mcp: the MCP server, depends on api-types and rules
 │   └── plugin/            # Guidance for agents: instructions, skills, the Claude Code plugin
 ├── backend/               # FastAPI API (SQLAlchemy + Alembic)
 ├── docs/                  # Architecture, EUDIPLO, KERN and Figma workflow docs
@@ -111,7 +111,7 @@ The Node code is one npm workspace with four packages, `api-types/`, `rules/`, `
 and `mcp/`, while the backend uses Ruff and mypy. `npm install` at the root installs every
 package's dependencies into the root `node_modules/` and links the two shared packages
 there, so that the frontend and the MCP server import them by name
-(`@connection-portal/api-types/<name>`, `@connection-portal/rules/<path>`). `api-types` and
+(`@konnekt/api-types/<name>`, `@konnekt/rules/<path>`). `api-types` and
 `rules` export their TypeScript source (`"./*": "./src/*.ts"`) and build nothing; Vite
 compiles them into the frontend, and Vite's SSR build bundles them into the MCP server's
 `mcp/dist/`. `rules/` imports only `api-types` and itself, `api-types` nothing, neither
@@ -1181,7 +1181,7 @@ endpoint, table, setting or dependency of its own.
   every change, by `rules/src/evaluation.ts`, the port of `evaluation.py` (spec 003's
   test evaluator promoted to production code, so that the step shows exactly what the real
   evaluation answers). It and the checked trees are loaded by `usePersonas`'s one dynamic
-  `import()` of `@connection-portal/rules/personas/results`, so the main bundle doesn't hold them (the step shows
+  `import()` of `@konnekt/rules/personas/results`, so the main bundle doesn't hold them (the step shows
   its loading state meanwhile). The vectors of `export_check_fixtures`, `rule_outcomes` and
   `branch_evaluations` (whole-branch outcomes), pin it to Python.
 - **The day**: the test day is today in Germany, from `useTodayInGermany()`
@@ -1217,7 +1217,7 @@ decisions are research R9 to R12 in `specs/005-connection-drafts/`, the shapes i
 `contracts/local-drafts.md`. Local drafts have no endpoint, table, setting or dependency.
 
 - **Key and format**: one entry per flow, under
-  `connection-portal:local-draft:v1:<username>:<flowKey>`. The flow key is `new-<uuid>` for a
+  `konnekt:local-draft:v1:<username>:<flowKey>`. The flow key is `new-<uuid>` for a
   connection never saved and `draft-<id>` for a stored draft. The value is a
   `LocalDraftRecord` as JSON, `format: 2`: the flow key, the stored draft's id and the version
   the flow loaded, `changedAt`, the step and the content, which is what "Save and exit" would
@@ -1231,13 +1231,13 @@ decisions are research R9 to R12 in `specs/005-connection-drafts/`, the shapes i
   fake in memory (`testStorage.ts`).
   `hooks/useLocalDraftStore.ts` creates the page's one store, inside `try/catch`, and every
   hook shares it. Besides it, only `hooks/useRememberedHomepage.ts` (spec 008, see below)
-  and `components/LanguageProvider/` (spec 009, the key `connection-portal:language:v1`, see
+  and `components/LanguageProvider/` (spec 009, the key `konnekt:language:v1`, see
   [Languages](#languages-spec-009)) touch `window.localStorage`. Every storage access in the store is in `try/catch`:
   blocked, full or missing storage makes local drafts silently unavailable, and the flow
   works without them.
 - **The homepage flag** (spec 008, FR-027): `useRememberedHomepage()` keeps one flag per
   account beside the records, under
-  `connection-portal:local-draft:v1:<username>:homepage:has-connections` (the key helper's
+  `konnekt:local-draft:v1:<username>:homepage:has-connections` (the key helper's
   `<prefix><account>:` and the tail `homepage:has-connections`), `true` or `false`: whether
   the account's list of connections and drafts held anything when it last loaded, so that `/`
   shows the welcome page or the overview while the list loads again. The `:` in its tail
@@ -1304,7 +1304,7 @@ states its [data-model.md](../specs/007-agent-mcp-server/data-model.md), the sha
 `contracts/` (`mcp-tools.md`, `oauth.md`, `management-api.md`, `ui-screens.md`,
 `guidance.md`).
 
-- **Topology** (research R2, R3): `mcp/` is a Node service, `@connection-portal/mcp`, in a
+- **Topology** (research R2, R3): `mcp/` is a Node service, `@konnekt/mcp`, in a
   container of its own (`mcp`, port 3100). It has no database: every tool call goes to the
   backend's management API at `BACKEND_URL`, with the agent's own bearer token. In production,
   nginx is the only public entry and has three locations for agents:
@@ -1536,12 +1536,12 @@ dependency, and no response field: a `label` or `message` is a string in the req
 
 - **Two languages, English by default**: `rules/src/language.ts` holds `Language` (`'en' |
   'de'`), `LANGUAGES`, `DEFAULT_LANGUAGE` (`'en'`), `languageNames` (each language's own name)
-  and `isLanguage()`; `frontend/` and `mcp/` import it as `@connection-portal/rules/language`.
+  and `isLanguage()`; `frontend/` and `mcp/` import it as `@konnekt/rules/language`.
   The backend's `Language` in `app/language.py` is defined on its own; the `Accept-Language`
   header is the contract between them.
 - **The choice** (R7): `components/LanguageProvider/` holds the language and is the third code
   that touches `localStorage` (see [Local drafts](#local-drafts-spec-005)): one key,
-  `connection-portal:language:v1` (`LANGUAGE_STORAGE_KEY`), read before the first render in
+  `konnekt:language:v1` (`LANGUAGE_STORAGE_KEY`), read before the first render in
   `useState`'s initial state, so that no screen shows another language first. A stored `en` or
   `de` wins; without one (a first visit, another value, a blocked or cleared storage) the
   browser's `navigator.language` decides: `de` and any `de-*` give German, everything else
@@ -2036,7 +2036,7 @@ declared there is ignored (`extra='ignore'`).
 
 | Variable | Description | Default |
 |----------|-------------|---------|
-| `DATABASE_URL` | PostgreSQL connection string, must use `postgresql+psycopg://` | `postgresql+psycopg://postgres:postgres@localhost:5432/template_db` |
+| `DATABASE_URL` | PostgreSQL connection string, must use `postgresql+psycopg://` | `postgresql+psycopg://postgres:postgres@localhost:5432/konnekt_db` |
 | `PORT` | Server port | `3000` |
 | `CORS_ORIGIN` | Allowed frontend origin (single origin) | `http://localhost:5173` |
 | `APP_ENV` | Set to `production` outside development | `development` |

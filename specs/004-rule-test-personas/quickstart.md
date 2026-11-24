@@ -36,7 +36,7 @@ cd ../backend
 uv run ruff check . && uv run ruff format --check .
 uv run mypy app/ scripts/ tests/
 uv run python -m scripts.export_check_fixtures --check   # the committed vectors, branch_evaluations included, match the evaluator
-DATABASE_URL=postgresql+psycopg://postgres:postgres@localhost:5435/template_db_test uv run pytest tests/unit/test_check_fixtures.py
+DATABASE_URL=postgresql+psycopg://postgres:postgres@localhost:5435/konnekt_db_test uv run pytest tests/unit/test_check_fixtures.py
 ```
 
 **Expect**:

@@ -1,4 +1,4 @@
-import type { AccessLevel, AccessLevelInfo } from '@connection-portal/api-types/agent-access';
+import type { AccessLevel, AccessLevelInfo } from '@konnekt/api-types/agent-access';
 
 export interface AccessLevelChoiceProps {
   /** The levels with their names and descriptions from the API; `ACCESS_LEVELS` without them */

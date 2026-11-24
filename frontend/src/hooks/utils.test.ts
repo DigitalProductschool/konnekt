@@ -1,11 +1,8 @@
-import type {
-  FormConnectionOrDraft,
-  RuleTreeItem,
-} from '@connection-portal/api-types/form-connections';
-import { buildCheckedBranch } from '@connection-portal/rules/checks/checkedTree';
-import type { BranchCheck } from '@connection-portal/rules/checks/types';
-import { CONTEXT, mainBranch, US1_RULES } from '@connection-portal/rules/testData';
-import { renameItem } from '@connection-portal/rules/tree';
+import type { FormConnectionOrDraft, RuleTreeItem } from '@konnekt/api-types/form-connections';
+import { buildCheckedBranch } from '@konnekt/rules/checks/checkedTree';
+import type { BranchCheck } from '@konnekt/rules/checks/types';
+import { CONTEXT, mainBranch, US1_RULES } from '@konnekt/rules/testData';
+import { renameItem } from '@konnekt/rules/tree';
 import { describe, expect, it } from 'vitest';
 
 import { SAMPLE_DRAFT, SAMPLE_PUBLISHED } from '../utils/connectionPdf/testData';

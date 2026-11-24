@@ -22,7 +22,7 @@
 // goal 4 keep their places. `variables`, `today` and `fingerprint` stay as they were, so keep
 // sampling with the unsubstituted branches' variables. Worker-side code (it reaches the evaluator
 // and `checks/`): the main bundle never imports it (tasks.md, "Bundle"). Pure, no logging
-import type { RuleItem } from '@connection-portal/api-types/form-connections';
+import type { RuleItem } from '@konnekt/api-types/form-connections';
 
 import { variableKey } from '../checks/literals';
 import type { CheckedBranch, CheckedItem, Formula } from '../checks/types';

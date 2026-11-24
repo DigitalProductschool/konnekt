@@ -3,12 +3,12 @@
 // into the evaluator's `Applicant` as the test step does for a persona (`applicantOf()`). Pure: no
 // value, citizen or refusal is stored or logged here (FR-035), and a refusal names the field and
 // the kind it expects, never the value given
-import type { OptionSet } from '@connection-portal/api-types/option-sets';
-import { LICENCE_CLASSES_SET } from '@connection-portal/rules/constants';
-import { isValidIsoDate } from '@connection-portal/rules/dates';
-import type { Applicant } from '@connection-portal/rules/evaluation';
-import { applicantOf } from '@connection-portal/rules/personas/applicant';
-import type { Persona, PersonaField, PersonaValue } from '@connection-portal/rules/personas/types';
+import type { OptionSet } from '@konnekt/api-types/option-sets';
+import { LICENCE_CLASSES_SET } from '@konnekt/rules/constants';
+import { isValidIsoDate } from '@konnekt/rules/dates';
+import type { Applicant } from '@konnekt/rules/evaluation';
+import { applicantOf } from '@konnekt/rules/personas/applicant';
+import type { Persona, PersonaField, PersonaValue } from '@konnekt/rules/personas/types';
 
 import type { ApplicantField } from './views';
 

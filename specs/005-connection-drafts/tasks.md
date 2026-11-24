@@ -90,7 +90,7 @@ pure modules with their tests, the hooks, the editor, the pages, and the documen
   `RulesSummary`).
 - **Gates**: every backend task passes `uv run ruff check .`, `uv run ruff format --check .` and
   `uv run mypy app/ scripts/ tests/` (in `backend/`), and runs
-  `DATABASE_URL=postgresql+psycopg://postgres:postgres@localhost:5435/template_db_test uv run pytest`.
+  `DATABASE_URL=postgresql+psycopg://postgres:postgres@localhost:5435/konnekt_db_test uv run pytest`.
   Every frontend task passes `npm run lint`, `npm test` and `npm run build` (in `frontend/`).
 
 ---
@@ -442,9 +442,9 @@ the draft and no longer offers the local draft (quickstart V6–V9).
 ### Pure modules (each with its test)
 
 - [X] T031 [P] [US2] Write `localDrafts/constants.ts` and `localDrafts/keys.ts` with `localDrafts/keys.test.ts` (contracts/local-drafts.md "Format"; research R9, R10; data-model.md section 6). Depends on T008.
-  - `constants.ts`: `LOCAL_DRAFT_PREFIX = 'connection-portal:local-draft:v1:'`, `LOCAL_DRAFT_FORMAT = 1`, `LOCAL_DRAFT_MAX_AGE_MS` (30 days), `LOCAL_DRAFT_WRITE_INTERVAL_MS = 1000` and `LOCAL_DRAFT_PARAM = 'local'`, each with its reason in a comment.
+  - `constants.ts`: `LOCAL_DRAFT_PREFIX = 'konnekt:local-draft:v1:'`, `LOCAL_DRAFT_FORMAT = 1`, `LOCAL_DRAFT_MAX_AGE_MS` (30 days), `LOCAL_DRAFT_WRITE_INTERVAL_MS = 1000` and `LOCAL_DRAFT_PARAM = 'local'`, each with its reason in a comment.
   - `keys.ts`:
-    - `storageKeyOf(username, flowKey)` gives `connection-portal:local-draft:v1:<username>:<flowKey>`;
+    - `storageKeyOf(username, flowKey)` gives `konnekt:local-draft:v1:<username>:<flowKey>`;
     - `newFlowKey(uuid)` gives `'new-<uuid>'`, and `flowKeyOfDraft(draftId)` gives `'draft-<id>'`;
     - `isFlowKey(value)` accepts exactly those two forms (UUID-shaped);
     - `parseStorageKey(key): { username; flowKey } | null` reads a key back, for listing. A username may contain `:`, so split at the last `:`.

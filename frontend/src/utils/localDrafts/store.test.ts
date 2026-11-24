@@ -202,8 +202,8 @@ describe('invalid records', () => {
     const { storage, store } = setUp();
     const others = [
       ['theme', 'light'],
-      [`connection-portal:local-draft:v2:alice:${FLOW_A}`, '{}'],
-      [`connection-portal:other:alice:${FLOW_A}`, '{}'],
+      [`konnekt:local-draft:v2:alice:${FLOW_A}`, '{}'],
+      [`konnekt:other:alice:${FLOW_A}`, '{}'],
       [`alice:${FLOW_A}`, '{}'],
       [storageKeyOf('bob', FLOW_A), '{broken'],
       [storageKeyOf('alice:bob', FLOW_A), '{broken'],

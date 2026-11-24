@@ -1,4 +1,4 @@
-import { defineTexts } from '@connection-portal/rules/language';
+import { defineTexts } from '@konnekt/rules/language';
 
 /** The forgot-password screen's copy (G§2 "forgot password", "administrator") */
 export const FORGOT_PASSWORD_COPY = defineTexts(

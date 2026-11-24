@@ -26,7 +26,7 @@ the screens in [contracts/ui-screens.md](contracts/ui-screens.md), and the local
 # backend/
 uv run ruff check . && uv run ruff format --check .
 uv run mypy app/ scripts/ tests/
-DATABASE_URL=postgresql+psycopg://postgres:postgres@localhost:5435/template_db_test uv run pytest
+DATABASE_URL=postgresql+psycopg://postgres:postgres@localhost:5435/konnekt_db_test uv run pytest
 #   tests/api/test_form_connection_drafts.py   drafts, conflicts, publish parity (SC-003), boundaries
 #   tests/api/test_connect.py                  draft URLs 409, deleted draft 404, no EUDIPLO call (SC-002)
 #   tests/unit/test_draft_validation.py        structural checks (FR-003, FR-004)

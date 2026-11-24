@@ -1,4 +1,4 @@
-import { tabLabelOf } from '@connection-portal/rules/checks/findingMessages';
+import { tabLabelOf } from '@konnekt/rules/checks/findingMessages';
 
 import { useLanguage } from '../../hooks/useLanguage';
 import InfoTooltip from '../InfoTooltip';

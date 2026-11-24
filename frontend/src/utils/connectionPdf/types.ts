@@ -2,9 +2,9 @@
 // research R3, R11; design-notes 8.2 D1). Types only: the module is pure and holds no value, so
 // every other module of `utils/connectionPdf/`, the worker and the hook import it with
 // `import type`. Nothing here is stored, sent or logged (FR-041, FR-042)
-import type { ErrorNotice } from '@connection-portal/api-types/api';
-import type { BranchInput, Combinator, Mark } from '@connection-portal/api-types/form-connections';
-import type { Language } from '@connection-portal/rules/language';
+import type { ErrorNotice } from '@konnekt/api-types/api';
+import type { BranchInput, Combinator, Mark } from '@konnekt/api-types/form-connections';
+import type { Language } from '@konnekt/rules/language';
 
 // ---------------------------------------------------------------------------------------------
 // The content model (data-model section 2): everything the PDF says, already in its language,

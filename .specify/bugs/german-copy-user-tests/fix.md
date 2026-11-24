@@ -93,11 +93,11 @@ within 100 columns:
 ## Local Verification
 
 - `docker compose up -d postgres` (this worktree's own container,
-  `german-copy-user-tests-postgres-1`, a new volume) and `createdb template_db_test`
+  `german-copy-user-tests-postgres-1`, a new volume) and `createdb konnekt_db_test`
 - `uv run ruff check .` → all checks passed; `uv run ruff format --check .` → 111 files formatted
 - `uv run mypy app/ scripts/ tests/` → no issues in 97 source files
 - `uv run python -m scripts.export_check_fixtures --check` → exit 0
-- `DATABASE_URL=…5435/template_db_test uv run pytest` → 2643 passed, 0 failed
+- `DATABASE_URL=…5435/konnekt_db_test uv run pytest` → 2643 passed, 0 failed
   (16 min), the seven assertions of Gap 1 among them
 - `npm run lint` → pass; `npm run format:check` → pass
 - `npm test` → pass: `rules/` 46 files, 2678 tests; `frontend/` 49 files, 2041 tests (50 and 2044

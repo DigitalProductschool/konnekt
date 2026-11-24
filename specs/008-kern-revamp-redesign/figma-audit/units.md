@@ -1,4 +1,4 @@
-# Units — fileKey s8mU9oJDq3411e8bxMjQO9 | root 6263:12360 | 🔗 Flow · Connection Portal, log in to publish (source for the HTML build) | 29 visible sections
+# Units — fileKey s8mU9oJDq3411e8bxMjQO9 | root 6263:12360 | 🔗 Flow · Konnekt, log in to publish (source for the HTML build) | 29 visible sections
 Mapper Figma calls: 1. Estimated audit calls: 368.
 No requirements.md in AUDIT_DIR: scope from layer names only. Hidden layers (incl. 2 hidden “Old ·” sections) skipped.
 

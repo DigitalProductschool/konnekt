@@ -1,10 +1,11 @@
-# serviceBW ↔ EUDI Wallet Middleware
+# Konnekt
 
-Middleware that lets the DO.IT team of the City of Stuttgart connect serviceBW forms to the EUDI
-Wallet. For each form, DO.IT creates a form connection that names the documents and fields the
-form needs. serviceBW then uses the form connection's URLs to request those documents from the
-citizen's wallet, through the team's EUDIPLO instance, and receives only the configured fields.
-The team sets up its form connections in **Konnekt**, the middleware's management UI.
+Konnekt is the middleware between serviceBW forms and the EUDI Wallet. It lets the DO.IT team of
+the City of Stuttgart connect serviceBW forms to the EUDI Wallet. For each form, DO.IT creates a
+form connection that names the documents and fields the form needs. serviceBW then uses the form
+connection's URLs to request those documents from the citizen's wallet, through the team's
+EUDIPLO instance, and receives only the configured fields. The team sets up its form connections
+in Konnekt's management UI.
 
 A form connection can also have rules that the shared documents must meet, such as "Date of
 birth is at least 21 years old", combined with AND or OR in groups. Its variants (branches) each
@@ -82,13 +83,13 @@ break fontkit's subsetting, and KERN 2.8.2 ships no Fira Mono (spec 011, researc
 ├── eslint.config.mjs      # ESLint 9 flat config, one block per package
 ├── tsconfig.base.json     # Compiler options every package extends
 ├── .prettierrc            # Prettier settings (frontend/.prettierrc adds the Tailwind plugin)
-├── api-types/             # @connection-portal/api-types: TypeScript mirrors of the backend's schemas
+├── api-types/             # @konnekt/api-types: TypeScript mirrors of the backend's schemas
 │   └── src/
-├── rules/                 # @connection-portal/rules: the pure rules logic, rule checks and test
+├── rules/                 # @konnekt/rules: the pure rules logic, rule checks and test
 │   └── src/               # personas, with their tests (vitest.config.ts)
 ├── frontend/              # React SPA (Vite + TypeScript): Konnekt, the DO.IT management UI
 │   └── src/workers/       # The browser Worker entries of the rule checks and test personas
-├── mcp/                   # @connection-portal/mcp: the MCP server for agents (Node + TypeScript)
+├── mcp/                   # @konnekt/mcp: the MCP server for agents (Node + TypeScript)
 │   ├── src/               # Server, tools, links, checks; tests beside the modules
 │   ├── test/              # Integration tests against a fake backend
 │   └── plugin/            # Guidance for agents: instructions, skills, the Claude Code plugin
@@ -278,8 +279,8 @@ uv run ruff format .         # Format code
 uv run mypy app/ scripts/ tests/
 
 # Tests. They empty their database, so they only run against one whose name ends in _test
-docker compose exec postgres createdb -U postgres template_db_test   # once
-DATABASE_URL=postgresql+psycopg://postgres:postgres@localhost:5435/template_db_test uv run pytest
+docker compose exec postgres createdb -U postgres konnekt_db_test   # once
+DATABASE_URL=postgresql+psycopg://postgres:postgres@localhost:5435/konnekt_db_test uv run pytest
 
 # Database migrations
 uv run alembic revision --autogenerate -m "description"
@@ -461,7 +462,7 @@ in parallel:
 
 Each job installs its own dependencies: `uv sync --locked`, which fails when `uv.lock` no longer
 matches `pyproject.toml`, or `npm ci`. `pytest` runs against a `postgres:18-alpine` service with
-the database `template_db_test`; EUDIPLO is faked as on your machine, so no job needs a secret.
+the database `konnekt_db_test`; EUDIPLO is faked as on your machine, so no job needs a secret.
 In the lint & format jobs, the format check runs after a failed lint too, so one run reports
 both.
 
@@ -590,7 +591,7 @@ Open settings with `⌘,` on macOS or `Ctrl+Alt+S` on Windows/Linux.
 
 ```bash
 # Use port 5435 from the host, 5432 from inside Docker
-DATABASE_URL=postgresql+psycopg://postgres:postgres@localhost:5435/template_db
+DATABASE_URL=postgresql+psycopg://postgres:postgres@localhost:5435/konnekt_db
 PORT=3000
 CORS_ORIGIN=http://localhost:5173
 APP_ENV=development
@@ -812,25 +813,25 @@ and [mcp/plugin/README.md](mcp/plugin/README.md).
 
 ### Installing the plugin
 
-**Claude Code**: the plugin in `mcp/plugin/` adds the MCP server `connection-portal` and the
+**Claude Code**: the plugin in `mcp/plugin/` adds the MCP server `konnekt` and the
 skills in one step.
 
-1. Set `CONNECTION_PORTAL_MCP_URL` to the deployment's MCP endpoint, `https://<domain>/mcp`, in
+1. Set `KONNEKT_MCP_URL` to the deployment's MCP endpoint, `https://<domain>/mcp`, in
    the environment Claude Code starts from (for example in your shell profile); a preview
    deployment has its own domain. The plugin's `.mcp.json` reads the address from it: without
    it, Claude Code doesn't connect to the server.
 
    ```bash
-   export CONNECTION_PORTAL_MCP_URL=https://<domain>/mcp
+   export KONNEKT_MCP_URL=https://<domain>/mcp
    ```
 
 2. Add the marketplace, the repository (as `owner/repo`, a git URL or a local checkout), and
-   install the plugin. The marketplace is called `connection-portal`, after
+   install the plugin. The marketplace is called `konnekt`, after
    `.claude-plugin/marketplace.json`:
 
    ```bash
    claude plugin marketplace add <repository>
-   claude plugin install connection-portal@connection-portal
+   claude plugin install konnekt@konnekt
    ```
 
 3. Start Claude Code. The first call to the server opens the browser on the consent page.
@@ -929,7 +930,7 @@ isolated, empty database — that is created on PR open and removed on close.
    the preview environment variables as well, or the preview backend won't start.
    Their connection URLs stay closed (`403`) unless `SERVICEBW_ALLOWED_CIDRS` is
    set for them too. A preview's MCP endpoint is `https://<preview domain>/mcp`:
-   point `CONNECTION_PORTAL_MCP_URL` at it to work with the preview
+   point `KONNEKT_MCP_URL` at it to work with the preview
 
 Preview databases start empty (schema only, via migrations on startup), so a
 preview needs its own account, created as in step 6 above.

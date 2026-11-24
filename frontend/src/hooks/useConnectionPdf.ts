@@ -4,8 +4,8 @@
 // only module of the PDF besides the worker that touches browser APIs: the worker, an object URL
 // and an anchor's `download`. Nothing about the connection or the file is stored, sent or logged
 // (FR-041, FR-042): the requests are the ones the details page makes anyway
-import type { FormConnectionOrDraft } from '@connection-portal/api-types/form-connections';
-import type { Language } from '@connection-portal/rules/language';
+import type { FormConnectionOrDraft } from '@konnekt/api-types/form-connections';
+import type { Language } from '@konnekt/rules/language';
 import { type Dispatch, useEffect, useReducer, useRef } from 'react';
 
 import { ApiError, errorNoticeOf } from '../api/client';

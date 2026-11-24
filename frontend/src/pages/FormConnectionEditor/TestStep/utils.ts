@@ -1,32 +1,27 @@
 // The test step's pure helpers (specs/004-rule-test-personas, S8)
-import type { Combinator } from '@connection-portal/api-types/form-connections';
-import type { OptionSet } from '@connection-portal/api-types/option-sets';
-import { sameValue } from '@connection-portal/rules/branches';
-import { parseDayNumber } from '@connection-portal/rules/checks/calendar';
-import { listOf } from '@connection-portal/rules/checks/findingMessages';
-import { optionsOf } from '@connection-portal/rules/conditions';
-import { type Language, LANGUAGES } from '@connection-portal/rules/language';
-import { GROUP_SUBTITLES } from '@connection-portal/rules/personas/constants';
+import type { Combinator } from '@konnekt/api-types/form-connections';
+import type { OptionSet } from '@konnekt/api-types/option-sets';
+import { sameValue } from '@konnekt/rules/branches';
+import { parseDayNumber } from '@konnekt/rules/checks/calendar';
+import { listOf } from '@konnekt/rules/checks/findingMessages';
+import { optionsOf } from '@konnekt/rules/conditions';
+import { type Language, LANGUAGES } from '@konnekt/rules/language';
+import { GROUP_SUBTITLES } from '@konnekt/rules/personas/constants';
 import {
   classesSinceOf,
   displayDateOf,
   firstName,
   runStatusOf,
   validUntilOf,
-} from '@connection-portal/rules/personas/messages';
+} from '@konnekt/rules/personas/messages';
 import type {
   GenerationRun,
   Persona,
   PersonaField,
   PersonaValue,
   ResultRow,
-} from '@connection-portal/rules/personas/types';
-import {
-  ageOn,
-  type DataRow,
-  isEmptyValue,
-  isExpiryDate,
-} from '@connection-portal/rules/personas/values';
+} from '@konnekt/rules/personas/types';
+import { ageOn, type DataRow, isEmptyValue, isExpiryDate } from '@konnekt/rules/personas/values';
 
 import { GROUP_FRAME_COPY } from '../../../components/GroupFrame/constants';
 import type { ValueChoice } from '../../../components/ValuesPicker/types';

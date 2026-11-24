@@ -2,7 +2,7 @@
 // definitions here, the server registers them on each instance it builds, and the guidance gate
 // reads the list. Every call runs through one wrapper: the caller's level before any work, the
 // handler, the backend's and the references' refusals as tool errors, and one log line
-import type { AccessLevel } from '@connection-portal/api-types/agent-access';
+import type { AccessLevel } from '@konnekt/api-types/agent-access';
 import type {
   CallToolResult,
   InputRequiredResult,

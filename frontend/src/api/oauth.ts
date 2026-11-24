@@ -2,7 +2,7 @@ import type {
   AuthorizeRequest,
   AuthorizeResponse,
   OauthClientView,
-} from '@connection-portal/api-types/oauth';
+} from '@konnekt/api-types/oauth';
 
 import { apiFetch } from './client';
 

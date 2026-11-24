@@ -60,7 +60,7 @@ def _emptied(value: object) -> bool:
 
 ## Local Verification
 
-- `DATABASE_URL=…/template_db_test uv run pytest` → 514 passed
+- `DATABASE_URL=…/konnekt_db_test uv run pytest` → 514 passed
 - `uv run ruff check .` → all checks passed; `uv run ruff format --check .` → 52 files formatted
 - `uv run mypy app/ scripts/ tests/` → no issues in 49 source files
 - No live check: this needs a wallet and a fixed EUDIPLO.

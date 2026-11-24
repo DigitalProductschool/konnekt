@@ -1,4 +1,4 @@
-import { countRules } from '@connection-portal/rules/tree';
+import { countRules } from '@konnekt/rules/tree';
 import { useMemo } from 'react';
 
 import { useDocumentTypes } from '../../hooks/useDocumentTypes';

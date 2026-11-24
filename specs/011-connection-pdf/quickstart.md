@@ -37,7 +37,7 @@ says so.
 ```bash
 npm install && npm run lint && npm test && npm run build      # root: all packages
 cd backend && uv run ruff check . && uv run mypy app/ scripts/ tests/
-DATABASE_URL=postgresql+psycopg://postgres:postgres@localhost:5435/template_db_test uv run pytest
+DATABASE_URL=postgresql+psycopg://postgres:postgres@localhost:5435/konnekt_db_test uv run pytest
 ```
 
 Expected: all green. `npm test` includes paginate, the model, gaps, file names, URL lines, the

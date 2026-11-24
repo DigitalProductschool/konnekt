@@ -1,4 +1,4 @@
-import type { ItemFindingKind } from '@connection-portal/rules/checks/types';
+import type { ItemFindingKind } from '@konnekt/rules/checks/types';
 
 import type { FindingLook } from './types';
 

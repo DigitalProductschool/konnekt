@@ -2,17 +2,17 @@ import type {
   ApprovalAction,
   ApprovalPreview,
   ApprovalRequest,
-} from '@connection-portal/api-types/approvals';
-import type { DocumentType } from '@connection-portal/api-types/document-types';
+} from '@konnekt/api-types/approvals';
+import type { DocumentType } from '@konnekt/api-types/document-types';
 import type {
   ConnectionUrls,
   FormConnection,
   FormConnectionDraft,
   RequestedDocument,
   RequestedDocumentView,
-} from '@connection-portal/api-types/form-connections';
-import { formatDate } from '@connection-portal/rules/dates';
-import { DEFAULT_LANGUAGE, type Language } from '@connection-portal/rules/language';
+} from '@konnekt/api-types/form-connections';
+import { formatDate } from '@konnekt/rules/dates';
+import { DEFAULT_LANGUAGE, type Language } from '@konnekt/rules/language';
 
 import { ApiError, errorNoticeOf } from '../../api/client';
 import { CONNECTION_DETAIL_COPY, SAVED_TIME_FORMATS } from '../FormConnectionDetail/constants';

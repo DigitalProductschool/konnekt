@@ -1,6 +1,6 @@
 // "Pill · Language (globe + DE | EN)" (Figma 7341:101654; spec 009, research R2,
 // contracts/language-switch.md, design-notes §1)
-import { defineTexts, type Language } from '@connection-portal/rules/language';
+import { defineTexts, type Language } from '@konnekt/rules/language';
 
 import { FOCUS_RING_CLASSES, PILL_CLASSES } from '../TopBar/constants';
 

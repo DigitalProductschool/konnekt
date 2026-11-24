@@ -1,4 +1,4 @@
-import type { LoginRequest, UserView } from '@connection-portal/api-types/auth';
+import type { LoginRequest, UserView } from '@konnekt/api-types/auth';
 
 import { apiFetch } from './client';
 

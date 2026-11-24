@@ -1,4 +1,4 @@
-import type { Combinator } from '@connection-portal/api-types/form-connections';
+import type { Combinator } from '@konnekt/api-types/form-connections';
 import { beforeAll, describe, expect, it } from 'vitest';
 
 import { evaluateBranch, type EvaluatedItem } from '../evaluation';
