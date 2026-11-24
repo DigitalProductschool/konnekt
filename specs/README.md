@@ -17,3 +17,9 @@ On 24.11.2026 the project took its final name, Konnekt. On that date the names i
 storage keys) were updated to the current ones throughout. A record may therefore use a name that
 the project did not have yet when the record was written. Everything else in the records is as it
 was written.
+
+Before publication the history was rewritten once to remove four pictures
+(`012-open-source-release/history-rewrite.md`), which gave the commits from `48fb277` on new
+hashes: the commit hashes these records cite are those of the history before the rewrite, so
+those of earlier commits still resolve in this repository and the later ones do not (on the
+rehearsal, 32 of the 61 cited hashes that resolved before it).

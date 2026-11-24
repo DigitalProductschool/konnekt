@@ -614,7 +614,7 @@ phase writes the step down and rehearses it on a copy. Only the user runs it, on
 everything is merged and before anything is public; no task rewrites this checkout, the local
 repository or the one on GitHub.
 
-- [ ] T040 [US2] [high] `specs/012-open-source-release/history-rewrite.md`, the runbook, and its
+- [X] T040 [US2] [high] `specs/012-open-source-release/history-rewrite.md`, the runbook, and its
   rehearsal (research R11, "The history rewrite", holds what was already tried).
   **What is removed**: the four files' objects, each path having one version in all refs
   (checked 2026-11-21): `27f50dd49ece474eb385266a7f60dcaf507d4d9d` (`login-art@2x.png`),

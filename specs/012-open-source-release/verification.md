@@ -798,7 +798,43 @@ UNCERTAIN:
 
 The section names the old-name search by task only, as T037's does.
 
+## Phase 9: the history rewrite, prepared (T040, 2026-11-24)
+
+On branch `opensource`, after T041 and T039, on phase 8's tree (committed since as `2fbbe72`).
+T040 wrote `history-rewrite.md` (the runbook, steps 1 to 11) and one sentence at the
+end of `specs/README.md`, "Names updated after the fact", and rehearsed the runbook on scratch
+clones; nothing in this checkout, the local repository or on GitHub was rewritten. The
+runbook's "Rehearsed" section holds the output; in short:
+
+| Check | Result |
+|---|---|
+| The four objects before the rewrite | each the only version of its path, `blob` four times |
+| Every other picture of the history (97 picture objects over all branches, each looked at) | none reproduces the star artwork: the nine screenshots under `.specify/bugs/` (one entirely white), the two test images, the 68 icons, the six illustration SVGs, the eight `.webp` visuals; nothing deleted |
+| The set-up | `main` (`2d3f0f3`, 301 commits) plus the checkout's 1,188 files as one unsigned commit, then a fresh `--no-local --no-tags --single-branch` clone of that for the runbook's commands |
+| git-filter-repo 2.47.0 (`uvx`), `--refs "$BASE..main" --preserve-commit-hashes` | ran without `--force` |
+| Commits, merges, rewritten, tree | 302, 44, 106 before and after; the last tree unchanged |
+| The 196 commits before `48fb277` | in the new `main` with their hashes and signatures |
+| Signatures | 300 of 302 before, 302 of 302 after (106 with the rehearsal's SSH key, `%G?` `G`); authors, committers, dates and messages unchanged (`diff` empty); GitHub the committer of 16 of the 106 |
+| `LICENSE` | `6fc9e709…1e665` |
+| gitleaks 8.30.1 (the CI's checksum) over the result | 258 commits scanned, no leaks found |
+| The push of `main` alone into an empty bare repository, and a clone of it | only `refs/heads/main`; none of the four IDs, `git fsck --full` clean, the same `main` |
+| Cited hashes (specs, bug records, commit messages; 404 strings) | 61 resolved before the rewrite, 32 of them commits before `48fb277`; exactly those 32 after |
+| The old-name search over the whole tree; R5's checks over the two files | nothing; nothing |
+
+The pull request that merged `48fb277` is #158 (named in the runbook's paragraph on why the
+existing repository stays private). The agent's choices marked `UNCERTAIN`, all kept: step 6
+checks more than T040 lists (the merge count, `%G?`, the `diff` of authors, committers, dates and
+messages, `git status`); `--no-tags` on the clone and `--no-follow-tags` on the push, so that no
+old tag reaches the new repository; a count of the pictures (97) in step 2, so that a picture
+added later is looked at first; the cited hashes resolved in `main` only. The coordinator added
+to step 9 that the tag is made once, by the user or by the mentor (handover step 8). Not
+rehearsed: the push to GitHub and the look at it, the tag, a signing key with a passphrase or a
+GPG key, gitleaks on another system.
+
 ## The record (T039, 2026-11-24)
+
+Updated after T040 ran (the rows SC-002 and US2, the open points and the steps 1 and 10 below);
+everything else as T039 wrote it.
 
 On `HEAD` `f3091e0`, branch `opensource`, with phase 8's changes uncommitted (this file,
 `tasks.md`, `spec.md`, `research.md`, `README.md`). Nothing was run for this section beyond
@@ -814,7 +850,7 @@ file left out, nothing. Every other status below rests on the sections it cites.
 | Item | What it asks | Status | Evidence |
 |---|---|---|---|
 | SC-001 | every file has a licence and a copyright holder | met | T036 (phase 8): `reuse lint` 6.3.0 compliant with REUSE 3.3, 1,176 of 1,176 files, licences Apache-2.0, EUPL-1.2, MIT, OFL-1.1, Unicode-3.0, none missing or unused; again in T041 (1,176 of 1,176) |
-| SC-002 | no third-party item of unknown source or without licence; the star artwork in no published commit | needs a person | The inventory part ran: T011 (phase 3, the data sets are the team's own), T014 (phase 3, the four star files deleted by `320728d`, nothing imports them, the eight `.webp` pictures drawn by the designer), T009 (`NOTICE.md`; KERN's Figma kit named with "terms not stated here", open point 5). The artwork is still in every commit since `48fb277`: T040 has not run, and the user's history rewrite comes after the merge |
+| SC-002 | no third-party item of unknown source or without licence; the star artwork in no published commit | needs a person | The inventory part ran: T011 (phase 3, the data sets are the team's own), T014 (phase 3, the four star files deleted by `320728d`, nothing imports them, the eight `.webp` pictures drawn by the designer), T009 (`NOTICE.md`; KERN's Figma kit named with "terms not stated here", open point 5). The artwork is still in every commit since `48fb277`: T040 wrote the runbook and rehearsed it (phase 9 above: none of the four objects left after it, no other picture shows the artwork), and the user's history rewrite by it comes after the merge |
 | SC-003 | the count of consent statements equals the count of contributors | needs a person | The list is research R8: four (Samuele Musiani, Vrinda Pasrija, Amber Rafique, and DPS through the mentor). `pr.md` (T033, phase 7) says who posts what and how. No statement is recorded here; the count is the user's before the merge, with `LICENSE` still `6fc9e709…1e665` (T035) |
 | SC-004 | the old-name search prints nothing; the scrub searches only allowlisted lines; the allowlist under 20 lines | met | T041 (phase 8): the old-name search over the whole tree, the untracked `.git` pointer left out, **prints nothing**; T037 (phase 8): R5's five checks print only allowlisted lines (3 contact lines, 3 lines of spec 001), the allowlist unchanged at 4 lines (research R5); repeated in this section on the current tree with the same result |
 | SC-005 | the secret scan over the full history finds nothing; no credential that ever appeared still works | met | T036 (phase 8): gitleaks 8.30.1 (checksum equal to CI's) `git --log-opts=--all --redact`: no leaks, 271 commits; `dir --redact` over the tree and CI's `--log-opts=HEAD`: no leaks; research R5 found no credential, so nothing to rotate. Rest, a person: the scan once more over the new repository's history before it is public (`handover.md`, step 10) |
@@ -824,7 +860,7 @@ file left out, nothing. Every other status below rests on the sections it cites.
 | SC-009 | the same tests pass; the product behaves as before | met | T035 (phase 8): 7,941 tests passed (rules 2,678, frontend 2,058, mcp 513, pytest 2,692) against T003's 7,875 (phase 1); the 66 more are phase 6's; no test file deleted, no test skipped, five declarations renamed or split, none dropped. Rest, a person: behaviour by hand (phase 6's manual checks; US3's scenario 2) |
 | SC-010 | the mentor needs no further question for the handover list | needs a person | `handover.md` (T034, phase 7): ten steps, each with "When" and "Done when". Only the mentor's reading can show it |
 | US1 | any file's owner and licence from `LICENSE`, `NOTICE.md`, `REUSE.toml`; the check; the consent count | needs a person | The check ran: T036 `reuse lint`, 1,176 of 1,176 files; the files: T009, T010 (phase 3), `NOTICE.md` byte-identical in all three images (T038). The consent count is SC-003's, not done |
-| US2 | the secret scan over all history; the scrub search; the blocking findings closed | met | T036 (gitleaks, no leaks over `--all`), T037 and this section (R5's checks, only allowlisted lines), phase 6 (findings 3 to 6 fixed). Rest, a person: T040 and the history rewrite (FR-044, tagged US2), phase 6's manual checks, the last scan of `handover.md` step 10 |
+| US2 | the secret scan over all history; the scrub search; the blocking findings closed | met | T036 (gitleaks, no leaks over `--all`), T037 and this section (R5's checks, only allowlisted lines), phase 6 (findings 3 to 6 fixed). T040 (the runbook, rehearsed). Rest, a person: the history rewrite by `history-rewrite.md` (FR-044, tagged US2), phase 6's manual checks, the last scan of `handover.md` step 10 |
 | US3 | the old-name search prints only the allowlist; "Before you finish" passes | met | T041: the search prints nothing; T035: the Node and backend gates and `export_check_fixtures --check` pass; T036: REUSE check passes. Rest, a person: scenario 2 (a browser holding an old local draft opens Konnekt as on a first visit) and scenario 3 (the Account page's "Installing the plugin" link, once the new repository holds `main`) |
 | US4 | a fresh clone to the sign-in page and an account with the README alone | met | T038 (phase 8), as SC-007; the production build with the two "always" variables, `APP_ENV=production` in the image, the MCP image's seven packages as `NOTICE.md` says. Rest: run on a machine with more than the README's prerequisites and with a warm cache, not on one with Docker alone |
 | US5 | the mentor acts on every line of `handover.md` without asking | needs a person | `handover.md` (T034, phase 7) exists in FR-043's order; the test is the mentor's |
@@ -859,8 +895,9 @@ What phase 8 left open:
   time on an empty machine is unknown, and the run was not repeated after the README fix.
 - Phase 6's manual checks (its "Needs a person"): the sign-in throttle on a running stack in both
   languages, and the consent page with a real agent.
-- T040 (phase 9, `history-rewrite.md` and its rehearsal) has not run; its plan was amended on
-  2026-11-24 in `tasks.md`, `spec.md` (FR-044) and research R11.
+- The history rewrite itself (FR-044): T040 wrote `history-rewrite.md` and rehearsed it on
+  2026-11-24 (phase 9 above); the user runs it after the merge. Its counts (106 rewritten, 302
+  commits) were the rehearsal's; the runbook notes and compares the values of the merged `main`.
 - `tmp-german`, the one unmerged branch, is outside this spec (spec, Clarifications: "Not asked
   of this spec"); `handover.md` step 3 names it as not part of its list, as T034 asks. Not an
   open point of this spec.
@@ -868,9 +905,9 @@ What phase 8 left open:
 
 ### What a person must still do, in order
 
-1. **The user**: commit phase 8 (`verification.md`, `tasks.md`, `spec.md`, `research.md`,
-   `README.md`), on their machine (tasks.md, "Commits", item 4). The same files hold another
-   session's amendments of phase 9's plan (T040's "How", spec's clarification and FR-044, R11).
+1. **The user**: commit phase 8 (done: `2fbbe72`, with the amendments of phase 9's plan) and
+   phase 9 (`history-rewrite.md`, `specs/README.md`, `tasks.md`, `verification.md`), on their
+   machine (tasks.md, "Commits", item 4).
 2. **The mentor**: create `DigitalProductschool/konnekt`, empty and private, with push access
    for the user (`handover.md` step 1).
 3. **The mentor**: answer whether the consent statements must be public (`handover.md` step 2),
@@ -888,8 +925,9 @@ What phase 8 left open:
 8. **The user**: merge the pull request once every statement is in, by 2026-11-27.
 9. **The mentor**: delete the merged branches, `opensource` with them (`handover.md` step 3),
    and detach infrastructure, connectors and the review bot (step 4).
-10. **The user**: run T040 in a session (the runbook `history-rewrite.md` and its rehearsal),
-    after the merge.
+10. Done on 2026-11-24, before the merge: T040, the runbook `history-rewrite.md` and its
+    rehearsal (phase 9 above). The runbook checks itself on the merged `main` (its steps 2, 3 and
+    6), so it needs no second rehearsal.
 11. **The user**: the history rewrite by `history-rewrite.md`, and the push of `main` alone into
     the new, still private repository (tasks.md, "Commits", item 6). Then **the contributors**
     delete their old clones and clone anew, and **the user** follows the Account page's
@@ -899,6 +937,6 @@ What phase 8 left open:
     commit, decide on the hosted instance, run the last secrets scan and make the new repository
     public. Whether the mentor needed to ask anything is SC-010's and US5's answer.
 
-Steps 10 and 11 are the last ones of the team, after the merge and before anything is public;
-only the mentor's steps that need the rewritten `main` in the new repository follow them, and
+Step 11 is the last one of the team, after the merge and before anything is public;
+only the mentor's steps that need the rewritten `main` in the new repository follow it, and
 making it public is the very last.
