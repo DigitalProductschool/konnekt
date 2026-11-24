@@ -350,3 +350,73 @@ That was already so, and this task left it unchanged.
 | `uv run pytest`, database `konnekt_db_test` on `localhost:5435` | **2,643 passed**, none skipped (T003: the same; 14 min 7 s) |
 | Node gates | not run: no file of `api-types/`, `rules/`, `frontend/` or `mcp/` changed |
 | `sha256sum LICENSE` | `6fc9e709…1e665`, unchanged |
+
+## Phase 6, package C4: the security fixes (2026-11-24)
+
+T024 to T028, by task agents one after the other (they share `frontend/nginx.conf`, `schemas.py`
+and `config.py`) on `HEAD` `440a170`, branch `opensource`; nothing committed. The coordinator's
+checks at the end, below.
+
+### What was made
+
+| Task | Finding | Files | Result |
+|---|---|---|---|
+| T024 | 3, the headers | `frontend/nginx.conf` | `add_header_inherit merge;` at server level (nginx 1.31.9 accepts it; it appeared in 1.29.3), `X-Frame-Options: DENY`, `Content-Security-Policy: frame-ancestors 'none'` (no page of the app frames another; the PDF is a download), `X-Content-Type-Options` kept, `X-XSS-Protection` left as it was. On the built image the three headers were missing on `/`, `/index.html`, SPA routes and every asset before, and are on every answer after, each once, proxied and error answers included; `Cache-Control` unchanged |
+| T025 | 4, the sign-in | `backend/app/services/sign_in_throttle.py` (new), `routers/auth.py`, `models.py`, `schemas.py` (`LoginRequest`), `config.py`, `services/worker.py`, `errors.py`, migration `ef2b83b1b34c_sign_in_throttle.py` (new), `.env.example`, `frontend/nginx.conf`, 21 tests | table `sign_in_throttles`, one row per submitted username keyed by the SHA-256 of its stored form, under a row lock (an upsert then `FOR UPDATE`); every attempt counts before its hash, a correct one deletes the row; from the 5th failure in a row a wait of 30 s, doubling to at most 900 s; an attempt during the wait answers `429 rate_limited` with `Retry-After`, runs no hash and doesn't count; the worker deletes forgotten rows. `max_length` 200 (username) and 1024 (password), refused with `400` before anything counts. nginx: `limit_req` 30 a minute per address, burst 5 queued, its own `429` in the `{error, message}` envelope in both languages. The sign-in page already shows the server's message (no change) |
+| T026 | 5, client registration | `backend/app/services/oauth.py`, `routers/oauth.py`, `schemas.py` (`RegisterRequest`), `config.py`, `services/worker.py` (the shared "unused" condition), `.env.example`, `frontend/nginx.conf`, 28 tests | at most 10 redirect URIs of at most 2,000 characters, bounds on every other field, refused with RFC 7591's `400 invalid_client_metadata`; at most `OAUTH_MAX_UNUSED_REGISTRATIONS` (1,000) unused registrations: a new one **removes the oldest unused ones** rather than being refused, because refusing would let an attacker block every new client with about 17 registrations a minute, while removing reaches a legitimate client only between its registration and its consent. Registrations take turns under an advisory lock; removal locks with `SKIP LOCKED` and checks again; `create_code` locks the client (`FOR KEY SHARE`), so a consent racing a removal answers `400` instead of a `500`. nginx: `/api/oauth/register` 10 a minute, burst 20; the rest of `/api/oauth/` 60 a minute, burst 60; 16 KB bodies; an RFC-shaped JSON `429` |
+| T027 | 6, the consent page | `frontend/src/pages/Authorize/` (`ClientFacts.tsx` new, `utils.ts`, `types.ts`, `constants.ts`, `index.tsx`, `ConsentForm.tsx` comment, `utils.test.ts`), 17 tests | "Read only" is checked for a client the account has no connection with, whatever the request asks for; with a connection, the requested level as before, with the step-up line. Under the intro: that the agent registered itself and chose its name (`dcr`), or publishes it on its host (`cimd`); and where the browser goes after the answer: the redirect URI's host as the browser parses it (no userinfo, no port, IDN as `xn--`), "an app on this computer" for loopback, the scheme for an app's own links. No API change. Checked in Chromium at 1280 and 320 px in both languages, end to end to a code with scope `read` |
+| T028 | 10, 13, 14 (start), 20 (`server_tokens`); FR-007 | `backend/Dockerfile`, `frontend/Dockerfile`, `mcp/Dockerfile`, `docker-compose.yml`, `frontend/nginx.conf`, `frontend/nginx/40-servicebw-access.sh`, `backend/.env.example` | `ENV APP_ENV=production` and `ENV UV_NO_SYNC=1` in the backend image (its start ran the migrations and uvicorn with no sync and no dev package in the venv); `127.0.0.1:` on the four published ports of the development compose file; `server_tokens off;`; `LICENSE` and `NOTICE.md` at `/usr/share/doc/konnekt/` in all three images (`LICENSE`'s SHA-256 checked in each); `backend/LICENSE` not copied before `uv sync` (T007's report: not needed); the two Coolify comments reworded; the tenant's name gone from `.env.example`; `/THIRD-PARTY-NOTICES.txt` served with `charset=utf-8` (phase 3's handed-on note), nothing else's charset changed |
+
+### Decisions taken during the phase
+
+- **`backend/app/errors.py`** (T025, outside its list, accepted): the `HTTPException` handler
+  dropped the exception's headers, so `Retry-After` never reached the client; it now passes them
+  through. No exception raised before this phase set headers.
+- **Validation errors are `400`** in this codebase, not `422`: the over-long sign-in fields answer
+  `400 Validation error`.
+
+### The gates (coordinator, on the finished phase)
+
+| Gate | Result |
+|---|---|
+| `uv run pytest`, database `konnekt_db_test` | **2,692 passed**, none skipped (T003: 2,643; +21 T025, +28 T026), by T026 on the backend as it now stands; afterwards only a comment line of `.env.example` and the Dockerfile changed under `backend/` |
+| `uv run ruff check .`, `ruff format --check .`, `mypy app/ scripts/ tests/` | pass (115 files; 100 source files) |
+| `uv run python -m scripts.export_check_fixtures --check` | passes |
+| `npm run lint`, `npm run format:check` | pass |
+| `npm test` (T027) | rules **2,678**, frontend **2,058** (+17), mcp **513** |
+| `npm run build` (T027) | passes |
+| `reuse lint` (6.3.0) | compliant; 1,174 of 1,174 files |
+| `nginx -t`, on the template rendered by `nginx:1.31.9-alpine`'s entrypoint | passes (each of T024 to T028) |
+| The three production images | build; run checks as in the table |
+| `sha256sum LICENSE`; `cmp LICENSE backend/LICENSE LICENSES/EUPL-1.2.txt` | `6fc9e709…1e665`; identical |
+| `backend/alembic/versions/` | one new file, nothing else changed; the four generated files, both lockfiles and `LICENSE`/`LICENSE.de` unchanged |
+| The old names and R5's patterns over the changed files | nothing |
+
+### Handed on
+
+- **T032, `SECURITY.md`**: findings 3 to 6, 10, 13, 14 (start command), 20 (`server_tokens`)
+  are fixed; 14 keeps the root user and the base images' digests, 20 the rest. Two limitations
+  the fixes leave: someone who knows a username can keep it waiting with one wrong attempt per
+  wait (at most 15 minutes each), and a password longer than 1,024 characters, which the CLI
+  can still set, can no longer sign in.
+- **T032, README and ARCHITECTURE**: the settings `SIGN_IN_FAILURES_BEFORE_WAIT` (5),
+  `SIGN_IN_FIRST_WAIT_SECONDS` (30, `0` switches the waits off), `SIGN_IN_MAX_WAIT_SECONDS` (900,
+  also how long failures are remembered) and `OAUTH_MAX_UNUSED_REGISTRATIONS` (1,000, at least 1);
+  the table `sign_in_throttles` and the worker step `delete_expired_sign_in_throttles`; the error
+  handler passing headers through; nginx's three `limit_req` zones and their `429` bodies (the
+  sign-in's `{error, message}`, OAuth's RFC-shaped `too_many_requests`), and that behind a proxy
+  without `TRUSTED_PROXY_CIDRS` every client shares one bucket; the consent page's preselection
+  and facts line; the development compose file's ports bound to `127.0.0.1`; the backend image's
+  `APP_ENV=production` and `UV_NO_SYNC=1`; the licence files at `/usr/share/doc/konnekt/` in the
+  images; the notices' charset.
+- **Not changed, as records**: spec 007's `contracts/oauth.md` and `ui-screens.md` (S1) and spec
+  008's design notes (§5.2, S19) still say the requested level is preselected; they record how
+  spec 007 was built.
+- **This machine**: the running `postgres` container was started before T028 and stays published
+  on all interfaces until it is recreated.
+
+### Needs a person
+
+On a running stack: a wrong password six times, then the refusal and its message in both
+languages, then the right password after the wait; the consent page for a client the account
+has never connected, with a real agent (Claude Code or another MCP client).

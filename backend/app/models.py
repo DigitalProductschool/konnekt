@@ -3,8 +3,9 @@
 specs/001-servicebw-eudi-middleware/data-model.md, extended by the rule sets and
 branches of specs/002-connection-rules/data-model.md, the drafts of
 specs/005-connection-drafts/data-model.md and the agent access and approval
-requests of specs/007-agent-mcp-server/data-model.md, and the status dates and the
-activity of specs/010-revamp-backend-gaps/data-model.md.
+requests of specs/007-agent-mcp-server/data-model.md, the status dates and the
+activity of specs/010-revamp-backend-gaps/data-model.md, and the sign-in throttle
+of specs/012-open-source-release/research.md (R6, finding 4).
 
 No table holds a citizen, a finding, a test result, a token's secret or a
 citizen's data.
@@ -78,6 +79,32 @@ class LoginSession(Base):
     )
     # SHA-256 hex of the cookie token
     token_hash: Mapped[str] = mapped_column(String(64), unique=True, index=True)
+    expires_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), index=True)
+    created_at: Mapped[CreatedAt]
+    updated_at: Mapped[UpdatedAt]
+
+
+class SignInThrottle(Base):
+    """The failed sign-ins in a row for one username, and the wait they caused.
+
+    Spec 012, research R6, finding 4; services/sign_in_throttle.py. One row per
+    submitted username, whether or not an account has it, keyed by a hash so that
+    the table holds no username in clear. A correct sign-in deletes the row, and
+    the worker deletes it at `expires_at`.
+    """
+
+    __tablename__ = 'sign_in_throttles'
+
+    id: Mapped[UuidPk]
+    # SHA-256 hex of the username as normalize_username() stores it
+    username_hash: Mapped[str] = mapped_column(String(64), unique=True, index=True)
+    # Failed attempts in a row. An attempt counts as one from before its password
+    # is checked; a correct one deletes the row
+    failures: Mapped[int] = mapped_column(Integer, default=0, server_default=text('0'))
+    # Until then every attempt answers 429 without checking a password
+    refused_until: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    # When the attempts are forgotten: SIGN_IN_MAX_WAIT_SECONDS after the wait
+    # ends, or after the last attempt if it started none
     expires_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), index=True)
     created_at: Mapped[CreatedAt]
     updated_at: Mapped[UpdatedAt]

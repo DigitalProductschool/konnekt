@@ -58,10 +58,19 @@ class UserView(BaseModel):
 
 
 class LoginRequest(BaseModel):
-    """Credentials for signing in."""
+    """Credentials for signing in.
 
-    username: str
-    password: str
+    A longer value fails the body's validation (400 `Validation error`) before the
+    attempt counts or any password is checked (spec 012, research R6, finding 4).
+    """
+
+    # A stored username has at most 100 characters (USERNAME_PATTERN); twice that
+    # leaves room for the spaces around it that the sign-in trims
+    username: str = Field(max_length=200)
+    # The CLI asks for at least 12 characters and sets no maximum; 1024 is far
+    # above a typed passphrase or a password manager's longest, and keeps the body
+    # that nginx accepts for the sign-in small
+    password: str = Field(max_length=1024)
 
 
 # Document types and form connections (contracts/management-api.md). The request
@@ -977,14 +986,45 @@ class AuthorizeResponse(BaseModel):
     redirect_to: str
 
 
-class RegisterRequest(BaseModel):
-    """A dynamic client registration (RFC 7591)."""
+# The bounds of a dynamic client registration (spec 012, research R6, finding 5).
+# Real clients send one to six redirect URIs of under 100 characters (a loopback
+# one, a web callback, an app's own scheme)
+REDIRECT_URIS_MAX = 10
+# The size of the column oauth_codes.redirect_uri: a longer URI could never be
+# authorized. It also bounds the redirect URI of an authorization (services/oauth.py)
+REDIRECT_URI_MAX_LENGTH = 2000
+# The name as sent. It is stored trimmed and cut to 200 characters
+# (services/oauth.py CLIENT_NAME_MAX_LENGTH), so a longer one up to this bound
+# still registers
+CLIENT_NAME_INPUT_MAX_LENGTH = 1000
+# grant_types and response_types: how many values, and the length of each, and of
+# token_endpoint_auth_method. A long standard value,
+# urn:ietf:params:oauth:grant-type:token-exchange (RFC 8693), has 47 characters
+REGISTRATION_VALUES_MAX = 10
+REGISTRATION_VALUE_MAX_LENGTH = 100
 
-    client_name: str
-    redirect_uris: list[str]
-    token_endpoint_auth_method: str = 'none'
-    grant_types: list[str] | None = None
-    response_types: list[str] | None = None
+RedirectUri = Annotated[str, Field(max_length=REDIRECT_URI_MAX_LENGTH)]
+RegistrationValues = Annotated[
+    list[Annotated[str, Field(max_length=REGISTRATION_VALUE_MAX_LENGTH)]],
+    Field(max_length=REGISTRATION_VALUES_MAX),
+]
+
+
+class RegisterRequest(BaseModel):
+    """A dynamic client registration (RFC 7591).
+
+    Every field is bounded, so that a registration stores little: a field beyond
+    its bound fails the body's validation, which the router answers as `400
+    invalid_client_metadata`. Fields not named here are ignored and never stored.
+    """
+
+    client_name: str = Field(max_length=CLIENT_NAME_INPUT_MAX_LENGTH)
+    redirect_uris: list[RedirectUri] = Field(max_length=REDIRECT_URIS_MAX)
+    token_endpoint_auth_method: str = Field(
+        default='none', max_length=REGISTRATION_VALUE_MAX_LENGTH
+    )
+    grant_types: RegistrationValues | None = None
+    response_types: RegistrationValues | None = None
 
 
 class RegisterResponse(BaseModel):

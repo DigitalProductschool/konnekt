@@ -399,7 +399,7 @@ bodies their RFCs prescribe; new copy goes through `defineTexts(en, de)`; new se
 fields on `Settings` and go into `backend/.env.example` (the README and ARCHITECTURE follow in
 T032).
 
-- [ ] T024 [US2] [xhigh] Finding 3, the security headers: `X-Frame-Options`,
+- [X] T024 [US2] [xhigh] Finding 3, the security headers: `X-Frame-Options`,
   `X-Content-Type-Options` and a `Content-Security-Policy` with `frame-ancestors` reach every
   answer of nginx, the SPA's page and its assets included, in the locations that set headers of
   their own too. Use `add_header_inherit merge;` only if `nginx -t` of the image's version
@@ -409,7 +409,7 @@ T032).
   on `/`, on an asset and on `/index.html`. Items: FR-037 (finding 3); files:
   `frontend/nginx.conf`, a new include under `frontend/nginx/` if needed; gates: `nginx -t`, the
   header check, or "needs a person" with the exact commands.
-- [ ] T025 [US2] [xhigh] Finding 4, the sign-in throttle. Constraints: failed attempts are counted
+- [X] T025 [US2] [xhigh] Finding 4, the sign-in throttle. Constraints: failed attempts are counted
   per submitted username whether or not the account exists (no difference an attacker can
   measure, as today); after a small number of failures the next attempts for that username are
   refused for a short, growing time with `429` and `Retry-After`, without running the password
@@ -425,7 +425,7 @@ T032).
   `backend/app/schemas.py`, `backend/app/config.py`, one new migration,
   `backend/.env.example`, `backend/tests/`, `frontend/nginx.conf`, the sign-in page only if it
   does not already show a server message; depends on T024 (`nginx.conf`); gates: backend, Node.
-- [ ] T026 [US2] [xhigh] Finding 5, open client registration: at most 10 redirect URIs and
+- [X] T026 [US2] [xhigh] Finding 5, open client registration: at most 10 redirect URIs and
   bounded lengths for every field of the registration body; nginx accepts a few kilobytes for
   `/api/oauth/` and limits its request rate per client address; a cap on registrations that were
   never used, with the oldest unused ones removed or the call refused, whichever keeps a
@@ -435,7 +435,7 @@ T032).
   `backend/app/schemas.py`, `backend/app/config.py` and `backend/.env.example` if a limit is a
   setting, `backend/tests/`, `frontend/nginx.conf`; depends on T025 (`nginx.conf`, `schemas.py`,
   `config.py`); gates: backend.
-- [ ] T027 [US2] [xhigh] Finding 6, the consent page: it shows the host of the redirect URI and
+- [X] T027 [US2] [xhigh] Finding 6, the consent page: it shows the host of the redirect URI and
   says that the client registered itself and that its name is its own claim; "Read only" is
   preselected whenever the signed-in account has no existing connection with that client,
   whatever the request asks for; the member can still choose a higher level. If the page needs a
@@ -446,7 +446,7 @@ T032).
   `frontend/src/pages/Authorize/*`, and only if needed `backend/app/schemas.py`,
   `backend/app/services/oauth.py`, `api-types/src/`, `backend/tests/`; depends on T026
   (`schemas.py`, `services/oauth.py`); gates: backend, Node.
-- [ ] T028 [US2] [medium] The one-line hardening and the images' files, each as research R6's
+- [X] T028 [US2] [medium] The one-line hardening and the images' files, each as research R6's
   table says: finding 10 (`ENV APP_ENV=production` in `backend/Dockerfile`); 13 (`127.0.0.1:` on
   every published port of `docker-compose.yml`); 14, the start command only (no second sync at
   start, no `dev` group); 20, `server_tokens off;` only. Also: the three production Dockerfiles

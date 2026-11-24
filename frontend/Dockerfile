@@ -26,8 +26,8 @@ FROM nginx:1.31.9-alpine AS runner
 
 # Installed as a template: the image's entrypoint runs envsubst over
 # /etc/nginx/templates/*.template into /etc/nginx/conf.d/ at container start,
-# resolving ${BACKEND_HOST}. Overridden per environment (Coolify previews get
-# a suffixed backend service name); defaults to the compose service name.
+# resolving ${BACKEND_HOST}. Overridden per environment (behind the proxy in front,
+# the backend service may have another name); defaults to the compose service name.
 ENV BACKEND_HOST=backend
 # Likewise ${MCP_HOST}, the MCP server's service name, for /mcp and its protected
 # resource metadata (spec 007, research R3)
@@ -38,6 +38,8 @@ COPY frontend/nginx.conf /etc/nginx/templates/default.conf.template
 COPY frontend/nginx/40-servicebw-access.sh /docker-entrypoint.d/40-servicebw-access.sh
 RUN chmod 755 /docker-entrypoint.d/40-servicebw-access.sh
 COPY --from=builder /app/frontend/dist /usr/share/nginx/html
+# The licence and the notices (FR-007), outside the served root
+COPY LICENSE NOTICE.md /usr/share/doc/konnekt/
 
 EXPOSE 80
 

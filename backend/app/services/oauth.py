@@ -30,7 +30,8 @@ from urllib.parse import SplitResult, urlencode, urlsplit
 
 import httpx2
 from fastapi import HTTPException, status
-from sqlalchemy import delete, select, text
+from pydantic import ValidationError
+from sqlalchemy import ColumnElement, delete, func, select, text
 from sqlalchemy.dialects.postgresql import insert as pg_insert
 from sqlalchemy.orm import Session
 
@@ -39,6 +40,11 @@ from ..errors import describe_error
 from ..language import Text
 from ..models import AgentAuthorization, AgentToken, OauthClient, OauthCode, UserAccount
 from ..schemas import (
+    CLIENT_NAME_INPUT_MAX_LENGTH,
+    REDIRECT_URI_MAX_LENGTH,
+    REDIRECT_URIS_MAX,
+    REGISTRATION_VALUE_MAX_LENGTH,
+    REGISTRATION_VALUES_MAX,
     AuthorizeRequest,
     AuthorizeResponse,
     OauthClientView,
@@ -64,9 +70,9 @@ LEVEL_SCOPES: dict[str, str] = {
 
 CODE_LIFETIME = timedelta(minutes=5)
 CLIENT_NAME_MAX_LENGTH = 200
-# The columns' sizes (data-model.md sections 1 and 2)
+# The columns' sizes (data-model.md sections 1 and 2); REDIRECT_URI_MAX_LENGTH,
+# oauth_codes.redirect_uri's, is in schemas.py, which bounds a registration by it
 CLIENT_ID_MAX_LENGTH = 500
-REDIRECT_URI_MAX_LENGTH = 2000
 
 # Client ID Metadata Documents: fetched again after a day, within these limits
 METADATA_MAX_AGE = timedelta(hours=24)
@@ -491,13 +497,111 @@ def client_view(db: Session, user: UserAccount, client_id: str) -> OauthClientVi
     )
 
 
+# Dynamic registrations (spec 012, research R6, finding 5)
+
+# A dynamically registered client that nothing uses: no agent connection and no
+# authorization code refer to it. The worker deletes one an hour old
+# (`worker.delete_unused_oauth_clients`), and a registration removes the oldest
+# beyond OAUTH_MAX_UNUSED_REGISTRATIONS (`register_client`)
+UNUSED_CLIENT: tuple[ColumnElement[bool], ...] = (
+    OauthClient.kind == 'dcr',
+    ~select(AgentAuthorization.id)
+    .where(AgentAuthorization.client_id == OauthClient.id)
+    .exists(),
+    ~select(OauthCode.id).where(OauthCode.client_id == OauthClient.id).exists(),
+)
+
+# The transaction-level advisory lock that registrations take one after another:
+# an arbitrary number, unique among the application's advisory locks
+REGISTRATION_LOCK_KEY = 7591
+
+# What each field of a registration must be: the description of a body that fails
+# `RegisterRequest`'s validation, by the first field that fails (RFC body, English)
+REGISTRATION_FIELD_RULES: dict[str, str] = {
+    'client_name': (
+        'client_name is required: a string of at most '
+        f'{CLIENT_NAME_INPUT_MAX_LENGTH} characters.'
+    ),
+    'redirect_uris': (
+        f'redirect_uris is required: a list of at most {REDIRECT_URIS_MAX} URIs '
+        f'of at most {REDIRECT_URI_MAX_LENGTH} characters each.'
+    ),
+    'token_endpoint_auth_method': 'token_endpoint_auth_method must be none.',
+    'grant_types': (
+        f'grant_types must be a list of at most {REGISTRATION_VALUES_MAX} strings '
+        f'of at most {REGISTRATION_VALUE_MAX_LENGTH} characters each.'
+    ),
+    'response_types': (
+        f'response_types must be a list of at most {REGISTRATION_VALUES_MAX} '
+        f'strings of at most {REGISTRATION_VALUE_MAX_LENGTH} characters each.'
+    ),
+}
+REGISTRATION_NEEDS = 'The registration needs client_name and redirect_uris.'
+
+
+def invalid_registration(error: ValidationError) -> OauthError:
+    """The refusal of a registration body that fails `RegisterRequest`'s validation.
+
+    `invalid_client_metadata` (RFC 7591 3.2.2), described by what the first field
+    that fails must be.
+    """
+    problems = error.errors()
+    location = problems[0]['loc'] if problems else ()
+    field = location[0] if location else None
+    description = (
+        REGISTRATION_FIELD_RULES.get(field, REGISTRATION_NEEDS)
+        if isinstance(field, str)
+        else REGISTRATION_NEEDS
+    )
+    return refusal('invalid_client_metadata', description)
+
+
+def _remove_unused_beyond_cap(db: Session, new_client_id: str) -> list[str]:
+    """Remove the oldest unused registrations beyond the cap; return their ids.
+
+    The new registration (`new_client_id`, unused itself) and the newest other
+    unused ones stay, OAUTH_MAX_UNUSED_REGISTRATIONS in all. Called under the
+    registration lock, so no other registration adds one meanwhile. The rows are
+    locked first, skipping those another transaction holds (a consent storing its
+    code, the worker deleting them), and the conditions are checked again in the
+    delete, as the worker does: a client that is used meanwhile stays.
+    """
+    beyond_cap = db.scalars(
+        select(OauthClient.id)
+        .where(*UNUSED_CLIENT, OauthClient.id != new_client_id)
+        .order_by(OauthClient.created_at.desc(), OauthClient.id.desc())
+        .offset(settings.oauth_max_unused_registrations - 1)
+    ).all()
+    if not beyond_cap:
+        return []
+    candidates = db.scalars(
+        select(OauthClient.id)
+        .where(OauthClient.id.in_(beyond_cap), *UNUSED_CLIENT)
+        .with_for_update(skip_locked=True)
+    ).all()
+    if not candidates:
+        return []
+    return list(
+        db.scalars(
+            delete(OauthClient)
+            .where(OauthClient.id.in_(candidates), *UNUSED_CLIENT)
+            .returning(OauthClient.id)
+            .execution_options(synchronize_session=False)
+        ).all()
+    )
+
+
 def register_client(db: Session, data: RegisterRequest) -> RegisterResponse:
     """Register a public client (RFC 7591): no secret, `cp_client_` id.
 
     A secret authentication method, no redirect URI, or one that
     `redirect_uri_allowed` refuses (such as a non-loopback `http://` URI) answers
     `invalid_client_metadata`. A registration no authorization uses is deleted by
-    the worker after an hour.
+    the worker after an hour, and at most OAUTH_MAX_UNUSED_REGISTRATIONS of them
+    are kept: each registration removes the oldest unused ones beyond that, never
+    one that an agent connection or an authorization code uses. Registrations
+    take turns (an advisory lock until the commit), so parallel ones never pass
+    the cap together.
     """
     if data.token_endpoint_auth_method != 'none':
         # RFC body, English
@@ -522,6 +626,7 @@ def register_client(db: Session, data: RegisterRequest) -> RegisterResponse:
     if not client_name:
         # RFC body, English
         raise refusal('invalid_client_metadata', 'client_name is required.')
+    db.execute(select(func.pg_advisory_xact_lock(REGISTRATION_LOCK_KEY)))
     client = OauthClient(
         client_id=new_dcr_client_id(),
         kind='dcr',
@@ -529,8 +634,12 @@ def register_client(db: Session, data: RegisterRequest) -> RegisterResponse:
         redirect_uris=list(data.redirect_uris),
     )
     db.add(client)
+    db.flush()
+    removed = _remove_unused_beyond_cap(db, client.id)
     db.commit()
     logger.info('OAuth client %s registered', client.id)
+    for removed_id in removed:
+        logger.info('Unused OAuth client %s removed for a new registration', removed_id)
     return RegisterResponse(
         client_id=client.client_id,
         client_name=client.client_name,
@@ -574,6 +683,16 @@ def create_code(db: Session, user: UserAccount, request: AuthorizeRequest) -> st
     `400 invalid_request`.
     """
     client = _checked_request(db, request)
+    # A registration that nothing uses yet may be removed meanwhile, by the worker
+    # or by a registration beyond the cap: the row is locked against that until the
+    # code is stored, and one that is gone answers as an unknown client
+    still_there = db.scalar(
+        select(OauthClient.id)
+        .where(OauthClient.id == client.id)
+        .with_for_update(read=True, key_share=True)
+    )
+    if still_there is None:
+        raise _invalid_request(CLIENT_UNKNOWN)
     code = new_secret()
     db.add(
         OauthCode(

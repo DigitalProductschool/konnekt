@@ -82,17 +82,15 @@ def register_client(
 
     Open, JSON. Answers `201` with the registration, or `400
     invalid_client_metadata` for metadata that doesn't fit: a missing name, a
-    secret authentication method, no redirect URI, or a non-loopback `http://` one.
+    secret authentication method, no redirect URI, a non-loopback `http://` one,
+    or a field beyond its bound (more than 10 redirect URIs, a value too long).
+    Beyond OAUTH_MAX_UNUSED_REGISTRATIONS registrations that nothing uses, the
+    oldest of them are removed (spec 012, research R6, finding 5).
     """
     try:
         data = RegisterRequest.model_validate(payload)
-    except ValidationError:
-        return _rfc_error(
-            oauth.refusal(
-                'invalid_client_metadata',
-                'The registration needs client_name and redirect_uris.',
-            )
-        )
+    except ValidationError as error:
+        return _rfc_error(oauth.invalid_registration(error))
     try:
         return oauth.register_client(db, data)
     except oauth.OauthError as error:
