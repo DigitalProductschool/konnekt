@@ -355,7 +355,7 @@ and local paths.
 **Owns**: `specs/001-…` to `specs/011-…`, `.specify/bugs/`, `backend/tests/fake_eudiplo.py`,
 `backend/tests/unit/test_issue_test_credentials.py`.
 
-- [ ] T021 [US2] [medium] The scrub by script (scratch, not committed), research R5's "Scrub
+- [X] T021 [US2] [medium] The scrub by script (scratch, not committed), research R5's "Scrub
   patterns" in their order with the replacements and the "Applied" column of its table, over
   `specs/001-…` to `specs/011-…` and `.specify/bugs/` only: H1a, H1b, H2, T1a, T2, L1, L2, L3,
   I1, I2, S1 (the path everywhere; the bare name kept where the table says), S3. Not applied:
@@ -363,11 +363,11 @@ and local paths.
   alone are unsafe patterns). Afterwards the five checks of R5 for these two folders; write the
   counts before and after into `verification.md`. Items: FR-032, FR-033, FR-035; files: the
   matched files under the two folders, `verification.md`; gates: the five checks.
-- [ ] T022 [P] [US2] [medium] The tests' tenant (research R5, T1c): `'dps'` → `'test-tenant'` on
+- [X] T022 [P] [US2] [medium] The tests' tenant (research R5, T1c): `'dps'` → `'test-tenant'` on
   the three lines named there, nothing else in those files. Items: FR-033; files:
   `backend/tests/fake_eudiplo.py`, `backend/tests/unit/test_issue_test_credentials.py`; gates:
   backend.
-- [ ] T023 [P] [US2] [medium] Delete the blank screenshot
+- [X] T023 [P] [US2] [medium] Delete the blank screenshot
   `.specify/bugs/published-sticky-bar/before-activity-open-scrolled-to-end.png` and reword the
   lines of that bug record that point to it; the other eight screenshots stay (research R3,
   decision 5). Items: FR-034; files: that folder; gates: none.

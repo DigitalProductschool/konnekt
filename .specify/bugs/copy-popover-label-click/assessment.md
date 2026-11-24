@@ -40,7 +40,7 @@ In the app (from the code, not run; needs a connection with at least two variant
    ticked.
 4. Open it again and click the box itself. The variant is ticked and the popover stays open.
 
-Standalone reproduction: `/tmp/claude-1000/-home-debian-batch27-faro-rules/ad311dc7-9db9-422b-9191-30b98f2d5825/scratchpad/copy-repro/page.html`
+Standalone reproduction: `<scratchpad>/copy-repro/page.html`
 copies the DOM around the popover: the rule row (`div tabindex=-1`), the actions wrapper, the
 `role=dialog` popover with `CopyPopover`'s focusout logic, and `CopyTargetItem`'s `<label>`.
 `run.mjs` next to it drives headless Chromium 156 over the DevTools protocol with real mouse

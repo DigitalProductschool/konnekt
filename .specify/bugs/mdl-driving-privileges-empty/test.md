@@ -55,5 +55,5 @@ Hold. Don't close the bug. The middleware changes are verified and safe to merge
 "Done when" (a pull delivers `[{"vehicle_category_code": "B", "issue_date": "2003-05-12"}, …]`)
 can't be met until EUDIPLO is fixed. Next: file the upstream issue and PR
 (`eudiplo-fix-prompt.md`), deploy a fixed or patched EUDIPLO, then rerun the live reproduction
-(T081 / quickstart V-runs and sk-proto-1 quickstart 12.2). Rerun `/speckit-bug-test` after that
+(T081 / quickstart V-runs and the form prototype's quickstart 12.2). Rerun `/speckit-bug-test` after that
 to move this to `verified`.

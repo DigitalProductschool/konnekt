@@ -25,8 +25,8 @@ screens in [contracts/ui-screens.md](contracts/ui-screens.md), the wording in
   access"), or the personal access tokens of the user page.
 - The browser checks use the Playwright MCP tools (Chromium and Firefox); Figma is read per frame.
   A 1440 px frame needs a 1455 px window in Chromium on Linux (`docs/FIGMA-WORKFLOW.md` §4).
-- Git: `GIT_DIR=/home/debian/batch27-faro/worktrees/010-revamp-backend-gaps`
-  `GIT_WORK_TREE=/home/debian/batch27-faro/010-revamp-backend-gaps`.
+- Git: `GIT_DIR=<git-dir>/worktrees/010-revamp-backend-gaps`
+  `GIT_WORK_TREE=<checkout>/010-revamp-backend-gaps`.
 
 ## Gates (every task; constitution III)
 

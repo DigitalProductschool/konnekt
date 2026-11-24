@@ -146,6 +146,6 @@ None. The fix is the preferred remediation, applied in the five listed files.
   `specs/001-servicebw-eudi-middleware/design-notes.md` as well. It lists the design's decisions,
   but it wasn't in the assessment's file list.
 - `git` doesn't work here as is: the worktree's `.git` points to another machine's path. Read-only
-  commands work with `GIT_DIR=/home/debian/batch27-faro/worktrees/light-mode` and
-  `GIT_WORK_TREE=/home/debian/batch27-faro/light-mode`.
+  commands work with `GIT_DIR=<git-dir>/worktrees/light-mode` and
+  `GIT_WORK_TREE=<checkout>/light-mode`.
 - `frontend/node_modules/` stays installed (it's gitignored) for `/speckit-bug-test`.

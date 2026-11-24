@@ -269,3 +269,84 @@ coordinator's checks at the end, below.
   `uv sync` or clone does not.
 - **The `licensing` job** runs `uvx` on the runner's own Python (the root has no
   `.python-version`); `--python 3.13` would pin it. Not run on GitHub yet.
+
+## Phase 5, package C3: the scrub (2026-11-24)
+
+T021 to T023, by the coordinator on `HEAD` `1c36415`, branch `opensource`; nothing committed.
+
+### T021: the scrub
+
+A script in scratch, not committed, applied research R5's "Scrub patterns" in their order to
+`specs/001-…` to `specs/011-…` and `.specify/bugs/` and nothing else; one line was then changed by
+hand (below). 30 files, 80 lines.
+
+| Pattern | Replacement | Places |
+|---|---|---|
+| H1a, H1b | `middleware.example.org`, `eudiplo.example.org` | 3, 7 |
+| H2 | `my-team.example.org` | 1 |
+| T1a | `` `<tenant>` `` | 11 |
+| T2 | `<trust-list-id>` | 5 |
+| L1 | `<git-dir>/worktrees/…`, `<checkout>/…` | 13, 12 |
+| L2 | `<checkout>/…` | 1 |
+| L3 | `<scratchpad>` | 8 |
+| L4 (this task's own, see below) | `<downloaded-assets>/` | 3 |
+| I1, I2 | `<form-connection-id>`, `<session-id>` | 5, 4 |
+| S1 | `<form-prototype-repo>/`, then "the form prototype" | 1, then 12 (and 1 by hand) |
+| S3 | `Konnekt's`, `konnekt_verify` | 1, 1 |
+
+Where the run differs from R5's table (counted at `9fbce6c`):
+
+- **L1**: 25 places instead of 21. The bug record `german-copy-user-tests` (`assessment.md`,
+  `fix.md`), written after the audit, holds four more lines of the same kind.
+- **L4, new** (UNCERTAIN): the bug record `new-visuals` (`assessment.md` twice, `fix.md` once),
+  also written after the audit, names a download folder in the home directory of the machine
+  the fix ran on. R5's second check matches it and no allowlist line covers it, so it got a
+  placeholder in the style of L1 to L3.
+- **S1**: `.specify/bugs/password-eye-icon-border/fix.md:57` names `sk-proto-1-phase2`. That is
+  this repository's own old branch (merged as pull request #61), not the form prototype, so R5's
+  replacement would have made the sentence false. Changed by hand to "another worktree of this
+  repository" (UNCERTAIN). Two possessives (`` `sk-proto-1`'s ``, "sk-proto-1 quickstart")
+  became "the form prototype's" so that the sentences still read. The bare name stays in
+  `specs/001-servicebw-eudi-middleware/spec.md:3` and `plan.md:3,8`, as R5 proposes.
+- **Not applied**, as the task says: the Figma patterns; T3 in the specs (`9.0.0-mdocfix.1` stays
+  in `specs/001-…/research.md` and `specs/002-…/quickstart.md`, `research.md`); C1 in the specs
+  (Coolify stays as the record of how the project was built).
+
+R5's five "Checks after the scrub", counted in the two folders (git grep, this feature's
+directory left out):
+
+| Check | `specs/` before → after | `.specify/bugs/` before → after | Left after, in the whole tree |
+|---|---|---|---|
+| 1 `dpschool\.(app\|io)` | 2 → 0 | 8 → 0 | the contact address in `README.md`, `SECURITY.md`, `CONTRIBUTING.md` (allowlist) |
+| 2 machine paths | 18 → 0 | 16 → 0 | none |
+| 3 `dps` as a word | 8 → 0 | 3 → 0 | `backend/.env.example:20` (T1b, T028's file) |
+| 4 hosted ids, trust list | 1 → 0 | 11 → 0 | none |
+| 5 the sibling project | 3 → 3 | 13 → 0 | `specs/001-…/spec.md:3`, `plan.md:3,8` (allowlist) |
+
+T005's old-name search over the tracked and untracked files, without this feature's directory, now
+prints **nothing** (before: the 31 lines of machine paths listed for phase 5).
+
+### T022: the tests' tenant
+
+`'dps'` → `'test-tenant'` at `backend/tests/fake_eudiplo.py:69,229` and
+`backend/tests/unit/test_issue_test_credentials.py:413`, nothing else. At line 229 the statement grew
+to 91 columns, and Ruff's formatter split it over two lines.
+
+### T023: the blank screenshot
+
+`.specify/bugs/published-sticky-bar/before-activity-open-scrolled-to-end.png` (an empty white
+capture, viewed again) is deleted. The two places that pointed to it were reworded:
+`assessment.md`, reproduction step 4, and `test.md`'s list of screenshots. The other eight
+screenshots stay. `test.md` also names three `after-*.png` screenshots that were never committed.
+That was already so, and this task left it unchanged.
+
+### The gates
+
+| Gate | Result |
+|---|---|
+| R5's five checks, the old-name search | as above |
+| `uv run ruff check .`, `ruff format --check .` | pass (111 files) |
+| `uv run mypy app/ scripts/ tests/` | passes (97 source files) |
+| `uv run pytest`, database `konnekt_db_test` on `localhost:5435` | **2,643 passed**, none skipped (T003: the same; 14 min 7 s) |
+| Node gates | not run: no file of `api-types/`, `rules/`, `frontend/` or `mcp/` changed |
+| `sha256sum LICENSE` | `6fc9e709…1e665`, unchanged |

@@ -84,7 +84,7 @@ versions already in the repository.
 - **Frontend, added**: `react-router` 7, plus the KERN packages `@kern-ux/native`,
   `@kern-ux-annex/kern-react-kit` and `@digitalservicebund/kern-ux-tailwind-theme`, with exact
   versions pinned.
-- **External service**: the EUDIPLO 9.x management API, hosted on Coolify, tenant `dps`
+- **External service**: the EUDIPLO 9.x management API, hosted on Coolify, tenant `<tenant>`
   ([contracts/eudiplo-usage.md](contracts/eudiplo-usage.md)).
 
 **Storage**: PostgreSQL 18 through the sync SQLAlchemy `Session`.

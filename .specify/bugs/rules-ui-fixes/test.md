@@ -85,7 +85,7 @@ EXIT tsc 0 · EXIT lint 0 · All matched files use Prettier code style!
   to another machine. It is gitignored, and no tracked file changed.
 
 Scripts, mocks and screenshots are in the session scratchpad, not in the repo:
-`/tmp/claude-1000/-home-debian-batch27-faro-rules/7be9f440-2605-48d7-b922-5635ddea8433/scratchpad/`
+`<scratchpad>/`
 (`b123/verify.mjs`, `b4/run*.mjs`, `b56/run.mjs`, `b78/b7*.mjs`, `b78/b8.mjs`).
 
 ## Recommendation

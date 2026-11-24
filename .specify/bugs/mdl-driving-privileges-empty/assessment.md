@@ -22,7 +22,7 @@ Condensed from the pasted text. Some lines in the paste were cut off ("`driving_
 > `vehicle_category_code` (mandatory), plus the optional `issue_date`, `expiry_date` and `codes`.
 >
 > **Observed (2026-10-12)**: shares from an EUDI Wallet app (`<app and version>`) through form
-> connections `c027f4b7…` (15:50 UTC) and `c2241060…` (16:02 UTC). In both, `driving_privileges`
+> connections `<form-connection-id>` (15:50 UTC) and `<form-connection-id>` (16:02 UTC). In both, `driving_privileges`
 > was `[{}, {}, {}]`. The other mDL fields arrived fine: `document_number` and `issuing_authority`
 > as strings, `issue_date` and `expiry_date` as ISO dates.
 >
@@ -32,10 +32,10 @@ Condensed from the pasted text. Some lines in the paste were cut off ("`driving_
 > with a real-shaped entry; (4) if there is no per-class `issue_date`, report that instead.
 >
 > **Done when** a pull delivers `[{"vehicle_category_code": "B", "issue_date": "2003-05-12"}, …]`
-> and the form fills "Class B since" from the wallet (sk-proto-1 quickstart 12.2).
+> and the form fills "Class B since" from the wallet (the form prototype's quickstart 12.2).
 
 The consumer contract
-(`batch27-faro-middleware-client/sk-proto-1/specs/001-eudi-passenger-license-form/contracts/middleware-api.md:241-245`)
+(`<form-prototype-repo>/specs/001-eudi-passenger-license-form/contracts/middleware-api.md:241-245`)
 says the content is "probably lost when the middleware converts the mDL's data to JSON". This
 assessment shows that is not where it is lost.
 
@@ -201,7 +201,7 @@ was not made: EUDIPLO keeps no raw `vp_token` on the session (its columns hold o
    - Mark `tests/helpers.py`'s `SHARED_CREDENTIALS` as showing a fixed EUDIPLO, or add a second
      fixture with EUDIPLO 9.0.0's actual `[{}, …]` output for the warning test.
 
-3. **Consumer (outside this repository)**: correct the cause in `sk-proto-1`'s `middleware-api.md`
+3. **Consumer (outside this repository)**: correct the cause in the form prototype's `middleware-api.md`
    §4 item 3. "Class B since" stays a manual field until the hosted EUDIPLO has the fix.
 
 **Alternatives**:
@@ -237,7 +237,7 @@ was not made: EUDIPLO keeps no raw `vp_token` on the session (its columns hold o
 - `test_documents.py`: `driving_privileges` as `[{}, {}, {}]`, which is EUDIPLO 9.0.0's actual
   output, logs one warning that names the field key and the request id and contains no value.
   The delivered value is whatever is decided above (unchanged by default).
-- After the EUDIPLO fix is deployed, a live check: research T081 / quickstart V-runs, and sk-proto-1
+- After the EUDIPLO fix is deployed, a live check: research T081 / quickstart V-runs, and the form prototype's
   quickstart 12.2 showing "Class B since" filled from the wallet.
 
 ## Risks & Considerations
@@ -266,7 +266,7 @@ was not made: EUDIPLO keeps no raw `vp_token` on the session (its columns hold o
   `<app and version>` blank. It doesn't change the cause, but it belongs in the record.]
 - [NEEDS CLARIFICATION: Was the shared mDL issued by `scripts/issue_test_credentials`? The three
   entries match its minimum AM/B/L set; if so, the per-class `issue_date` is known to exist.]
-- [NEEDS CLARIFICATION: Who operates `eudiplo.faro.dpschool.app`, and can they deploy a patched
+- [NEEDS CLARIFICATION: Who operates `eudiplo.example.org`, and can they deploy a patched
   EUDIPLO build before an upstream release? Or should the team only open the upstream issue/PR
   and wait?]
 - [NEEDS CLARIFICATION: While EUDIPLO loses the content, should the middleware keep delivering

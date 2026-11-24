@@ -533,8 +533,8 @@ privacy (SC-008), the convergence check, the documentation checklist and the clo
 - `[P]` = different files, no unfinished dependency.
 - The checkboxes here and the tables in design-notes §7 and §8 are the only state between chats:
   tick a task only when its gates are green and its rows are clean.
-- Git works in this checkout only with `GIT_DIR=/home/debian/batch27-faro/worktrees/pdf-summary`
-  and `GIT_WORK_TREE=/home/debian/batch27-faro/pdf-summary`; a task agent never commits, and the
+- Git works in this checkout only with `GIT_DIR=<git-dir>/worktrees/pdf-summary`
+  and `GIT_WORK_TREE=<checkout>/pdf-summary`; a task agent never commits, and the
   coordinator commits only when the user asks.
 - Avoid: a second package for PDFs or fonts (R1, R7), an import of fontkit or any other package
   that only arrives through PDFKit (constitution IV), KERN's WOFF2 files in the PDF (R7), a URL in

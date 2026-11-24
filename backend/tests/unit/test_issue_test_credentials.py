@@ -410,7 +410,7 @@ def test_long_values_are_shortened_for_printing() -> None:
 # The command line, against a fake of EUDIPLO's issuance calls
 
 ISSUER_URL = 'https://eudiplo.test'
-TENANT = 'dps'
+TENANT = 'test-tenant'
 METADATA_PATH = f'/.well-known/openid-credential-issuer/issuers/{TENANT}'
 OFFER_URI = 'openid-credential-offer://?credential_offer_uri=https%3A%2F%2Feudiplo.test'
 TRUST_LIST_ID = 'middleware-trust-list'

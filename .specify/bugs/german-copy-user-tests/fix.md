@@ -50,8 +50,8 @@ assertions, the spec contracts and the message label's comment. Nothing of the c
 How the branch came in (from this worktree, whose `.git` points at another machine's path):
 
 ```bash
-export GIT_DIR=/home/debian/batch27-faro/worktrees/german-copy-user-tests \
-       GIT_WORK_TREE=/home/debian/batch27-faro/german-copy-user-tests
+export GIT_DIR=<git-dir>/worktrees/german-copy-user-tests \
+       GIT_WORK_TREE=<checkout>/german-copy-user-tests
 git cherry-pick -n 7f7609e..38a9d09        # applied cleanly on de825a5 (7f7609e + the assessment)
 git restore --source=HEAD --staged --worktree <the 8 note-only files>
 git rm --cached frontend/src/utils/germanWallet{,.test}.ts   # and the files themselves

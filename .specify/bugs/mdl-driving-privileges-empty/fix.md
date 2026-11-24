@@ -77,8 +77,8 @@ def _emptied(value: object) -> bool:
 - **EUDIPLO (outside this repo)**: open the upstream issue and PR with the recursive `toPlain`
   normaliser from the assessment, maybe also suggesting a fix to `@owf/mdoc`'s `getPrettyClaims`,
   and get a fixed or patched build onto the hosted instance.
-- **Consumer (sk-proto-1)**: correct the cause in `middleware-api.md` §4 item 3. "Class B since"
+- **Consumer (the form prototype)**: correct the cause in `middleware-api.md` §4 item 3. "Class B since"
   stays manual until EUDIPLO is fixed.
-- **Live check after the EUDIPLO fix**: T081 / quickstart V-runs, and sk-proto-1 quickstart 12.2.
+- **Live check after the EUDIPLO fix**: T081 / quickstart V-runs, and the form prototype's quickstart 12.2.
 - Open questions from the assessment still stand: which wallet app and version, whether the mDL
   came from `issue_test_credentials`, who operates the hosted EUDIPLO, and `[{}, …]` vs `null`.

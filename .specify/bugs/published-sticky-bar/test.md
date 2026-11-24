@@ -79,8 +79,8 @@ AssertionError: ms per run: 1528, 1396, 1372, 1137: expected 1528.218017578125 t
 
 Screenshots in this folder: `after-links-open-scrolled-to-end.png` (the footer at the window's
 bottom, no blank space, compare `before-links-open-scrolled-to-end.png`),
-`after-activity-open-scrolled-to-end.png` (12 rules, Activity open, compare
-`before-activity-open-scrolled-to-end.png`) and `after-url-bubble-past-body.png`.
+`after-activity-open-scrolled-to-end.png` (12 rules, Activity open) and
+`after-url-bubble-past-body.png`.
 
 ## Residual Risks
 

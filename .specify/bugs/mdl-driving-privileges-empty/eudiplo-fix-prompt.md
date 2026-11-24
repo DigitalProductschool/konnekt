@@ -1,7 +1,7 @@
 # Fix: EUDIPLO loses nested mdoc claim values (`driving_privileges` arrives as `[{}, {}, {}]`)
 
 You're working in the EUDIPLO repository (github.com/EUDIPLO/eudiplo). I run my own instance
-(`eudiplo.faro.dpschool.app`, v9.0.0 at the last check; confirm with `.info.version` at
+(`eudiplo.example.org`, v9.0.0 at the last check; confirm with `.info.version` at
 `/api/docs-json`) and can deploy a patched build. I need a small patch I can deploy now and offer
 upstream later.
 

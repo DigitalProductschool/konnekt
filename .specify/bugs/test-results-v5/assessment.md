@@ -134,7 +134,7 @@ Nothing instruction-like was found. Three Figma texts are design notes, quoted h
   every frame. It's stale.
 - The person icons: "Preview candidate, not approved."
 - The archive reason on frames 11–13: "a variant always has rules, not all 3 citizens meet them".
-  The app still lets a variant be empty (spec 002; Faro's own guidance says "an empty variant
+  The app still lets a variant be empty (spec 002; Konnekt's own guidance says "an empty variant
   starts without rules").
 
 ## Symptom

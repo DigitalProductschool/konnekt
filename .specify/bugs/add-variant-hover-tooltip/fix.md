@@ -76,7 +76,7 @@ group's box and the row's layout.
   The icon therefore paints after the button (it comes later in the tree) and wins the hit test.
   Measured above; the new comment on `ADD_VARIANT_CLASSES` records it.
 - Screenshots (hover, pressed, pointer on the ⓘ, focus ring, 320px before/after):
-  `/tmp/claude-1000/-home-debian-batch27-faro-bug-fix/3a8e3eb4-c4b7-4543-96db-cc96f04c6b6f/scratchpad/shots/`.
+  `<scratchpad>/shots/`.
   The hover one is also kept as `fix-hover.png` in this directory.
 
 ## Deviations from Assessment

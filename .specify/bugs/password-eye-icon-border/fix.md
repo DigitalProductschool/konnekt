@@ -53,8 +53,8 @@ className="kern-btn kern-btn--tertiary kern-btn--small [&:is(:hover,:active)]:bg
 
 ### Commands run
 
-- **Dependencies**: `frontend/node_modules` was copied from the sibling worktree
-  `sk-proto-1-phase2`, whose `package-lock.json` is byte-identical, so nothing came from the
+- **Dependencies**: `frontend/node_modules` was copied from another worktree of this
+  repository, whose `package-lock.json` is byte-identical, so nothing came from the
   network.
   - `npm ls --depth=0` → exit 0.
   - All 25 top-level packages are at their locked versions, among them `@kern-ux/native` 2.8.2,
@@ -145,6 +145,6 @@ The code follows the preferred remediation exactly, in the six files listed. Sma
 - `frontend/node_modules/` and `frontend/dist/` stay in place for `/speckit-bug-test`. Both are
   gitignored.
 - `git` doesn't work here as is: the worktree's `.git` file points to another machine's path.
-  Read-only commands work with `GIT_DIR=/home/debian/batch27-faro/worktrees/border-password-eye-icon`
-  and `GIT_WORK_TREE=/home/debian/batch27-faro/border-password-eye-icon`.
+  Read-only commands work with `GIT_DIR=<git-dir>/worktrees/border-password-eye-icon`
+  and `GIT_WORK_TREE=<checkout>/border-password-eye-icon`.
 - Nothing is committed.

@@ -28,7 +28,7 @@ own progress bar is unchanged.
 | Formatting | `npx prettier --check` on the changed files | pass | |
 | Lint / type-check | `npm run lint`; `npm run build` (`tsc -b && vite build`) | pass | Only the existing chunk-size warning |
 | Browser console | Playwright console log for the session | pass | No React errors or warnings. The only errors are the expected `401` on `/api/auth/me` before sign-in and three `400`s from a malformed payload in my first API attempt |
-| Backend (Ruff, mypy, pytest) | `git status --short` | skipped | No backend file changed: the diff is five frontend files, two new ones and the spec contract. `.git` points to a worktree path on another machine, so git ran with `GIT_DIR=/home/debian/batch27-faro/worktrees/save-exit` and `GIT_WORK_TREE` set to the checkout |
+| Backend (Ruff, mypy, pytest) | `git status --short` | skipped | No backend file changed: the diff is five frontend files, two new ones and the spec contract. `.git` points to a worktree path on another machine, so git ran with `GIT_DIR=<git-dir>/worktrees/save-exit` and `GIT_WORK_TREE` set to the checkout |
 
 The browser check ran against a throwaway database (`draft_stepper_check`, migrated to head, with
 a temporary account), with the backend's worker off. Afterwards the database was dropped and both
