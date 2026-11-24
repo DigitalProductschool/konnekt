@@ -88,7 +88,7 @@ which only the user runs.
   byte-identical to the download (research R1; SHA-256 `6fc9e709…1e665`, 13,827 bytes).
 - [X] T002 [US1] `LICENSE.de` in the root: the Commission's German text with its whitespace
   normalised, words unchanged (research R1; SHA-256 `849b8890…5d67f`, 15,096 bytes).
-- [ ] T003 [medium] Record the baseline in `specs/012-open-source-release/verification.md` (new):
+- [X] T003 [medium] Record the baseline in `specs/012-open-source-release/verification.md` (new):
   the commit of `HEAD`; `sha256sum LICENSE LICENSE.de` against rule 1 and T002; the Node gates and
   the backend gates run on the untouched tree, with the number of tests passed per package
   (`rules`, `frontend`, `mcp`) and for pytest; whether Docker and a PostgreSQL on port 5435 are
