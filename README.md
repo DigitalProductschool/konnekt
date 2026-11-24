@@ -1,11 +1,20 @@
 # Konnekt
 
-Konnekt is the middleware between serviceBW forms and the EUDI Wallet. It lets the DO.IT team of
-the City of Stuttgart connect serviceBW forms to the EUDI Wallet. For each form, DO.IT creates a
-form connection that names the documents and fields the form needs. serviceBW then uses the form
-connection's URLs to request those documents from the citizen's wallet, through the team's
-EUDIPLO instance, and receives only the configured fields. The team sets up its form connections
-in Konnekt's management UI.
+The middleware between serviceBW forms and the EUDI Wallet.
+
+> **Status: not actively maintained.** Pull requests and issues are closed. To contribute or to
+> take the project over, write to [hello@dpschool.io](mailto:hello@dpschool.io) first.
+
+Copyright 2026 Team Faro, Batch#27, Digital Product School. Licensed under the EUPL-1.2.
+The licence's text is in [LICENSE](LICENSE); [NOTICE.md](NOTICE.md) names what comes from others
+and under which terms. Security: [SECURITY.md](SECURITY.md). Contributions:
+[CONTRIBUTING.md](CONTRIBUTING.md).
+
+Konnekt lets the DO.IT team of the City of Stuttgart connect serviceBW forms to the EUDI Wallet.
+For each form, DO.IT creates a form connection that names the documents and fields the form
+needs. serviceBW then uses the form connection's URLs to request those documents from the
+citizen's wallet, through an EUDIPLO instance, and receives only the configured fields. The team
+sets up its form connections in Konnekt's management UI.
 
 A form connection can also have rules that the shared documents must meet, such as "Date of
 birth is at least 21 years old", combined with AND or OR in groups. Its variants (branches) each
@@ -118,7 +127,7 @@ break fontkit's subsetting, and KERN 2.8.2 ships no Fira Mono (spec 011, researc
 ├── .github/workflows/ci.yml # CI: seven parallel jobs (lint & format, types, tests per side; secrets)
 ├── .pre-commit-config.yaml # Git hooks (ruff, prettier, eslint, gitleaks)
 ├── docker-compose.yml     # Local development
-└── docker-compose.prod.yml # Production and previews (Coolify)
+└── docker-compose.prod.yml # Production, on a Docker host behind a reverse proxy (see Deployment)
 ```
 
 ## Quick Start
@@ -659,15 +668,16 @@ VITE_API_URL=http://localhost:3000
 
 ### Frontend container (production nginx)
 
-Set on the `frontend` service of `docker-compose.prod.yml`, for example in Coolify. They don't
-apply to local development, where the backend's port 3000 is reachable directly.
+The variables of the `frontend` service in `docker-compose.prod.yml`. Set the two lists in the
+`.env` file beside it ([Deployment](#deployment)); the compose file sets the two host names. They
+don't apply to local development, where the backend's port 3000 is reachable directly.
 
 | Variable | Purpose | Default |
 |---|---|---|
-| `BACKEND_HOST` | Host name of the backend container, which nginx forwards `/api/` to | `backend` (`${SERVICE_NAME_BACKEND}` in Coolify) |
-| `SERVICEBW_ALLOWED_CIDRS` | Comma-separated address ranges that may call the connection URLs under `/api/connect/`, such as `203.0.113.0/24,2001:db8::/32`. Everyone else gets `403` from nginx | empty: `/api/connect/` answers `403` to everyone |
-| `TRUSTED_PROXY_CIDRS` | Comma-separated address ranges of the proxy in front of nginx (Coolify's Traefik). Only requests from there may give the client's address in `X-Forwarded-For`, which the allow-list then checks | empty: the connecting address counts |
-| `MCP_HOST` | Host name of the MCP server container, which nginx forwards `/mcp` and `/.well-known/oauth-protected-resource` to | `mcp` (`${SERVICE_NAME_MCP}` in Coolify) |
+| `BACKEND_HOST` | Host name of the backend container, which nginx forwards `/api/` to | `backend`, set in the compose file |
+| `SERVICEBW_ALLOWED_CIDRS` | Comma-separated address ranges that may call the connection URLs under `/api/connect/`, such as `203.0.113.0/24,2001:db8::/32`. Everyone else gets `403` from nginx. Never put the proxy's or Docker's addresses here: requests that come through the proxy could then pass, whoever sent them | empty: `/api/connect/` answers `403` to everyone |
+| `TRUSTED_PROXY_CIDRS` | Comma-separated addresses of the reverse proxy in front of nginx, as nginx sees its connections arrive ([Deployment](#deployment) says how to find them). Only requests from there may give the client's address in `X-Forwarded-For`, which the allow-list then checks. Put the proxy's addresses here and nothing else: a range that includes a client lets it name any address | empty: the connecting address counts |
+| `MCP_HOST` | Host name of the MCP server container, which nginx forwards `/mcp` and `/.well-known/oauth-protected-resource` to | `mcp`, set in the compose file |
 
 At container start, `frontend/nginx/40-servicebw-access.sh` turns the two lists into nginx
 `allow` and `set_real_ip_from` rules. An entry that isn't an address or a range stops the
@@ -676,8 +686,9 @@ container. Request references never reach nginx's logs: the access log shows
 
 ## EUDIPLO
 
-The middleware uses the team's hosted EUDIPLO (tenant `dps`) through its management API, and
-never exposes the management token to the browser. The tenant needs, set up by its operators
+The middleware uses an EUDIPLO instance, which the operator runs or uses with a tenant of their
+own, through its management API, and never exposes the management token to the browser. The
+tenant needs, set up by its operators
 ([contracts/eudiplo-usage.md](specs/001-servicebw-eudi-middleware/contracts/eudiplo-usage.md)):
 
 - an **API client** with the roles `presentation:request` and `presentation:manage` and an
@@ -689,8 +700,8 @@ never exposes the management token to the browser. The tenant needs, set up by i
   certificates of the accepted issuers. Its id goes into `EUDIPLO_TRUST_LIST_ID`;
 - session logs (`LOG_SESSION_STORE`) that don't keep claims.
 
-All environments share tenant `dps` for now, an accepted risk: production should get its own
-tenant before real citizens use the service. The API details are in
+Give production a tenant of its own: the middleware's API client reads every session of its
+tenant, so installations that share a tenant share that access. The API details are in
 [docs/EUDIPLO.md](docs/EUDIPLO.md).
 
 ### Test credentials for a test wallet
@@ -767,12 +778,12 @@ Good to know:
   ISO/IEC 18013-5, and the portrait and signature are base64 text, not bytes.
 - EUDIPLO 9.0 loses the content of nested mdoc maps in presentation results: the middleware
   receives `driving_privileges` as `[{}, {}, …]`, one empty object per category. This affects
-  real driving licences as well. The hosted instance runs `9.0.0-mdocfix.1`, which has the fix:
-  there `driving_privileges` arrives in full (checked on 2026-10-19).
+  real driving licences as well. A patched 9.0.0 build fixes it, and there `driving_privileges`
+  arrives in full: check the EUDIPLO you use before relying on this field.
 - The script prints the made-up person's data. The middleware itself never logs claims.
-- All environments share tenant `dps`, so with the tenant's own issuer on the trust list every
-  environment accepts these test documents. Take the entity off the trust list before real
-  citizens use the service.
+- With the tenant's own issuer on the trust list, every environment that uses this trust list
+  accepts these test documents. Issue them only in a tenant for testing, or take the entity off
+  the trust list before real citizens use the service.
 
 ## Agents and the MCP server
 
@@ -817,9 +828,8 @@ and [mcp/plugin/README.md](mcp/plugin/README.md).
 skills in one step.
 
 1. Set `KONNEKT_MCP_URL` to the deployment's MCP endpoint, `https://<domain>/mcp`, in
-   the environment Claude Code starts from (for example in your shell profile); a preview
-   deployment has its own domain. The plugin's `.mcp.json` reads the address from it: without
-   it, Claude Code doesn't connect to the server.
+   the environment Claude Code starts from (for example in your shell profile). The plugin's
+   `.mcp.json` reads the address from it: without it, Claude Code doesn't connect to the server.
 
    ```bash
    export KONNEKT_MCP_URL=https://<domain>/mcp
@@ -849,100 +859,191 @@ that are committed or shared.
 
 ## Spec-Driven Development with Spec Kit
 
-This template supports [GitHub Spec Kit](https://github.com/github/spec-kit). Spec Kit is **not pre-installed in this repo**. Basic constitution is included, update it regularly after changing README.md and CLAUDE.md.
-
-### Installation
-
-1. From the **root of your cloned repository**, run:
-
-```bash
-uvx --from git+https://github.com/github/spec-kit.git specify init --here
-```
-The installer will ask which **AI agent** you use — pick the one you actually work with. This determines where the slash-command files are placed (e.g. `.claude/commands/` for Claude Code, `.github/prompts/` for Copilot).
-2. If asked for a **script type**, choose `sh` on macOS/Linux and `ps` on Windows.
-3. If it warns that the directory is not empty, confirm — it only adds files, it doesn't touch your code.
-4. Follow steps in spec-kit repository to create specifications and implement features.
+The specifications, plans and task lists in [specs/](specs/) record how the project was built,
+feature by feature, with [GitHub Spec Kit](https://github.com/github/spec-kit).
 
 ## Deployment
 
-### Deploy to Coolify
+The whole stack (frontend, backend, PostgreSQL and MCP server) runs on any Docker host from
+`docker-compose.prod.yml`, behind a reverse proxy of your own that provides HTTPS. Only the
+frontend's nginx is reached from outside: it serves the SPA and forwards `/api` (plus `/docs`
+and `/openapi.json`) to the backend over the internal network, so there is no CORS
+configuration and no API URL baked into the frontend build. For agents, it also forwards `/mcp`
+and `/.well-known/oauth-protected-resource` to the MCP server and
+`/.well-known/oauth-authorization-server` to the backend, so the MCP endpoint is
+`https://<domain>/mcp`. The backend, the MCP server and PostgreSQL publish no port.
 
-The whole stack (frontend + backend + PostgreSQL + MCP server) deploys as a **single
-docker-compose resource** defined in `docker-compose.prod.yml`. Only the
-frontend gets a public domain: its nginx serves the SPA and proxies `/api`
-(plus `/docs` and `/openapi.json`) to the backend over the internal network, so
-there is no CORS configuration and no API URL baked into the frontend build.
-For agents, it also proxies `/mcp` and `/.well-known/oauth-protected-resource` to the
-MCP server and `/.well-known/oauth-authorization-server` to the backend, so the MCP
-endpoint is `https://<domain>/mcp`.
+Run one stack per domain, each with its own database and accounts. There are no preview
+deployments.
 
-#### 1. Create the resource
+### 1. Settings
 
-1. In Coolify, create a new resource from this repository and choose the
-   **Docker Compose** build pack
-2. Set the compose file location to `docker-compose.prod.yml`
-3. After Coolify parses the file, assign a domain to the **frontend** service
-   (e.g., `https://my-team.dpschool.app`); leave backend, mcp and postgres without
-   a domain — they stay internal
-4. Coolify auto-generates `SERVICE_PASSWORD_POSTGRES` (the database password)
-   and `SERVICE_FQDN_FRONTEND`. Set the middleware's variables in the Coolify
-   environment: `CONNECTION_BASE_URL` (the `https://` address serviceBW uses;
-   the backend refuses to start without it) and the four `EUDIPLO_*` variables.
-   For the frontend, set `SERVICEBW_ALLOWED_CIDRS` (serviceBW's address ranges)
-   and `TRUSTED_PROXY_CIDRS` (Traefik's network): until then, the connection
-   URLs answer `403` to everyone. The others have defaults (see
-   [Environment Variables](#environment-variables)). For agents, the compose
-   file sets `PORTAL_URL`, `MCP_URL` and `OAUTH_ISSUER` of the backend and the
-   MCP server from `CONNECTION_BASE_URL`, which therefore must be the frontend's
-   public domain; `AGENT_ACCESS_TOKEN_MINUTES`, `AGENT_CONNECTION_IDLE_DAYS`,
-   `AGENT_TOKEN_MAX_DAYS`, `APPROVAL_REQUEST_MINUTES` and `AGENT_DRAFTS_PER_HOUR`
-   can be set in the Coolify environment to change their defaults
-5. Deploy
-6. Create the first account in the backend container (Coolify: the backend
-   service's terminal): `uv run python -m app.cli create-user <username>`
+Put the settings into a file named `.env` beside `docker-compose.prod.yml`, in the repository
+root: Docker Compose reads it when it starts the stack, and `.gitignore` keeps it out of git.
 
-The backend container runs `alembic upgrade head` on start, so the database
-schema is migrated automatically. `APP_ENV` is set to `production` in the
-compose file (anything else exposes exception details in error responses).
+```bash
+SERVICE_PASSWORD_POSTGRES=<a long random password, letters and digits only>
+CONNECTION_BASE_URL=https://konnekt.example.org
+EUDIPLO_URL=https://eudiplo.example.org
+EUDIPLO_CLIENT_ID=<client-id>
+EUDIPLO_CLIENT_SECRET=<client-secret>
+EUDIPLO_TRUST_LIST_ID=<trust-list-id>
+SERVICEBW_ALLOWED_CIDRS=<serviceBW's address ranges>
+TRUSTED_PROXY_CIDRS=<the proxy's address, see step 3>
+```
 
-The UI must be served over HTTPS, which Coolify's Traefik provides: outside
-development the sign-in cookie is `Secure`, and the browser only allows copying
-to the clipboard on secure pages.
+| Variable | Needed | Purpose |
+|---|---|---|
+| `SERVICE_PASSWORD_POSTGRES` | always | The database password. Without it the compose file stops with `SERVICE_PASSWORD_POSTGRES must be set to the database password`. It goes into the backend's database URL, so use letters and digits only (`openssl rand -hex 32`). PostgreSQL takes it when it creates the database on the first start; changing it later doesn't change the stored password |
+| `CONNECTION_BASE_URL` | always | The public `https://` address, the domain's origin without a path. The backend refuses to start without it. The compose file also sets `PORTAL_URL`, `MCP_URL` and `OAUTH_ISSUER` of the backend and the MCP server from it, so it must be the domain the proxy serves |
+| `EUDIPLO_URL`, `EUDIPLO_CLIENT_ID`, `EUDIPLO_CLIENT_SECRET`, `EUDIPLO_TRUST_LIST_ID` | to save and use connections | Your EUDIPLO instance, its API client and its trust list ([EUDIPLO](#eudiplo)). While one is empty, the calls to EUDIPLO, and saving a connection, answer `503` |
+| `SERVICEBW_ALLOWED_CIDRS` | for serviceBW | The address ranges serviceBW calls the connection URLs from. Empty: `/api/connect/` answers `403` to everyone |
+| `TRUSTED_PROXY_CIDRS` | for serviceBW | The address the proxy's connections arrive from, as nginx sees them (step 3). Empty: nginx sees every request come from the proxy, which the allow-list rejects |
+| `SERVICE_FQDN_FRONTEND` | no | Passed to the frontend container when set; nothing in the container reads it. It only matters to a hosting platform that reads it; otherwise leave it unset |
 
-#### 2. Enable preview deployments (optional)
+The others have defaults and can be set in the same file: `REQUEST_LIFETIME_SECONDS`,
+`DOCUMENT_RETENTION_SECONDS`, `PULL_REPEAT_WINDOW_SECONDS`, `REQUEST_RECORD_RETENTION_SECONDS`,
+`ALLOW_PLAIN_HTTP`, `WORKER_ENABLED`, `LOGIN_SESSION_HOURS`, `AGENT_ACCESS_TOKEN_MINUTES`,
+`AGENT_CONNECTION_IDLE_DAYS`, `AGENT_TOKEN_MAX_DAYS`, `APPROVAL_REQUEST_MINUTES` and
+`AGENT_DRAFTS_PER_HOUR` ([Environment Variables](#environment-variables)). A backend setting
+that the compose file doesn't pass, such as `DELETION_UNDO_SECONDS`, keeps its default.
 
-Each pull request can get its own full stack — frontend, backend, and an
-isolated, empty database — that is created on PR open and removed on close.
+The compose file sets `APP_ENV` to `production`. Any value other than `development` changes
+three things: `CONNECTION_BASE_URL` is required and must use `https://` (unless
+`ALLOW_PLAIN_HTTP=true`), the sign-in cookie is `Secure`, and `PORTAL_URL`, `MCP_URL` and
+`OAUTH_ISSUER` default to addresses under `CONNECTION_BASE_URL`. Error responses are the same in
+every environment.
 
-1. Prerequisites:
-   - The repository is connected via Coolify's **GitHub App** integration
-     (plain webhooks work, but you won't get PR comments with the preview link)
-   - A **wildcard DNS record** for the domain (e.g., `*.my-team.dpschool.app`)
-     pointing at the Coolify server
-   - A reasonably current Coolify v4 (per-service preview domains and per-PR
-     volume suffixes for compose apps are recent features)
-2. In the resource, open **Preview Deployments** and enable them; the default
-   URL template `{{pr_id}}.{{domain}}` gives previews like
-   `https://123.my-team.dpschool.app`
-3. Mind server capacity: every open PR runs four extra containers, including
-   its own PostgreSQL and MCP server
-4. Previews run with `APP_ENV=production` too, so set `CONNECTION_BASE_URL` in
-   the preview environment variables as well, or the preview backend won't start.
-   Their connection URLs stay closed (`403`) unless `SERVICEBW_ALLOWED_CIDRS` is
-   set for them too. A preview's MCP endpoint is `https://<preview domain>/mcp`:
-   point `KONNEKT_MCP_URL` at it to work with the preview
+### 2. The reverse proxy
 
-Preview databases start empty (schema only, via migrations on startup), so a
-preview needs its own account, created as in step 6 above.
+The proxy must:
 
-#### Tradeoffs of the single-resource setup
+- serve the domain over HTTPS: outside development the sign-in cookie is `Secure`, and the
+  browser only allows copying to the clipboard on secure pages;
+- forward every request for the domain, every path, to the frontend's nginx on port 80;
+- add the address it received the connection from to `X-Forwarded-For`. A proxy that passes a
+  client's own `X-Forwarded-For` on unchanged lets the client choose the address that
+  `SERVICEBW_ALLOWED_CIDRS` checks.
 
-- The production database is a container inside the compose stack, persisted in
-  the `postgres-data` volume. Coolify's managed database backup UI does **not**
-  apply — arrange backups yourself if the data matters, and be aware that
-  deleting the resource deletes the volume
-- Every deploy restarts the whole stack, including PostgreSQL (brief downtime)
-- The frontend and backend cannot be deployed or rolled back independently
+The compose file publishes no port, so the proxy reaches nginx in one of two ways.
+
+**(a) The proxy runs in a container** attached to the stack's network. Docker Compose names it
+`<project>_default`, where the project is the name of the directory that holds
+`docker-compose.prod.yml` (for a clone in `konnekt/`, `konnekt_default`) unless `-p` or
+`COMPOSE_PROJECT_NAME` names another. Start the stack (step 4) so that the network exists, then
+attach the proxy's container to it, as an external network in the proxy's own compose file or
+with `docker network connect konnekt_default <proxy container>`. The proxy forwards to
+`http://frontend:80`.
+
+**(b) The proxy runs on the host itself.** Write a small override file of your own, for example
+`docker-compose.host.yml` beside the compose file, and don't commit it. It publishes nginx on
+the loopback interface only:
+
+```yaml
+services:
+  frontend:
+    ports:
+      - '127.0.0.1:8080:80'
+```
+
+Name both files in every `up`:
+
+```bash
+docker compose -f docker-compose.prod.yml -f docker-compose.host.yml up -d --build
+```
+
+The proxy forwards to `http://127.0.0.1:8080`.
+
+### 3. `TRUSTED_PROXY_CIDRS`
+
+It holds the address the proxy's connections arrive from, as nginx sees them, and nothing else:
+a range that includes a client lets that client name any address in `X-Forwarded-For`. Never
+put the proxy's or Docker's addresses into `SERVICEBW_ALLOWED_CIDRS`.
+
+- In (a), the proxy container's address on the stack's network, read after it is attached:
+
+  ```bash
+  docker inspect <proxy container> --format '{{(index .NetworkSettings.Networks "konnekt_default").IPAddress}}'
+  ```
+
+- In (b), the network's gateway: Docker's port forwarding connects to nginx from there. Read it
+  after the first start:
+
+  ```bash
+  docker network inspect konnekt_default --format '{{range .IPAM.Config}}{{.Gateway}}{{end}}'
+  ```
+
+  Every connection to `127.0.0.1:8080` from the host arrives from this address, so only the
+  proxy should use that port.
+
+Docker picks the network's range when it creates the network, so these addresses differ from
+host to host and can change when the network or the proxy's container is created again
+(`docker compose down` removes the network). When the address changes, nginx no longer trusts
+the proxy and serviceBW gets `403`. Read it again after such a change, or fix the range in an
+override file of your own, so that the gateway stays put (in (a), the proxy's own compose file
+can then give it a fixed `ipv4_address`):
+
+```yaml
+networks:
+  default:
+    ipam:
+      config:
+        - subnet: <a private range no other network on the host uses>
+```
+
+After changing the value in `.env`, apply it with `up -d` (with the override file in (b)); it
+starts nginx again with the new value.
+
+### 4. Start
+
+```bash
+docker compose -f docker-compose.prod.yml up -d --build
+```
+
+The backend runs `alembic upgrade head` on every start, so the database schema is migrated
+automatically. `docker compose -f docker-compose.prod.yml ps` shows when every service is
+healthy, and `docker compose -f docker-compose.prod.yml logs frontend` shows whether the
+allow-list is open and from how many ranges `X-Forwarded-For` is trusted.
+
+### 5. The first account
+
+Create it in the backend container; the command asks for the password twice:
+
+```bash
+docker compose -f docker-compose.prod.yml exec backend uv run --no-sync python -m app.cli create-user <username>
+```
+
+`--no-sync` runs the command in the environment the image installed, without installing
+anything first. `set-password` and `delete-user` run the same way ([Accounts](#accounts)).
+
+### 6. Backups
+
+The database lives in the volume `postgres-data` (on the host `<project>_postgres-data`).
+`docker compose -f docker-compose.prod.yml down -v` and `docker volume rm` delete it, and with
+it every account and connection. Back it up yourself, for example with a daily dump:
+
+```bash
+docker compose -f docker-compose.prod.yml exec -T postgres pg_dump -U postgres -Fc konnekt_db > konnekt_db-$(date +%F).dump
+```
+
+To restore a dump, stop the backend first, restore, and start it again:
+
+```bash
+docker compose -f docker-compose.prod.yml stop backend
+docker compose -f docker-compose.prod.yml exec -T postgres pg_restore -U postgres -d konnekt_db --clean --if-exists < konnekt_db-<date>.dump
+docker compose -f docker-compose.prod.yml up -d
+```
+
+A dump holds the accounts' password hashes and the stored requests: keep it as safe as the
+database. The presentation configurations live in EUDIPLO, and its backups are the business of
+whoever runs it.
+
+### Updating
+
+Pull the new version and run step 4 again (with the override file in (b)). The backend migrates
+the database when it starts. The frontend, backend and MCP server are built and started
+together, and can't be rolled back independently. A new version may migrate the database, so
+take a dump before an update.
 
 ## Project Guidelines
 

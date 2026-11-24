@@ -1,9 +1,12 @@
-# Production compose file for Coolify (single resource + preview deployments).
+# Production compose file for any Docker host behind a reverse proxy that
+# provides HTTPS.
 #
-# No host port mappings: Coolify's Traefik proxy routes the public domain to the
-# frontend service; backend and postgres are reachable only on the internal
-# network. SERVICE_PASSWORD_POSTGRES and SERVICE_FQDN_FRONTEND are Coolify
-# "magic" variables, generated per environment (including per preview).
+# No service publishes a port: the proxy forwards every request for the public
+# domain to the frontend service's nginx on port 80, either as a container
+# attached to this project's network (forwarding to http://frontend:80) or on
+# the host, through an override file of your own that publishes
+# 127.0.0.1:8080:80 on frontend. Backend, mcp and postgres are reachable only
+# on the internal network. SERVICE_PASSWORD_POSTGRES is required.
 #
 # Local dev uses docker-compose.yml instead.
 services:
@@ -11,7 +14,7 @@ services:
     image: postgres:18-alpine
     environment:
       POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: ${SERVICE_PASSWORD_POSTGRES}
+      POSTGRES_PASSWORD: ${SERVICE_PASSWORD_POSTGRES:?SERVICE_PASSWORD_POSTGRES must be set to the database password}
       POSTGRES_DB: konnekt_db
     volumes:
       # postgres:18+ stores data in a major-version subdirectory and refuses to
@@ -28,13 +31,10 @@ services:
       context: .
       dockerfile: backend/Dockerfile
     environment:
-      # SERVICE_NAME_POSTGRES resolves to the actual service name per
-      # environment: 'postgres' in production, 'postgres-pr-<id>' in previews,
-      # where Coolify suffixes every service name
-      DATABASE_URL: postgresql+psycopg://postgres:${SERVICE_PASSWORD_POSTGRES}@${SERVICE_NAME_POSTGRES:-postgres}:5432/konnekt_db
+      DATABASE_URL: postgresql+psycopg://postgres:${SERVICE_PASSWORD_POSTGRES:?SERVICE_PASSWORD_POSTGRES must be set to the database password}@postgres:5432/konnekt_db
       PORT: 3000
       APP_ENV: production
-      # Set in the Coolify environment. The backend refuses to start without an
+      # The public https:// address. The backend refuses to start without an
       # https:// CONNECTION_BASE_URL (research R18).
       CONNECTION_BASE_URL: ${CONNECTION_BASE_URL}
       EUDIPLO_URL: ${EUDIPLO_URL}
@@ -80,19 +80,20 @@ services:
       context: .
       dockerfile: frontend/Dockerfile
     environment:
-      # Bare declaration: tells Coolify this service owns the public domain
-      # (nginx on :80) and makes it generate the Traefik routing + TLS labels
+      # Bare declaration, passed through when set: a hosting platform may read it
+      # to route the public domain here. Nothing in the container reads it
       - SERVICE_FQDN_FRONTEND
-      # Backend hostname for the nginx /api proxy; suffixed per preview
-      - BACKEND_HOST=${SERVICE_NAME_BACKEND:-backend}
+      # Backend hostname for the nginx /api proxy
+      - BACKEND_HOST=backend
       # Comma-separated address ranges that may call /api/connect/ (serviceBW).
       # Empty closes it: nginx answers 403 to everyone (research R13)
       - SERVICEBW_ALLOWED_CIDRS=${SERVICEBW_ALLOWED_CIDRS:-}
-      # Comma-separated ranges of the proxy in front of nginx (Coolify's Traefik)
-      # whose X-Forwarded-For is trusted. Empty: the connecting address counts
+      # Comma-separated ranges of the reverse proxy in front of nginx, as nginx
+      # sees its connections arrive, whose X-Forwarded-For is trusted. Empty:
+      # the connecting address counts
       - TRUSTED_PROXY_CIDRS=${TRUSTED_PROXY_CIDRS:-}
-      # MCP server hostname for the nginx /mcp proxy; suffixed per preview
-      - MCP_HOST=${SERVICE_NAME_MCP:-mcp}
+      # MCP server hostname for the nginx /mcp proxy
+      - MCP_HOST=mcp
     healthcheck:
       # 127.0.0.1, not localhost: busybox wget doesn't fall back from ::1,
       # where nginx isn't listening
@@ -115,8 +116,7 @@ services:
     environment:
       NODE_ENV: production
       PORT: 3100
-      # SERVICE_NAME_BACKEND is suffixed per preview, like SERVICE_NAME_POSTGRES
-      BACKEND_URL: http://${SERVICE_NAME_BACKEND:-backend}:3000
+      BACKEND_URL: http://backend:3000
       PORTAL_URL: ${CONNECTION_BASE_URL}
       MCP_URL: ${CONNECTION_BASE_URL}/mcp
       OAUTH_ISSUER: ${CONNECTION_BASE_URL}

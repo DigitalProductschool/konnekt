@@ -295,7 +295,7 @@ docker-compose.prod.yml config` works with only the documented variables.
 **Owns**: `README.md`, `SECURITY.md`, `CONTRIBUTING.md`, `docs/ARCHITECTURE.md`,
 `docs/EUDIPLO.md`, `docker-compose.prod.yml`.
 
-- [ ] T015 [US4] [medium] `README.md`, top to "Common Commands": the title "Konnekt" with the
+- [X] T015 [US4] [medium] `README.md`, top to "Common Commands": the title "Konnekt" with the
   line that it is the middleware between serviceBW forms and the EUDI Wallet; directly under it
   the status banner (not actively maintained; pull requests and issues closed;
   `hello@dpschool.io` for contributions or a takeover); the copyright notice "Copyright 2026 Team
@@ -303,7 +303,7 @@ docker-compose.prod.yml config` works with only the documented variables.
   and `NOTICE.md`; the introduction kept, with the template's credit; "Dependencies added to the
   template" kept as the list of dependencies and why (the constitution asks for it). Items:
   FR-005, FR-011, FR-024, SC-008; files: `README.md`; gates: none.
-- [ ] T016 [US4] [high] `README.md`, the rest, by research R10's table: the frontend container's
+- [X] T016 [US4] [high] `README.md`, the rest, by research R10's table: the frontend container's
   variables without Coolify; "Spec-Driven Development with Spec Kit" reduced to one sentence
   that `specs/` records how the project was built, with a link to Spec Kit; "Deployment"
   rewritten for any Docker host behind a reverse proxy that provides HTTPS: every variable the
@@ -313,27 +313,27 @@ docker-compose.prod.yml config` works with only the documented variables.
   name anywhere in the README; the scrub's README lines (research R5: H2, T1a, T3, and item 5 of
   its confidential-items table). Items: FR-025, FR-026, FR-033; depends on T015 (same file);
   files: `README.md`; gates: none.
-- [ ] T017 [P] [US4] [high] `docker-compose.prod.yml` without what only Coolify provides
+- [X] T017 [P] [US4] [high] `docker-compose.prod.yml` without what only Coolify provides
   (research R10): comments rewritten; `SERVICE_PASSWORD_POSTGRES` stays by name and fails with a
   clear message when unset (`${VAR:?…}`); the `SERVICE_NAME_*` indirections become the fixed
   service names; `SERVICE_FQDN_FRONTEND` handled as R10's Decision says; how the proxy reaches
   nginx as T016 documents it. `docker compose -f docker-compose.prod.yml config` must pass with
   only the documented variables set (if Docker is not available, say so; T038 builds it). Items:
   FR-025; files: `docker-compose.prod.yml`; gates: `config`.
-- [ ] T018 [P] [US4] [medium] `docs/ARCHITECTURE.md` and `docs/EUDIPLO.md` by research R10's
+- [X] T018 [P] [US4] [medium] `docs/ARCHITECTURE.md` and `docs/EUDIPLO.md` by research R10's
   table and R5's scrub lines for these files (T1d, T1e, T3, H2): the tree, the settings tables
   and "Production Deployment" describe the generic deployment of T016 and T017, no Coolify, no
   previews; the sentence at ARCHITECTURE `:608` about previews reworded to the general case
   (several applications under one registrable domain); EUDIPLO's "This project's deployment"
   without the team's hosting. Items: FR-025, FR-033; files: `docs/ARCHITECTURE.md`,
   `docs/EUDIPLO.md`; gates: none.
-- [ ] T019 [P] [US4] [medium] `SECURITY.md` in the root: no security updates are planned; report
+- [X] T019 [P] [US4] [medium] `SECURITY.md` in the root: no security updates are planned; report
   a vulnerability anyway to `hello@dpschool.io`; the known limitations of research R6's table
   "`SECURITY.md`'s known limitations", items 1 to 11, with for item 11 each remaining finding
   and its fix in one line. Do not describe findings 3 to 6, 10, 13, 14 (start command), 20
   (`server_tokens`), 21 and 22 as open: phase 6 and T013 fix them (T032 reconciles). Items:
   FR-027; files: `SECURITY.md`; gates: none.
-- [ ] T020 [P] [US4] [medium] `CONTRIBUTING.md` in the root: the project is not actively
+- [X] T020 [P] [US4] [medium] `CONTRIBUTING.md` in the root: the project is not actively
   maintained; write to `hello@dpschool.io` before starting anything; contributions are accepted
   under the EUPL-1.2 only; a contributor confirms the work is theirs; where the checks are
   (`CLAUDE.md`, "Before you finish"). Items: FR-028; files: `CONTRIBUTING.md`; gates: none.

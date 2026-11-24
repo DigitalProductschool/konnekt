@@ -17,8 +17,8 @@ dependencies with uv.
                           ▲        │ management API (HTTPS, OAuth token)
 ┌─────────────────┐       │        ▼
 │   MCP server    │───────┘  ┌──────────────────────┐
-│ (Node, mcp/)    │ bearer   │  EUDIPLO (tenant     │◀──── citizens' EUDI wallets
-└────────▲────────┘          │  dps, hosted)        │      (OpenID4VP)
+│ (Node, mcp/)    │ bearer   │  EUDIPLO (one        │◀──── citizens' EUDI wallets
+└────────▲────────┘          │  tenant, hosted)     │      (OpenID4VP)
          │ MCP (Streamable   └──────────────────────┘
          │ HTTP, OAuth 2.1)
    LLM agents on the team members' machines
@@ -104,7 +104,7 @@ konnekt/
 ├── .pre-commit-config.yaml # Git hook definitions (both stacks)
 ├── .dockerignore          # Applies to every image build (context is the repo root)
 ├── docker-compose.yml     # Local development
-└── docker-compose.prod.yml # Production and previews (Coolify)
+└── docker-compose.prod.yml # Production, behind an HTTPS reverse proxy
 ```
 
 The Node code is one npm workspace with four packages, `api-types/`, `rules/`, `frontend/`
@@ -655,8 +655,9 @@ backend/
 - **CSRF**: every `POST`, `PUT` and `DELETE` must be sent as
   `application/json`, or `require_json` answers `415`. A cross-site page can't send
   JSON with cookies without a CORS preflight, which only `CORS_ORIGIN` (development)
-  or the app's own origin passes. `SameSite` alone isn't enough, because PR previews
-  under the same domain count as the same site.
+  or the app's own origin passes. `SameSite` alone isn't enough, because several
+  applications under one registrable domain (`a.example.org`, `b.example.org`) are the
+  same site to each other.
 
 ### EUDIPLO client
 
@@ -1890,7 +1891,7 @@ and `app/services/document_requests.py` holds their logic:
   `error_id`, nothing is consumed and serviceBW can pull again.
 - **No sign-in**: the network restricts these URLs instead. The production nginx
   forwards `/api/connect/` only from `SERVICEBW_ALLOWED_CIDRS` and answers `403` to
-  everyone else (see [Production Deployment](#production-deployment-coolify)).
+  everyone else (see [Production Deployment](#production-deployment)).
 - **References stay out of the logs**: a filter on uvicorn's access logger and
   nginx's access log format show `/requests/<reference>` instead, also on a branch's
   pull URL (a test pins it), nginx logs only critical errors for `/api/connect/`, and
@@ -2062,7 +2063,7 @@ declared there is ignored (`extra='ignore'`).
 | `DELETION_UNDO_SECONDS` | How long the team member who deleted a connection or draft can take the deletion back ("Undo"); afterwards the worker deletes its configurations, its activity and a draft's row. `0` switches restoring off: every "Undo" answers `409 not_restorable` | `300` |
 
 The three URLs are resolved by `resolve_agent_urls`, after the check of
-`CONNECTION_BASE_URL`; trailing slashes are removed. In the Coolify setup all three live on
+`CONNECTION_BASE_URL`; trailing slashes are removed. In production all three live on
 the one public domain, so `docker-compose.prod.yml` sets them from `CONNECTION_BASE_URL`.
 
 The developer script `scripts/issue_test_credentials` reads `EUDIPLO_URL`,
@@ -2098,8 +2099,7 @@ compose files pass them as `environment:`, and `npm run dev -w mcp` reads them f
 
 `VITE_API_URL` is inlined by Vite at build time. The production image does not
 set it, so the bundle calls its own origin and nginx forwards the request — the
-same image works for any domain, which is what makes preview deployments
-possible.
+same image works for any domain.
 
 ### Frontend container (production nginx)
 
@@ -2109,8 +2109,8 @@ Read at container start, not at build time, so one image serves every environmen
 |----------|-------------|---------|
 | `BACKEND_HOST` | Host name of the backend, which nginx forwards `/api/` to; rendered into `nginx.conf` by the image's envsubst templating | `backend` |
 | `SERVICEBW_ALLOWED_CIDRS` | Comma-separated address ranges that may call `/api/connect/` | empty: `/api/connect/` answers `403` to everyone |
-| `TRUSTED_PROXY_CIDRS` | Comma-separated address ranges of the proxy in front of nginx (Traefik), whose `X-Forwarded-For` gives the client's address | empty: the connecting address counts |
-| `MCP_HOST` | Host name of the MCP server, which nginx forwards `/mcp` and `/.well-known/oauth-protected-resource` to; rendered like `BACKEND_HOST` | `mcp` (`${SERVICE_NAME_MCP}` in Coolify) |
+| `TRUSTED_PROXY_CIDRS` | Comma-separated address ranges of the reverse proxy in front of nginx, as nginx sees its connections arrive (the proxy container's address, or the compose network's gateway when the proxy reaches a port published on the host's loopback), whose `X-Forwarded-For` gives the client's address | empty: the connecting address counts |
+| `MCP_HOST` | Host name of the MCP server, which nginx forwards `/mcp` and `/.well-known/oauth-protected-resource` to; rendered like `BACKEND_HOST` | `mcp` |
 
 `frontend/nginx/40-servicebw-access.sh`, which the nginx image runs from
 `/docker-entrypoint.d/`, writes the two lists into `/etc/nginx/servicebw-allow.conf`
@@ -2142,16 +2142,26 @@ mounting source directories. The backend container runs
 when it exists (it holds the EUDIPLO credentials); the values under
 `environment:` in the compose file take precedence.
 
-## Production Deployment (Coolify)
+## Production Deployment
 
-Production uses `docker-compose.prod.yml`, deployed as a **single Coolify
-resource**. The topology differs from local dev in one important way: the
-frontend's nginx is the only publicly reachable service and acts as the API
-gateway.
+Production uses `docker-compose.prod.yml` on any Docker host, behind a reverse proxy
+that provides HTTPS; one stack serves one domain. The topology differs from local dev
+in one important way: the frontend's nginx is the only service the proxy reaches, and
+it acts as the API gateway.
+
+The compose file publishes no port. The proxy forwards every request for the public
+domain to the `frontend` service's nginx on port 80: either as a container on the
+compose project's network (`http://frontend:80`), or on the host, through an override
+file of the operator's own that publishes `127.0.0.1:8080:80`. The steps are in the
+[Deployment section of `README.md`](../README.md#deployment).
 
 ```
-                 https://my-team.dpschool.app
+                 https://my-team.example.org
                             │
+                            ▼
+                 ┌──────────────────────────┐
+                 │  reverse proxy (HTTPS)   │
+                 └──────────┬───────────────┘
                             ▼
                  ┌──────────────────────────┐
                  │  frontend (nginx)        │
@@ -2171,45 +2181,42 @@ gateway.
 Consequences of this design:
 
 - The backend needs `CONNECTION_BASE_URL` (an `https://` URL) and the four
-  `EUDIPLO_*` variables in the Coolify environment; it refuses to start without
-  `CONNECTION_BASE_URL`. Previews need it too, because they also run with
-  `APP_ENV=production`
+  `EUDIPLO_*` variables in the stack's environment; it refuses to start without
+  `CONNECTION_BASE_URL`
 - The MCP server is public at `https://<domain>/mcp`, through the same nginx. The compose
   file derives `PORTAL_URL`, `MCP_URL` and `OAUTH_ISSUER` of the backend and the `mcp`
   service from `CONNECTION_BASE_URL`, and the `mcp` service runs with `NODE_ENV=production`,
-  so a missing URL stops it. It reaches the backend at
-  `http://${SERVICE_NAME_BACKEND}:3000`, and nginx reaches it through `MCP_HOST`
-  (`${SERVICE_NAME_MCP}`). It runs as one replica, since 2025-era MCP sessions live in its
-  memory; its health check is `GET /health`. A preview has its own MCP endpoint on its own
-  domain
-- The UI must be served over HTTPS (Coolify's Traefik): the session cookie is
-  `Secure` outside development
-- This nginx is the only public entry point, so it also restricts serviceBW's
+  so a missing URL stops it. It reaches the backend at `http://backend:3000`, and nginx
+  reaches it through `MCP_HOST` (`mcp`). It runs as one replica, since 2025-era MCP
+  sessions live in its memory; its health check is `GET /health`
+- The UI must be served over HTTPS, which the reverse proxy provides: the session
+  cookie is `Secure` outside development
+- This nginx is the only entry point, so it also restricts serviceBW's
   connection URLs: `/api/connect/` is forwarded only from `SERVICEBW_ALLOWED_CIDRS`,
   with the client's address taken from `X-Forwarded-For` when the request comes from
-  `TRUSTED_PROXY_CIDRS` (Traefik). Every deployment of the image, previews
-  included, is closed until the list is set. Its access log shows
-  `/requests/<reference>` instead of the reference
+  `TRUSTED_PROXY_CIDRS`: the address the proxy's connections arrive from as nginx sees
+  them (the proxy container's address, or the compose network's gateway when the proxy
+  reaches the port published on the loopback). Every deployment of the image is closed
+  until the list is set. Its access log shows `/requests/<reference>` instead of the
+  reference
 
 - The production frontend bundle is built **without** `VITE_API_URL`; it calls
   the relative `/api` path on its own origin
 - CORS never triggers in production (same origin); the backend's `CORS_ORIGIN`
   setting only matters for local dev, where Vite (5173) calls the backend
   (3000) cross-origin
-- Backend and postgres publish no host ports and have no domains — they are
-  reachable only on the compose network
-- `SERVICE_PASSWORD_POSTGRES`, `SERVICE_FQDN_FRONTEND` and `SERVICE_NAME_*` in
-  the compose file are Coolify magic variables, generated per environment —
-  including per preview deployment, so each PR preview gets its own
-  credentials and domain
-- Preview deployments rename compose services (`postgres` → `postgres-pr-<id>`),
-  so services must not hardcode each other's hostnames: the backend reaches the
-  database via `${SERVICE_NAME_POSTGRES}` and nginx reaches the backend via the
-  `BACKEND_HOST` env var (`${SERVICE_NAME_BACKEND}`), rendered into
+- Backend, mcp and postgres publish no host ports — they are reachable only on the
+  compose network
+- The services have fixed names: the backend reaches the database at `postgres`, and
+  nginx reaches the backend and the MCP server through the frontend container's
+  `BACKEND_HOST` and `MCP_HOST` (defaults `backend` and `mcp`), rendered into
   `nginx.conf` at container start by the nginx image's envsubst templating
-- Database data lives in the `postgres-data` named volume; Coolify suffixes it
-  per PR, so previews get isolated, empty databases (schema is created by the
-  migration run on backend startup)
+- `SERVICE_PASSWORD_POSTGRES`, the database password, is required: the compose file
+  stops with a message when it is unset. `SERVICE_FQDN_FRONTEND` is declared on the
+  frontend service and passed through when set; nothing in the container reads it, and
+  it matters only to a hosting platform that reads it to route the domain
+- Database data lives in the `postgres-data` named volume; a new stack starts with an
+  empty database, whose schema is created by the migration run on backend startup
 
-See the Deployment section of `README.md` for the setup steps and the
-tradeoffs of running PostgreSQL inside the compose stack.
+See the [Deployment section of `README.md`](../README.md#deployment) for the setup
+steps, the backups of the database inside the compose stack and updates.

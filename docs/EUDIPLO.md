@@ -269,20 +269,20 @@ The schema is strict, so unknown keys are rejected.
 | Paradym (1.20.2, and `main` at 1.21.0) and the EU reference app (Android) send no error response on a decline; the session stays `fetched` until it expires (source, and a live Paradym run on 2026-10-13) | A decline reads as `pending` until our own expiry. Don't treat `fetched` as declined: the citizen may still approve |
 | Deferred `transaction_id` isn't exposed to the backend | Avoid deferred issuance, or design around it |
 | Config-as-code (file-managed) resources reject API edits with `409` | Detach the resource first, or change the files |
-| mdoc nested maps are lost in the session's `credentials` (≤ 9.1.0): the verifier leaves them JS `Map`s and `JSON.stringify` writes `{}`, so `driving_privileges` arrives as `[{}, …]` | Fix upstream (normalise `Map`s recursively in `MdocverifierService.verify`); the middleware logs a warning by field key. The hosted instance runs `9.0.0-mdocfix.1`, which delivers them in full (2026-10-19) |
+| mdoc nested maps are lost in the session's `credentials` (≤ 9.1.0): the verifier leaves them JS `Map`s and `JSON.stringify` writes `{}`, so `driving_privileges` arrives as `[{}, …]` | Fix upstream (normalise `Map`s recursively in `MdocverifierService.verify`); the middleware logs a warning by field key. The hosted instance runs a patched 9.0.0 build, which delivers them in full (2026-10-19) |
 | Token valid for 24 h; secret shown once | Cache and renew the token; store the secret in a secret manager |
 | Management token must never reach the browser | Proxy SSE and results through our backend |
 | Unknown credential config in an offer answers `409`, not `404` | |
 
-## 11. This project's deployment (fill in)
+## 11. An installation's deployment (fill in)
 
 | Item | Value |
 |---|---|
 | `EUDIPLO_URL` / `PUBLIC_URL` | `https://<backend-domain>`, served at the root of its own host |
 | Admin UI | `https://<console-domain>`; `API_BASE_URL` = public backend URL (used by the browser) |
-| Hosting | Coolify + Traefik; no published host ports; `PUBLIC_URL` must equal the external URL (EUDIPLO ignores `X-Forwarded-*`) |
+| Hosting | Behind a reverse proxy that provides HTTPS; `PUBLIC_URL` must equal the external URL (EUDIPLO ignores `X-Forwarded-*`) |
 | Images (since 9.0) | `ghcr.io/eudiplo/eudiplo`, `ghcr.io/eudiplo/eudiplo-client`; pin the same tag for both. Old `openwallet-foundation` image names may be stale [confidence 70%] |
-| Tenant | `dps` |
+| Tenant | `<tenant>` |
 | Test wallets | Paradym (lenient); EU Reference Implementation (requires wallet attestation) |
 | Access cert / WRPRC | From the EU RI RP-registration sandbox (`registry.serviceproviders.eudiw.dev`); leaf only, issuer `PID Issuer CA 02` |
 | Middleware client | `<client-id>` with `presentation:request` + `presentation:manage`, and no allow-list |
