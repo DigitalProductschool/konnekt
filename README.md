@@ -138,6 +138,9 @@ break fontkit's subsetting, and KERN 2.8.2 ships no Fira Mono (spec 011, researc
 - **Backend**: Python 3.13+ and [uv](https://docs.astral.sh/uv/) (Python package manager)
 - **Database**: Docker and Docker Compose
 
+Option 1 below needs only Docker with Compose v2 (`docker compose`), and about 3 GB of free disk
+space for its images and their build cache.
+
 ### Install uv (Python package manager)
 
 ```bash
@@ -162,7 +165,9 @@ cp backend/.env.example backend/.env
 # Start all services (PostgreSQL, backend, frontend, MCP server)
 docker compose up
 
-# In another terminal: create your sign-in account (see Accounts below)
+# In another terminal, once the backend has logged "Application startup complete" (it runs
+# the migrations first; a few minutes on the first start): create your sign-in account
+# (see Accounts below)
 docker compose exec backend uv run python -m app.cli create-user <username>
 ```
 
@@ -185,7 +190,8 @@ variable. Details: [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md), "Languages (spe
 
 The development compose file publishes its ports (5435, 3000, 5173, 3100) on `127.0.0.1`
 only, so that the database, with its password `postgres`, and the backend aren't reachable from
-other machines. The backend container reads `backend/.env` if it exists; the values set in
+other machines. They must be free before `docker compose up`: a local PostgreSQL on 5435, or
+anything else on one of them, stops it. The backend container reads `backend/.env` if it exists; the values set in
 `docker-compose.yml` take precedence. The `mcp` service gets its settings from
 `docker-compose.yml` alone.
 
@@ -920,7 +926,7 @@ TRUSTED_PROXY_CIDRS=<the proxy's address, see step 3>
 |---|---|---|
 | `SERVICE_PASSWORD_POSTGRES` | always | The database password. Without it the compose file stops with `SERVICE_PASSWORD_POSTGRES must be set to the database password`. It goes into the backend's database URL, so use letters and digits only (`openssl rand -hex 32`). PostgreSQL takes it when it creates the database on the first start; changing it later doesn't change the stored password |
 | `CONNECTION_BASE_URL` | always | The public `https://` address, the domain's origin without a path. The backend refuses to start without it. The compose file also sets `PORTAL_URL`, `MCP_URL` and `OAUTH_ISSUER` of the backend and the MCP server from it, so it must be the domain the proxy serves |
-| `EUDIPLO_URL`, `EUDIPLO_CLIENT_ID`, `EUDIPLO_CLIENT_SECRET`, `EUDIPLO_TRUST_LIST_ID` | to save and use connections | Your EUDIPLO instance, its API client and its trust list ([EUDIPLO](#eudiplo)). While one is empty, the calls to EUDIPLO, and saving a connection, answer `503` |
+| `EUDIPLO_URL`, `EUDIPLO_CLIENT_ID`, `EUDIPLO_CLIENT_SECRET`, `EUDIPLO_TRUST_LIST_ID` | to save and use connections | Your EUDIPLO instance, its API client and its trust list ([EUDIPLO](#eudiplo)). While one is empty, the calls to EUDIPLO, and saving a connection, answer `503`. Left out of `.env`, each makes Compose warn that it "is not set" on every command; write it empty (`EUDIPLO_URL=`) to start without EUDIPLO |
 | `SERVICEBW_ALLOWED_CIDRS` | for serviceBW | The address ranges serviceBW calls the connection URLs from. Empty: `/api/connect/` answers `403` to everyone |
 | `TRUSTED_PROXY_CIDRS` | for serviceBW | The address the proxy's connections arrive from, as nginx sees them (step 3). Empty: nginx sees every request come from the proxy, which the allow-list rejects |
 | `SERVICE_FQDN_FRONTEND` | no | Passed to the frontend container when set; nothing in the container reads it. It only matters to a hosting platform that reads it; otherwise leave it unset |

@@ -32,7 +32,7 @@ All of them pass on the untouched tree.
 | `uv run ruff check .` | passes |
 | `uv run ruff format --check .` | passes (111 files) |
 | `uv run mypy app/ scripts/ tests/` | passes (97 source files) |
-| `uv run pytest`, database `template_db_test` on `localhost:5435` | **2,643 tests passed**, none skipped (14 min 17 s) |
+| `uv run pytest`, the test database under the old database name on `localhost:5435` | **2,643 tests passed**, none skipped (14 min 17 s) |
 
 Total: 7,875 tests (Node 5,232, pytest 2,643). SC-009 and T035 compare against these counts.
 
@@ -40,8 +40,8 @@ Total: 7,875 tests (Node 5,232, pytest 2,643). SC-009 and T035 compare against t
 
 - **Docker**: available (Docker 29.9.2, Compose v5.6.1).
 - **PostgreSQL on port 5435**: available through `docker compose up -d postgres` (PostgreSQL
-  18.6). It was not running at the start, and the database `template_db_test` was missing: T003
-  created it. Phases 6 and 8 can rely on both.
+  18.6). It was not running at the start, and the test database (then under the old database
+  name) was missing: T003 created it. Phases 6 and 8 can rely on both.
 - **Versions**: Node 20.19.2, npm 9.2.0, uv 0.13.0, Python 3.13.5 (the backend's
   `.python-version` is 3.13).
 - **Differences from CI**: CI runs Node 26 and uv 0.12.9 (`.github/workflows/ci.yml`). The gates
@@ -62,10 +62,10 @@ name). It works on bytes, so line endings stay as they were.
 
 | Step | Rule | Lines | Files | Where (files) |
 |---|---|---|---|---|
-| 2 | `@connection-portal/` → `@konnekt/`; `"name": "community-template-frontend"` → `"name": "@konnekt/frontend"` (1 line) | 688 | 298 | `frontend` 191, `rules` 58, `mcp` 30, `specs` 14, root 3, `api-types` 1, `docs` 1 |
-| 3 | `connection-portal(?!:)` → `konnekt` | 34 | 15 | `mcp` 6, `specs/007` and `specs/008` 6, root 2 (`package.json`, `README.md`), `.claude-plugin` 1 |
-| 4 | `template_db` → `konnekt_db` (with `_test` and the throw-away names) | 151 | 37 | `specs` 21, `.specify/bugs` 8, root 4, `backend` 2 (`.env.example`, `app/config.py`), `.github` 1, `docs` 1 |
-| 5 | `github.com/DigitalProductschool/batch27-faro` → `github.com/DigitalProductschool/konnekt` | 1 | 1 | `frontend/src/pages/Account/constants.ts` |
+| 2 | the old package scope → `@konnekt/`; the template's frontend package name → `"name": "@konnekt/frontend"` (1 line) | 688 | 298 | `frontend` 191, `rules` 58, `mcp` 30, `specs` 14, root 3, `api-types` 1, `docs` 1 |
+| 3 | the earlier working name, where no colon follows it → `konnekt` | 34 | 15 | `mcp` 6, `specs/007` and `specs/008` 6, root 2 (`package.json`, `README.md`), `.claude-plugin` 1 |
+| 4 | the old database name → `konnekt_db` (with `_test` and the throw-away names) | 151 | 37 | `specs` 21, `.specify/bugs` 8, root 4, `backend` 2 (`.env.example`, `app/config.py`), `.github` 1, `docs` 1 |
+| 5 | the existing repository's GitHub address → `github.com/DigitalProductschool/konnekt` | 1 | 1 | `frontend/src/pages/Account/constants.ts` |
 
 Step 6 and T004's list, by hand:
 
@@ -94,10 +94,10 @@ record not.
 
 ### The storage keys
 
-Before the script and after step 3, outside `specs/012-open-source-release/`: `connection-portal:`
-on **44 lines in 27 files**, as R7 counts, and no `connection-portal` without a colon after it
-outside the exclusions. Every match is a storage key or a test's key (`…:local-draft:v1:`,
-`…:language:v1`, two test keys of other shapes).
+Before the script and after step 3, outside `specs/012-open-source-release/`: the old storage
+prefix on **44 lines in 27 files**, as R7 counts, and no earlier working name without a colon
+after it outside the exclusions. Every match is a storage key or a test's key
+(`…:local-draft:v1:`, `…:language:v1`, two test keys of other shapes).
 
 ### The lockfiles
 
@@ -136,20 +136,21 @@ files, nothing in `specs/012-open-source-release/` before this section, and `LIC
 
 ### The search
 
-`grep -rnIE 'connection-portal|community-template|template_db|batch27'` over the tree without
-`node_modules`, `.venv`, `dist` and the lockfiles prints 144 lines (before this section). One of
-them is the checkout's `.git` pointer file, which git does not track and which is not part of the
-repository. The other 143, in tracked files:
+T005's old-name search (the earlier working name, the template's package name, the old database
+name, the existing repository's name) over the tree without `node_modules`, `.venv`, `dist` and
+the lockfiles prints 144 lines (before this section). One of them is the checkout's `.git`
+pointer file, which git does not track and which is not part of the repository. The other 143, in
+tracked files:
 
 | Category | Lines | Files |
 |---|---|---|
 | `specs/012-open-source-release/**` (R7's allowlist: this spec's own text) | 70 | 4 |
-| `connection-portal:`, the storage keys (R7's allowlist) | 44 | 27 |
-| `batch27-faro` in paths of machines and scratch directories, which phase 5 replaces (R5: L1, L3, S1); two of them are also storage-key lines (`specs/010-revamp-backend-gaps/design-notes.md`) | 31 | 17 |
+| the old storage prefix, the storage keys (R7's allowlist) | 44 | 27 |
+| the existing repository's name in paths of machines and scratch directories, which phase 5 replaces (R5: L1, L3, S1); two of them are also storage-key lines (`specs/010-revamp-backend-gaps/design-notes.md`) | 31 | 17 |
 | anything else | 0 | 0 |
 
-No `batch27` without `-faro` is left, and no `community-template` and no `template_db` outside
-this spec.
+The first part of the existing repository's name is left nowhere without the rest of it, and the
+template's package name and the old database name are left nowhere outside this spec.
 
 ## T004, amended (2026-11-24): no old name left
 
@@ -176,9 +177,9 @@ Then by script:
 
 | Replacement | Lines | Files |
 |---|---|---|
-| `connection-portal:` → `konnekt:` (`LOCAL_DRAFT_PREFIX`, `LANGUAGE_STORAGE_KEY`, their tests, comments, docs, specs) | 43 | 27 |
-| `CONNECTION_PORTAL_MCP_URL` → `KONNEKT_MCP_URL` | 17 | 8 |
-| `Connection Portal` → `Konnekt`, with an article before it on the same line ("the Connection Portal's" → "Konnekt's") | 59 | 22 |
+| the old storage prefix → `konnekt:` (`LOCAL_DRAFT_PREFIX`, `LANGUAGE_STORAGE_KEY`, their tests, comments, docs, specs) | 43 | 27 |
+| the plugin's variable under its old name → `KONNEKT_MCP_URL` | 17 | 8 |
+| the product's earlier name, as two words → `Konnekt`, with an article before it on the same line (the earlier name's possessive after "the" → "Konnekt's") | 59 | 22 |
 
 The 44th storage-key line was rewritten by hand (`specs/008-kern-revamp-redesign/design-notes.md`,
 §8.2, which listed it among identifiers that keep their names). By hand as well: the plugin's
@@ -197,9 +198,9 @@ No formatter had to run: lint and the format check passed on the first try.
 - `npm run lint` and `npm run format:check` pass; `npm test`: rules **2,678**, frontend **2,041**,
   mcp **513** (T003: the same); `npm run build` passes, with the same chunk warning (944.76 kB).
   pytest was not run again: no file under `backend/` changed.
-- `git ls-files | grep -v '^specs/012-open-source-release/' | xargs grep -nIiE
-  'connection[ _-]?portal|community-template|template_db|batch27'` prints exactly the 31
-  `batch27-faro` lines listed for phase 5 above, and nothing else.
+- The old-name search in its case-insensitive form (later T037's), over the tracked files
+  (`git ls-files`) without this feature's directory, prints exactly the 31 lines of paths
+  holding the existing repository's name listed for phase 5 above, and nothing else.
 
 ## Phase 3, package C1: the terms (2026-11-24)
 
@@ -463,3 +464,441 @@ its own files; nothing committed. The coordinator's checks at the end, below.
 
 Only Markdown changed, so the other gates were not rerun; T035 runs all of them on the finished
 tree.
+
+## Phase 8: verification (2026-11-24)
+
+T035 to T039 and T041 on `HEAD` `f3091e0`, branch `opensource`, with phases 1 to 7 committed; nothing
+committed during the phase. T035 and the batch T036/T037 ran side by side, by task agents.
+
+### T035: the gates on the finished tree
+
+On `HEAD` `f3091e0`, branch `opensource`, 2026-11-24; the tree clean before the gates, and no
+gate changed a tracked file. The machine as in T003: Node 20.19.2, npm 9.2.0, uv 0.13.0 (CI's uv
+0.12.9 for the lock check). No `npm install` and no `uv sync` was needed.
+
+| Gate | Result | T003 |
+|---|---|---|
+| `npm run lint` (api-types, rules, frontend, mcp) | passes | passes |
+| `npm run format:check` (CI's) | passes | — |
+| `npm test`, `rules` | 46 files, **2,678 tests passed** | 2,678 |
+| `npm test`, `frontend` | 49 files, **2,058 tests passed** (+17, T027) | 2,041 |
+| `npm test`, `mcp` | 15 files, **513 tests passed** | 513 |
+| `npm run build` (typecheck of api-types, rules, mcp; frontend and mcp builds) | passes; the same chunk warning (`index-*.js` 947.36 kB) | passes (944.81 kB) |
+| `uv run ruff check .` | passes | passes |
+| `uv run ruff format --check .` | passes (115 files) | passes (111 files) |
+| `uv run mypy app/ scripts/ tests/` | passes (100 source files) | passes (97 source files) |
+| `uv run pytest`, database `konnekt_db_test` on `localhost:5435` | **2,692 tests passed**, none skipped (16 min 13 s, beside the Node gates) | 2,643 |
+| `uv run python -m scripts.export_check_fixtures --check` | passes | — |
+| `uvx uv@0.12.9 lock --check` in `backend/` | passes (60 packages) | — |
+| `sha256sum LICENSE` | `6fc9e709…1e665`, rule 1's | the same |
+| `cmp LICENSE backend/LICENSE LICENSES/EUPL-1.2.txt` | identical | — (the copies came with T007, T010) |
+| `sha256sum LICENSE.de` | `849b8890…5d67f` | the same |
+
+Total: 7,941 tests (Node 5,249, pytest 2,692); T003: 7,875. The difference, 66, is phase 6's
+new tests: +17 in the frontend (T027), +21 (T025) and +28 (T026) in pytest.
+
+- **The test files** (`git diff <T003>..HEAD`, over `*.test.ts(x)`, `mcp/test/` and
+  `backend/tests/`): 70 files, 2 added (`test_sign_in_throttle.py`,
+  `test_oauth_registration_limits.py`), 68 modified, none deleted or renamed (`--diff-filter=DR`
+  prints nothing); 151 test files before, 153 after. No added line holds a `skip`, `xfail`,
+  `.skip`, `.only` or `todo`, and `git grep` finds none of them at `HEAD` (none at T003 either).
+  Declarations (`describe`/`it`/`test`, `def test_`): 5,060 at T003, 5,113 at `HEAD`. Five
+  declaration lines left the diff, each replaced, none dropped: two `mcp` titles renamed with the
+  product (the old name → `konnekt`); in `frontend/src/pages/Authorize/utils.test.ts` the
+  old `preselectedLevelOf` block became `requestedLevelOf` with the same assertions ("preselects"
+  → "asks for"), and the reducer's "shows the form with the preselected level" became two cases
+  for T027's new preselection (without a connection: "Read only"; with one: the requested level).
+  No Python test function was removed.
+- **Migrations**: `git diff --name-status <T003>..HEAD -- backend/alembic/versions/` prints one
+  line, `A ef2b83b1b34c_sign_in_throttle.py` (78 lines, T025); with `--diff-filter=a` (anything
+  but added) it prints nothing.
+- **Generated files and the licence texts**: `git diff --stat <T003>..HEAD` over the four
+  generated files, `LICENSE` and `LICENSE.de` prints nothing.
+- **The lockfiles**: `git log <T003>..HEAD` over `package-lock.json` and `backend/uv.lock` names
+  two commits only, the rename (T004) and the terms (T007 and the Tailwind move), both recorded
+  above; uv 0.12.9 accepts `backend/uv.lock` as it stands.
+
+### T036: licences and secrets
+
+On `HEAD` `f3091e0`, branch `opensource`, clean before and after (2026-11-24), beside T035. The
+commands that write files ran in scratch copies of what a clone holds (`git ls-files -co
+--exclude-standard`: 1,188 files, none untracked), never in the checkout: one copy for this
+machine's Node 20.19.2 / npm 9.2.0 / uv 0.13.0, one for `node:26-alpine` (Node 26.13.1, npm
+11.20.0) in Docker, one without dependencies for gitleaks.
+
+| Check | Result |
+|---|---|
+| `uvx --from reuse==6.3.0 reuse lint`, on the checkout with the two git variables | compliant with REUSE 3.3; 1,176 of 1,176 files with copyright and licence information; licences used: Apache-2.0, EUPL-1.2, MIT, OFL-1.1, Unicode-3.0; none missing, unused or bad |
+| `NOTICE.md`'s first command (`license-checker-rseidelsohn@4.4.2`), from the root after `npm install` | runs as written on both Nodes; **369 packages**; the two lists are identical line for line |
+| `NOTICE.md`'s second command (`uv run --locked --with pip-licenses==5.5.5 …`), from `backend/` | runs as written with uv 0.13.0 on this machine and with CI's uv 0.12.9 (the official binary, mounted) in `node:26-alpine`; **56 packages**; identical lists; the project itself is left out, and no distribution under an old name appears |
+| Tracked files after the commands | the 1,188 files of each copy are byte-identical to the checkout; no new file outside `node_modules` and `backend/.venv` |
+| `npm run notices -w frontend`, in both copies | writes 26 packages; `cmp` against the committed `frontend/public/THIRD-PARTY-NOTICES.txt`: identical (84,024 bytes, SHA-256 `373b371a…`) |
+| gitleaks 8.30.1, `gitleaks_8.30.1_linux_x64.tar.gz` | SHA-256 equal to `GITLEAKS_SHA256` in `.github/workflows/ci.yml` (`sha256sum --check --strict`: OK) |
+| `gitleaks dir --redact`, over the clean copy of the tree (about 20.9 MB) | **no leaks found** |
+| `gitleaks git --log-opts=--all --redact`, on the checkout | **no leaks found**; 271 commits (all refs: 315, of which 44 merges, which gitleaks skips) |
+| `gitleaks git --log-opts=HEAD --redact` (CI's form) | no leaks found |
+
+The repository has no gitleaks configuration (`.gitleaks.toml`), so the default rules ran, as in
+CI.
+
+**`NOTICE.md`'s "All other dependencies"** holds for both lists. Outside its list of permissive
+licences, the commands print only what `NOTICE.md` names elsewhere:
+
+| List | Licence outside the paragraph's list | Packages | In `NOTICE.md` |
+|---|---|---|---|
+| npm | EUPL-1.2 | `@kern-ux/native` 2.8.2, `@kern-ux-annex/kern-react-kit` 2.40.0 | "Shipped with the running product" |
+| npm | MPL-2.0 | `lightningcss` 1.32.0 and 1.33.0, `lightningcss-linux-x64-gnu` and `-musl` at both versions (6) | "Used to build and develop it" |
+| npm | CC-BY-4.0 | `caniuse-lite` 1.0.30001810 | "Used to build and develop it" |
+| Python | LGPL-3.0-only | `psycopg`, `psycopg-binary` 3.3.5 | "Shipped with the running product" |
+| Python | MPL-2.0 | `pathspec` 1.1.1 | "Used to build and develop it" |
+
+Labels that differ from the paragraph's identifiers but name a licence on its list: `png-js`
+2.0.0 `MIT*` (license-checker's guess from the file; the package's `LICENSE` is MIT);
+`nodeenv` 1.10.0 and `segno` 1.6.6 `BSD License` (their licence files are three-clause BSD texts);
+`distlib` 0.4.3 `Python Software Foundation License` (its metadata: `PSF-2.0`); `uvloop` 0.22.1
+`Apache Software License; MIT License`; `packaging` `Apache-2.0 OR BSD-2-Clause`; `greenlet`
+`MIT AND PSF-2.0`. Tally of the npm list: MIT 313, Apache-2.0 23, ISC 13, MPL-2.0 6,
+BSD-2-Clause 6, BSD-3-Clause 2, EUPL-1.2 2, Python-2.0 1, MIT* 1, CC-BY-4.0 1, BlueOak-1.0.0 1.
+
+Notes:
+
+- `npm install` in a copy runs the root's `prepare` script, which fails to install the pre-commit
+  hook outside a git repository and exits 0 as written; in `node:26-alpine` uv is missing at that
+  point, and the script exits 0 as well. Both installs report 7 moderate `npm audit` findings
+  (not this task's subject).
+- `node:26-alpine` has no uv. The second command ran there with uv 0.12.9 taken from Astral's
+  image, which is CI's version, not something `NOTICE.md` asks for (UNCERTAIN: the smallest way
+  to run "the two commands" in that image).
+
+### T037: the searches and the links
+
+On the same tree, 2026-11-24.
+
+| Check | Result |
+|---|---|
+| T005's old-name search, and T037's case-insensitive form of it with the earlier product name, over the tree without `node_modules`, `.venv`, `dist` and the lockfiles | outside `specs/012-open-source-release/` only the untracked `.git` pointer file, which is not part of the repository; inside it 93 lines in 4 files (`research.md` 40, `spec.md` 19, `tasks.md` 17, `verification.md` 17), which T041 cleans |
+| R5's check 1, the DPS domains | 3 lines: the contact address in `README.md:6`, `SECURITY.md:8`, `CONTRIBUTING.md:5` (allowlist) |
+| R5's check 2, machine and scratch paths | nothing |
+| R5's check 3, `dps` as a word | nothing (`backend/.env.example:20` is gone since T028) |
+| R5's check 4, hosted ids and the trust list | nothing |
+| R5's check 5, the sibling project | 3 lines: `specs/001-servicebw-eudi-middleware/spec.md:3`, `plan.md:3,8`, the repository's own old branch name (allowlist) |
+| The Figma keys (allowlist, no check prints them) | still in `specs/`, `.specify/bugs/` and `docs/FIGMA-WORKFLOW.md:72` only |
+| `coolify`, any case, in `README.md` and `docs/` | nothing |
+| The Spec Kit installation command (`specify init`, `spec-kit.git`, `specify-cli`, `uv tool install`) in `README.md` and `docs/` | nothing; `README.md:884-887` says, with a link to Spec Kit, that `specs/` records how the project was built (R10) |
+| Internal links of `README.md`, `NOTICE.md`, `SECURITY.md`, `CONTRIBUTING.md`, `docs/*.md`, `specs/README.md` | **122, all resolve** (`docs/ARCHITECTURE.md` 54, `README.md` 40, `NOTICE.md` 24, `CONTRIBUTING.md` 3, `SECURITY.md` 1; the other files have none); 58 carry an `#anchor`, each checked against GitHub's heading slugs (duplicates numbered) |
+| External links of the same files | 30 distinct addresses (Markdown links, `<…>` autolinks and the bare URLs GitHub links; the four `localhost` addresses of the README's Quick Start left out); 27 answer `200` to `curl -sSIL`, one more on GET; **two answer `403`** (below) |
+
+R5's allowlist neither gained nor lost a line: every printed line is covered, and the only
+change is that the `.env.example` line of check 3 no longer prints, which no allowlist line
+covered. `research.md` is unchanged.
+
+External links that do not answer `200` to `HEAD`:
+
+| Address | In | HEAD | GET |
+|---|---|---|---|
+| `https://www.figma.com/@kern_ux` | `NOTICE.md:119` | `404` | `200` |
+| `https://www.npmjs.com/package/@kern-ux/native` | `docs/KERN-DESIGN-SYSTEM.md:564` | `403` | `403` |
+| `https://www.npmjs.com/package/@kern-ux-annex/kern-react-kit` | `docs/KERN-DESIGN-SYSTEM.md:565` | `403` | `403` |
+
+Both npm pages exist in the registry (the registry addresses on the same lines answer `200`);
+npmjs.com refuses scripted requests (UNCERTAIN: the refusal is the site's bot protection, not a
+missing page; not checked in a browser).
+
+The section names the old-name search by task only; the pattern is in tasks.md (T005, T037).
+
+### T038: the fresh clone
+
+On `HEAD` `f3091e0`, branch `opensource`, 2026-11-24, after T035 to T037. The copy: the 1,188
+files of `git ls-files -co --exclude-standard`, each equal to its blob at `HEAD` (`git hash-object`
+against `git rev-parse HEAD:<path>`), in a new, empty directory named `konnekt` outside the
+repository, as a clone of the repository gets; Compose took the project name `konnekt` from it. No
+container, volume or image named `konnekt…` existed before. Docker 29.9.2, Compose v5.6.1. The
+checkout's own PostgreSQL held port 5435 and was stopped for the run, then started again.
+
+**README's "Quick Start", Option 1, word for word** (nothing else was run in the copy):
+
+| Step | Command | Time (UTC) | Since the first command | Result |
+|---|---|---|---|---|
+| 1 | `cp backend/.env.example backend/.env` | 21:15:39 | 0:00 | done |
+| 2 | `docker compose up` | 21:15:42 | 0:03 | three images built, four containers started; the backend ran all 14 migrations to `ef2b83b1b34c` and logged "Application startup complete"; no service logged a warning or an error |
+| (a) | `http://localhost:5173` serves the app | 21:18:28 | **2:49** | `200`; in Chromium it renders the sign-in page ("Log in · Konnekt", username, password, "Forgot password?"); the console's only errors are the two expected `401` of `/api/auth/me` before sign-in |
+| | `http://localhost:3000/api/health` | 21:18:41 | 3:02 | `200` |
+| 3 | `docker compose exec backend uv run python -m app.cli create-user <username>`, in a pseudo-terminal, a fictitious username, the password typed twice at the prompts | 21:18:57 to 21:19:02 | 3:23 | "Created user '…'."; exit 0 |
+| (b) | `POST /api/auth/login` with that account | 21:19:03 | **3:23** | `200`, the session cookie set; `GET /api/auth/me` with it: `200` |
+
+**SC-007 met**: the sign-in page after 2 min 49 s, the first account signed in after 3 min 23 s,
+under 30 minutes. The time is shorter than on a new machine: the base images (`node:26-alpine`,
+`postgres:18-alpine`, `python:3.13-slim`, uv's) were already pulled, and Docker's build cache
+already held the development backend image's layers, `uv sync --frozen` among them (earlier
+builds of the same Dockerfile and lockfile), so no Python package was downloaded. The two npm
+installs ran in full (frontend 92 s, MCP server 7 s). Not measured on an empty machine.
+
+The other addresses the Quick Start lists: `http://localhost:3000/docs` `200`;
+`http://localhost:3100/mcp` `401` without a token, as expected. All four ports are published on
+`127.0.0.1` only. Then `docker compose down -v` in the copy.
+
+**The production build**: `docker compose -f docker-compose.prod.yml build`, with a `.env` beside
+the compose file (Deployment, "1. Settings") holding only the two variables marked "always":
+`SERVICE_PASSWORD_POSTGRES` (64 hex characters, `openssl rand -hex 32`, made up for the run) and
+`CONNECTION_BASE_URL=https://konnekt.example.org`.
+
+| Check | Result |
+|---|---|
+| `config -q` without a `.env` | stops: "required variable SERVICE_PASSWORD_POSTGRES is missing a value: SERVICE_PASSWORD_POSTGRES must be set to the database password", the message README quotes; also for a plain `build` |
+| `build` with the two variables | passes in 38 s (the frontend's `npm ci` layer from the build cache); images: backend 355 MB, MCP server 281 MB, frontend 110 MB; four Compose warnings (finding 5) |
+| The backend image's environment | `APP_ENV=production`, `UV_NO_SYNC=1` |
+| `LICENSE` and `NOTICE.md` at `/usr/share/doc/konnekt/`, in each of the three images | present in all three; `LICENSE` SHA-256 `6fc9e709…1e665`, rule 1's; `NOTICE.md` byte-identical to the repository's (SHA-256 `846519ee…2df2f`) |
+
+**The MCP image's packages**: **seven**, as `NOTICE.md` says and phase 3 recorded; research R4's
+six runtime packages and `fast-deep-equal`.
+
+| Package | Version | Licence |
+|---|---|---|
+| `@modelcontextprotocol/server` | 2.4.0 | Apache-2.0 |
+| `@modelcontextprotocol/node` | 2.1.2 | Apache-2.0 |
+| `@modelcontextprotocol/core` | 2.4.0 | Apache-2.0 |
+| `zod` | 4.6.7 | MIT |
+| `hono` | 4.13.16 | MIT |
+| `@hono/node-server` | 2.1.6 | MIT |
+| `fast-deep-equal` | 3.1.3 | MIT |
+
+How counted: in the built image's final stage (`docker run --entrypoint sh` on it), every directory
+with a `package.json` directly under `/app/node_modules/` and `/app/node_modules/@*/`: ten, of which
+three are the workspace's own symlinks (`@konnekt/api-types`, `@konnekt/rules`, `@konnekt/mcp`),
+left out; no nested `node_modules`. npm's log of the stage says the same: "added 10 packages".
+`npm ls --omit=dev --all` in the image lists the six under `@konnekt/mcp` and marks
+`fast-deep-equal` "extraneous": nothing in the runtime tree requires it (phase 3: npm lets it
+through from the frontend's tree). `licence` fields as read from each package's `package.json`.
+
+**Findings for T016** (where the README was not enough; reported only, nothing changed):
+
+1. **`README.md:135-139`, "Prerequisites"**: it asks for Node.js 20+, npm 9+, Python 3.13+ and uv
+   per component, without saying that Option 1 needs only Docker with Compose v2
+   (`docker compose`). Nor does it name the disk space: the three development images take 1.9 GB
+   (frontend 826 MB, MCP server 545 MB, backend 511 MB) plus the build cache. On this machine the
+   free space fell under 650 MB during the build and the unused build cache had to be pruned
+   (`docker builder prune -f`) for the run to go on.
+2. **`README.md:165-166`**: "In another terminal" does not say when. The account can be created
+   once the backend has migrated and started ("Application startup complete" in the log, or
+   `http://localhost:3000/api/health` answering `200`), which on a first start is minutes after
+   `docker compose up`. The run waited for the health address, which the README does not mention.
+   What the command does earlier was not tried.
+3. **`README.md:186-188`** names the four ports but not that they must be free before
+   `docker compose up`: a local PostgreSQL on 5435, or anything on 3000, 5173 or 3100, stops it.
+   The run had to stop the checkout's own database first.
+4. **Warnings during the first `docker compose up`** that the README does not mention:
+   `npm warn deprecated eslint@9.39.5` (frontend and MCP server images), "7 moderate severity
+   vulnerabilities" after the frontend image's `npm install` (T036 saw the same seven), and
+   PostgreSQL's first start, inside its container: "no usable system locales were found" and
+   "enabling \"trust\" authentication for local connections" (the image's defaults). None stops
+   anything.
+5. **`README.md:908-923`, Deployment, "1. Settings"**: with the two "always" variables alone,
+   every `build` (and `up`) prints four Compose warnings: "The \"EUDIPLO_URL\" variable is not
+   set. Defaulting to a blank string.", and the same for `EUDIPLO_CLIENT_ID`,
+   `EUDIPLO_CLIENT_SECRET` and `EUDIPLO_TRUST_LIST_ID`. README says empty values make EUDIPLO's
+   calls answer `503`, not that unset ones warn, nor that writing them empty (`EUDIPLO_URL=`)
+   silences the warnings. The production MCP image's build also prints npm's "New major version
+   of npm available" notice and "npm warn using --force Recommended protections disabled." (from
+   `npm cache clean --force`), and the builder's `eslint@9.39.5` deprecation.
+
+Notes:
+
+- README has no plain `build` command; Deployment's step 4 builds and starts together
+  (`up -d --build`). The task's `build` ran with what step 1 calls "always" needed.
+- The production stack was built, not started (no proxy, no EUDIPLO); T028's run checks of the
+  images stand.
+- Removed afterwards: the `konnekt` project's containers, its volume and network, the three
+  development and the three production images, and the copy's two `.env` files; the copy never
+  had a `node_modules` or `.venv` (everything ran in the images). Only unused build cache was
+  pruned, once. The checkout's PostgreSQL runs again, recreated by `docker compose up -d
+  postgres` with the `127.0.0.1` binding (phase 6's handed-on note), its volume and
+  `konnekt_db_test` kept.
+- UNCERTAIN: the time on a machine without pulled base images and without build cache; an
+  estimate is not given.
+
+**After T038, by the coordinator** (`README.md` is T016's file; phase 4 is done and nothing else
+edits it now): findings 1, 2, 3 and 5 are fixed in `README.md`. "Prerequisites" says that
+Option 1 needs only Docker with Compose v2 and about 3 GB of free disk. Option 1's `create-user`
+comment says to wait for "Application startup complete". The ports paragraph says that the four
+ports must be free. The EUDIPLO row of Deployment's settings table says that leaving the four out
+of `.env` makes Compose warn, and that empty values start without EUDIPLO. No heading changed, so
+T037's anchors stand. Finding 4 stays as it is: upstream warnings that stop nothing.
+
+### T041: this feature's files without the old names
+
+On `HEAD` `f3091e0`, branch `opensource`, 2026-11-24, after T035 to T038; T040 has not run, so
+`history-rewrite.md` does not exist yet. Every file under `specs/012-open-source-release/` was
+read in full. The old names and the checkout's paths were replaced by neutral words, by hand and
+sentence by sentence, each changed sentence read again; paragraphs kept their wrap width and the
+tables their columns. Nothing outside this directory changed, no checkbox changed, and `LICENSE`'s
+hash, the commit hashes, counts, dates and the IDs of tasks and requirements stand as they were.
+
+Before, the old-name search (T037's case-insensitive form of T005's command) matched 93 lines
+here, and the search for machine and scratch paths 14 lines, 3 of them (all in `research.md`)
+without an old name.
+
+| File | Lines before: old names; paths | Passages changed | Where |
+|---|---|---|---|
+| `spec.md` | 19; 2 | 13 | Context (the existing repository; the mentor's step 2; the survey's three names); Clarifications of 2026-11-20 and 2026-11-24 (the old storage prefix, the plugin's variable, the product's earlier name); US3's text and scenario 1; Edge Cases (an existing installation, old links); FR-011, FR-012, FR-013; Assumptions (the git variables) |
+| `tasks.md` | 17; 6 | 12 | Path Conventions (the root, the old test database); rule 6; phase 2's amendment; T004, T005, T037, T041 (the searches as descriptions); T040 (the rehearsal's clone, the runbook's clone command); Notes (the git variables) |
+| `research.md` | 40; 6 (43 lines in all) | 29 | R5: the shipped defaults, the infrastructure table's rows of paths and of the sibling project, scrub patterns L1 to L3, S1 and S2 with a note, S1's row, checks 2 and 5 with a note, "Only in the history"; R7: the counts, four rows of the inventory, the plugin's variable, the earlier name, the tools' prefix, the script's steps 2 to 5 and 8, the amendment, the existing installation, the alternatives; R10's README row; R11's findings, decision and handover item 5; open point 1 |
+| `verification.md` | 17; 0 | 15 | T003 (the test database, twice); T004 and T005 (the rules of steps 2 to 5, the storage keys, the search, its table and its conclusion); T004 amended (three rows, the last check) |
+| `plan.md`, `pr.md`, `handover.md`, `checklists/requirements.md` | 0; 0 | 0 | read; no old name and no machine path |
+
+**The words chosen**:
+
+- The earlier working name as a package, plugin or root name → "the earlier working name"; as two
+  words → "the product's earlier name"; in imports → "the old package scope"; in the storage
+  keys → "the old storage prefix"; the plugin's environment variable → "the plugin's variable"
+  (with "under its old name" where the old one is meant).
+- The template's frontend package → "the template's frontend package name"; the databases → "the
+  old database name" and its `_test` form.
+- The existing repository's name and address → "the existing repository", "the existing
+  repository's GitHub address". A command that needs the address takes
+  `<existing-repository-url>`: T040's text now says so for the runbook's clone; the mentor and
+  the user know the address.
+- Recorded searches → "T005's old-name search" or "the search for the old names (the earlier
+  working name, the template's package name, the old database name, the existing repository's
+  name)".
+
+**The paths**:
+
+- `GIT_DIR` and `GIT_WORK_TREE` (`tasks.md` rule 6 and Notes, `spec.md`'s Assumptions): "this
+  checkout's directory under `worktrees/` in the bare repository that holds it (the checkout's
+  parent directory)" and "the checkout's root".
+- The repository root (`tasks.md`, Path Conventions): "this checkout's top directory".
+- T040's rehearsal: `git clone --no-local <bare-repository>`, where `<bare-repository>` is the
+  bare repository that holds this checkout.
+- Research R5: the infrastructure table's row of paths ("paths of this machine's checkouts; a path
+  in a team member's home directory on another machine; agent sessions' scratch directories");
+  scrub patterns L1 to L3 as "(in words)" lines in the pattern block, with a note that they ran
+  as patterns in T021 and the words record what they matched; S1's parent folder as
+  `<the sibling project's parent folder>`; S2 as "the existing repository's GitHub address";
+  check 2 as a comment in words; "Only in the history" as "this machine's home-directory paths".
+
+**The gates**:
+
+| Gate | Result |
+|---|---|
+| The old-name search (T037's case-insensitive form of T005's command), from the root, without `node_modules`, `.venv`, `dist`, the lockfiles and the untracked `.git` pointer file | **prints nothing** (exit 1); with the pointer file, only its one line, which is not part of the repository |
+| The search for home-directory and agent-scratch paths over this feature's directory | prints nothing |
+| `uvx --from reuse==6.3.0 reuse lint`, with the two git variables | compliant with REUSE 3.3; 1,176 of 1,176 files with copyright and licence information |
+
+UNCERTAIN:
+
+- R5's check 2 is now a comment in words, not a command: a runnable form would have to spell the
+  paths' first directories, a team member's home directory among them, which this directory may
+  no longer hold. T037 ran it as it stood; the history before T041 keeps that form.
+- R5's check 5 now searches for the sibling project's name alone. It prints the same lines as
+  before, since the project's path ends in that name.
+- T040's text gained one parenthesis: the runbook's clone command takes
+  `<existing-repository-url>`, so that T040 can write the runbook without an old name.
+- FR-013's list says "the existing repository's name in full or its first part alone" for the
+  two forms the search names.
+
+The section names the old-name search by task only, as T037's does.
+
+## The record (T039, 2026-11-24)
+
+On `HEAD` `f3091e0`, branch `opensource`, with phase 8's changes uncommitted (this file,
+`tasks.md`, `spec.md`, `research.md`, `README.md`). Nothing was run for this section beyond
+reading the README's first lines (SC-008) and repeating R5's checks and the old-name search on the
+tree as it stands, after the coordinator's README fix that followed T038: R5's check 1 prints the
+three allowlisted contact lines, checks 3 and 4 nothing, check 5 the three allowlisted lines of
+spec 001, the search for home-directory and agent-scratch paths outside this feature's directory
+nothing, and the old-name search (T037's form) over the whole tree, the untracked `.git` pointer
+file left out, nothing. Every other status below rests on the sections it cites.
+
+### Success criteria and Independent Tests
+
+| Item | What it asks | Status | Evidence |
+|---|---|---|---|
+| SC-001 | every file has a licence and a copyright holder | met | T036 (phase 8): `reuse lint` 6.3.0 compliant with REUSE 3.3, 1,176 of 1,176 files, licences Apache-2.0, EUPL-1.2, MIT, OFL-1.1, Unicode-3.0, none missing or unused; again in T041 (1,176 of 1,176) |
+| SC-002 | no third-party item of unknown source or without licence; the star artwork in no published commit | needs a person | The inventory part ran: T011 (phase 3, the data sets are the team's own), T014 (phase 3, the four star files deleted by `320728d`, nothing imports them, the eight `.webp` pictures drawn by the designer), T009 (`NOTICE.md`; KERN's Figma kit named with "terms not stated here", open point 5). The artwork is still in every commit since `48fb277`: T040 has not run, and the user's history rewrite comes after the merge |
+| SC-003 | the count of consent statements equals the count of contributors | needs a person | The list is research R8: four (Samuele Musiani, Vrinda Pasrija, Amber Rafique, and DPS through the mentor). `pr.md` (T033, phase 7) says who posts what and how. No statement is recorded here; the count is the user's before the merge, with `LICENSE` still `6fc9e709…1e665` (T035) |
+| SC-004 | the old-name search prints nothing; the scrub searches only allowlisted lines; the allowlist under 20 lines | met | T041 (phase 8): the old-name search over the whole tree, the untracked `.git` pointer left out, **prints nothing**; T037 (phase 8): R5's five checks print only allowlisted lines (3 contact lines, 3 lines of spec 001), the allowlist unchanged at 4 lines (research R5); repeated in this section on the current tree with the same result |
+| SC-005 | the secret scan over the full history finds nothing; no credential that ever appeared still works | met | T036 (phase 8): gitleaks 8.30.1 (checksum equal to CI's) `git --log-opts=--all --redact`: no leaks, 271 commits; `dir --redact` over the tree and CI's `--log-opts=HEAD`: no leaks; research R5 found no credential, so nothing to rotate. Rest, a person: the scan once more over the new repository's history before it is public (`handover.md`, step 10) |
+| SC-006 | no blocking finding of the security review open at publication | met | Phase 6: research R6's blocking findings 3 to 6 fixed with tests (T024 to T027: +21 and +28 pytest, +17 frontend), and 10, 13, 14 (start), 20 (`server_tokens`) by T028; the open ones in `SECURITY.md` (T032, phase 7); finding 1 handled outside by the team (R6). Rest, a person: phase 6's "Needs a person" checks on a running stack |
+| SC-007 | from a fresh clone to the sign-in page in under 30 minutes with the README alone | met | T038 (phase 8): Quick Start word for word in a copy of the 1,188 files a clone holds; the sign-in page after 2 min 49 s, the first account signed in after 3 min 23 s. Rest: base images were already pulled and the build cache held the backend's Python layers, so the time on an empty machine was not measured; README findings 1, 2, 3 and 5 were fixed after the run, which was not repeated |
+| SC-008 | status, licence and contact on the README's first screen | met | Read in this task: `README.md` lines 1 to 12 hold the status banner ("not actively maintained", pull requests and issues closed) with `hello@dpschool.io`, the copyright line and "Licensed under the EUPL-1.2" with links to `LICENSE`, `NOTICE.md`, `SECURITY.md`, `CONTRIBUTING.md`. Not looked at as rendered on GitHub |
+| SC-009 | the same tests pass; the product behaves as before | met | T035 (phase 8): 7,941 tests passed (rules 2,678, frontend 2,058, mcp 513, pytest 2,692) against T003's 7,875 (phase 1); the 66 more are phase 6's; no test file deleted, no test skipped, five declarations renamed or split, none dropped. Rest, a person: behaviour by hand (phase 6's manual checks; US3's scenario 2) |
+| SC-010 | the mentor needs no further question for the handover list | needs a person | `handover.md` (T034, phase 7): ten steps, each with "When" and "Done when". Only the mentor's reading can show it |
+| US1 | any file's owner and licence from `LICENSE`, `NOTICE.md`, `REUSE.toml`; the check; the consent count | needs a person | The check ran: T036 `reuse lint`, 1,176 of 1,176 files; the files: T009, T010 (phase 3), `NOTICE.md` byte-identical in all three images (T038). The consent count is SC-003's, not done |
+| US2 | the secret scan over all history; the scrub search; the blocking findings closed | met | T036 (gitleaks, no leaks over `--all`), T037 and this section (R5's checks, only allowlisted lines), phase 6 (findings 3 to 6 fixed). Rest, a person: T040 and the history rewrite (FR-044, tagged US2), phase 6's manual checks, the last scan of `handover.md` step 10 |
+| US3 | the old-name search prints only the allowlist; "Before you finish" passes | met | T041: the search prints nothing; T035: the Node and backend gates and `export_check_fixtures --check` pass; T036: REUSE check passes. Rest, a person: scenario 2 (a browser holding an old local draft opens Konnekt as on a first visit) and scenario 3 (the Account page's "Installing the plugin" link, once the new repository holds `main`) |
+| US4 | a fresh clone to the sign-in page and an account with the README alone | met | T038 (phase 8), as SC-007; the production build with the two "always" variables, `APP_ENV=production` in the image, the MCP image's seven packages as `NOTICE.md` says. Rest: run on a machine with more than the README's prerequisites and with a warm cache, not on one with Docker alone |
+| US5 | the mentor acts on every line of `handover.md` without asking | needs a person | `handover.md` (T034, phase 7) exists in FR-043's order; the test is the mentor's |
+
+### The open points still open
+
+From research's "Open points":
+
+- **1**, the part still open: whether the consent statements must be visible in the public
+  repository (the mentor; `handover.md` step 2; before the first statement). The rest was
+  closed by the mentor's decision of 2026-11-24 (the rewritten history goes to a new repository).
+- **4**: the consent statements of Samuele Musiani, Vrinda Pasrija and Amber Rafique, and DPS's
+  through the mentor (research R8), by 2026-11-27; none is recorded.
+- **6**: the hosted instance, shut down or kept with its own tenant and settings (the mentor;
+  `handover.md` step 9).
+
+Closed: **2** by the mentor's decision of 2026-11-24 (the name `DigitalProductschool/konnekt` is
+final); **3** by T011 (the country names, persona pools and streets are the team's own
+compilations, nothing replaced); **5** by T009 through its fallback (`NOTICE.md` names KERN's
+Figma kit with its source and "terms not stated here"; the Community page states no terms, so
+they remain unknown).
+
+What phase 8 left open:
+
+- The two npmjs.com package pages (`@kern-ux/native`, `@kern-ux-annex/kern-react-kit`, linked
+  from `docs/KERN-DESIGN-SYSTEM.md`) answer `403` to scripted requests (T037); the packages exist
+  in the registry, but the pages were not opened in a browser.
+- T038's finding 4: the upstream warnings of the first `docker compose up` (the `eslint`
+  deprecation, the seven moderate `npm audit` findings, PostgreSQL's first-start notices) stay as
+  they are and are not mentioned in the README.
+- SC-007's time was measured with the base images pulled and the build cache warm (T038); the
+  time on an empty machine is unknown, and the run was not repeated after the README fix.
+- Phase 6's manual checks (its "Needs a person"): the sign-in throttle on a running stack in both
+  languages, and the consent page with a real agent.
+- T040 (phase 9, `history-rewrite.md` and its rehearsal) has not run; its plan was amended on
+  2026-11-24 in `tasks.md`, `spec.md` (FR-044) and research R11.
+- `tmp-german`, the one unmerged branch, is outside this spec (spec, Clarifications: "Not asked
+  of this spec"); `handover.md` step 3 names it as not part of its list, as T034 asks. Not an
+  open point of this spec.
+- Phase 3's note: the CI's new `licensing` job has not run on GitHub yet.
+
+### What a person must still do, in order
+
+1. **The user**: commit phase 8 (`verification.md`, `tasks.md`, `spec.md`, `research.md`,
+   `README.md`), on their machine (tasks.md, "Commits", item 4). The same files hold another
+   session's amendments of phase 9's plan (T040's "How", spec's clarification and FR-044, R11).
+2. **The mentor**: create `DigitalProductschool/konnekt`, empty and private, with push access
+   for the user (`handover.md` step 1).
+3. **The mentor**: answer whether the consent statements must be public (`handover.md` step 2),
+   before the first statement.
+4. **The user**: open the pull request with `pr.md`'s text, if it is not open yet: in the
+   existing repository, or in the new one if the mentor's answer is yes.
+5. **The contributors** (Samuele Musiani, Vrinda Pasrija, Amber Rafique) and **the mentor** for
+   DPS: post the consent statement on `LICENSE` in the pull request, by 2026-11-27. **The user**
+   counts them against research R8 (four) and checks that `LICENSE` is still `6fc9e709…1e665`
+   (SC-003).
+6. **The user** (or a team member), on a running stack: phase 6's manual checks, the sign-in
+   throttle in both languages and the consent page with a real agent.
+7. **The user**: in a browser that holds a local draft or a language choice from before the
+   rename, Konnekt opens as on a first visit, without an error (US3, scenario 2).
+8. **The user**: merge the pull request once every statement is in, by 2026-11-27.
+9. **The mentor**: delete the merged branches, `opensource` with them (`handover.md` step 3),
+   and detach infrastructure, connectors and the review bot (step 4).
+10. **The user**: run T040 in a session (the runbook `history-rewrite.md` and its rehearsal),
+    after the merge.
+11. **The user**: the history rewrite by `history-rewrite.md`, and the push of `main` alone into
+    the new, still private repository (tasks.md, "Commits", item 6). Then **the contributors**
+    delete their old clones and clone anew, and **the user** follows the Account page's
+    "Installing the plugin" link to the new repository's README (US3, scenario 3).
+12. **The mentor**: `handover.md` steps 5 to 10, in their order: archive the existing
+    repository, protect `main` in the new one, close issues and pull requests, tag the published
+    commit, decide on the hosted instance, run the last secrets scan and make the new repository
+    public. Whether the mentor needed to ask anything is SC-010's and US5's answer.
+
+Steps 10 and 11 are the last ones of the team, after the merge and before anything is public;
+only the mentor's steps that need the rewritten `main` in the new repository follow them, and
+making it public is the very last.

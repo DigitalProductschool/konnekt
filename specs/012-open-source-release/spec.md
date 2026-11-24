@@ -22,13 +22,15 @@ fixes that the review found necessary before the code is public (FR-037). The sp
 (this file), `research.md` (the audit records, which are also the evidence of what was checked)
 and `tasks.md` (the ordered work). It has no data model, no contracts and no Figma work.
 
-The repository is private today, at `DigitalProductschool/batch27-faro`. The mentor at Digital
-Product School (DPS) makes it public after the team has done the following, quoted in short:
+The repository is private today: the existing repository, in the `DigitalProductschool`
+organisation on GitHub. The mentor at Digital Product School (DPS) makes it public after the team
+has done the following, quoted in short:
 
 1. Confirm the licence-compliant use of KERN (EUPL-1.2): no pasted and edited KERN component
    source, no rules copied out of `kern.css`, no patches to the packages.
 2. Decide on the product and package naming and make it consistent across the monorepo; rename
-   the repository, with "batch27-faro" remaining only in the copyright line as the team's name.
+   the repository, with the existing repository's name remaining only in the copyright line as
+   the team's name.
 3. List all copied material (snippets, fonts, icons, images, datasets) with source and licence,
    and remove or replace anything without clear terms.
 4. Add `LICENSE` in the root with the official English EUPL-1.2 text from the European
@@ -54,11 +56,11 @@ Afterwards the mentor detaches the repository from DPS's infrastructure, connect
 bot, checks the protection rules and makes it public.
 
 A survey of the repository on 2026-11-20 found what the list does not name, and each point is a
-requirement below: three names in use (`connection-portal`, Konnekt, "serviceBW ↔ EUDI Wallet
-Middleware") and leftovers of the DPS template; a link to the old repository in the UI; bundled
-material beyond the list (Fira Mono, Material Symbols icons, a third KERN package, Spec Kit's
-files, a table derived from Unicode data); illustrations, two test images and code lists without
-a recorded source; internal host names, local paths and Figma file keys in `specs/` and
+requirement below: three names in use (the earlier working name, Konnekt, "serviceBW ↔ EUDI
+Wallet Middleware") and leftovers of the DPS template; a link to the old repository in the UI;
+bundled material beyond the list (Fira Mono, Material Symbols icons, a third KERN package, Spec
+Kit's files, a table derived from Unicode data); illustrations, two test images and code lists
+without a recorded source; internal host names, local paths and Figma file keys in `specs/` and
 `.specify/bugs/`; and a `license-files` pattern that resolves inside `backend/`, where no
 `LICENSE` exists.
 
@@ -70,8 +72,8 @@ a recorded source; internal host names, local paths and Figma file keys in `spec
   `DigitalProductschool/konnekt` (final: the mentor, 2026-11-24), the packages
   `@konnekt/api-types`, `@konnekt/rules`, `@konnekt/mcp` and `@konnekt/frontend`, the root package
   `konnekt`, the backend project `konnekt-backend`, the agents' plugin and its marketplace
-  `konnekt`, the databases `konnekt_db` and `konnekt_db_test`. The browser's storage key prefix
-  `connection-portal:local-draft:v1:` stays, so that stored local drafts survive (FR-012).
+  `konnekt`, the databases `konnekt_db` and `konnekt_db_test`. The browser's storage keys keep
+  the old storage prefix, so that stored local drafts survive (FR-012).
   *Superseded on 2026-11-24: the storage keys are renamed too (session "no old name left").*
 - Q: Is the git history published? → A: Yes, as it is. The author addresses in it become public,
   which the user accepts. A finding that only a rewrite could remove is escalated, not rewritten
@@ -132,8 +134,8 @@ the 2026-11-21 sessions below.
 - Q: Do the browser's storage keys keep the old prefix? → A: No. No old name stays anywhere in
   the tree. Everything is redeployed, so the keys become `konnekt:local-draft:v1:` and
   `konnekt:language:v1` without a migration: drafts and language choices stored under the old
-  keys are simply no longer read (FR-012). The plugin's variable `CONNECTION_PORTAL_MCP_URL`
-  becomes `KONNEKT_MCP_URL`, and "Connection Portal" in the earlier specs and bug records becomes
+  keys are simply no longer read (FR-012). The plugin's variable takes the new name,
+  `KONNEKT_MCP_URL`, and the product's earlier name in the earlier specs and bug records becomes
   "Konnekt" (FR-013, FR-014).
 - Q: This spec's own files, which describe the rename? → A: They keep the old names while the
   work runs, since the tasks read them, and are cleaned last: the old names, the old
@@ -158,9 +160,13 @@ These answers take precedence over both sessions above where they differ.
 - Q: Does the old artwork stay in the history? → A: No. The four files are removed from every
   commit before publication, by one rewrite that the user runs last (FR-044). Nothing else is
   removed: the author addresses, the pasted connection ID and the Plus Jakarta Sans file stay.
-- Q: What else does the rewrite change? → A: Every commit gets a new hash and loses its
-  signature, since 292 of the 293 commits are signed and a rewritten commit cannot keep its
-  signature. The last commit's tree is the same before and after.
+- Q: What else does the rewrite change? → A: Only the commits from the one that added the
+  artwork (`48fb277`) on are rewritten, 105 of the 301 on `main` on 2026-11-24: each gets a new
+  hash and loses its signature, since a rewritten commit cannot keep it, and the user signs
+  each again with their own key. The 196 commits before it keep their hash and their
+  signature. Sixteen of the rewritten commits are GitHub's merge commits and keep GitHub as
+  committer, so GitHub shows the user's signature on them as "Unverified": the user accepts
+  that (2026-11-24). The last commit's tree is the same before and after.
 - Q: Is the existing repository still the one that is made public? → A: No (the mentor,
   2026-11-24). On GitHub a rewrite does not reach the pull request that added the files, nor
   the commits that stay fetchable by hash, and GitHub's support removes only sensitive data
@@ -244,8 +250,8 @@ findings that block publication and check each is closed.
 
 A visitor reads "Konnekt" in the repository's name, in the README's title, in the packages'
 names, in the UI and in the agents' plugin. The names of the template the code started from and
-the working names `connection-portal` and "Connection Portal" appear nowhere in the tree, not
-even in the browser's storage keys (Clarifications, 2026-11-24).
+the earlier working name, in either of its spellings, appear nowhere in the tree, not even in the
+browser's storage keys (Clarifications, 2026-11-24).
 
 **Why this priority**: The mentor's step 2. It comes before the public-facing files and the
 consent statement in time, because both carry the name.
@@ -255,9 +261,10 @@ and nothing else. Run every check of "Before you finish" in `CLAUDE.md`.
 
 **Acceptance Scenarios**:
 
-1. **Given** the renamed repository, **When** the tree is searched for `connection-portal`,
-   `community-template`, `template_db`, `batch27` and "Connection Portal" in any case, **Then**
-   only this spec's own files match, and after T041 nothing does.
+1. **Given** the renamed repository, **When** the tree is searched for the old names (the
+   earlier working name in either spelling, the template's package name, the old database name
+   and the existing repository's name, in any case), **Then** only this spec's own files match,
+   and after T041 nothing does.
 2. **Given** a browser that holds a local draft or a language choice from before the rename,
    **When** the team member opens Konnekt after it, **Then** Konnekt opens as on a first visit,
    without an error: the old entries are no longer read.
@@ -339,13 +346,13 @@ what it means.
   history, and the mentor decides with the team whether they are rewritten or removed.
 - **Files that cannot carry a header**: generated fixtures, JSON, fonts, pictures, migrations.
   `REUSE.toml` covers them without touching them.
-- **An installation that exists** has a database named `template_db` and an installed plugin
-  named `connection-portal`. The README says in one place what its operator does after the
-  rename; nothing is renamed silently under a running installation.
+- **An installation that exists** has a database under the old database name and an installed
+  plugin under the earlier working name. The README says in one place what its operator does
+  after the rename; nothing is renamed silently under a running installation.
 - **Work after 27.11.2026.** The consent statements cover contributions up to and including that
   day. Anything merged later needs a new statement from its author.
-- **Old links to `batch27-faro`.** GitHub forwards them after a rename, but the repository's own
-  files point to the new name.
+- **Old links to the existing repository.** GitHub forwards them after a rename, but the
+  repository's own files point to the new name.
 
 ## Requirements *(mandatory)*
 
@@ -390,19 +397,19 @@ what it means.
 
 - **FR-011**: The names MUST be those of the Clarifications. The README's title is "Konnekt",
   with the line that it is the middleware between serviceBW forms and the EUDI Wallet. The
-  template's leftovers (`community-template-frontend`, the backend project's name `backend` and
-  its description, `template_db`) MUST be gone.
+  template's leftovers (the frontend package's name from the template, the backend project's
+  name `backend` and its description, the old database name) MUST be gone.
 - **FR-012**: The rename MUST NOT change an identifier that is stored or sent: the browser's
   storage keys, cookie names, database tables and columns, migrations, identifiers registered
   with EUDIPLO, the API's paths, the environment variables' names, the MCP tools' names.
   `research.md` lists the occurrences of the old names by kind before anything is renamed, and
   any exception to this rule is decided there. Generated files change only through their
   generator. *Exception (Clarifications, 2026-11-24)*: the browser's two storage keys and the
-  plugin's variable `CONNECTION_PORTAL_MCP_URL` take the new name, without a migration.
-- **FR-013**: After the rename, a search for the old names (`connection-portal`,
-  `community-template`, `template_db`, `batch27-faro`, `batch27`, and "Connection Portal" in any
-  case) MUST return nothing outside this spec's own files; once T041 has cleaned those, it MUST
-  return nothing at all (Clarifications, 2026-11-24).
+  plugin's variable take the new name, without a migration.
+- **FR-013**: After the rename, a search for the old names (the earlier working name in either
+  spelling, the template's package name, the old database name, and the existing repository's
+  name in full or its first part alone, in any case) MUST return nothing outside this spec's own
+  files; once T041 has cleaned those, it MUST return nothing at all (Clarifications, 2026-11-24).
 - **FR-014**: The earlier specs and bug records are renamed with the rest, so that the paths they
   name exist; a note at the top of `specs/` says that the records were updated to the current
   names after the fact, without naming the old ones (Clarifications, 2026-11-24).
@@ -514,9 +521,12 @@ what it means.
 - **FR-044**: Before publication the star artwork MUST be removed from the history: the four
   files' contents, and any other file of the history that reproduces the artwork, are in no
   commit of any branch or tag that is published. The rewrite is one scripted step, written down
-  in `history-rewrite.md` and rehearsed on a copy beforehand. The user runs it once, after
-  everything else is merged, and checks it: none of the removed objects exists, the last
-  commit's tree is unchanged, the number of commits is unchanged, `LICENSE` has its checksum.
+  in `history-rewrite.md` and rehearsed on a copy beforehand. It rewrites only the commits from
+  the one that added the artwork on, and the user signs the rewritten commits again. The user
+  runs it once, after everything else is merged, and checks it: none of the removed objects is
+  reachable from `main` or exists in the new repository, the last commit's tree is unchanged,
+  the number of commits is unchanged, the commits before the artwork keep their hashes,
+  `LICENSE` has its checksum.
   The rewritten history is pushed into the new repository only. What a rewrite cannot reach
   (the existing repository's pull requests, commits fetchable by hash, other people's clones)
   is named in `handover.md`: the existing repository stays private for that reason.
@@ -582,9 +592,9 @@ what it means.
   the commits' author addresses become public.
 - Out of scope: new features, changes of behaviour, translating the documentation, publishing
   packages or images, and maintaining the project after publication.
-- Git works in this checkout only with `GIT_DIR=/home/debian/batch27-faro/worktrees/opensource`
-  and `GIT_WORK_TREE=/home/debian/batch27-faro/opensource`; no task commits, the user does, on
-  another machine.
+- Git works in this checkout only with `GIT_DIR` set to the checkout's directory under
+  `worktrees/` in the bare repository that holds it, and `GIT_WORK_TREE` set to the checkout's
+  root; no task commits, the user does, on another machine.
 - The browser's storage keys take the new name (Clarifications, 2026-11-24): local drafts and
   language choices stored before the rename are no longer read, which the user accepts because
   everything is redeployed.

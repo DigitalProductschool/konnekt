@@ -516,13 +516,14 @@ lines, UUIDs and long opaque strings; both bug folders with hosted identifiers r
 The CI's gitleaks job scans `--log-opts=HEAD` only: a branch is scanned when it is pushed.
 
 **Defaults that ship**: none is a credential or repeats one of the hosted instance.
-`backend/app/config.py`: `postgres:postgres@localhost:5432/template_db`, every `eudiplo_*` empty,
-no signing key exists, production refuses a missing or plain-HTTP `CONNECTION_BASE_URL`;
-`backend/.env.example:20` says "(tenant dps)"; the frontend's and MCP's `.env.example` hold
-localhost URLs; `docker-compose.yml` `POSTGRES_PASSWORD: postgres` (development, port 5435);
-`docker-compose.prod.yml` takes every secret from the environment, with the user `postgres` and the
-database `template_db` fixed; the test-credential script reads its issuer credentials from the
-environment; neither `backend/app/cli.py` nor the migrations seed an account.
+`backend/app/config.py`: `postgres:postgres@localhost:5432` with the old database name (since the
+rename `konnekt_db`), every `eudiplo_*` empty, no signing key exists, production refuses a missing
+or plain-HTTP `CONNECTION_BASE_URL`; `backend/.env.example:20` says "(tenant dps)"; the
+frontend's and MCP's `.env.example` hold localhost URLs; `docker-compose.yml`
+`POSTGRES_PASSWORD: postgres` (development, port 5435); `docker-compose.prod.yml` takes every
+secret from the environment, with the user `postgres` and the database under its old name fixed;
+the test-credential script reads its issuer credentials from the environment; neither
+`backend/app/cli.py` nor the migrations seed an account.
 
 **Personal data**: authors in R8; 291 commits are signed (key not available). No team member, DPS
 or city employee, serviceBW contact or interviewee is named in a file or commit message, except a
@@ -543,9 +544,9 @@ names or results.
 | Tenant `dps` | 8 | 3 | `README.md` 3, `docs/` 2, `backend/.env.example` 1, tests 3 | `61f6c6f` (2026-10-07), 5 commits |
 | Trust-list id; patched build tag `9.0.0-mdocfix.1` | 1; 4 | 4; — | —; `README.md:769`, `docs/EUDIPLO.md:272` | 2 commits; — |
 | Figma file keys (four files; first characters `BZUN`, `s8mU`, `hsxN`, `xqEw`); share token (`t=` starting `Y5Rw`) | 53; — | 16; 2 | `docs/FIGMA-WORKFLOW.md:72` (and once in `CLAUDE.md`'s history) | `d8aaefe` (2026-10-09), the main key in 39 commits |
-| `/home/debian/batch27-faro/…`; `/home/samu/…`; `/tmp/claude-1000/…/scratchpad` (5 sessions) | 16; —; 5 | 5; 1; 3 | — | `57f50cc`, `25f40b1`, `5ea3bde`; 8, 1, 6 commits |
+| Paths of this machine's checkouts; a path in a team member's home directory on another machine; agent sessions' scratch directories (5 sessions) | 16; —; 5 | 5; 1; 3 | — | `57f50cc`, `25f40b1`, `5ea3bde`; 8, 1, 6 commits |
 | Hosted connection and session ids | — | 9 | — | 2 commits |
-| Sibling project `sk-proto-1`, path `batch27-faro-middleware-client/sk-proto-1/…` | 3 | 13 | — | `35fc20e` (2026-10-07), 7 commits |
+| Sibling project `sk-proto-1`, by its path (a parent folder named after the existing repository, then `sk-proto-1/…`) | 3 | 13 | — | `35fc20e` (2026-10-07), 7 commits |
 | Codename "Faro's", database `faro_verify` | — | 2 | — | — |
 | The private repository's address | — | — | `frontend/src/pages/Account/constants.ts:145`, compiled into the app | 40 merge messages name `DigitalProductschool/<branch>` |
 | Coolify | 18 | 1 | 37 (R10) | — |
@@ -569,15 +570,19 @@ T1d  dps, hosted\)
 T1e  \|\s*Tenant\s*\|\s*`dps`\s*\|
 T2   \btrust-list-test\b
 T3   \b9\.0\.0-mdocfix\.1\b
-L1   /home/debian/batch27-faro/worktrees/([A-Za-z0-9._-]+)   then   /home/debian/batch27-faro/([A-Za-z0-9._-]+)
-L2   /home/samu[^\s`)]*
-L3   /tmp/claude-\d+/-home-debian-batch27-faro[A-Za-z0-9-]*/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/scratchpad
+L1   (in words) this machine's bare repository, then /worktrees/<name>   then   the bare repository, then /<name>
+L2   (in words) a path in a team member's home directory on another machine, up to the next blank, backtick or parenthesis
+L3   (in words) an agent session's scratch directory: the agent tool's temporary folder, a folder named after the checkout, the session's UUID, /scratchpad
 I1   \bc027[0-9a-f]{4}(?:-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}|-?…)|\bc224[0-9a-f]{4}…
 I2   \b(?:5755|7e5a|b9df)[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\b
-S1   batch27-faro-middleware-client/sk-proto-1/   then   \bsk-proto-1\b
-S2   github\.com/DigitalProductschool/batch27-faro
+S1   <the sibling project's parent folder>/sk-proto-1/   then   \bsk-proto-1\b
+S2   (in words) the existing repository's GitHub address
 S3   \bFaro's\b   and   \bfaro_verify\b
 ```
+
+Since T041, L1 to L3, S1's parent folder and S2 are given in words: as patterns they spelled this
+machine's paths, a team member's home directory and the existing repository's name. They ran as
+patterns in T021; the words record what they matched and replaced.
 
 | Id | Replacement | Where (file: lines) | Matches | Applied |
 |---|---|---|---|---|
@@ -595,7 +600,7 @@ S3   \bFaro's\b   and   \bfaro_verify\b
 | L3 | `<scratchpad>` | `.specify/bugs/add-variant-hover-tooltip/fix.md:79`; `.specify/bugs/copy-popover-label-click/assessment.md:43`; `.specify/bugs/rules-ui-fixes/test.md:88`; `specs/010-revamp-backend-gaps/design-notes.md:1902 (×2), 1950 (×2)`, `tasks.md:568` | 8 | yes |
 | I1 | `<form-connection-id>` | `.specify/bugs/mdl-driving-privileges-empty/assessment.md:25 (×2)`; `.specify/bugs/wallet-decline-pending/assessment.md:31,126,356` | 5 | yes |
 | I2 | `<session-id>` | `.specify/bugs/wallet-decline-pending/assessment.md:82, 361 (×2), 362` | 4 | yes |
-| S1 | `<form-prototype-repo>/`, then `the form prototype` | `.specify/bugs/mdl-driving-privileges-empty/assessment.md:35,38,204,240`, `fix.md:80,82`, `test.md:58`; `.specify/bugs/password-eye-icon-border/fix.md:57`; `.specify/bugs/wallet-decline-pending/assessment.md:26,46,304,372,373`; `specs/001-servicebw-eudi-middleware/plan.md:3,8`, `spec.md:3` | 16 | the path everywhere (it holds `batch27`, FR-013); proposed: the bare name kept in `specs/001…/spec.md:3`, `plan.md:3,8`, this repository's own old branch name |
+| S1 | `<form-prototype-repo>/`, then `the form prototype` | `.specify/bugs/mdl-driving-privileges-empty/assessment.md:35,38,204,240`, `fix.md:80,82`, `test.md:58`; `.specify/bugs/password-eye-icon-border/fix.md:57`; `.specify/bugs/wallet-decline-pending/assessment.md:26,46,304,372,373`; `specs/001-servicebw-eudi-middleware/plan.md:3,8`, `spec.md:3` | 16 | the path everywhere (it holds the existing repository's name, FR-013); proposed: the bare name kept in `specs/001…/spec.md:3`, `plan.md:3,8`, this repository's own old branch name |
 | S2 | `github.com/DigitalProductschool/konnekt` | `frontend/src/pages/Account/constants.ts:145` | 1 | yes, by the rename (R7) |
 | S3 | `Konnekt's`, `konnekt_verify` | `.specify/bugs/test-results-v5/assessment.md:137`, `fix.md:143` | 2 | proposed: yes |
 | S4 | — | `dps-react-python-template` (`docs/ARCHITECTURE.md:85`), "DPS React + FastAPI Template" (`.specify/memory/constitution.md:69`), "Digital Product School" (`README.md:23`) | 3 | no: R7 renames the diagram's root, FR-029 amends the constitution, the README's template credit stays |
@@ -613,11 +618,15 @@ L1, L3 and S1 run independently of the rename (R7), which must not touch these p
 ```bash
 X='--exclude-dir=node_modules --exclude-dir=.venv --exclude-dir=dist --exclude-dir=012-open-source-release --exclude=package-lock.json --exclude=uv.lock --exclude=.git'
 grep -rnIE $X 'dpschool\.(app|io)' .
-grep -rnIE $X '/home/(debian|samu)|/tmp/claude-[0-9]+/' .
+# check 2, in words since T041: paths in the home directories of the two machines the team worked
+# on, and agent sessions' scratch directories under the system's temporary folder
 grep -rnIwE $X 'dps' . | grep -viE 'dps-react|DPS React'
 grep -rnIE $X '\bc027[0-9a-f]{4}(-|…)|\bc224[0-9a-f]{4}…|\b(5755|7e5a|b9df)[0-9a-f]{4}-|trust-list-test' .
-grep -rnIE $X 'batch27-faro-middleware-client|sk-proto-1' .
+grep -rnIE $X 'sk-proto-1' .
 ```
+
+Check 5 searched for the sibling project's path or its name; since T041 it names only the name,
+which the path ends in, so it prints the same lines.
 
 | Allowlist of the scrub (FR-035) | Reason |
 |---|---|
@@ -652,7 +661,7 @@ The merges also name branches that no longer exist locally (`fix-decline-wallet-
 `light-mode`, `border-password-eye-icon`, `fix-error-message` …); on GitHub they may.
 
 **Only in the history**: 209 paths: 160 early frontend files; `specs/010-connection-pdf/**` (37,
-renumbered to 011; the main Figma key 3 times, `/home/debian` paths twice);
+renumbered to 011; the main Figma key 3 times, this machine's home-directory paths twice);
 `specs/redesign-brief.md` (two Figma keys, paths); `specs/006-agent-mcp-server/` (2);
 `contracts/webhook-updates.md` (the example reference); a figma-audit file;
 `backend/app/routers/id_verification.py`, `team_members.py`, `backend/scripts/clear_connections.py`;
@@ -782,23 +791,23 @@ test-credential script, the tests and `specs/` beyond searches; GitHub's side.
 ## R7. The names
 
 **Checked**: on 2026-11-20 with grep over the tree without `node_modules`, lockfiles and build
-output: `connection-portal` is on 763 lines in 328 files; 626 of them are under the four packages'
-`src/`, of which 608 are import or `vi.mock` lines of `@connection-portal/api-types` and
-`@connection-portal/rules` and 18 the storage keys, their tests and comments, and the server's name.
-`template_db` is on 147 lines in 35 files.
+output: the earlier working name is on 763 lines in 328 files; 626 of them are under the four
+packages' `src/`, of which 608 are import or `vi.mock` lines of `api-types` and `rules` under the
+old package scope, and 18 the storage keys, their tests and comments, and the server's name. The
+old database name is on 147 lines in 35 files.
 
 | Kind | Where | Decision |
 |---|---|---|
-| Package names and the workspace's dependency entries | root `package.json:2` (`connection-portal`); `api-types/package.json:2`, `rules/package.json:2,17`, `mcp/package.json:2,16-17`; `frontend/package.json:2` (`community-template-frontend`), `:17-18`; `package-lock.json` | `konnekt`, `@konnekt/api-types`, `@konnekt/rules`, `@konnekt/mcp`, `@konnekt/frontend`; the lockfile regenerated by npm, never edited by hand |
+| Package names and the workspace's dependency entries | root `package.json:2` (the earlier working name); `api-types/package.json:2`, `rules/package.json:2,17`, `mcp/package.json:2,16-17`; `frontend/package.json:2` (the template's frontend package name), `:17-18`; `package-lock.json` | `konnekt`, `@konnekt/api-types`, `@konnekt/rules`, `@konnekt/mcp`, `@konnekt/frontend`; the lockfile regenerated by npm, never edited by hand |
 | Import specifiers, `vi.mock` paths, comments naming a module | `frontend/src`, `mcp/src`, `mcp/test`, `rules/src` | renamed by script |
 | Build and lint configuration | `mcp/vite.config.ts:18` (`noExternal`), `eslint.config.mjs:108` | renamed |
 | The plugin, its marketplace, the MCP server's name | `.claude-plugin/marketplace.json:2,8`, `mcp/plugin/.claude-plugin/plugin.json:2`, `mcp/plugin/.mcp.json:3`, `mcp/src/server.ts:78`, `mcp/plugin/README.md:23,37,42,49-50`, `README.md:828-833`; pinned by `mcp/src/guidance.test.ts:91-112` | `konnekt`; an installed plugin must be reinstalled (the README's plugin steps) |
-| Browser storage keys | `frontend/src/utils/localDrafts/constants.ts:10` (`connection-portal:local-draft:v1:`), `frontend/src/utils/language/constants.ts:4` (`connection-portal:language:v1`), their tests, the comments and docs quoting them (`docs/ARCHITECTURE.md:1170,1190,1494`, specs 005, 006, 008, 009, 010): 44 lines in 27 files, all reading `connection-portal:` | ~~stay (FR-012); allowlisted~~ **renamed to `konnekt:`, no migration** (user, 2026-11-24: everything is redeployed; what browsers stored under the old keys is no longer read) |
+| Browser storage keys | `frontend/src/utils/localDrafts/constants.ts:10` (`local-draft:v1:` under the old storage prefix), `frontend/src/utils/language/constants.ts:4` (`language:v1` under the same prefix), their tests, the comments and docs quoting them (`docs/ARCHITECTURE.md:1170,1190,1494`, specs 005, 006, 008, 009, 010): 44 lines in 27 files, all beginning with the old storage prefix | ~~stay (FR-012); allowlisted~~ **renamed to `konnekt:`, no migration** (user, 2026-11-24: everything is redeployed; what browsers stored under the old keys is no longer read) |
 | Backend project | `backend/pyproject.toml:2,4`: `backend`, "FastAPI backend with PostgreSQL" | `konnekt-backend` with a description of the product; `uv.lock` regenerated by uv |
-| Database names | `template_db`, `template_db_test`: `docker-compose.yml`, `docker-compose.prod.yml`, `backend/.env.example`, `backend/app/config.py`, `README.md`, `CLAUDE.md`, `docs/ARCHITECTURE.md`, `.github/workflows/ci.yml:96,106`, 6 bug records, 21 spec files | `konnekt_db`, `konnekt_db_test`; the tests' rule (a name ending in `_test`) unchanged; the step for an existing installation documented (FR-016) |
+| Database names | the old database name and its `_test` form: `docker-compose.yml`, `docker-compose.prod.yml`, `backend/.env.example`, `backend/app/config.py`, `README.md`, `CLAUDE.md`, `docs/ARCHITECTURE.md`, `.github/workflows/ci.yml:96,106`, 6 bug records, 21 spec files | `konnekt_db`, `konnekt_db_test`; the tests' rule (a name ending in `_test`) unchanged; the step for an existing installation documented (FR-016) |
 | The old repository | `frontend/src/pages/Account/constants.ts:145` | `DigitalProductschool/konnekt` |
 | Earlier specs and bug records | `specs/001`–`011`, `.specify/bugs/` | renamed by the same script, with a note at the top of `specs/` (FR-014) |
-| Alembic migrations | `backend/alembic/versions/` (13 files) | never edited; the read-only grep of 2026-11-20 (`grep -rnE 'connection-portal\|community-template\|template_db\|batch27' backend/alembic/`) finds **nothing**, so no allowlist line; the task repeats it |
+| Alembic migrations | `backend/alembic/versions/` (13 files) | never edited; the read-only grep of 2026-11-20 (the search for the old names, over `backend/alembic/`) finds **nothing**, so no allowlist line; the task repeats it |
 
 Beyond that inventory:
 - The README's title is "serviceBW ↔ EUDI Wallet Middleware" (`README.md:1`) and becomes "Konnekt",
@@ -808,12 +817,12 @@ Beyond that inventory:
   Konnekt (`frontend/src/constants.ts:4`, `frontend/index.html:10`).
 - The old repository is named only at `frontend/src/pages/Account/constants.ts:145`; the README and
   the specs do not name it (the README's plugin steps say `<repository>`).
-- `CONNECTION_PORTAL_MCP_URL`, the variable the plugin reads (18 lines in 8 files:
+- The variable the plugin reads, under its old name (18 lines in 8 files:
   `README.md:818-824,932`, `mcp/plugin/.mcp.json`, `mcp/plugin/README.md`,
   `mcp/src/guidance.test.ts`, four files of `specs/007-agent-mcp-server/`): an environment
   variable's name, so it stays (FR-012); FR-013's search does not match it. *Amended
   2026-11-24 (user)*: it becomes `KONNEKT_MCP_URL`.
-- "Connection Portal", the product's earlier name, spelled out 93 times, only in `specs/` and
+- The product's earlier name, spelled out as two words 93 times, only in `specs/` and
   `.specify/bugs/` (the bug record `product-name-header` renamed the product to it); proposed: it
   stays as history, the FR-014 note names it; FR-013's search does not match it. *Amended
   2026-11-24 (user)*: it becomes "Konnekt"; the dozen lines that set it against Konnekt (spec
@@ -822,42 +831,46 @@ Beyond that inventory:
 - `docs/ARCHITECTURE.md:85` (`dps-react-python-template/`) becomes `konnekt/`; `README.md:42` and
   `:851` are rewritten by R10; the constitution's `:69` and `:196` by FR-029.
 - No generated file holds an old name (checked), and no tool name in the repository carries Claude
-  Code's `mcp__connection-portal__` prefix. The tenant name is scrubbing, not naming (R5).
+  Code's prefix for the plugin's tools under the earlier working name. The tenant name is
+  scrubbing, not naming (R5).
 
 **The rename script** (one run, nothing else in flight; the plan's phase B):
 1. Exclude `backend/alembic/versions/`, the four generated files, `specs/012-open-source-release/`,
    `package-lock.json`, `backend/uv.lock`, `LICENSE`, `LICENSE.de` and binary files.
-2. `@connection-portal/` → `@konnekt/`; then `"name": "community-template-frontend"` →
+2. The old package scope → `@konnekt/`; then the template's frontend package name →
    `"name": "@konnekt/frontend"`.
-3. `connection-portal(?!:)` → `konnekt`: the look-ahead leaves exactly the 44 storage-key lines.
-4. `template_db` → `konnekt_db` (also `template_db_test` and throw-away names like
-   `template_db_010_p6`).
-5. `github.com/DigitalProductschool/batch27-faro` → `github.com/DigitalProductschool/konnekt`; no
-   other `batch27-faro` rule: the other 27 lines are paths the scrub replaces (R5: L1, L3, S1).
+3. The earlier working name, where no colon follows it → `konnekt`: a negative look-ahead for
+   the colon leaves exactly the 44 storage-key lines.
+4. The old database name → `konnekt_db` (also its `_test` form and the throw-away names built
+   on it, like the one with `_010_p6`).
+5. The existing repository's GitHub address → `github.com/DigitalProductschool/konnekt`; no
+   other rule for the existing repository's name: the other 27 lines holding it are paths the
+   scrub replaces (R5: L1, L3, S1).
 6. By hand: `backend/pyproject.toml`'s name and description, the README's title, `CLAUDE.md:1`, the
    API's title.
 7. `npm install`; `uv lock` in `backend/` (no `--upgrade`);
    `uv run python -m scripts.export_check_fixtures --check`.
-8. After the scrub, `grep -rnIE 'connection-portal|community-template|template_db|batch27'` over the
+8. After the scrub, the search for the old names (`grep -rnIE` for the earlier working name, the
+   template's package name, the old database name and the existing repository's name) over the
    tree prints only the allowlist below.
 
 **The rename's amendment** (user, 2026-11-24, after steps 1–7 had run): no old name stays
 anywhere. A second pass, with the same exclusions, rewrote by hand the lines that set the old
-product name against Konnekt, then replaced `connection-portal:` → `konnekt:`,
-`CONNECTION_PORTAL_MCP_URL` → `KONNEKT_MCP_URL` and "Connection Portal" → "Konnekt"; the plugin's
-author became Team Faro (spec, Clarifications 2026-11-20). This spec's own files keep the old
-names until T041 cleans them last. The git history keeps them (FR-044 removes only the star
-artwork).
+product name against Konnekt, then replaced the old storage prefix → `konnekt:`, the plugin's
+variable → `KONNEKT_MCP_URL` and the product's earlier name → "Konnekt"; the plugin's author
+became Team Faro (spec, Clarifications 2026-11-20). This spec's own files kept the old names until
+T041 cleaned them last. The git history keeps them (FR-044 removes only the star artwork).
 
 **An existing installation** (FR-016, *withdrawn 2026-11-24*: everything is redeployed, so the
 README gets no such paragraph; kept here as the record of what it would have said):
 PostgreSQL's image creates `POSTGRES_DB` only in an empty
-data directory, so an existing volume keeps `template_db` while the new default names a database
-that does not exist. The README gives the operator the choice: `ALTER DATABASE template_db RENAME
-TO konnekt_db;` with no session connected, or the old name kept through `DATABASE_URL` and
-`POSTGRES_DB`. The plugin: remove `connection-portal@connection-portal` and its marketplace, add the
-marketplace again, install `konnekt@konnekt`; a user's own permission rules naming
-`mcp__connection-portal__…` need the new prefix.
+data directory, so an existing volume keeps the old database name while the new default names a
+database that does not exist. The README gives the operator the choice:
+`ALTER DATABASE <old database name> RENAME TO konnekt_db;` with no session connected, or the old
+name kept through `DATABASE_URL` and `POSTGRES_DB`. The plugin: remove the plugin and its
+marketplace installed under the earlier working name, add the marketplace again, install
+`konnekt@konnekt`; a user's own permission rules naming the tools under the old prefix need the
+new prefix.
 
 | Allowlist of the old names (FR-013, as amended 2026-11-24) | Reason |
 |---|---|
@@ -874,7 +887,7 @@ a database or a client has stored or sends.
 
 **Alternatives considered**: renaming the storage keys with a browser-side migration (code for no
 user benefit, drafts lost in a browser that skips the version); keeping the scope
-`@connection-portal` (the old name in every import); keeping the storage keys' old prefix (the
+the old package scope (the old name in every import); keeping the storage keys' old prefix (the
 first decision, replaced on 2026-11-24: the user wants no old name, and everything is
 redeployed).
 
@@ -1027,7 +1040,7 @@ reading the cited sections.
 | `README.md` | 120 | `docker-compose.prod.yml # Production and previews (Coolify)` |
 | `README.md` | 659–670 | "Frontend container (production nginx)": set "for example in Coolify"; defaults `${SERVICE_NAME_BACKEND}`, `${SERVICE_NAME_MCP}` "in Coolify"; `TRUSTED_PROXY_CIDRS` as "Coolify's Traefik" |
 | `README.md` | 678, 691–693, 769, 772–774 | the tenant, the patched build, the live deployment's shared tenant and trust list (R5) |
-| `README.md` | 818–824, 932 | `CONNECTION_PORTAL_MCP_URL`; "a preview deployment has its own domain" |
+| `README.md` | 818–824, 932 | the plugin's variable under its old name; "a preview deployment has its own domain" |
 | `README.md` | 849–863 | "Spec-Driven Development with Spec Kit": "This template supports [GitHub Spec Kit]…" and its installation, `uvx --from git+https://github.com/github/spec-kit.git specify init --here` |
 | `README.md` | 865–945 | "Deployment / Deploy to Coolify": the resource; Coolify's generated `SERVICE_PASSWORD_POSTGRES` and `SERVICE_FQDN_FRONTEND` (886–887); `my-team.dpschool.app` (884, 919, 925); the wrong `APP_ENV` sentence (904–905); HTTPS from Coolify's Traefik (907); "Enable preview deployments" (911–935) |
 | `docs/ARCHITECTURE.md` | 21, 85, 107, 608, 1843, 2015, 2063 | the tenant in the diagram; the template's folder; Coolify in the tree and settings tables; "`SameSite` alone isn't enough, because PR previews…" |
@@ -1065,10 +1078,10 @@ variable names (FR-012).
 **Checked**: on 2026-11-20, what the audits could read: the git objects only. `gh` is not
 installed, so nothing GitHub stores for the repository was read.
 
-**Findings**: making `DigitalProductschool/batch27-faro` public also publishes about 170 pull
-requests (the merges name #73 to #170) with descriptions, comments and images, the review bot's
-output, the Actions runs' logs and artefacts, deployment and environment records (Coolify's GitHub
-App writes preview URLs there), webhooks, wiki, Discussions, releases, the names of the
+**Findings**: making the existing repository public also publishes about 170 pull requests (the
+merges name #73 to #170) with descriptions, comments and images, the review bot's output, the
+Actions runs' logs and artefacts, deployment and environment records (Coolify's GitHub App writes
+preview URLs there), webhooks, wiki, Discussions, releases, the names of the
 repository's secrets, forks, `refs/pull/*`, and commits force-pushed away but fetchable by hash. The
 star artwork's copy in the history stays reachable through `refs/pull/*` whatever is done to the
 branches.
@@ -1082,8 +1095,8 @@ FR-044), because that removal does not hold in the existing repository (below).
 
 **Decision** of 2026-11-24 (the mentor), which replaces that of 2026-11-20: the rewritten `main`
 is pushed into a new repository, `DigitalProductschool/konnekt` (the name is final), and that
-one is published. `batch27-faro` is not renamed: it stays private and is archived, and keeps its
-pull requests, its logs and the consent statements. Nothing rewritten is pushed to it.
+one is published. The existing repository is not renamed: it stays private and is archived, and
+keeps its pull requests, its logs and the consent statements. Nothing rewritten is pushed to it.
 
 **The history rewrite** (FR-044; T040 writes `history-rewrite.md`):
 
@@ -1108,6 +1121,24 @@ pull requests, its logs and the consent statements. Nothing rewritten is pushed 
   signed. The four objects are still the only versions of the old files; `320728d` deleted the
   files from the tree. The eight new pictures are `.webp` files under other names, and those
   three pull requests added no other picture than these and `logo-white.svg`.
+- Changed on 2026-11-24 (user): only the commits from `48fb277` on are rewritten, and the user
+  signs them again. Rehearsed that day on scratch clones of `main` at `2d3f0f3`, signing with
+  a throwaway SSH key: `--refs "$BASE..main"` with `BASE` the parent of `48fb277` (`f8fb1d7`),
+  then `git filter-branch --commit-filter 'git commit-tree -S "$@"' -- "$BASE..main"`. 301
+  commits and 44 merges before and after, the last tree `b5d0efa` unchanged; the 196 commits
+  before `48fb277` kept their hash and their signature; the 105 rewritten ones (the one
+  unsigned commit of `main` among them) were all signed, with authors, committers, dates and
+  messages unchanged; none of the four objects reachable from `main`, none in an empty
+  repository after `main` was pushed into it, and `git fsck` passed there.
+- What the change brings with it: with `--refs` the tool tidies nothing up, so the working
+  clone keeps `origin` and the four objects, and `filter-branch` adds `refs/original/`; only
+  `main` is pushed, and the objects' absence is checked in the new repository. The tool alone
+  replaced the hashes in five lines of two commit messages by those of its own result, which
+  the signing changed again; `--preserve-commit-hashes` leaves the messages as written (no
+  line differed). Of the 105, GitHub is the committer of 16 (its merge commits) and the user
+  of 89: signed with the user's key, the 16 show as "Unverified" on GitHub, which the user
+  accepts. The tool cannot sign, whoever runs it, and a full rewrite would also have replaced
+  the 196 older signatures.
 - When: after everything is merged and before anything is public. Done after publication it
   removes nothing from GitHub or from anyone's clone or fork, and it breaks every clone.
 - What it does not reach in the existing repository, private or public: the pull request that
@@ -1137,7 +1168,7 @@ of the rewritten history to the existing repository, which does not remove them 
 | 1 | Rotate what FR-031 names: no credential was found, so nothing; run `gitleaks git --log-opts=--all` once more just before publishing, since the CI scans only what is pushed | R5 |
 | 2 | Delete the 18 merged branches, and `opensource` after the merge | R5 |
 | 4 | Detach infrastructure, connectors and the review bot (Coolify's pull-request previews are the team's, R6 finding 1) | R11, R6 |
-| 5 | Create `DigitalProductschool/konnekt` as a new, empty, private repository with push access for the user; archive `batch27-faro`, which stays private | R11, decision of 2026-11-24 |
+| 5 | Create `DigitalProductschool/konnekt` as a new, empty, private repository with push access for the user; archive the existing repository, which stays private | R11, decision of 2026-11-24 |
 | 6 | Protection rules for `main` in the new repository, set after the first push; the CI keeps read-only permissions | R6, FR-041 |
 | 7 | Close issues and pull requests as the status banner says | FR-024 |
 | 9 | A tag on the published commit | FR-043 |
@@ -1150,7 +1181,7 @@ of the rewritten history to the existing repository, which does not remove them 
 
 | # | Point | Who | By | Fallback |
 |---|---|---|---|---|
-| 1 | Closed on 2026-11-24 (the mentor): the rewritten history is published in a new repository (R11). Still open: whether the consent statements must be visible in the public repository | mentor | before the first consent statement | they are posted on the pull request in `batch27-faro`, which stays private |
+| 1 | Closed on 2026-11-24 (the mentor): the rewritten history is published in a new repository (R11). Still open: whether the consent statements must be visible in the public repository | mentor | before the first consent statement | they are posted on the pull request in the existing repository, which stays private |
 | 2 | Closed on 2026-11-24 (the mentor): the name `DigitalProductschool/konnekt` is final | | | |
 | 5 | The terms of KERN's file on Figma Community, from which the designer derived the design's values (R5, item 4) | task | 2026-11-27 | named in `NOTICE.md` with its source and "terms not stated" |
 | 3 | The source of the English country names (`backend/app/option_sets.py`) and of the name and town pools (`rules/src/personas/samples.ts`, `backend/scripts/issue_test_credentials/person.py`) (R3) | task | 2026-11-27 | FR-018: replace or remove (for the country names, re-derive from a list with clear terms) |

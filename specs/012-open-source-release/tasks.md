@@ -36,13 +36,14 @@ which only the user runs.
 
 ## Path Conventions
 
-- All paths are relative to the repository root, `/home/debian/batch27-faro/opensource`.
+- All paths are relative to the repository root, this checkout's top directory.
 - "The Node gates": `npm run lint && npm test && npm run build`, from the root.
 - "The backend gates", from `backend/`: `uv run ruff check . && uv run ruff format --check .`,
   `uv run mypy app/ scripts/ tests/`, and `uv run pytest` with `DATABASE_URL` naming the test
-  database on `localhost:5435` (`template_db_test` before T004, `konnekt_db_test` after it;
-  PostgreSQL from `docker compose up -d postgres`; create the database if it is missing). If no
-  PostgreSQL can be started, say so in the report; never skip silently.
+  database on `localhost:5435` (the old database name's test form before T004,
+  `konnekt_db_test` after it; PostgreSQL from `docker compose up -d postgres`; create the
+  database if it is missing). If no PostgreSQL can be started, say so in the report; never skip
+  silently.
 - "Scratch": a directory the task makes outside the repository for scripts, downloads and build
   output. Nothing in a committed file names it.
 - `verification.md` in the feature directory is the run's record: T003 starts it, phase 8
@@ -66,10 +67,10 @@ which only the user runs.
    in the same checkout at the same time.
 5. **Nothing private is written**: no secret value, no full connection or session ID, no email
    address other than `hello@dpschool.io`, no path of the machine the task runs on.
-6. **No task commits or switches branches.** Git reads work only with
-   `GIT_DIR=/home/debian/batch27-faro/worktrees/opensource` and
-   `GIT_WORK_TREE=/home/debian/batch27-faro/opensource` set; with any other `GIT_DIR`, `git
-   status` shows every file as deleted and must be ignored.
+6. **No task commits or switches branches.** Git reads work only with `GIT_DIR` set to this
+   checkout's directory under `worktrees/` in the bare repository that holds it (the checkout's
+   parent directory) and `GIT_WORK_TREE` set to the checkout's root; with any other `GIT_DIR`,
+   `git status` shows every file as deleted and must be ignored.
 7. **`CLAUDE.md` and the constitution apply** to every code change: sync database access,
    `ApiResponse`, `Text(en, de)` messages, `defineTexts`, Tailwind classes only, no new
    dependency (plan, Constitution Check).
@@ -115,35 +116,36 @@ changes. Runs before everything else because every later file carries the name (
 T003.
 
 **Amended on 2026-11-24 (user), after T004 and T005 had run**: no old name stays anywhere, the
-storage keys included (spec, Clarifications "no old name left"). T004's second pass renamed
-`connection-portal:` → `konnekt:`, `CONNECTION_PORTAL_MCP_URL` → `KONNEKT_MCP_URL` and
-"Connection Portal" → "Konnekt" (the lines that set it against Konnekt by hand), and the plugin's
-author → Team Faro. The search's allowlist is now only this feature's directory, which T041
-cleans last. Where T004's and T005's text below says otherwise, this paragraph wins.
+storage keys included (spec, Clarifications "no old name left"). T004's second pass renamed the
+old storage prefix → `konnekt:`, the plugin's variable → `KONNEKT_MCP_URL` and the product's
+earlier name → "Konnekt" (the lines that set it against Konnekt by hand), and the plugin's author
+→ Team Faro. The search's allowlist is now only this feature's directory, which T041 cleans
+last. Where T004's and T005's text below says otherwise, this paragraph wins.
 
 - [X] T004 [US3] [high] Rename by script, as research R7 "The rename script" gives it, steps 1 to
   6, with nothing else in flight. The script lives in scratch and is not committed. Step 1's
   exclusions exactly (`backend/alembic/versions/`, the four generated files, this feature's
   directory, both lockfiles, `LICENSE`, `LICENSE.de`, binary files). Steps 2 to 5 are the ordered
-  replacements; check after step 3 that exactly the storage-key lines R7 counts still read
-  `connection-portal:`. Step 6 by hand, plus: `docs/ARCHITECTURE.md:85`
+  replacements; check after step 3 that exactly the storage-key lines R7 counts still carry the
+  old storage prefix. Step 6 by hand, plus: `docs/ARCHITECTURE.md:85`
   (`dps-react-python-template/` → `konnekt/`); `.claude-plugin/marketplace.json`'s owner →
   `Team Faro` (spec, Clarifications); the plugin's, the marketplace's and the MCP server's name
   → `konnekt` in the places R7's table lists, with `mcp/src/guidance.test.ts` following; the
-  API's title in `backend/app/main.py`. Not renamed: `CONNECTION_PORTAL_MCP_URL`, "Connection
-  Portal" spelled out in `specs/` and `.specify/bugs/`, the paths holding `batch27-faro` (phase
-  5 replaces them). Items: FR-011, FR-012, FR-015; files: every file the rules match; gates:
-  none yet (T005).
+  API's title in `backend/app/main.py`. Not renamed: the plugin's variable, the product's earlier
+  name spelled out in `specs/` and `.specify/bugs/`, the paths holding the existing repository's
+  name (phase 5 replaces them). Items: FR-011, FR-012, FR-015; files: every file the rules
+  match; gates: none yet (T005).
 - [X] T005 [US3] [high] Regenerate and prove the rename: `npm install` from the root and `uv lock`
   in `backend/` without `--upgrade` (rule 3), then
   `uv run python -m scripts.export_check_fixtures --check`; create `konnekt_db_test`; the Node
   gates and the backend gates, with the same test counts as T003; `git diff --stat` shows no
   change under `backend/alembic/versions/` and none in the four generated files unless the
-  generator made it; `grep -rnIE 'connection-portal|community-template|template_db|batch27'`
-  over the tree (without `node_modules`, `.venv`, `dist`, the lockfiles) prints only R7's
-  allowlist plus the `batch27-faro` paths phase 5 removes, listed in the report. Append the
-  result to `verification.md`. Items: FR-012, FR-013, SC-009; depends on T004; files:
-  `package-lock.json`, `backend/uv.lock`, `verification.md`; gates: all.
+  generator made it; the search for the old names (`grep -rnIE` for the earlier working name,
+  the template's package name, the old database name and the existing repository's name) over
+  the tree (without `node_modules`, `.venv`, `dist`, the lockfiles) prints only R7's allowlist
+  plus the paths holding the existing repository's name, which phase 5 removes, listed in the
+  report. Append the result to `verification.md`. Items: FR-012, FR-013, SC-009; depends on
+  T004; files: `package-lock.json`, `backend/uv.lock`, `verification.md`; gates: all.
 - [X] T006 [US3] [medium] `specs/README.md` (new): one short page saying what `specs/` and
   `.specify/bugs/` hold (how the project was built, feature by feature and bug by bug), and that on
   the rename's date (2026-11-24) the names in these records (packages, databases, the
@@ -540,20 +542,20 @@ statement ready to post.
 **Purpose**: FR-038 to FR-041 and the success criteria, on the finished tree. Reports only; a
 failure goes back to the task that owns the file. Everything is appended to `verification.md`.
 
-- [ ] T035 [high] The gates on the finished tree: the Node gates and the backend gates;
+- [X] T035 [high] The gates on the finished tree: the Node gates and the backend gates;
   the test counts against T003 (the same tests plus phase 6's new ones; none removed or
   skipped: `git diff` over the test files); `sha256sum LICENSE` against rule 1,
   `cmp LICENSE backend/LICENSE LICENSES/EUPL-1.2.txt`; `uv run python -m
   scripts.export_check_fixtures --check`; `git diff --stat` under `backend/alembic/versions/`
   shows only added files. Items: FR-002, FR-038, SC-009; gates: all.
-- [ ] T036 [P] [medium] Licence and secret checks: `reuse lint` (SC-001); the two commands of
+- [X] T036 [P] [medium] Licence and secret checks: `reuse lint` (SC-001); the two commands of
   `NOTICE.md` run as written, on the machine's Node and, if Docker is available, in
   `node:26-alpine`, with no tracked file changed afterwards; gitleaks at the version and
   checksum the CI pins (`.github/workflows/ci.yml`), over the tree and with
   `--log-opts=--all`, `--redact`, both without findings; `npm run notices -w frontend` leaves
   the committed file unchanged. Items: FR-021, FR-030, SC-001, SC-005.
-- [ ] T037 [P] [medium] The searches: the old names (T005's command, plus "Connection Portal"
-  in any case: `grep -rnIiE 'connection[ _-]?portal|community-template|template_db|batch27'`)
+- [X] T037 [P] [medium] The searches: the old names (T005's search made case-insensitive, plus
+  the product's earlier name spelled with a space, an underscore or nothing between its words)
   print nothing outside this feature's directory (research R7, as amended 2026-11-24); research
   R5's five checks against its allowlist; `README.md` and `docs/` for
   `coolify` (any case) and for the Spec Kit installation command; every internal link of
@@ -562,7 +564,7 @@ failure goes back to the task that owns the file. Everything is appended to `ver
   status). Write R5's final allowlist into research if a line was added or went away, with its
   reason; it stays under 20 lines (SC-004). Items: FR-013, FR-025, FR-035, FR-040, SC-004;
   files: `research.md` (R5's allowlist only).
-- [ ] T038 [high] The fresh clone (FR-039): since nothing is committed here, copy exactly what a
+- [X] T038 [high] The fresh clone (FR-039): since nothing is committed here, copy exactly what a
   clone would hold, `git ls-files -co --exclude-standard`, into an empty scratch directory,
   and there follow `README.md`'s "Quick Start" word for word with nothing else: the time from
   the first command to the sign-in page and a first account (SC-007, under 30 minutes); then
@@ -571,7 +573,7 @@ failure goes back to the task that owns the file. Everything is appended to `ver
   `NOTICE.md` says). Every place where the README was not enough is a finding for T016. Without
   Docker on this machine: write the exact commands under "Needs a person". Items: FR-039,
   SC-007.
-- [ ] T041 [US3] [high] Clean this feature's own files of the old names (spec, Clarifications
+- [X] T041 [US3] [high] Clean this feature's own files of the old names (spec, Clarifications
   2026-11-24), last of all the edits: every file under `specs/012-open-source-release/`
   (`spec.md`, `plan.md`, `research.md`, `tasks.md`, `verification.md`, `pr.md`, `handover.md`,
   `history-rewrite.md`, `checklists/`). Replace each old name by neutral words that keep the
@@ -580,13 +582,13 @@ failure goes back to the task that owns the file. Everything is appended to `ver
   repository's address takes the placeholder `<existing-repository-url>`, with one sentence saying
   that the mentor and the user know it. Also remove the checkout's paths (the `GIT_DIR` and
   `GIT_WORK_TREE` values, the clone path of T040's rehearsal): describe them in words. Keep
-  `LICENSE`'s hash, the commit hashes and everything else. Then
-  `grep -rnIiE 'connection[ _-]?portal|community-template|template_db|batch27'` over the whole
-  tree (without `node_modules`, `.venv`, `dist`, the lockfiles, the untracked `.git` pointer)
-  prints **nothing**; append that result to `verification.md` in the same neutral words. From
-  here on no task writes an old name. Items: FR-013, SC-004; depends on T035 to T038, and on
-  T040 if it runs before; files: this feature's directory; gates: the search.
-- [ ] T039 [medium] The record: `verification.md` ends with one table, one row per success
+  `LICENSE`'s hash, the commit hashes and everything else. Then the old-name search (T037's
+  case-insensitive form of T005's search) over the whole tree (without `node_modules`, `.venv`,
+  `dist`, the lockfiles, the untracked `.git` pointer) prints **nothing**; append that result to
+  `verification.md` in the same neutral words. From here on no task writes an old name. Items:
+  FR-013, SC-004; depends on T035 to T038, and on T040 if it runs before; files: this feature's
+  directory; gates: the search.
+- [X] T039 [medium] The record: `verification.md` ends with one table, one row per success
   criterion SC-001 to SC-010 and per user story's Independent Test, each "met", "not met" or
   "needs a person" with the evidence; the list of open points still open (research, "Open
   points"); and what a person must still do, in order. Tick nothing that was not run. It writes
@@ -626,32 +628,67 @@ repository or the one on GitHub.
   ending in an image extension: nine screenshots under `.specify/bugs/`, two test images, the
   icons): one that reproduces the star artwork joins the list with its reason, and if it is
   still in the tree it is deleted there with the lines that link it.
-  **How**: `git filter-repo --strip-blobs-with-ids <file of IDs>`, run without being declared
-  (`uvx git-filter-repo`, the version written into the runbook), in a fresh clone that holds
-  only `main`. Never `--invert-paths --path …`: it would also remove new files that kept an old
-  name.
+  **How** (changed 2026-11-24; research R11, "The history rewrite", holds the rehearsal), in a
+  fresh clone that holds only `main`, in three commands:
+  `BASE=$(git rev-parse '48fb277^')` (`f8fb1d7`), taken before the rewrite, because `48fb277`
+  itself gets a new hash;
+  `git filter-repo --strip-blobs-with-ids <file of IDs> --refs "$BASE..main"
+  --preserve-commit-hashes`, run without being declared (`uvx git-filter-repo`, the version
+  written into the runbook);
+  `git filter-branch --commit-filter 'git commit-tree -S "$@"' -- "$BASE..main"`, which signs
+  the rewritten commits with the key of whoever runs it and keeps their authors, committers,
+  dates, messages and parents.
+  `--refs` limits the rewrite to the commits from `48fb277` on (105 of the 301 on 2026-11-24);
+  the 196 before it never held the pictures and keep their hash and signature. Without
+  `--preserve-commit-hashes` the tool replaces the hashes that commit messages cite by those
+  of its own result, which the signing step then changes again: five lines of two messages
+  would cite commits that do not exist. With it the messages stay as written and cite the
+  history before the rewrite, as the specs do. Never `--invert-paths --path …`: it would also
+  remove new files that kept an old name.
+  With `--refs` the tool does not tidy up: the working clone keeps the `origin` remote and the
+  four objects, and the signing step adds `refs/original/`. So only `main` is pushed, by name
+  (never `--all` or `--mirror`), and the objects' absence is checked in the new repository.
   **The runbook** is for a person who has not read this spec, every command written out, in
   this order: what must be true before (everything merged into `main`, the consent statements
   counted, the new visuals and T014 in `main`, nobody holding unpushed work, the new repository
-  `DigitalProductschool/konnekt` created by the mentor, empty and private, with push access); the fresh clone; the tree's hash and the commit count noted; the rewrite; the checks
+  `DigitalProductschool/konnekt` created by the mentor, empty and private, with push access; the
+  signing key at hand, since the signing step asks for it); the fresh clone (its command takes
+  `<existing-repository-url>` for the existing repository's address, which the mentor and the
+  user know); the tree's hash, the commit count, `BASE` and the count of `"$BASE..main"` noted;
+  the rewrite; the signing; the checks before the push (`git rev-list --objects main` names
+  none of the IDs; `git rev-parse 'main^{tree}'`, `git rev-list --count main` and
+  `git rev-list --count "$BASE..main"` equal the noted values, and
+  `git merge-base --is-ancestor "$BASE" main` holds, so the commits before the artwork are in
+  `main` as they were; every commit of `main` carries a signature; `sha256sum LICENSE` equals
+  rule 1;
+  gitleaks over the result); the push of `main` alone into the new, empty, still private
+  repository; the checks after it, in a fresh clone of the new repository
   (`git cat-file -e <id>` fails for every ID, and `git rev-list --all --objects` names none of
-  them; `git rev-parse 'HEAD^{tree}'` and `git rev-list --count HEAD` equal the noted values;
-  `sha256sum LICENSE` equals rule 1; gitleaks over the result); the push of `main` into the
-  new, empty, still private repository and the look at it on GitHub; the tag; then what every
-  holder of an old clone does (delete it and clone anew; a branch pushed from an old clone
-  brings the files back) with the one command that tells whether a clone still holds them.
+  them) and the look at it on GitHub; the tag; the deletion of the working clone, which still
+  holds the pictures; then what every holder of an old clone does (delete it and clone
+  anew; a branch pushed from an old clone brings the files back) with the one command that tells
+  whether a clone still holds them.
   Nothing rewritten is pushed to the existing repository (decided 2026-11-24): the runbook says
   in one paragraph why it stays private, naming what would still show the files there (the
   pull request that merged `48fb277`, by its number from the merge commit, and the old hashes).
-  **What it must say plainly**: every commit gets a new hash and loses its signature (count
-  the signed ones again; 300 of the 301 on `main` on 2026-11-24); the hashes that the specs and bug records cite are those of the history
-  before the rewrite (count the cited strings that resolve to a commit and give the number;
-  add one sentence saying so to `specs/README.md`); done after publication, the rewrite no
-  longer removes anything from GitHub or from anyone's copy.
-  **Rehearsal**: in scratch, `git clone --no-local /home/debian/batch27-faro`, there commit
+  **What it must say plainly**: the commits from `48fb277` on get a new hash and the
+  signature of whoever runs the runbook, the commits before it keep both (count them again;
+  105 and 196 on 2026-11-24, 300 of the 301 signed before); the 16 merge commits that GitHub
+  made keep GitHub as committer, so GitHub shows the new signature on them as "Unverified",
+  which the user accepts (2026-11-24); the hashes that the specs, the bug records and the
+  commit messages cite are those of the history before the rewrite, so those of the commits
+  before `48fb277` still resolve and the later ones do not (count the cited strings that
+  resolve to a commit before and after, and give both numbers; add one sentence saying so to
+  `specs/README.md`); done after publication, the rewrite no longer removes anything from
+  GitHub or from anyone's copy.
+  **Rehearsal**: in scratch, `git clone --no-local <bare-repository>`, where `<bare-repository>`
+  is the bare repository that holds this checkout (the checkout's parent directory); there commit
   the tree as this checkout holds it (`git ls-files -co --exclude-standard`, copied over) as
   one commit on top with a neutral author, which rule 6 allows because it is not the
-  repository; run the runbook's commands up to the push; write the checks' output and the date
+  repository; sign with a throwaway SSH key made in scratch (`gpg.format ssh` and
+  `user.signingkey` in the clone's own configuration), since the user's key is not here; run
+  the runbook's commands up to the push, and push `main` into an empty bare repository in
+  scratch for the checks after it; write the checks' output and the date
   under "Rehearsed" in the runbook; delete the clone. Items: FR-044, SC-002; depends on T014;
   files: `history-rewrite.md`, `specs/README.md` (one sentence), a screenshot's deletion if one
   is found; gates: the rehearsal's checks.
@@ -681,7 +718,8 @@ repository or the one on GitHub.
 5. The new visuals (the bug records `new-visuals` and `login-welcome-motion`) were pull
    requests of their own, outside this spec, and are in `main` since 2026-11-24.
 6. Last, after the merge and before anything is public: the history rewrite by
-   `history-rewrite.md` (phase 9). It is not a commit; it gives every commit a new hash.
+   `history-rewrite.md` (phase 9). It is not a commit; it gives every commit from `48fb277` on
+   a new hash.
 
 `LICENSE` is in commit 1 only. A later commit that shows it as changed is a mistake.
 
@@ -746,9 +784,8 @@ repository or the one on GitHub.
 - `[P]` = different files, no unfinished dependency.
 - The checkboxes here and `verification.md` are the only state between sessions: tick a task
   only when its gates are green.
-- Git: `GIT_DIR=/home/debian/batch27-faro/worktrees/opensource` and
-  `GIT_WORK_TREE=/home/debian/batch27-faro/opensource`; a task agent never commits, and the
-  coordinator commits only when the user asks.
+- Git: `GIT_DIR` and `GIT_WORK_TREE` set as rule 6 describes; a task agent never commits, and
+  the coordinator commits only when the user asks.
 - Decided by the mentor on 2026-11-24: the repository's name `DigitalProductschool/konnekt` is
   final, and it is a new repository that receives the rewritten history; T040 has no other
   route. Open and stopping no task: whether the consent statements must be visible in the
