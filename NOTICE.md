@@ -72,6 +72,15 @@ Inc.: [.specify/scripts/bash/](.specify/scripts/bash/), [.specify/templates/](.s
 [.claude/skills/](.claude/skills/). They are as Spec Kit's installer wrote them, with its paths and
 front matter filled in; the team changed nothing else in them.
 
+### The patch for EUDIPLO
+
+[docs/patches/eudiplo-9.0.0-mdoc-nested-maps.patch](docs/patches/eudiplo-9.0.0-mdoc-nested-maps.patch)
+is the team's change to EUDIPLO 9.0.0 (<https://github.com/EUDIPLO/eudiplo>), together with the
+lines of the three EUDIPLO files it changes: Apache License 2.0 (Apache-2.0). EUDIPLO's `LICENSE`
+reads "Copyright [2025] [Mirko Mollik]"; EUDIPLO has no `NOTICE` file, and the three files carry
+no notice of their own. The patch is no part of Konnekt: it is applied to EUDIPLO
+([docs/COMPATIBILITY.md](docs/COMPATIBILITY.md#nested-fields-of-the-driving-licence)).
+
 ### Unicode data
 
 [rules/src/checks/caseFolding.ts](rules/src/checks/caseFolding.ts) and the case-folded strings in

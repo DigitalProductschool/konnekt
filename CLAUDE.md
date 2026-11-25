@@ -17,6 +17,7 @@ task touches its subject.
 | `docs/TEST-CREDENTIALS.md` | You issue test documents to a test wallet, or change the script that does |
 | `docs/MCP-SERVER.md` | What team members read about agents: access levels, approvals, the tools, installing the plugin |
 | `docs/DEPENDENCIES.md` | You add, change or remove a dependency: why each one was added, and the pins |
+| `docs/COMPATIBILITY.md` | You change the catalog, upgrade EUDIPLO or work on the German wallet: the tested versions, why the catalog holds every field, the known limits |
 | `README.md` | The overview and the index of the documents: it holds no details |
 | `NOTICE.md`, `REUSE.toml` | You add a dependency, font, icon or picture, or copy in a file: what is others' and each file's licence |
 | `specs/<feature>/` | You work on a speckit task: spec, plan, research (R#), data model, contracts, design notes |

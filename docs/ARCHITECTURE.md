@@ -624,6 +624,10 @@ backend/
 - Only libraries the code imports are declared.
 - Domain logic lives in `app/services/`, so the routers stay thin and the worker
   reuses the same functions.
+- **The catalog holds both documents in full** (`app/catalog.py`): every data item of the
+  European PID and of the mobile driving licence, not only those one country's wallet holds,
+  so that Konnekt isn't limited to Germany. Why, and what follows from it:
+  [COMPATIBILITY.md](COMPATIBILITY.md#the-catalog-offers-every-field-not-only-one-countrys).
 - **The catalog's data groups** (spec 010, FR-077 to FR-080, research R8, data-model §6):
   `FIELD_GROUPS` in `app/catalog.py` lists the groups in the panel's order (Name, Birth,
   Address, Document, Licence, Appearance, Other details), each with its German label, and

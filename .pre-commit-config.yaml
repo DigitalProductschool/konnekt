@@ -10,6 +10,9 @@ repos:
     rev: v6.0.0
     hooks:
       - id: trailing-whitespace
+        # A patch's empty context lines and its "-- " line end in a space: without it the
+        # patch no longer applies
+        exclude: ^docs/patches/
       - id: check-merge-conflict
       - id: check-added-large-files
         args: ["--maxkb=1500"]

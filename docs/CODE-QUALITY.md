@@ -31,7 +31,8 @@ The hooks in `.pre-commit-config.yaml` run on every `git commit`:
 - `ruff check --fix` and `ruff format` on Python files
 - `prettier --write` and `eslint --fix` on `api-types/`, `rules/`, `frontend/` and `mcp/`
   files, run from the repository root
-- trailing whitespace, merge conflict markers, large files
+- trailing whitespace (not in `docs/patches/`, where a patch must stay byte for byte), merge
+  conflict markers, large files
 - `gitleaks` on the staged changes, which refuses a commit that adds a secret (see
   [Secrets (gitleaks)](#secrets-gitleaks)). pre-commit builds it from source the first time it
   runs, which takes a minute, and fetches Go for it if Go isn't installed

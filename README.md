@@ -61,6 +61,7 @@ The other ways to run it, and every command, are in [docs/DEVELOPMENT.md](docs/D
 | [docs/MCP-SERVER.md](docs/MCP-SERVER.md) | Working with an LLM agent: the access levels, approvals, the tools, installing the plugin, connecting other MCP clients |
 | [docs/EUDIPLO.md](docs/EUDIPLO.md) | EUDIPLO's management API as Konnekt uses it, and [what the tenant needs](docs/EUDIPLO.md#what-the-tenant-needs) |
 | [docs/TEST-CREDENTIALS.md](docs/TEST-CREDENTIALS.md) | Issuing a test PID and driving licence to a test wallet |
+| [docs/COMPATIBILITY.md](docs/COMPATIBILITY.md) | What Konnekt was tested with (EUDIPLO 9), why the catalog offers every field, the state of the German EUDI Wallet, the driving licence's nested fields |
 | [docs/KERN-DESIGN-SYSTEM.md](docs/KERN-DESIGN-SYSTEM.md) | The KERN design system in the frontend: its packages, tokens, components and gotchas |
 | [docs/FIGMA-WORKFLOW.md](docs/FIGMA-WORKFLOW.md) | Implementing a Figma design, step by step |
 | [docs/DEPENDENCIES.md](docs/DEPENDENCIES.md) | Every dependency added to the template, and why |
@@ -73,7 +74,7 @@ The other ways to run it, and every command, are in [docs/DEVELOPMENT.md](docs/D
 - **Backend**: FastAPI (Python 3.13+), SQLAlchemy 2, Alembic, psycopg 3
 - **MCP server**: Node, TypeScript, the official MCP TypeScript SDK 2, zod 4, Vite (build)
 - **Database**: PostgreSQL 18
-- **External service**: EUDIPLO 9, which talks to the citizens' wallets ([docs/EUDIPLO.md](docs/EUDIPLO.md))
+- **External service**: EUDIPLO 9, which talks to the citizens' wallets ([docs/EUDIPLO.md](docs/EUDIPLO.md)); the version Konnekt was tested with ([docs/COMPATIBILITY.md](docs/COMPATIBILITY.md))
 - **Tooling**: ESLint 9, Prettier, Vitest, Ruff, mypy, pytest, pre-commit, gitleaks, uv (Python), Docker
 
 ## Repository

@@ -72,10 +72,11 @@ Good to know:
   no answer from these test documents.
 - EUDIPLO 9 issues an mdoc's claims with their JSON types: dates are text, not the CBOR dates of
   ISO/IEC 18013-5, and the portrait and signature are base64 text, not bytes.
-- EUDIPLO 9.0 loses the content of nested mdoc maps in presentation results: the middleware
-  receives `driving_privileges` as `[{}, {}, …]`, one empty object per category. This affects
-  real driving licences as well. A patched 9.0.0 build fixes it, and there `driving_privileges`
-  arrives in full: check the EUDIPLO you use before relying on this field.
+- EUDIPLO before 10.1.0 loses the content of nested mdoc maps in presentation results: the
+  middleware receives `driving_privileges` as `[{}, {}, …]`, one empty object per category.
+  This affects real driving licences as well. EUDIPLO 9 with the team's patch delivers
+  `driving_privileges` in full: check the EUDIPLO you use before relying on this field
+  ([COMPATIBILITY.md](COMPATIBILITY.md#nested-fields-of-the-driving-licence)).
 - The script prints the made-up person's data. The middleware itself never logs claims.
 - With the tenant's own issuer on the trust list, every environment that uses this trust list
   accepts these test documents. Issue them only in a tenant for testing, or take the entity off

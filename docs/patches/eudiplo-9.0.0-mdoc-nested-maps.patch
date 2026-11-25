@@ -1,0 +1,460 @@
+From a1646ad8029de504c33405bfdf876dfb4f7c8003 Mon Sep 17 00:00:00 2001
+From: Samuele Musiani <samu@teapot.ovh>
+Date: Tue, 13 Oct 2026 13:23:47 +0200
+Subject: [PATCH] fix(verifier): keep nested mdoc claim values in sessions and
+ webhooks
+
+@owf/mdoc passes mdoc element values on as decoded CBOR, where every map
+is a Map, and JSON.stringify writes a Map as {}. Sessions and webhooks
+carry claims as JSON, so driving_privileges arrived as [{}, {}, {}].
+Turn the Maps into plain objects, recursively, before the claims are
+stored. Byte strings, dates and tags keep their JSON form.
+
+The conversion runs before the signature check, so it rejects an element
+value that reaches an object twice (CBOR value sharing, tags 28/29, or
+packed CBOR, which mdoc data does not use) instead of copying it once per
+path, and any map key that is neither text nor an integer.
+---
+ .../mdocverifier/mdocverifier.service.spec.ts | 316 +++++++++++++++++-
+ .../mdocverifier/mdocverifier.service.ts      |  68 +++-
+ apps/docs/docs/reference/session-outcome.md   |   2 +-
+ 3 files changed, 381 insertions(+), 5 deletions(-)
+
+diff --git a/apps/backend/src/verifier/presentations/credential/mdocverifier/mdocverifier.service.spec.ts b/apps/backend/src/verifier/presentations/credential/mdocverifier/mdocverifier.service.spec.ts
+index 846e3484..1fbaf1c4 100644
+--- a/apps/backend/src/verifier/presentations/credential/mdocverifier/mdocverifier.service.spec.ts
++++ b/apps/backend/src/verifier/presentations/credential/mdocverifier/mdocverifier.service.spec.ts
+@@ -1,11 +1,30 @@
+-import { DeviceResponse, Verifier } from "@owf/mdoc";
++import {
++    CoseKey,
++    cborDecode,
++    cborEncode,
++    DateOnly,
++    DeviceKey,
++    DeviceRequest,
++    DeviceResponse,
++    DocRequest,
++    Holder,
++    Issuer,
++    IssuerSigned,
++    ItemsRequest,
++    SessionTranscript,
++    SignatureAlgorithm,
++    Verifier,
++} from "@owf/mdoc";
++import * as x509 from "@peculiar/x509";
++import { exportJWK } from "jose";
+ import { beforeEach, describe, expect, it, vi } from "vitest";
+ import { RevocationListUnavailableError } from "../../../../trust/revocation-policy.util.js";
++import { mdocContext } from "../../mdoc-context.js";
+ import {
+     shortVerificationMessage,
+     type VerificationFailureType,
+ } from "../verification-failure.js";
+-import { MdocverifierService } from "./mdocverifier.service.js";
++import { MdocverifierService, toJsonClaim } from "./mdocverifier.service.js";
+ 
+ describe("MdocverifierService failure classification", () => {
+     let service: MdocverifierService;
+@@ -424,3 +443,296 @@ describe("classifyVerificationError", () => {
+         ).toBe("verification_error");
+     });
+ });
++
++type TagClass = new (value: unknown, tag: number) => object;
++
++/** cbor-x's Tag class: @owf/mdoc decodes unknown tags to it, unexported. */
++const Tag = (cborDecode(new Uint8Array([0xd9, 0x04, 0xd2, 0x01])) as object)
++    .constructor as TagClass;
++
++/**
++ * Driving privileges as an mDL issuer passes them to `addIssuerNamespace`:
++ * dates as text, as EUDIPLO's issuer writes configured claims, and as
++ * full-date (tag 1004).
++ */
++const issuedDrivingPrivileges = [
++    { vehicle_category_code: "AM", issue_date: "2003-05-12" },
++    {
++        vehicle_category_code: "B",
++        issue_date: new DateOnly("2003-05-12"),
++        expiry_date: new DateOnly("2033-05-11"),
++        codes: [{ code: "78" }, { code: "96", sign: "<=", value: "4250" }],
++    },
++];
++
++/** The same driving privileges as JSON. */
++const jsonDrivingPrivileges = [
++    { vehicle_category_code: "AM", issue_date: "2003-05-12" },
++    {
++        vehicle_category_code: "B",
++        issue_date: "2003-05-12",
++        expiry_date: "2033-05-11",
++        codes: [{ code: "78" }, { code: "96", sign: "<=", value: "4250" }],
++    },
++];
++
++// Sessions store claims as JSON, where a Map becomes `{}`: driving_privileges
++// arrived as `[{}, {}]`.
++describe("toJsonClaim", () => {
++    /** An element value as @owf/mdoc decodes it: every CBOR map is a Map. */
++    const decoded = (value: unknown) => cborDecode(cborEncode(value));
++
++    it("turns the Maps in an array into plain objects, nested ones included", () => {
++        const value = decoded(issuedDrivingPrivileges) as unknown[];
++        expect(value[1]).toBeInstanceOf(Map);
++
++        const plain = toJsonClaim(value) as Record<string, unknown>[];
++
++        expect(plain).toHaveLength(2);
++        for (const entry of plain) {
++            expect(Object.getPrototypeOf(entry)).toBe(Object.prototype);
++        }
++        expect(plain[1].vehicle_category_code).toBe("B");
++        const codes = plain[1].codes as Record<string, unknown>[];
++        expect(codes.map((code) => Object.getPrototypeOf(code))).toEqual([
++            Object.prototype,
++            Object.prototype,
++        ]);
++        expect(codes[1]).toEqual({ code: "96", sign: "<=", value: "4250" });
++    });
++
++    it("turns integer map keys into strings", () => {
++        const value = decoded(
++            new Map<number, unknown>([
++                [1, "a"],
++                [2, new Map([[3, "b"]])],
++            ]),
++        );
++
++        expect(toJsonClaim(value)).toEqual({ "1": "a", "2": { "3": "b" } });
++    });
++
++    it("returns byte strings, dates, tags and primitives as they are", () => {
++        const portrait = new Uint8Array([0xff, 0xd8, 0xff]);
++        const birthDate = new DateOnly("1964-08-12");
++        const signed = new Date("2026-10-12T08:00:00Z");
++        // tag(1234) "abc", a tag @owf/mdoc has no type for
++        const tag = cborDecode(
++            new Uint8Array([0xd9, 0x04, 0xd2, 0x63, 0x61, 0x62, 0x63]),
++        );
++        const values = [portrait, birthDate, signed, tag, "B", 18, true, null];
++
++        for (const value of values) {
++            expect(toJsonClaim(value)).toBe(value);
++        }
++        const plain = toJsonClaim(
++            new Map<string, unknown>([
++                ["portrait", portrait],
++                ["birth_date", birthDate],
++                ["signed", signed],
++                ["tagged", tag],
++            ]),
++        ) as Record<string, unknown>;
++        expect(plain.portrait).toBe(portrait);
++        expect(plain.birth_date).toBe(birthDate);
++        expect(plain.signed).toBe(signed);
++        expect(plain.tagged).toBe(tag);
++    });
++
++    it("rejects a value that reaches an object twice", () => {
++        // A Map shared through tags 28 (shareable) and 29 (sharedref)
++        const shared = decoded([
++            new Tag(new Map([["code", "78"]]), 28),
++            new Tag(0, 29),
++        ]);
++        // An array that holds itself
++        const cycle = cborDecode(
++            new Uint8Array([0xd8, 0x1c, 0x81, 0xd8, 0x1d, 0x00]),
++        );
++
++        expect(() => toJsonClaim(shared)).toThrow("reuses a CBOR data item");
++        expect(() => toJsonClaim(cycle)).toThrow("reuses a CBOR data item");
++    });
++
++    it("rejects a map key that is neither text nor an integer", () => {
++        // { [tag28([1])]: 1 }, an array key that could be shared
++        const arrayKey = cborDecode(
++            new Uint8Array([0xa1, 0xd8, 0x1c, 0x81, 0x01, 0x01]),
++        );
++
++        expect(() => toJsonClaim(arrayKey)).toThrow("map key");
++        expect(() => toJsonClaim(new Map([[true, "x"]]))).toThrow("map key");
++        expect(toJsonClaim(new Map([[2n ** 64n, "x"]]))).toEqual({
++            "18446744073709551616": "x",
++        });
++    });
++
++    it("keeps the driving privileges through JSON", () => {
++        const claims = {
++            driving_privileges: toJsonClaim(decoded(issuedDrivingPrivileges)),
++        };
++
++        expect(JSON.parse(JSON.stringify(claims)).driving_privileges).toEqual(
++            jsonDrivingPrivileges,
++        );
++    });
++});
++
++describe("MdocverifierService claims of a presented mDL", () => {
++    const docType = "org.iso.18013.5.1.mDL";
++    const namespace = "org.iso.18013.5.1";
++
++    beforeEach(() => {
++        // The describes above leave DeviceResponse.decode and
++        // Verifier.verifyDeviceResponse mocked; this test needs the real ones.
++        vi.restoreAllMocks();
++    });
++
++    /** A signed mDL with `elements`, presented by its holder. */
++    async function presentation(elements: Record<string, unknown>) {
++        x509.cryptoProvider.set(crypto);
++        const algorithm = { name: "ECDSA", namedCurve: "P-256" };
++        const issuerKeys = await crypto.subtle.generateKey(algorithm, true, [
++            "sign",
++            "verify",
++        ]);
++        const certificate =
++            await x509.X509CertificateGenerator.createSelfSigned({
++                serialNumber: "01",
++                name: "C=DE, CN=mDL Issuer",
++                notBefore: new Date(Date.now() - 60_000),
++                notAfter: new Date(Date.now() + 3_600_000),
++                signingAlgorithm: { name: "ECDSA", hash: "SHA-256" },
++                keys: issuerKeys,
++            });
++        const deviceKeys = await crypto.subtle.generateKey(algorithm, true, [
++            "sign",
++            "verify",
++        ]);
++        const deviceJwk = await exportJWK(deviceKeys.privateKey);
++
++        const issuer = new Issuer(docType, mdocContext);
++        issuer.addIssuerNamespace(namespace, elements);
++        const now = new Date();
++        const issuerSigned = await issuer.sign({
++            signingKey: CoseKey.fromJwk(
++                (await exportJWK(issuerKeys.privateKey)) as never,
++            ),
++            certificates: [new Uint8Array(certificate.rawData)],
++            algorithm: SignatureAlgorithm.ES256,
++            digestAlgorithm: "SHA-256",
++            deviceKeyInfo: {
++                deviceKey: DeviceKey.fromJwk(deviceJwk as never),
++            },
++            validityInfo: {
++                signed: now,
++                validFrom: now,
++                validUntil: new Date(now.getTime() + 3_600_000),
++            },
++        });
++
++        const sessionTranscript = await SessionTranscript.forOid4Vp(
++            {
++                clientId: "x509_san_dns:eudiplo.example",
++                responseUri: "https://eudiplo.example/response",
++                nonce: "nonce",
++            },
++            mdocContext,
++        );
++        const requested = Object.fromEntries(
++            Object.keys(elements).map((element) => [element, true]),
++        );
++        const deviceResponse =
++            await Holder.createDeviceResponseForDeviceRequest(
++                {
++                    deviceRequest: DeviceRequest.create({
++                        docRequests: [
++                            DocRequest.create({
++                                itemsRequest: ItemsRequest.create({
++                                    docType,
++                                    namespaces: { [namespace]: requested },
++                                }),
++                            }),
++                        ],
++                    }),
++                    sessionTranscript,
++                    documents: [
++                        {
++                            docRequestIndex: 0,
++                            issuerSigned: IssuerSigned.fromEncodedForOid4Vci(
++                                issuerSigned.encodedForOid4Vci,
++                            ),
++                            signature: {
++                                signingKey: CoseKey.fromJwk({
++                                    ...deviceJwk,
++                                    alg: "ES256",
++                                } as never),
++                            },
++                        },
++                    ],
++                },
++                mdocContext,
++            );
++
++        return { vp: deviceResponse.encodedForOid4Vp, sessionTranscript };
++    }
++
++    /** Verifies a presentation of `elements`, requesting all of them. */
++    async function verify(elements: Record<string, unknown>) {
++        const { vp, sessionTranscript } = await presentation(elements);
++        const service = new MdocverifierService(
++            {
++                getTrustedCertificateBuffers: vi.fn().mockResolvedValue([]),
++                getTrustedStatusCertificateBuffers: vi
++                    .fn()
++                    .mockResolvedValue([]),
++                validateChain: vi
++                    .fn()
++                    .mockResolvedValue({ verified: true, matchedEntity: null }),
++            } as never,
++            { mdocFetch: vi.fn() } as never,
++            {
++                setContext: vi.fn(),
++                warn: vi.fn(),
++                error: vi.fn(),
++                debug: vi.fn(),
++            } as never,
++        );
++        return service.verify(
++            vp,
++            { protocol: "iso-18013-7", sessionTranscript },
++            { trustListSource: { lotes: [] }, policy: {} } as never,
++            Object.keys(elements).map((element) => [namespace, element]),
++        );
++    }
++
++    it("keeps the driving privileges through JSON", async () => {
++        const result = await verify({
++            family_name: "Mustermann",
++            issue_date: new DateOnly("2015-04-01"),
++            driving_privileges: issuedDrivingPrivileges,
++        });
++
++        expect(result).toMatchObject({ verified: true });
++        expect(JSON.parse(JSON.stringify(result.claims))).toEqual({
++            family_name: "Mustermann",
++            issue_date: "2015-04-01",
++            driving_privileges: jsonDrivingPrivileges,
++        });
++    });
++
++    it("rejects an element value that uses CBOR value sharing", async () => {
++        const privilege = new Map([["vehicle_category_code", "B"]]);
++
++        const result = await verify({
++            driving_privileges: [new Tag(privilege, 28), new Tag(0, 29)],
++        });
++
++        expect(result).toMatchObject({
++            verified: false,
++            claims: {},
++            failureType: "verification_error",
++        });
++        expect(result.failureReason).toContain("reuses a CBOR data item");
++    });
++});
+diff --git a/apps/backend/src/verifier/presentations/credential/mdocverifier/mdocverifier.service.ts b/apps/backend/src/verifier/presentations/credential/mdocverifier/mdocverifier.service.ts
+index 89ad9605..d55840ce 100644
+--- a/apps/backend/src/verifier/presentations/credential/mdocverifier/mdocverifier.service.ts
++++ b/apps/backend/src/verifier/presentations/credential/mdocverifier/mdocverifier.service.ts
+@@ -81,6 +81,61 @@ export type MdocVerificationResult = {
+     provenance?: VerificationProvenance;
+ };
+ 
++/**
++ * Turns the Maps of decoded CBOR into plain objects, recursively, so claims
++ * survive JSON: sessions and webhooks carry claims as JSON, and
++ * `JSON.stringify` writes a Map as `{}`. Map keys, which may be integers,
++ * become strings. Any other value (byte string, DateOnly, Date, tag,
++ * primitive) is returned as is, so it serializes as before.
++ *
++ * Runs before the signature is checked. Decoding gives every CBOR data item
++ * its own object unless the encoder shares values (tags 28 and 29, or packed
++ * CBOR), which mdoc data does not use: copying a shared object once per path
++ * to it grows exponentially with the nesting, and a cycle never ends. Map
++ * keys are text or integers in mdoc data; turning any other key into a
++ * string could do the same.
++ * @throws Error when the value reaches an object twice or has a map key that
++ * is neither text nor an integer.
++ */
++export function toJsonClaim(value: unknown): unknown {
++    return toJsonValue(value, new Set());
++}
++
++function toJsonValue(value: unknown, seen: Set<object>): unknown {
++    if (typeof value !== "object" || value === null) {
++        return value;
++    }
++    if (seen.has(value)) {
++        throw new Error("mDOC element value reuses a CBOR data item");
++    }
++    seen.add(value);
++    if (value instanceof Map) {
++        return Object.fromEntries(
++            [...value].map(([key, item]) => [
++                toJsonKey(key),
++                toJsonValue(item, seen),
++            ]),
++        );
++    }
++    if (Array.isArray(value)) {
++        return value.map((item) => toJsonValue(item, seen));
++    }
++    return value;
++}
++
++function toJsonKey(key: unknown): string {
++    if (
++        typeof key === "string" ||
++        typeof key === "number" ||
++        typeof key === "bigint"
++    ) {
++        return String(key);
++    }
++    throw new Error(
++        "mDOC element value has a map key that is not text or an integer",
++    );
++}
++
+ /**
+  * Error details extracted from an mDOC document for debugging.
+  */
+@@ -146,8 +201,17 @@ export class MdocverifierService {
+             for (const [ns] of namespacesMap.entries()) {
+                 const nsClaims = issuerSigned.getPrettyClaims(ns);
+                 if (nsClaims) {
+-                    claimsByNamespace[ns] = nsClaims;
+-                    Object.assign(claims, nsClaims);
++                    // Element values are passed on as decoded, so a value
++                    // holding a CBOR map (each entry of driving_privileges)
++                    // is still a Map here.
++                    const plainClaims = Object.fromEntries(
++                        Object.entries(nsClaims).map(([key, value]) => [
++                            key,
++                            toJsonClaim(value),
++                        ]),
++                    );
++                    claimsByNamespace[ns] = plainClaims;
++                    Object.assign(claims, plainClaims);
+                 }
+             }
+ 
+diff --git a/apps/docs/docs/reference/session-outcome.md b/apps/docs/docs/reference/session-outcome.md
+index 63e8a334..22571b15 100644
+--- a/apps/docs/docs/reference/session-outcome.md
++++ b/apps/docs/docs/reference/session-outcome.md
+@@ -23,7 +23,7 @@ Expiry is enforced when a wallet uses the session: a presentation request or res
+ | Field              | Content                                                                                                                                                                                     |
+ | ------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+ | `status`           | See above.                                                                                                                                                                                  |
+-| `credentials`      | Only when `completed`. OpenID4VP: `[{ "id": "<query id>", "values": [ { <claims> } ] }]`, one `values` entry per presented credential. ISO 18013-7: `[{ "id", "format": "mso_mdoc", "docType", "claims" }]`. |
++| `credentials`      | Only when `completed`. OpenID4VP: `[{ "id": "<query id>", "values": [ { <claims> } ] }]`, one `values` entry per presented credential. ISO 18013-7: `[{ "id", "format": "mso_mdoc", "docType", "claims" }]`. mDOC claims are keyed by element identifier, with the namespaces merged; a CBOR map inside a value, such as each entry of `driving_privileges`, is a JSON object, with integer keys written as strings. |
+ | `outcome`          | Structured result, see below. Set on `completed` and `failed`.                                                                                                                              |
+ | `failureCode`      | Stable code of a classified failure, see [failure codes](#failure-codes). Absent for other failures.                                                                                        |
+ | `errorReason`      | Short, display-safe description of the failure.                                                                                                                                             |
+
+base-commit: 8f6abca18f36fe07375e16596f5263e0a13abc15
+-- 
+2.56.1
+

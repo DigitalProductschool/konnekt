@@ -269,7 +269,7 @@ The schema is strict, so unknown keys are rejected.
 | Paradym (1.20.2, and `main` at 1.21.0) and the EU reference app (Android) send no error response on a decline; the session stays `fetched` until it expires (source, and a live Paradym run on 2026-10-13) | A decline reads as `pending` until our own expiry. Don't treat `fetched` as declined: the citizen may still approve |
 | Deferred `transaction_id` isn't exposed to the backend | Avoid deferred issuance, or design around it |
 | Config-as-code (file-managed) resources reject API edits with `409` | Detach the resource first, or change the files |
-| mdoc nested maps are lost in the session's `credentials` (≤ 9.1.0): the verifier leaves them JS `Map`s and `JSON.stringify` writes `{}`, so `driving_privileges` arrives as `[{}, …]` | Fix upstream (normalise `Map`s recursively in `MdocverifierService.verify`); the middleware logs a warning by field key. The hosted instance runs a patched 9.0.0 build, which delivers them in full (2026-10-19) |
+| mdoc nested maps are lost in the session's `credentials` (before 10.1.0): the verifier leaves them JS `Map`s and `JSON.stringify` writes `{}`, so `driving_privileges` arrives as `[{}, …]` | Fixed upstream in 10.1.0. On 9.x, apply [the team's patch](patches/eudiplo-9.0.0-mdoc-nested-maps.patch), which normalises `Map`s recursively in `MdocverifierService.verify`; the middleware logs a warning by field key. The hosted instance runs 9.0.0 with this patch, which delivers them in full (2026-10-19); see [COMPATIBILITY.md](COMPATIBILITY.md#nested-fields-of-the-driving-licence) |
 | Token valid for 24 h; secret shown once | Cache and renew the token; store the secret in a secret manager |
 | Management token must never reach the browser | Proxy SSE and results through our backend |
 | Unknown credential config in an offer answers `409`, not `404` | |
@@ -296,7 +296,9 @@ Give production a tenant of its own: the middleware's API client reads every ses
 tenant, so installations that share a tenant share that access.
 
 The middleware's settings are in [ARCHITECTURE.md](ARCHITECTURE.md#environment-variables), and
-the test documents for a test wallet in [TEST-CREDENTIALS.md](TEST-CREDENTIALS.md).
+the test documents for a test wallet in [TEST-CREDENTIALS.md](TEST-CREDENTIALS.md). What the
+tenant needs for the German EUDI Wallet, and what does not work with it yet, is in
+[COMPATIBILITY.md](COMPATIBILITY.md#the-german-eudi-wallet).
 
 ### This installation's values
 
