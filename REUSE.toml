@@ -105,3 +105,11 @@ path = ["backend/Dockerfile", "backend/Dockerfile.dev"]
 precedence = "override"
 SPDX-FileCopyrightText = ["Digital Product School", "2026 Team Faro, Batch#27, Digital Product School"]
 SPDX-License-Identifier = "EUPL-1.2"
+
+# The patch for EUDIPLO 9 (docs/COMPATIBILITY.md): the team's change, with the lines of
+# EUDIPLO's files around it
+[[annotations]]
+path = "docs/patches/eudiplo-9.0.0-mdoc-nested-maps.patch"
+precedence = "override"
+SPDX-FileCopyrightText = ["2025 Mirko Mollik", "2026 Team Faro, Batch#27, Digital Product School"]
+SPDX-License-Identifier = "Apache-2.0"

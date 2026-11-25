@@ -76,7 +76,7 @@ def choose_signer(eudiplo: EudiploIssuer, trust_list_id: str) -> Signer:
             f"for this tenant's issuer, the key chain {first}. The wallet will "
             "accept the documents, but the middleware's requests will fail with "
             'no_trust_chain_to_root. Add an entity for the key chain to the trust '
-            'list (README.md, "Test credentials for a test wallet").',
+            'list (docs/TEST-CREDENTIALS.md).',
         ),
     )
 

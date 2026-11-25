@@ -14,4 +14,4 @@ that the work is your own and that you have the right to license it under the EU
 
 Every change passes the project's checks before it is offered: the commands and the rule
 "Before you finish" are in [`CLAUDE.md`](CLAUDE.md), section "Commands", and the linters,
-formatters and type checks in the [README's "Code Quality"](README.md#code-quality).
+formatters and type checks in [`docs/CODE-QUALITY.md`](docs/CODE-QUALITY.md).

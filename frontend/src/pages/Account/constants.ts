@@ -138,11 +138,12 @@ export const ACCOUNT_COPY = defineTexts(
 );
 
 /**
- * Where the empty "Connected agents" section leads: the README's section on installing the plugin
- * and connecting other MCP clients (contracts/guidance.md "Installing (README)")
+ * Where the empty "Connected agents" section leads: the section of `docs/MCP-SERVER.md` on
+ * installing the plugin and connecting other MCP clients (contracts/guidance.md "Installing
+ * (README)", which stood in the README until the documents moved to `docs/`)
  */
-export const MCP_README_URL =
-  'https://github.com/DigitalProductschool/konnekt#installing-the-plugin';
+export const MCP_GUIDE_URL =
+  'https://github.com/DigitalProductschool/konnekt/blob/main/docs/MCP-SERVER.md#installing-the-plugin';
 
 /**
  * What the token's field announces after each copy (FR-048); its button reads "Copy" and
