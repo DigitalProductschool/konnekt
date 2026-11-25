@@ -1,4 +1,4 @@
-import type { DocumentField, DocumentType } from '@connection-portal/api-types/document-types';
+import type { DocumentField, DocumentType } from '@konnekt/api-types/document-types';
 import { describe, expect, it } from 'vitest';
 
 import { type DroppedData, droppedDataOf, droppedFieldLabel } from './dropped';

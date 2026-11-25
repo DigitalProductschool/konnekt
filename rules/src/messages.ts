@@ -3,7 +3,7 @@
 // in Stuttgart.", "You need a class B or BE licence.". A condition the design doesn't word, such
 // as a negation or a plain field, keeps its sentence: "You must not live in Esslingen." In the
 // context's language (spec 009, R4): "Sie müssen mindestens 21 Jahre alt sein."
-import type { Condition, RuleItem } from '@connection-portal/api-types/form-connections';
+import type { Condition, RuleItem } from '@konnekt/api-types/form-connections';
 
 import { conditionProblem, optionsOf, resolveTarget } from './conditions';
 import {

@@ -22,7 +22,7 @@ shapes are in the contracts and [data-model.md](data-model.md).
 # backend/
 uv run ruff check --fix . && uv run ruff format .
 uv run mypy app/ scripts/ tests/
-DATABASE_URL=postgresql+psycopg://postgres:postgres@localhost:5435/template_db_test uv run pytest
+DATABASE_URL=postgresql+psycopg://postgres:postgres@localhost:5435/konnekt_db_test uv run pytest
 # → the OAuth flows, bearer principals per level, the user page's endpoints, search and paging,
 #   approval requests (creation checks, replace, staleness, approve, decline, failure, another
 #   account), the draft limit, branch ids in drafts and publishing, the migration's backfill
@@ -50,7 +50,7 @@ interface at `http://localhost:5173`.
 
 ### V1. Connect Claude Code with "Read only" (US1; FR-001, FR-002, FR-006, SC-001)
 
-1. `claude mcp add --transport http connection-portal http://localhost:3100/mcp`, then call any
+1. `claude mcp add --transport http konnekt http://localhost:3100/mcp`, then call any
    tool. Claude Code opens the browser at the Portal's `/authorize` with the client's name.
 2. Sign in if asked; the consent page shows the three levels with their descriptions, "Read
    only" preselected. Allow. The browser says to go back; the client is connected without
@@ -171,7 +171,7 @@ With an agent that may edit drafts, give the independent test of User Story 2:
 1. Connect Claude Code (reads skills) and a client without the extension: both receive the
    instructions; Claude Code lists the eight skills and reads one; the other client reads the
    same text with `get_guide`.
-2. Install the plugin from the marketplace with `CONNECTION_PORTAL_MCP_URL` set: the server and
+2. Install the plugin from the marketplace with `KONNEKT_MCP_URL` set: the server and
    the skills are added in one step.
 3. The gate of §2.
 
@@ -189,7 +189,7 @@ With an agent that may edit drafts, give the independent test of User Story 2:
    nothing, the page says what changed. Ask to deactivate an already deactivated connection:
    refused at once with its status, no link made.
 5. At every level, ask the agent to change a rule of the live connection: refused, "changed in
-   the Connection Portal".
+   Konnekt".
 
 ### V11. Two clients end to end (SC-010)
 

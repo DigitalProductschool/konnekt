@@ -4,9 +4,9 @@ services:
     environment:
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: postgres
-      POSTGRES_DB: template_db
+      POSTGRES_DB: konnekt_db
     ports:
-      - '5435:5432'
+      - '127.0.0.1:5435:5432'
     volumes:
       # postgres:18+ stores data in a major-version subdirectory and refuses to
       # start if the volume is mounted at the old /var/lib/postgresql/data path.
@@ -22,14 +22,14 @@ services:
       context: .
       dockerfile: backend/Dockerfile.dev
     ports:
-      - '3000:3000'
+      - '127.0.0.1:3000:3000'
     # EUDIPLO credentials and the other settings from backend/.env (not committed).
     # The values under `environment` below take precedence over the file.
     env_file:
       - path: ./backend/.env
         required: false
     environment:
-      DATABASE_URL: postgresql+psycopg://postgres:postgres@postgres:5432/template_db
+      DATABASE_URL: postgresql+psycopg://postgres:postgres@postgres:5432/konnekt_db
       PORT: 3000
       CORS_ORIGIN: http://localhost:5173
       APP_ENV: development
@@ -45,7 +45,7 @@ services:
       context: .
       dockerfile: frontend/Dockerfile.dev
     ports:
-      - '5173:5173'
+      - '127.0.0.1:5173:5173'
     environment:
       VITE_API_URL: http://localhost:3000
     volumes:
@@ -64,7 +64,7 @@ services:
       context: .
       dockerfile: mcp/Dockerfile.dev
     ports:
-      - '3100:3100'
+      - '127.0.0.1:3100:3100'
     environment:
       PORT: 3100
       BACKEND_URL: http://backend:3000

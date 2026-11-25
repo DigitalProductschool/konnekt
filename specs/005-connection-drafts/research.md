@@ -330,7 +330,7 @@ request (FR-010). Nothing else changes.
 
 **Decision**: the create flow keeps its unsaved work in `window.localStorage` (FR-014).
 - **One entry per local draft.** The storage key is
-  `connection-portal:local-draft:v1:<username>:<flow key>`. The flow key is `new-<uuid>` for a
+  `konnekt:local-draft:v1:<username>:<flow key>`. The flow key is `new-<uuid>` for a
   connection that was never saved, and `draft-<id>` for a stored draft (FR-015).
 - **The value** is a versioned JSON record: the content as a draft save would store it, the step,
   the stored draft's id and the version it was loaded at, and the time of the last change. The

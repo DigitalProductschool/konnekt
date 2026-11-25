@@ -1,5 +1,5 @@
-import type { ErrorNotice } from '@connection-portal/api-types/api';
-import type { DocumentType } from '@connection-portal/api-types/document-types';
+import type { ErrorNotice } from '@konnekt/api-types/api';
+import type { DocumentType } from '@konnekt/api-types/document-types';
 import type {
   BranchInput,
   DraftCreate,
@@ -10,21 +10,21 @@ import type {
   NumberingBase,
   RequestedDocument,
   RequestedDocumentView,
-} from '@connection-portal/api-types/form-connections';
-import { sameValue } from '@connection-portal/rules/branches';
-import { dialogLineOf } from '@connection-portal/rules/checks/findingMessages';
-import type { BranchCheck, FindingTone, RuleChecks } from '@connection-portal/rules/checks/types';
-import { requestedRuleDocuments } from '@connection-portal/rules/conditions';
-import { droppedFieldLabel } from '@connection-portal/rules/dropped';
+} from '@konnekt/api-types/form-connections';
+import { sameValue } from '@konnekt/rules/branches';
+import { dialogLineOf } from '@konnekt/rules/checks/findingMessages';
+import type { BranchCheck, FindingTone, RuleChecks } from '@konnekt/rules/checks/types';
+import { requestedRuleDocuments } from '@konnekt/rules/conditions';
+import { droppedFieldLabel } from '@konnekt/rules/dropped';
 import {
   appendDocument,
   moveDocument,
   restoreDocument,
   rulesCheckingRemoval,
-} from '@connection-portal/rules/edits';
-import { DEFAULT_LANGUAGE, type Language } from '@connection-portal/rules/language';
-import { countRules, hasAnyRule } from '@connection-portal/rules/tree';
-import type { DataRemoval, RuleDocument, RulesProblem } from '@connection-portal/rules/types';
+} from '@konnekt/rules/edits';
+import { DEFAULT_LANGUAGE, type Language } from '@konnekt/rules/language';
+import { countRules, hasAnyRule } from '@konnekt/rules/tree';
+import type { DataRemoval, RuleDocument, RulesProblem } from '@konnekt/rules/types';
 
 import { ApiError, errorNoticeOf } from '../../api/client';
 import { startDateOf } from '../../components/ActiveFromChoice/utils';

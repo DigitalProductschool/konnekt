@@ -3,7 +3,7 @@ import type {
   Combinator,
   GroupItem,
   RuleTreeItem,
-} from '@connection-portal/api-types/form-connections';
+} from '@konnekt/api-types/form-connections';
 import { describe, expect, it } from 'vitest';
 
 import { parseDayNumber } from '../checks/calendar';

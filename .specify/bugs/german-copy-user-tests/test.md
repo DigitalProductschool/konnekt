@@ -34,7 +34,7 @@ on `de825a5`, which is `7f7609e` plus the assessment.
 | The server's German | `POST …/publish` of a draft whose rule has no check, `Accept-Language: de` / `en` | pass | `400` "Rule 03 in Standard: Wählen Sie eine Prüfung aus." / "…: choose a check." These are the words the editor composed |
 | English unchanged | Code: every changed source line `7f7609e..49a3cde`. App: sign-in, forgot password, step 1 and its ⓘ, overview, delete dialog, details ⓘ, consent | pass | The only English changes are `nameInfoLines` (both sentences word for word) and "…so nothing changes for your service." (decided) |
 | Searches | `grep` for `germanWallet`, `notInGermanWallet`, `notedRow`, "geprüfte(n) Daten", "der/die EUDI-Wallet", "Die Wallet", "Geburtsdatum (Alter)", "Nachricht für Bürgerinnen"; serviceBW in `constants.ts` | pass | No hits. The one serviceBW is a code comment in `Approval/constants.ts` |
-| New / updated tests | `DATABASE_URL=…5435/template_db_test uv run pytest` (the seven assertions of Gap 1 among them) | pass | 2643 passed, 0 failed (16 min) |
+| New / updated tests | `DATABASE_URL=…5435/konnekt_db_test uv run pytest` (the seven assertions of Gap 1 among them) | pass | 2643 passed, 0 failed (16 min) |
 | Regression suite | `npm test` (root) | pass | rules 46 files / 2678 tests; frontend 49 / 2041; mcp 15 / 513, the same as `fix.md` |
 | Lint / type-check | `uv run ruff check .`, `ruff format --check .`, `mypy app/ scripts/ tests/`, `python -m scripts.export_check_fixtures --check`; `npm run lint`, `npm run format:check`, `npm run build` | pass | Ruff: 111 files; mypy: 97 files, no issues; fixtures: exit 0; build: the usual chunk-size warning |
 
@@ -108,7 +108,7 @@ lint exit=0  format exit=0  test exit=0  build exit=0
   the line-by-line diff, not by looking.
 - **`main` was not run side by side.** R1's comparison puts `main`'s button text back into the
   same DOM. That is faithful for this CSS-only layout but is not a run of `main`.
-- **Test data left behind.** The dev database `template_db` of this worktree's Postgres (stopped
+- **Test data left behind.** The dev database `konnekt_db` of this worktree's Postgres (stopped
   again) now holds the account `copywalk` and three connections: one published, two drafts.
   `uv run python -m app.cli clear-connections` and `delete-user copywalk` remove them.
 - **Outdated note in `fix.md`.** Its "Nothing is committed" no longer holds: the fix is `49a3cde`.

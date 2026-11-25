@@ -88,7 +88,9 @@ together with `@kern-ux/native` 2.8. Verified with kit 2.40.0 and native 2.8.2:
 - The kit's components render native KERN classes, so they work without it. The exceptions ship
   CSS-module styles only in that stylesheet: `KernMenubar`/`KernMenu`/`KernSubMenu`/`KernMenuitem`,
   the tabs, `KernInputDate`'s numeric inputs and `KernRadio`'s error state. Before using one of
-  them, add its rules (they are the `._<name>_<hash>` selectors in the kit's CSS).
+  them, add its rules (they are the `._<name>_<hash>` selectors in the kit's CSS), with a comment
+  that names their source as `index.css` does for the rules it restates from `kern.css`: the
+  upstream file (`kern-react-kit.css`) and its lines, the package's version, EUPL-1.2.
 
 The kit does **not** load any CSS by itself: its `index.d.ts` contains
 `import '@kern-ux/native/dist/kern.min.css'` and `import '@kern-ux/native/dist/fonts/fira-sans.css'`,
@@ -238,6 +240,8 @@ The authoritative reference is the package's own `COMPONENTS.md` and per-compone
 (`node_modules/@kern-ux-annex/kern-react-kit/COMPONENTS.md` and
 `node_modules/@kern-ux-annex/kern-react-kit/components/kern/*.d.ts`) — always re-check these in a
 fresh install, since this package moves fast. What follows is condensed from a direct read of v2.40.0.
+The button's `variant` union and the `KernIconType` union below repeat that `COMPONENTS.md`
+(lines 86 and 1537–1544) of `@kern-ux-annex/kern-react-kit` 2.40.0, licensed under the EUPL-1.2.
 
 **Core components (33):** `KernAlert`, `KernBadge`, `KernButton`, `KernCard`, `KernDialog`,
 `KernDivider`, `KernHeading`, `KernIcon`, `KernKopfzeile`, `KernLink`, `KernList`, `KernLoader`,

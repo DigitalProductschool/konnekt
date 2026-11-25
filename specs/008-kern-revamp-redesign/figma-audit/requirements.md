@@ -34,7 +34,7 @@
 | FR-017a | Docs updated: design system guide, Figma workflow, architecture's frontend section, agent UI rules | - | N | ? | ? | | Requirements |
 | FR-017b | Spec 002's audit files stay as history with their references updated | - | N | ? | ? | | Requirements |
 | FR-018 | The redesign lands as one change; no screen ships in the old design next to a new one | - | N | ? | ? | | Requirements |
-| FR-019a | The product is named "Konnekt" in every screen and tab title; "Connection Portal" remains nowhere | - | Y | all screens | default | C item, copy | FR-019; Q1 |
+| FR-019a | The product is named "Konnekt" in every screen and tab title, and by no other name | - | Y | all screens | default | C item, copy | FR-019; Q1 |
 | FR-019b | The consent and account texts name "Konnekt" (007-S1.2, 007-S2.5) | P5 | Y | Consent page; Account page | default | C item, copy, amends 007-S1.2, 007-S2.5 | FR-019; Q1 |
 | FR-019c | The MCP guidance, the backend's and MCP server's texts, README and docs name "Konnekt" | - | N | ? | ? | C item | FR-019; Q1 |
 | FR-020a | The people who share wallet data are "citizens" in every screen; "applicant" remains nowhere | - | Y | all screens | default | C item, copy | FR-020; Q2 |
@@ -755,7 +755,7 @@ Spec 008's Clarifications (session 2026-11-07, #1–#61) decide drift items agai
 | 007-R.2 | /account and /approvals/:id use the signed-in layout behind the sign-in guard | P5 | Y | Account page; Approval page | default | baseline | 007 §Routes |
 | 007-R.3 | Every page: tab title, one h1, failures shown with the error notice and error ID | P5 | Y | Consent, Account, Approval pages | error | baseline | 007 §Routes |
 | 007-S1.1 | Title (h1) "Allow access for {client_name}?" | P5 | Y | Consent page | default | baseline, copy | 007 §S1; 007-FR-002 |
-| 007-S1.2 | Below: "{client_name} wants to act on your behalf in the Connection Portal. Choose what it may do." | P5 | Y | Consent page | default | baseline, copy, amended by FR-019 | 007 §S1 |
+| 007-S1.2 | Below: "{client_name} wants to act on your behalf in Konnekt. Choose what it may do." | P5 | Y | Consent page | default | baseline, copy, amended by FR-019 | 007 §S1 |
 | 007-S1.3 | A KERN radio group (AccessLevelChoice, shared with S2 and S3) with three levels, each label and description | P5 | Y | Consent page; Account page | default | baseline | 007 §S1 |
 | 007-S1.4 | "Read only": "Find and read connections, variants and rules, run the rule checks … Nothing changes." | P5 | Y | Consent page; Account page | default | baseline, copy | 007 §S1 |
 | 007-S1.5 | "Read and edit drafts": "Also create and change drafts, and ask you to publish or delete a draft. …" | P5 | Y | Consent page; Account page | default | baseline, copy | 007 §S1 |
@@ -770,7 +770,7 @@ Spec 008's Clarifications (session 2026-11-07, #1–#61) decide drift items agai
 | 007-S2.2 | Title (h1) "Your account"; subtitle "Signed in as {username}." | P5 | Y | Account page | default | baseline, copy | 007 §S2 |
 | 007-S2.3 | "Connected agents": client name, level, "Connected {date}", "Last used {relative}" or "Never used" | P5 | Y | Account page | default | baseline, copy | 007 §S2 |
 | 007-S2.4 | Each row has a ⋯ menu with "Change access level" and "Revoke" | P5 | Y | Account page | default | baseline, copy | 007 §S2 |
-| 007-S2.5 | Empty: "No agent is connected yet. Add the Connection Portal's MCP server to your agent to connect it." with README link | P5 | Y | Account page | empty | baseline, copy, amended by FR-019 | 007 §S2 |
+| 007-S2.5 | Empty: "No agent is connected yet. Add Konnekt's MCP server to your agent to connect it." with README link | P5 | Y | Account page | empty | baseline, copy, amended by FR-019 | 007 §S2 |
 | 007-S2.6 | "Personal access tokens": name, level, "Created {date}", "Expires {date}", "Last used …", the same menu | P5 | Y | Account page | default | baseline, copy | 007 §S2 |
 | 007-S2.7 | A button "Create token" | P5 | Y | Account page | default | baseline, copy | 007 §S2 |
 | 007-S2.8 | Change access level: dialog with AccessLevelChoice, current level selected; "Save" sends PUT | P5 | Y | Access level dialog | default | baseline, copy | 007 §S2 |
@@ -915,7 +915,7 @@ Copy to variant = copy popover, copy dialog
 trigger URL = request link, start link, connection link, Request link
 pull URL = result link, Result link, result URL, connection link, {reference}
 description = form ID (former), serviceBW form, note, meta line
-product name = Konnekt, Connection Portal (former), Middleware, serviceBW ↔ EUDI Wallet Middleware, app title, logo pill
+product name = Konnekt, Middleware, serviceBW ↔ EUDI Wallet Middleware, app title, logo pill
 team member = user, editor, signed-in user, DO.IT
 agent = MCP client, LLM agent, AI agent, connected agent
 personal access token = token, PAT, access token

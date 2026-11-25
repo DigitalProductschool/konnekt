@@ -1,4 +1,4 @@
-import { bannerOf } from '@connection-portal/rules/checks/findingMessages';
+import { bannerOf } from '@konnekt/rules/checks/findingMessages';
 
 import expandLessIcon from '../../../assets/icons/expand-less-action-small.svg';
 import expandMoreIcon from '../../../assets/icons/expand-more-action-small.svg';

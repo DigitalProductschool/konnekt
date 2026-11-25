@@ -74,15 +74,21 @@ def register_exception_handlers(app: FastAPI) -> None:
     ) -> JSONResponse:
         detail = exception.detail
 
+        # The exception's headers go with the answer, such as the sign-in's
+        # Retry-After (spec 012, research R6, finding 4)
+        headers = exception.headers
         if isinstance(detail, dict) and 'error' in detail and 'message' in detail:
             # A new dict, so the exception keeps the detail it was raised with; a
             # `Text` message in the request's language, a plain string as it is
             content = {**detail, 'message': resolve_text(detail['message'])}
-            return JSONResponse(status_code=exception.status_code, content=content)
+            return JSONResponse(
+                status_code=exception.status_code, content=content, headers=headers
+            )
 
         return JSONResponse(
             status_code=exception.status_code,
             content={'error': 'Request error', 'message': str(detail)},
+            headers=headers,
         )
 
     @app.exception_handler(RequestValidationError)

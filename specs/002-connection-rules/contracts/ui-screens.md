@@ -13,7 +13,7 @@ and the accessibility rules. Every screen gets its data only through
 
 **What decides what**: **spec.md, including its Clarifications, decides behaviour and wording.**
 **Figma decides layout and styling only.** The Figma file (`s8mU9oJDq3411e8bxMjQO9`, root
-`6263:12360`, flow "Connection Portal, log in to publish") is out of sync with the spec and won't be
+`6263:12360`, flow "Konnekt, log in to publish") is out of sync with the spec and won't be
 updated soon. Where the two differ, the section [Deviations from Figma](#deviations-from-figma)
 says what to build, item by item. The UI says "connection" for form connection and "variant" for
 branch (spec Assumptions, "Design"); the main branch is called "Standard" until renamed.

@@ -93,7 +93,7 @@ Web application, the npm workspace (constitution 1.2.1):
   copied file for file, and nothing under `prototype/` except `seed.ts` is edited.
 - **Gates**: a task in a Node package ends with `npm run lint && npm test && npm run build` from
   the root ("Node gates"); a backend task with `uv run ruff check --fix . && uv run ruff format . &&
-  uv run mypy app/ scripts/ tests/` and `DATABASE_URL=postgresql+psycopg://postgres:postgres@localhost:5435/template_db_test
+  uv run mypy app/ scripts/ tests/` and `DATABASE_URL=postgresql+psycopg://postgres:postgres@localhost:5435/konnekt_db_test
   uv run pytest` in `backend/` ("backend gates"). A task that edits only `specs/` runs no gate.
   Backend batches never run side by side: the tests empty one database.
 - **Verification sweeps are script-first.** A sweep that checks many items across many states
@@ -159,7 +159,7 @@ typed and the German terms.
 - **Wave 3**: T004 [medium] ∥ T005 [medium] (the build files and the font files; no shared file;
   T005's `npm install` runs in `prototype/`, with its own lockfile).
 - **Wave 4**: T006 [lead].
-- **Needs a person**: PostgreSQL on 5435 with `template_db_test` for the backend gates, if Docker
+- **Needs a person**: PostgreSQL on 5435 with `konnekt_db_test` for the backend gates, if Docker
   isn't reachable from the chat. Network access for `npm install` (PDFKit, the prototype's font
   packages).
 
@@ -533,8 +533,8 @@ privacy (SC-008), the convergence check, the documentation checklist and the clo
 - `[P]` = different files, no unfinished dependency.
 - The checkboxes here and the tables in design-notes §7 and §8 are the only state between chats:
   tick a task only when its gates are green and its rows are clean.
-- Git works in this checkout only with `GIT_DIR=/home/debian/batch27-faro/worktrees/pdf-summary`
-  and `GIT_WORK_TREE=/home/debian/batch27-faro/pdf-summary`; a task agent never commits, and the
+- Git works in this checkout only with `GIT_DIR=<git-dir>/worktrees/pdf-summary`
+  and `GIT_WORK_TREE=<checkout>/pdf-summary`; a task agent never commits, and the
   coordinator commits only when the user asks.
 - Avoid: a second package for PDFs or fonts (R1, R7), an import of fontkit or any other package
   that only arrives through PDFKit (constitution IV), KERN's WOFF2 files in the PDF (R7), a URL in

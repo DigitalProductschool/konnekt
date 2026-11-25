@@ -1,7 +1,7 @@
 // One HTTP request to /mcp, as the tools see it: the caller resolved for it, and an answer at the
 // HTTP level that replaces the SDK's where the response hasn't started yet. It reaches the tool
 // handlers as the SDK's pass-through `authInfo` (`req.auth`), in both protocol eras
-import type { AccessLevel } from '@connection-portal/api-types/agent-access';
+import type { AccessLevel } from '@konnekt/api-types/agent-access';
 import type { AuthInfo, ServerContext } from '@modelcontextprotocol/server';
 
 import type { Caller, HttpAnswer } from './auth';

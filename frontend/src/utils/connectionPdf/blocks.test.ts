@@ -1,5 +1,5 @@
-import type { FormConnection, RuleTreeItem } from '@connection-portal/api-types/form-connections';
-import type { Language } from '@connection-portal/rules/language';
+import type { FormConnection, RuleTreeItem } from '@konnekt/api-types/form-connections';
+import type { Language } from '@konnekt/rules/language';
 import { describe, expect, it } from 'vitest';
 
 import { BRANCH_MARK_COPY } from '../../components/BranchMark/constants';

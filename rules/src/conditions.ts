@@ -1,14 +1,14 @@
 // The conditions a rule can check, by the kind of its target (FR-003, FR-006, FR-013;
 // data-model.md, "Conditions")
-import type { DocumentType } from '@connection-portal/api-types/document-types';
+import type { DocumentType } from '@konnekt/api-types/document-types';
 import type {
   Condition,
   RequestedDocument,
   RequestedDocumentView,
   RuleItem,
   RuleTarget,
-} from '@connection-portal/api-types/form-connections';
-import type { Option, OptionSet } from '@connection-portal/api-types/option-sets';
+} from '@konnekt/api-types/form-connections';
+import type { Option, OptionSet } from '@konnekt/api-types/option-sets';
 
 import { OPERATOR_LABELS, OPERATORS, TIME_UNITS } from './constants';
 import { isValidIsoDate, isWholeCount } from './dates';

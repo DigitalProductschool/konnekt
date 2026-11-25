@@ -1,4 +1,4 @@
-import type { Language } from '@connection-portal/rules/language';
+import type { Language } from '@konnekt/rules/language';
 
 import { WIZARD_PROGRESS_COPY } from './constants';
 import type { WizardStepState } from './types';

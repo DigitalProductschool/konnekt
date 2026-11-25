@@ -1,4 +1,4 @@
-import { noRulesNoteOf } from '@connection-portal/rules/personas/messages';
+import { noRulesNoteOf } from '@konnekt/rules/personas/messages';
 import { useId } from 'react';
 
 import { useLanguage } from '../../../hooks/useLanguage';

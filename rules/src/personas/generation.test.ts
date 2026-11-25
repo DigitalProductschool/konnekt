@@ -1,8 +1,4 @@
-import type {
-  BranchInput,
-  RuleItem,
-  RuleTreeItem,
-} from '@connection-portal/api-types/form-connections';
+import type { BranchInput, RuleItem, RuleTreeItem } from '@konnekt/api-types/form-connections';
 import { describe, expect, it } from 'vitest';
 
 import { addRuleToBranch, changeItem, newBranch } from '../branches';

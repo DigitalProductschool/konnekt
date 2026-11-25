@@ -315,8 +315,8 @@ because the glossary comes first:
 3. **The code**: from this worktree, `git cherry-pick -n 7f7609e..38a9d09`. `HEAD` is `7f7609e`,
    the range's base, so the four commits apply without conflicts, and `-n` leaves them staged and
    uncommitted. Git needs
-   `GIT_DIR=/home/debian/batch27-faro/worktrees/german-copy-user-tests` and
-   `GIT_WORK_TREE=/home/debian/batch27-faro/german-copy-user-tests` here (the worktree's pointer
+   `GIT_DIR=<git-dir>/worktrees/german-copy-user-tests` and
+   `GIT_WORK_TREE=<checkout>/german-copy-user-tests` here (the worktree's pointer
    names a path on another machine). Nothing of the copy is retyped.
 
    Then take the wallet note out again, the one part that isn't applied:

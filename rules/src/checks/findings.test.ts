@@ -6,7 +6,7 @@ import type {
   RuleItem,
   RuleTarget,
   RuleTreeItem,
-} from '@connection-portal/api-types/form-connections';
+} from '@konnekt/api-types/form-connections';
 import { describe, expect, it } from 'vitest';
 
 import { CONTEXT, mainBranch, rule, target } from '../testData';

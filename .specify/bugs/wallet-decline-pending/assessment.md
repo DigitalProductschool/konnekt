@@ -3,7 +3,7 @@
 - **Slug**: wallet-decline-pending
 - **Created**: 2026-10-12
 - **Source**: pasted text (no URL to fetch). The report names two deployment hosts,
-  `md.faro.dpschool.app` and `eudiplo.faro.dpschool.app`. Neither is a bug-report page, and
+  `middleware.example.org` and `eudiplo.example.org`. Neither is a bug-report page, and
   neither was fetched or called.
 - **Verdict**: invalid as a middleware defect: this is expected, documented behaviour. It was
   reproduced live on 2026-10-13 with Paradym 1.20.2 (build 94). After a decline on the consent
@@ -20,17 +20,17 @@
 
 ## Report (verbatim or summarized)
 
-> The serviceBW ↔ EUDI Wallet Middleware (md.faro.dpschool.app, connect API 0.1.0) starts a request
+> The serviceBW ↔ EUDI Wallet Middleware (middleware.example.org, connect API 0.1.0) starts a request
 > with `POST /api/connect/{form_connection_id}/requests` and reports it with
 > `GET /api/connect/{form_connection_id}/requests/{reference}`. `PullResponse.status` includes
-> `declined`. The passenger licence form (sk-proto-1) polls the pull URL every 2 s and shows
+> `declined`. The passenger licence form (the form prototype) polls the pull URL every 2 s and shows
 > "No data was received, because the sharing was declined in your wallet" as soon as it reads
 > `declined` (consumer contract: `contracts/middleware-api.md` §2 and §4 item 4).
 >
 > Observed (2026-10-12, about 15:51–15:54 UTC): form connection
-> `c027f4b7-460b-477b-a13b-022c2f6c8751`, pull mode, no webhook. The QR code held `qr_code_link`,
+> `<form-connection-id>`, pull mode, no webhook. The QR code held `qr_code_link`,
 > whose `request_uri` is
-> `https://eudiplo.faro.dpschool.app/presentations/<id>/oid4vp/request/no-redirect`. Declined in
+> `https://eudiplo.example.org/presentations/<id>/oid4vp/request/no-redirect`. Declined in
 > the wallet app: `<wallet app and version>` (named afterwards by the reporter: **Paradym 1.20.2,
 > build 94**). For the next 3 minutes, every pull answered `200` with
 > `status: "pending"` and `documents: null` (155 bytes), until the form's own limit ended the
@@ -43,7 +43,7 @@
 The report's five "To find out" items are answered below. Item 1 could not be run here (see
 Reproduction). Items 2 to 5 are answered from the source code.
 
-`contracts/middleware-api.md` is the consumer's copy in sk-proto-1. In this repo the contract is
+`contracts/middleware-api.md` is the consumer's copy in the form prototype. In this repo the contract is
 `specs/001-servicebw-eudi-middleware/contracts/integration-api.md`. It already states the
 limitation (`:161-162`): "A decline is reported only if the wallet sends one. If the citizen simply
 closes the wallet, the request stays `pending` until `expired`." It also says (`:160`): "Don't stop
@@ -61,7 +61,7 @@ reports when the wallet actually sends an error response to EUDIPLO.
 ### Live run (2026-10-13): reproduced with Paradym 1.20.2
 
 **Setup.** A local backend, this branch with the worker on, ran against the hosted EUDIPLO
-(`https://eudiplo.faro.dpschool.app/`, tenant `dps`) with the middleware's client. The reporter
+(`https://eudiplo.example.org/`, tenant `<tenant>`) with the middleware's client. The reporter
 scanned the QR codes with Paradym 1.20.2 (build 94). A watcher polled the local pull URL and EUDIPLO's
 `GET /api/session/{id}` every 2 s, printing only statuses, failure codes and timestamps. Times are
 UTC.
@@ -70,7 +70,7 @@ UTC.
 |---|---|---|---|---|
 | A | PID (`family_name`, `given_name`), trust list `trust-list-id` | Scanned. No matching card, so the reporter left the request | `active` → `fetched` at 12:19:54, then unchanged, no `failureCode` | `pending` until 12:27:30. At 12:27:31 `expired`, and the session was deleted (404) |
 | A2 | mDL, same trust list | Scanned. No matching card | `fetched` at 12:25:07, then unchanged, no `failureCode` | `pending` until 12:33:00. At 12:33:01 `expired`, and the session was deleted (404) |
-| A3 | mDL, trust list `trust-list-test` | Scanned at 12:29:55. The reporter **declined the sharing** on the consent screen | `fetched` (12:29:55), then unchanged: no `failed`, no `failureCode`, `updatedAt` stuck at 12:29:55 | `pending` for 9 minutes after the decline, until 12:38:55. At 12:38:56 `expired`, and the session was deleted (404). `declined` never came |
+| A3 | mDL, trust list `<trust-list-id>` | Scanned at 12:29:55. The reporter **declined the sharing** on the consent screen | `fetched` (12:29:55), then unchanged: no `failed`, no `failureCode`, `updatedAt` stuck at 12:29:55 | `pending` for 9 minutes after the decline, until 12:38:55. At 12:38:56 `expired`, and the session was deleted (404). `declined` never came |
 
 - **Run A3 is the reported case**: Decline on the consent screen, with a card that matches. EUDIPLO
   received the wallet's request fetch, and after the decline the session never moved. Its
@@ -79,15 +79,15 @@ UTC.
   processed. This matches Paradym 1.20.2's source, which sends nothing.
 - **EUDIPLO's session log** (`GET /api/session/{id}/logs`) for A3 is empty. The hosted instance
   doesn't seem to keep session logs (`LOG_SESSION_STORE`). Only the reverse proxy's access log can
-  show whether a `POST /presentations/b9df48a2-760d-487c-a50a-6c296c3c0266/oid4vp` arrived and was
+  show whether a `POST /presentations/<session-id>/oid4vp` arrived and was
   refused (`400`). The source says Paradym sends none.
 - **Runs A and A2 had a test setup error.** The local `backend/.env` had
-  `EUDIPLO_TRUST_LIST_ID=trust-list-id`, and the tenant's only trust list is `trust-list-test`.
+  `EUDIPLO_TRUST_LIST_ID=trust-list-id`, and the tenant's only trust list is `<trust-list-id>`.
   EUDIPLO turns the trust list into the issuers' key identifiers for the wallet
   (`verifier/presentations/trusted-authorities.service.ts:56-96`, `:160-196`). With an unknown list,
   no card can match. Paradym shows the requested doctype in capitals (`ORG.ISO.18013.5.1.MDL`), which
   looked like a case mismatch, but the stored query has `org.iso.18013.5.1.mDL`. A3 was created on
-  `trust-list-test` and matched. Leaving a "no matching card" screen also sends nothing (A, A2): it
+  `<trust-list-id>` and matched. Leaving a "no matching card" screen also sends nothing (A, A2): it
   runs the same `declineCredentialRequest`.
 - **Not run**: the wallet-free decline (step 2 below). The session's permission check blocked
   posting a simulated wallet error to the shared production EUDIPLO. It needs the reporter's
@@ -101,7 +101,7 @@ the pull URL (it is network-restricted, FR-017). It also needs EUDIPLO credentia
 
 1. **Middleware tests run**: `uv run pytest tests/unit/test_status_mapping.py
    tests/api/test_worker_requests.py tests/api/test_connect.py -k 'declin or failure or sync or
-   wallet or expires or last_check'`, against the local `template_db_test` (Postgres on
+   wallet or expires or last_check'`, against the local `konnekt_db_test` (Postgres on
    `localhost:5435`). Result: **43 passed**. They cover `failed` + `access_denied` → `declined`, both
    through the sync and through the last check after expiry.
 2. **EUDIPLO source read**: tag `v9.0.0` (`8f6abca`, 2026-10-05), the version the hosted instance
@@ -123,7 +123,7 @@ the pull URL (it is network-restricted, FR-017). It also needs EUDIPLO credentia
    ```sql
    select status, failure_code, status_changed_at, ended_at
    from document_requests
-   where form_connection_id = 'c027f4b7-460b-477b-a13b-022c2f6c8751'
+   where form_connection_id = '<form-connection-id>'
      and created_at between '2026-10-12 15:45+00' and '2026-10-12 16:00+00';
    ```
 
@@ -138,11 +138,11 @@ the pull URL (it is network-restricted, FR-017). It also needs EUDIPLO credentia
    send:
 
    ```bash
-   MW=https://md.faro.dpschool.app/api/connect/$FC        # from an allowed host
+   MW=https://middleware.example.org/api/connect/$FC        # from an allowed host
    T=$(curl -s -X POST "$MW/requests")
    REF=$(jq -r .data.reference <<<"$T")
    NONCE=$(jq -r .data.qr_code_link <<<"$T" | grep -o 'presentations%2F[^%]*' | cut -d F -f2)
-   curl -s -X POST "https://eudiplo.faro.dpschool.app/presentations/$NONCE/oid4vp" \
+   curl -s -X POST "https://eudiplo.example.org/presentations/$NONCE/oid4vp" \
      --data-urlencode error=access_denied \
      --data-urlencode 'error_description=User declined' \
      --data-urlencode "state=$NONCE"                       # expect 200 {}
@@ -151,7 +151,7 @@ the pull URL (it is network-restricted, FR-017). It also needs EUDIPLO credentia
 
    **Expected**: `declined` within one or two polls. This is the same call as EUDIPLO's own e2e
    test (`apps/backend/test/presentation/presentation-direct-post-security.e2e-spec.ts:425-434`).
-   It runs on the shared tenant `dps` and leaves a `failed` session that the worker deletes at once.
+   It runs on the shared tenant `<tenant>` and leaves a `failed` session that the worker deletes at once.
 3. **With the wallet**: trigger, scan the QR code, decline, and run the same `while` loop. At the
    same moment, look in EUDIPLO's log for `wallet_error_response`, and in the reverse proxy's
    (Traefik, Coolify) access log for a `POST /presentations/<nonce>/oid4vp`. No POST means the
@@ -301,7 +301,7 @@ limitation with the evidence** (the report's second "Done when" branch).
      `failed` + `failureCode`, as form parameters or inside `direct_post.jwt`. In §10, add a
      pitfall row: "Paradym and the EU reference app (Android) send no error response on decline;
      the session stays `fetched` until it expires".
-4. **Outside this repo** (for DO.IT and sk-proto-1):
+4. **Outside this repo** (for DO.IT and the form prototype):
    - The form should keep polling until `expires_at`, as the contract asks. If it keeps its 3-minute
      limit, the message there should not claim a decline.
    - Optionally, report the missing decline response upstream to Paradym and the EU reference app.
@@ -338,7 +338,7 @@ limitation with the evidence** (the report's second "Done when" branch).
 - **Wallet behaviour changes**: record each wallet's commit, version and the date checked, so the
   note can be revisited. An app-store build may differ from `main`. The EU reference app for iOS
   was not checked.
-- **The shared tenant**: Reproduction step 2 creates a real session in tenant `dps` and posts a
+- **The shared tenant**: Reproduction step 2 creates a real session in tenant `<tenant>` and posts a
   wallet error to it. It is harmless (the worker deletes the session), but it should run with the
   operators' knowledge.
 - **No API, schema or migration change**: the preferred fix is a test plus documents.
@@ -353,24 +353,24 @@ limitation with the evidence** (the report's second "Done when" branch).
 
 - Resolved: the wallet was Paradym 1.20.2 (build 94).
 - [NEEDS CLARIFICATION: What status and `failure_code` does the deployed middleware hold for the
-  request triggered at about 15:51 UTC on form connection `c027f4b7-…`? It needs access to the
+  request triggered at about 15:51 UTC on form connection `<form-connection-id>`? It needs access to the
   production database, until about 2026-10-19. `expired`/null confirms the hypothesis;
   `declined`/`access_denied` would point to a sync defect.]
 - [NEEDS CLARIFICATION: Does the proxy's access log show a `POST /presentations/<nonce>/oid4vp`
   after the scans, and with what status? On 2026-10-12 at about 15:51–15:54. On 2026-10-13: wallet
-  IDs `57553243-1177-451d-a297-9ee1894ce8ed` (scan 12:19:54), `7e5a7ea0-71ed-4ce4-8927-ca86ecb589ed`
-  (12:25:07) and `b9df48a2-760d-487c-a50a-6c296c3c0266` (12:29:55, the consent-screen decline). Each
+  IDs `<session-id>` (scan 12:19:54), `<session-id>`
+  (12:25:07) and `<session-id>` (12:29:55, the consent-screen decline). Each
   scan should show a `GET …/oid4vp/request/no-redirect`. EUDIPLO's session log is empty for these.]
 - [Separate issue, not this bug: a non-existent `EUDIPLO_TRUST_LIST_ID` is accepted without an
   error. EUDIPLO stores the configuration, and every request built from it can't be answered by any
   wallet. Seen with the local `.env` on 2026-10-13. Worth its own report: check the trust list on
   startup, or when a form connection is saved. Also confirm that production's value is
-  `trust-list-test`.]
+  `<trust-list-id>`.]
 - [NEEDS CLARIFICATION: Is there a wallet available that sends `access_denied` on decline, to check
   the `declined` path end to end? The report's item 4 suggests trying one. None of the checked
   wallets do.]
-- [NEEDS CLARIFICATION: Will sk-proto-1 keep polling until `expires_at`, as `integration-api.md:160`
-  asks, or keep its 3-minute limit? The owner is DO.IT / sk-proto-1, not this repo.]
+- [NEEDS CLARIFICATION: Will the form prototype keep polling until `expires_at`, as `integration-api.md:160`
+  asks, or keep its 3-minute limit? The owner is DO.IT / the form prototype, not this repo.]
 
 ## Sources read (external)
 

@@ -4,9 +4,9 @@ import type {
   FormConnectionDraft,
   RuleItem,
   RuleTreeItem,
-} from '@connection-portal/api-types/form-connections';
-import { flattenItems } from '@connection-portal/rules/tree';
-import { firstProblem, publishProblems } from '@connection-portal/rules/validation';
+} from '@konnekt/api-types/form-connections';
+import { flattenItems } from '@konnekt/rules/tree';
+import { firstProblem, publishProblems } from '@konnekt/rules/validation';
 import { describe, expect, it } from 'vitest';
 
 import { summaryNumbersOf } from '../connectionSummary';

@@ -1,5 +1,5 @@
-import type { FormConnectionOrDraft } from '@connection-portal/api-types/form-connections';
-import type { Language } from '@connection-portal/rules/language';
+import type { FormConnectionOrDraft } from '@konnekt/api-types/form-connections';
+import type { Language } from '@konnekt/rules/language';
 import { useEffect, useReducer, useRef } from 'react';
 
 import { ApiError, errorNoticeOf } from '../api/client';

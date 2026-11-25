@@ -15,8 +15,8 @@ these modules or hooks writes to the console, and nothing is sent anywhere (FR-0
 
 ## Format
 
-- **Key**: `connection-portal:local-draft:v1:<username>:<flowKey>`
-  (`LOCAL_DRAFT_PREFIX = 'connection-portal:local-draft:v1:'`).
+- **Key**: `konnekt:local-draft:v1:<username>:<flowKey>`
+  (`LOCAL_DRAFT_PREFIX = 'konnekt:local-draft:v1:'`).
 - **Flow keys**:
   - `new-<uuid>`: a create flow that was never saved, with `crypto.randomUUID()`;
   - `draft-<id>`: a stored draft.

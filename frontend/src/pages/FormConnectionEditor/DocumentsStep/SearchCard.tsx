@@ -1,4 +1,4 @@
-import type { DocumentType } from '@connection-portal/api-types/document-types';
+import type { DocumentType } from '@konnekt/api-types/document-types';
 import { type FocusEvent, type KeyboardEvent, useEffect, useRef, useState } from 'react';
 
 import { isLanguageSwitchTarget } from '../../../components/LanguageSwitch/utils';

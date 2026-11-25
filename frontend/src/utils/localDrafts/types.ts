@@ -6,7 +6,7 @@ import type {
   EditorStep,
   NumberingBase,
   RequestedDocument,
-} from '@connection-portal/api-types/form-connections';
+} from '@konnekt/api-types/form-connections';
 
 /** The part of the Web Storage API the store uses: local storage or an in-memory fake */
 export interface StorageLike {
@@ -18,7 +18,7 @@ export interface StorageLike {
   removeItem(key: string): void;
 }
 
-/** One local draft, stored as JSON under `connection-portal:local-draft:v1:<username>:<flowKey>` */
+/** One local draft, stored as JSON under `konnekt:local-draft:v1:<username>:<flowKey>` */
 export interface LocalDraftRecord {
   /** The record's format (`LOCAL_DRAFT_FORMAT`) */
   format: 2;

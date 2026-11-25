@@ -62,7 +62,7 @@ The Figma links are too large to open in a main context: only Opus subagents rea
    half-old, half-new app.
 7. **Git in this checkout** is read-only: the worktree pointer names another machine, and the
    checkout is mirrored by rsync. Use
-   `GIT_DIR=/home/debian/batch27-faro/worktrees/new-design GIT_WORK_TREE=/home/debian/batch27-faro/new-design`
+   `GIT_DIR=<git-dir>/worktrees/new-design GIT_WORK_TREE=<checkout>/new-design`
    for `status`, `log`, `diff`. Never commit, rebase, repair or switch; only moving and deleting
    files is allowed. The user commits on the other machine.
 8. **Agents and models.** The project's agents are pinned to Opus 5.5 (`.claude/agents/*.md`), so

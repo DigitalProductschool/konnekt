@@ -40,7 +40,7 @@ a few letters per line (`test-320-nested-rule-menu.png`).
 Setup: the dev server on 5173 calls the relative `/api`, which isn't proxied locally. So the
 browser forwarded `/api/*` to a backend started on port 3000 (`WORKER_ENABLED=false`, no
 EUDIPLO). That backend ran against a scratch database, `bugtest_db`, with a test user. The backend
-was stopped and the database dropped afterwards. Nothing was saved or published, and `template_db`
+was stopped and the database dropped afterwards. Nothing was saved or published, and `konnekt_db`
 was not touched.
 
 ## Output Excerpts

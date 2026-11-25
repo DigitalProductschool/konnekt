@@ -4,7 +4,8 @@
  * conflict with KERN 2.8 (the version under the Revamp overlay below), and inlines its fonts
  * (1.8 MB). The fonts come from KERN's own files instead. Kit components with styles of their own
  * (Menubar, Menu, Tabs, InputDate, Radio error state) need those styles added before they are
- * used.
+ * used. A rule taken from the kit's stylesheet names its source like the rules below that restate
+ * kern.css: upstream file and lines, the package's version, EUPL-1.2.
  */
 @import 'tailwindcss';
 @import '@kern-ux/native/dist/fonts/fira-sans.css';
@@ -56,7 +57,11 @@
   --kern-metric-border-radius-large: var(--kern-12);
   --kern-metric-border-radius-circle: 9999px;
 
-  /* Type: the static sizes, and the adaptive ones at one size on every width */
+  /*
+   * Type: the static sizes, and the adaptive ones at one size on every width. The x-large font
+   * size and the medium to x-large adaptive line heights: values as in `@kern-ux/native` 2.8.2,
+   * `dist/kern.css` lines 633–635 and 642, EUPL-1.2
+   */
   --kern-typography-font-size-small-static: var(--kern-font-size-14);
   --kern-typography-font-size-medium-static: var(--kern-font-size-16);
   --kern-typography-font-size-large-static: var(--kern-font-size-18);
@@ -70,7 +75,10 @@
   --kern-typography-line-height-x-large-adaptive: var(--kern-font-size-40);
   --kern-typography-line-height-2x-large-adaptive: var(--kern-font-size-48);
 
-  /* The baseline paddings at their small-screen values on every width */
+  /*
+   * The baseline paddings at their small-screen values on every width: values as in
+   * `@kern-ux/native` 2.8.2, `dist/kern.css` lines 644–645, 650–663 and 680–681, EUPL-1.2
+   */
   --kern-metric-baseline-heading-display-padding-top: var(--kern-12);
   --kern-metric-baseline-heading-display-padding-bottom: var(--kern-12);
   --kern-metric-baseline-heading-x-large-padding-top: var(--kern-9);
@@ -90,7 +98,10 @@
   --kern-metric-baseline-label-default-padding-top: var(--kern-6);
   --kern-metric-baseline-label-default-padding-bottom: var(--kern-2);
 
-  /* The alert icon at 32px on every width */
+  /*
+   * The alert icon at 32px on every width: value as in `@kern-ux/native` 2.8.2, `dist/kern.css`
+   * line 609, EUPL-1.2
+   */
   --kern-component-alert-icon-size: var(--kern-32);
 
   /*
@@ -598,7 +609,8 @@
 /*
  * KERN's primary button keeps its hover shade while pressed: its :hover rule (0,3,0) outranks
  * :active (0,2,0). The kit draws the pressed state (P09 2:4584) on top of the hover one: design-
- * notes §2 `CopyableUrl` (T028), for every primary button
+ * notes §2 `CopyableUrl` (T028), for every primary button. The declaration as in
+ * `@kern-ux/native` 2.8.2, `dist/kern.css` lines 2027–2029, EUPL-1.2
  */
 .kern-btn--primary:not(:disabled):not([aria-disabled='true']):active {
   background: var(--kern-color-action-state-indicator-shade-active);
@@ -630,12 +642,14 @@
  * (`:not(:disabled):hover, :not([aria-disabled=true]):hover`), but each half of that list matches
  * the other kind, so a busy "Logging in…" or "Approve" took the lighter hover shade under the
  * pointer: its white label 2.8:1 at the disabled opacity (design-notes §1.5, T098). The same
- * rule as ExplainedButton's (T022)
+ * rule as ExplainedButton's (T022). The declaration as in `@kern-ux/native` 2.8.2,
+ * `dist/kern.css` lines 2030–2033 (and 2005), without its fallback, EUPL-1.2
  */
 .kern-btn--primary:is(:disabled, [aria-disabled='true']):is(:hover, :active) {
   background: var(--kern-color-action-default-contextual);
 }
 
+/* The declaration as in `@kern-ux/native` 2.8.2, `dist/kern.css` lines 2036 and 2065, EUPL-1.2 */
 .kern-btn--secondary:is(:disabled, [aria-disabled='true']):is(:hover, :active),
 .kern-btn--tertiary:is(:disabled, [aria-disabled='true']):is(:hover, :active) {
   background: transparent;
@@ -650,7 +664,8 @@
  * And for KERN's radios (the access levels). Their :focus rule also swaps the border for the
  * ring, so a radio focused by a click or a tap gets the border it has unfocused back: 2px, and
  * 4px while hovered, as KERN draws it. Equal specificity to kern.css's :checked:focus rules,
- * later in the cascade.
+ * later in the cascade. The border as in `@kern-ux/native` 2.8.2, `dist/kern.css` line 2535,
+ * EUPL-1.2
  */
 .kern-form-check__radio:focus:not(:focus-visible) {
   outline: none;
@@ -658,6 +673,7 @@
     var(--kern-color-form-input-border-contextual);
 }
 
+/* The border as in `@kern-ux/native` 2.8.2, `dist/kern.css` lines 2540–2542, EUPL-1.2 */
 .kern-form-check__radio:focus:not(:focus-visible):hover {
   border: var(--kern-metric-border-width-bold) solid var(--kern-color-form-input-border-contextual);
 }
@@ -798,6 +814,7 @@
 }
 
 @media (forced-colors: active) {
+  /* The colours as in `@kern-ux/native` 2.8.2, `dist/kern.css` lines 3639–3646, EUPL-1.2 */
   .kern-loader.kern-loader--56 {
     border-color: var(--kern-color-layout-background-default)
       var(--kern-color-layout-background-default) var(--kern-color-layout-background-default)
@@ -818,7 +835,9 @@
  * button ("Discard connection", U17 7173:52682; "Remove 1 document", U25 7299:52174): the 1px
  * border and the label in the danger colour on white. Hover and pressed are KERN's own, made
  * from the danger colour: the shades for the filled button, the tints for the outline one.
- * kern.css computes those shades on :root, so they are set again here, not inherited.
+ * kern.css computes those shades on :root, so they are set again here, not inherited. The three
+ * shade and hover-tint formulas as in `@kern-ux/native` 2.8.2, `dist/kern.css` lines 802–804
+ * (also 868–870, 934–936, 1000–1002), with the danger colour for the action colour, EUPL-1.2
  */
 .kern-btn--danger {
   --kern-color-action-default: var(--kern-color-feedback-danger);

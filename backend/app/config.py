@@ -1,6 +1,6 @@
 from urllib.parse import urlsplit
 
-from pydantic import model_validator
+from pydantic import Field, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 DEVELOPMENT_CONNECTION_BASE_URL = 'http://localhost:3000'
@@ -18,7 +18,7 @@ class Settings(BaseSettings):
     model_config = SettingsConfigDict(env_file='.env', extra='ignore')
 
     database_url: str = (
-        'postgresql+psycopg://postgres:postgres@localhost:5432/template_db'
+        'postgresql+psycopg://postgres:postgres@localhost:5432/konnekt_db'
     )
     port: int = 3000
     cors_origin: str = 'http://localhost:5173'
@@ -40,6 +40,13 @@ class Settings(BaseSettings):
     allow_plain_http: bool = False
     worker_enabled: bool = True
     login_session_hours: int = 8
+    # The sign-in throttle (spec 012, research R6, finding 4): after this many
+    # failed sign-ins in a row for one username, every further attempt waits, first
+    # SIGN_IN_FIRST_WAIT_SECONDS, doubling with each failure up to
+    # SIGN_IN_MAX_WAIT_SECONDS. A first wait of 0 switches the waits off
+    sign_in_failures_before_wait: int = 5
+    sign_in_first_wait_seconds: int = 30
+    sign_in_max_wait_seconds: int = 900
     # How long a deletion can be restored (spec 010, data-model §8); 0 switches
     # restoring off
     deletion_undo_seconds: int = 300
@@ -54,6 +61,10 @@ class Settings(BaseSettings):
     agent_token_max_days: int = 90
     approval_request_minutes: int = 10
     agent_drafts_per_hour: int = 20
+    # Dynamic client registrations that no agent connection or authorization code
+    # uses are kept at most this many: a new registration removes the oldest ones
+    # beyond it (spec 012, research R6, finding 5). At least 1
+    oauth_max_unused_registrations: int = Field(default=1000, ge=1)
 
     @model_validator(mode='after')
     def check_connection_base_url(self) -> 'Settings':

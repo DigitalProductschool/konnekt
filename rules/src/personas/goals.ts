@@ -8,7 +8,7 @@
 // of every branch merged, so that the questions of one run share their answers. Only 'sat' counts:
 // 'unknown' (research 003-R7's text corner, or the deadline) never counts as realizable. Pure and
 // deterministic given its inputs: no randomness, no side effects, no logging
-import type { Combinator } from '@connection-portal/api-types/form-connections';
+import type { Combinator } from '@konnekt/api-types/form-connections';
 
 import { dayNumber } from '../checks/calendar';
 import { isLiteral, negate } from '../checks/literals';

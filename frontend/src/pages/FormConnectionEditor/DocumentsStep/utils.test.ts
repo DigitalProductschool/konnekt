@@ -1,6 +1,6 @@
-import type { DocumentField, DocumentType } from '@connection-portal/api-types/document-types';
-import type { RequestedDocument } from '@connection-portal/api-types/form-connections';
-import { US1_RULES } from '@connection-portal/rules/testData';
+import type { DocumentField, DocumentType } from '@konnekt/api-types/document-types';
+import type { RequestedDocument } from '@konnekt/api-types/form-connections';
+import { US1_RULES } from '@konnekt/rules/testData';
 import { describe, expect, it } from 'vitest';
 
 import type { RulesBranch } from '../RulesStep/types';

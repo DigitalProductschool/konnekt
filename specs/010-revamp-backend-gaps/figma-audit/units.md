@@ -1,4 +1,4 @@
-# Units — fileKey s8mU9oJDq3411e8bxMjQO9 | root 6263:12360 | 🔗 Flow · Connection Portal, log in to publish (source for the HTML build) | 29 visible sections
+# Units — fileKey s8mU9oJDq3411e8bxMjQO9 | root 6263:12360 | 🔗 Flow · Konnekt, log in to publish (source for the HTML build) | 29 visible sections
 Mapper Figma calls: 1. Estimated audit calls: 166.
 Split reused from specs/008-kern-revamp-redesign/figma-audit/units.md (same UNIT-IDs and groupings); verified against the fresh tree: all 008 node-ids present and visible, all 29 visible top-level sections covered, no new units. Hidden layers (incl. 4 hidden top-level nodes) skipped. Estimate counts IN and UNCERTAIN units only.
 

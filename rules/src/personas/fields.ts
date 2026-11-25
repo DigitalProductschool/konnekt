@@ -8,12 +8,8 @@
 // evaluation agree, by construction, on which rules count. This module reaches
 // `checks/checkedTree.ts`, and with it the case-folding table: the main bundle never imports it
 // statically (tasks.md, "Bundle")
-import type { DocumentField, FieldPart } from '@connection-portal/api-types/document-types';
-import type {
-  RuleItem,
-  RuleTarget,
-  RuleTreeItem,
-} from '@connection-portal/api-types/form-connections';
+import type { DocumentField, FieldPart } from '@konnekt/api-types/document-types';
+import type { RuleItem, RuleTarget, RuleTreeItem } from '@konnekt/api-types/form-connections';
 
 import { buildCheckedBranch, type KeyedBranch } from '../checks/checkedTree';
 import { variableKey } from '../checks/literals';

@@ -1,5 +1,5 @@
-# The checks of "Before you finish" in CLAUDE.md and a scan for secrets, on every push and pull
-# request (README.md, "Continuous integration"). One job per kind of check and side, so each one
+# The checks of "Before you finish" in CLAUDE.md, a scan for secrets and the REUSE check, on
+# every push and pull request (README.md, "Continuous integration"). One job per kind of check and side, so each one
 # is its own status check on a pull request; they all run in parallel
 name: CI
 
@@ -23,9 +23,10 @@ permissions:
 # pin). Change them together. `uv sync --locked` fails when uv.lock no longer matches
 # pyproject.toml; `npm ci --ignore-scripts`, as in the Dockerfiles, also skips the root's
 # prepare script, which installs the pre-commit hooks.
-# Since v8.0.0, setup-uv publishes only immutable releases and no floating major tag (no
-# `@v10`), so it is pinned to the commit of a release, the version in the comment (its README).
-# actions/checkout and actions/setup-node still move their major tags (`@v7`)
+# Every action is pinned to the commit of a release, the version in the comment. Since v8.0.0,
+# setup-uv publishes only immutable releases and no floating major tag (no `@v10`; its README);
+# actions/checkout and actions/setup-node still move their major tags (`@v7`), so a pin by
+# commit keeps a moved tag from changing what runs here
 
 jobs:
   backend-lint:
@@ -36,7 +37,7 @@ jobs:
       run:
         working-directory: backend
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
       - uses: astral-sh/setup-uv@68559e99cc807c1eb7e9238fd43a15bba460eec2 # v10.3.3
@@ -63,7 +64,7 @@ jobs:
       run:
         working-directory: backend
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
       - uses: astral-sh/setup-uv@68559e99cc807c1eb7e9238fd43a15bba460eec2 # v10.3.3
@@ -93,7 +94,7 @@ jobs:
         env:
           POSTGRES_USER: postgres
           POSTGRES_PASSWORD: postgres
-          POSTGRES_DB: template_db_test
+          POSTGRES_DB: konnekt_db_test
         ports:
           - 5432:5432
         options: >-
@@ -103,10 +104,10 @@ jobs:
           --health-retries 10
 
     env:
-      DATABASE_URL: postgresql+psycopg://postgres:postgres@localhost:5432/template_db_test
+      DATABASE_URL: postgresql+psycopg://postgres:postgres@localhost:5432/konnekt_db_test
 
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
       - uses: astral-sh/setup-uv@68559e99cc807c1eb7e9238fd43a15bba460eec2 # v10.3.3
@@ -127,10 +128,10 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
-      - uses: actions/setup-node@v7
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version: 26
           cache: npm
@@ -150,10 +151,10 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
-      - uses: actions/setup-node@v7
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version: 26
           cache: npm
@@ -169,10 +170,10 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
-      - uses: actions/setup-node@v7
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version: 26
           cache: npm
@@ -196,7 +197,7 @@ jobs:
       # Of gitleaks_8.30.1_linux_x64.tar.gz, from the release's gitleaks_8.30.1_checksums.txt
       GITLEAKS_SHA256: 551f6fc83ea457d62a0d98237cbad105af8d557003051f41f3e7ca7b3f2470eb
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           # The whole history, which the scan reads
           fetch-depth: 0
@@ -216,3 +217,21 @@ jobs:
       # file, line, commit and fingerprint, never the secret (`--redact`)
       - name: gitleaks
         run: gitleaks git --log-opts=HEAD --redact --verbose --no-banner
+
+  # The REUSE Specification: every file has a licence and a copyright holder, from REUSE.toml
+  # in the root, and LICENSES/ holds exactly the licence texts those name (no missing, no unused
+  # one). reuse, the tool of the FSFE, at an exact version through uvx; change it here only
+  licensing:
+    name: 'Licensing: REUSE'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: astral-sh/setup-uv@68559e99cc807c1eb7e9238fd43a15bba460eec2 # v10.3.3
+        with:
+          version: '0.12.9'
+
+      - name: reuse lint
+        run: uvx --from reuse==6.3.0 reuse lint

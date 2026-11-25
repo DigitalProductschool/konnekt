@@ -114,4 +114,4 @@ None in substance. Two notes:
 - Optionally ask the designer for a frame for the failed-publish dialog, since none exists
   (recorded in design-notes §6).
 - Committing: `git` doesn't work in this worktree (its `.git` points to
-  `/home/samu/.../worktrees/fix-error-message`), so the change can't be committed from here as is.
+  `<checkout>/…`), so the change can't be committed from here as is.

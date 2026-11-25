@@ -69,8 +69,8 @@ does, as the user reports.
 3. The footer has scrolled up with the page and blank space fills the rest of the window
    (`before-links-open-scrolled-to-end.png`).
 4. Or: with a connection that has many rules, click "View activity" instead and scroll to the end.
-   Depending on the rules' size, the whole window can be blank
-   (`before-activity-open-scrolled-to-end.png`, 12 rules per variant).
+   Depending on the rules' size, the whole window can be blank (seen with 12 rules per
+   variant).
 5. Arriving right after "Publish", "Schedule" or the edit flow's "Save" (Links open, Summary
    closed) shows the same at step 3 without any click. I worked this out from the code
    (`initialAccordionOf()`); in the browser I only reproduced the clicked state, which is the same

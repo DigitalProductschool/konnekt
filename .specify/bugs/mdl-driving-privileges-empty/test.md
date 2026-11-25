@@ -21,7 +21,7 @@ still deliver `[{}, {}, {}]`. The live reproduction was not run.
 | Reproduction (post-fix, live) | Issue a test mDL, share it from a wallet, pull | skipped | Needs a wallet and the hosted EUDIPLO, and nothing in this repo changes that path. Expected to still show `[{}, {}, {}]` until EUDIPLO is fixed |
 | Reproduction (library-level, `@owf/cose` round-trip) | Assessment's `cborEncode`/`cborDecode`/`JSON.stringify` snippet | not-run | It shows the bug in EUDIPLO's dependency, which this fix doesn't touch, so a rerun would only confirm the bug is still there |
 | Middleware pass-through (automated equivalent) | `uv run pytest tests/unit/test_documents.py -q` | pass | 37 passed. Includes the full AM/B/L entries (with `expiry_date` and nested `codes`), the warning on `[{}, {}, {}]` that names only the key, and 4 shapes that must not warn |
-| Regression suite | `DATABASE_URL=…/template_db_test uv run pytest -q` | pass | 514 passed in 96 s (local Postgres on :5435) |
+| Regression suite | `DATABASE_URL=…/konnekt_db_test uv run pytest -q` | pass | 514 passed in 96 s (local Postgres on :5435) |
 | Lint | `uv run ruff check .` / `uv run ruff format --check .` | pass | All checks passed; 52 files already formatted |
 | Type-check | `uv run mypy app/ scripts/ tests/` | pass | No issues in 49 source files |
 | Diff review | Read `app/services/documents.py` (`_emptied`, warning at L74–) and the new tests | pass | Matches `fix.md`. `git diff` was unavailable: the worktree's `.git` points to a path on another machine |
@@ -55,5 +55,5 @@ Hold. Don't close the bug. The middleware changes are verified and safe to merge
 "Done when" (a pull delivers `[{"vehicle_category_code": "B", "issue_date": "2003-05-12"}, …]`)
 can't be met until EUDIPLO is fixed. Next: file the upstream issue and PR
 (`eudiplo-fix-prompt.md`), deploy a fixed or patched EUDIPLO, then rerun the live reproduction
-(T081 / quickstart V-runs and sk-proto-1 quickstart 12.2). Rerun `/speckit-bug-test` after that
+(T081 / quickstart V-runs and the form prototype's quickstart 12.2). Rerun `/speckit-bug-test` after that
 to move this to `verified`.

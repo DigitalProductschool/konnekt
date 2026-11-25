@@ -5,17 +5,17 @@ import type {
   NumberingBase,
   RuleItem,
   RuleTreeItem,
-} from '@connection-portal/api-types/form-connections';
-import type { OptionSet } from '@connection-portal/api-types/option-sets';
+} from '@konnekt/api-types/form-connections';
+import type { OptionSet } from '@konnekt/api-types/option-sets';
 import type {
   BannerPart,
   BranchCheck,
   FindingTone,
   ItemNames,
   ItemReference,
-} from '@connection-portal/rules/checks/types';
-import type { Language } from '@connection-portal/rules/language';
-import type { RuleContext, RuleDocument, RulesProblem } from '@connection-portal/rules/types';
+} from '@konnekt/rules/checks/types';
+import type { Language } from '@konnekt/rules/language';
+import type { RuleContext, RuleDocument, RulesProblem } from '@konnekt/rules/types';
 import type { KeyboardEvent, ReactNode } from 'react';
 
 import type { BranchFindings } from '../../../components/BranchName/types';

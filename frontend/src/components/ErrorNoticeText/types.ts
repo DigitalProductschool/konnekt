@@ -1,4 +1,4 @@
-import type { ErrorNotice } from '@connection-portal/api-types/api';
+import type { ErrorNotice } from '@konnekt/api-types/api';
 
 export interface ErrorNoticeTextProps {
   notice: ErrorNotice;

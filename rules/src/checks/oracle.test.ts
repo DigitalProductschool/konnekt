@@ -10,7 +10,7 @@
 // - the always-met and redundant findings (FR-005, FR-006, US2): each holds, deleting every
 //   redundant item at once changes no outcome (SC-002, invariant 4), and with `complete` every
 //   always-met item is reported and every other item makes a difference (invariant 5).
-import type { Combinator } from '@connection-portal/api-types/form-connections';
+import type { Combinator } from '@konnekt/api-types/form-connections';
 import { describe, expect, it } from 'vitest';
 
 import { checkBranch } from './findings';

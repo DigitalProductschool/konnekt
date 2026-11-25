@@ -551,6 +551,8 @@ def test_the_steps_run_in_the_order_of_research_r7() -> None:
         worker.resync_configs,
         worker.delete_unused_configs,
         worker.delete_expired_login_sessions,
+        # The forgotten sign-in attempts (spec 012, R6; test_sign_in_throttle.py)
+        worker.delete_expired_sign_in_throttles,
         worker.delete_old_request_records,
         # Agents' access (spec 007; tests/api/test_oauth.py)
         worker.delete_expired_oauth_codes,

@@ -3,7 +3,7 @@
 // citizen", "meets", "message", "test step", and the test step's rows). Texts that depend on data
 // are built in `rules/src/personas/messages.ts`, the outcome names "Not met" and "Couldn’t be
 // checked" among them (`outcomeNameOf()`). Apostrophes are typographic (’)
-import { defineTexts } from '@connection-portal/rules/language';
+import { defineTexts } from '@konnekt/rules/language';
 
 import type { ValuesPickerCopy } from '../../../components/ValuesPicker/types';
 

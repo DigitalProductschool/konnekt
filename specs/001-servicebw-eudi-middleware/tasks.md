@@ -390,7 +390,7 @@ scenarios 5–7; research R16; contracts/ui-screens.md "First connection"; desig
 **Independent Test**:
 1. With no form connection, sign in. `/get-started` opens with "Create your first connection", and
    publishing from it opens the new form connection's details.
-2. Before publishing, select "Connection Portal". The overview shows its empty state, and signing out
+2. Before publishing, select "Konnekt". The overview shows its empty state, and signing out
    and in again opens `/get-started` again.
 3. With a form connection, sign in, then open `/get-started` by its address. Both show the
    overview.

@@ -1,8 +1,8 @@
 // The data a connection requests that the catalog no longer offers (spec 005, S8; FR-003 edge
 // case): the editor's documents step notes it, and the MCP server's `get_connection` lists it
 // (spec 007, contracts/mcp-tools.md "Reading"), both from `droppedDataOf()`
-import type { DocumentType } from '@connection-portal/api-types/document-types';
-import type { RequestedDocument } from '@connection-portal/api-types/form-connections';
+import type { DocumentType } from '@konnekt/api-types/document-types';
+import type { RequestedDocument } from '@konnekt/api-types/form-connections';
 
 import { DEFAULT_LANGUAGE, defineTexts, type Language } from './language';
 

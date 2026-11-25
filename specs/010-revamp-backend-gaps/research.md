@@ -427,8 +427,8 @@ reducers sit in the sibling `utils.ts` with tests, as the constitution asks.
 008 and 009 were built here the same way), uv 0.13.0, PostgreSQL accepting connections on `localhost:5435`
 (`new-design-postgres-1`), no `node_modules` yet (`npm install` first), a backend `.venv` present.
 `.git` points at another machine's path; git works here with
-`GIT_DIR=/home/debian/batch27-faro/worktrees/010-revamp-backend-gaps` and
-`GIT_WORK_TREE=/home/debian/batch27-faro/010-revamp-backend-gaps`, on the branch
+`GIT_DIR=<git-dir>/worktrees/010-revamp-backend-gaps` and
+`GIT_WORK_TREE=<checkout>/010-revamp-backend-gaps`, on the branch
 `010-revamp-backend-gaps`. The Playwright MCP tools (Chromium, Firefox) and the Figma MCP are
 available to the tasks.
 

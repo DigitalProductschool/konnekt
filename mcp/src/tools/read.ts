@@ -6,8 +6,8 @@ import type {
   BranchInput,
   FormConnectionOrDraft,
   FormConnectionPage,
-} from '@connection-portal/api-types/form-connections';
-import { findItem } from '@connection-portal/rules/tree';
+} from '@konnekt/api-types/form-connections';
+import { findItem } from '@konnekt/rules/tree';
 import { z } from 'zod';
 
 import type { BackendClient } from '../backend';

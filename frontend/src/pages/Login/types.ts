@@ -1,5 +1,5 @@
-import type { ErrorNotice } from '@connection-portal/api-types/api';
-import type { Language } from '@connection-portal/rules/language';
+import type { ErrorNotice } from '@konnekt/api-types/api';
+import type { Language } from '@konnekt/rules/language';
 import type { ChangeEvent } from 'react';
 
 export interface PasswordFieldProps {

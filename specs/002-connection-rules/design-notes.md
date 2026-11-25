@@ -3,7 +3,7 @@
 **Tasks**: T002 (copy), T003 (tokens), T076 (accessibility, §10), T077 (coverage, §11) | **Date**: 2026-10-25, §7, §8, §10 and §11 2026-10-26 | **Contract**: [contracts/ui-screens.md](contracts/ui-screens.md)
 
 **Sources**:
-- **Figma "Connection Portal"** (`s8mU9oJDq3411e8bxMjQO9`), page "🔗 Flow · Connection Portal, log in
+- **Figma "Konnekt"** (`s8mU9oJDq3411e8bxMjQO9`), page "🔗 Flow · Konnekt, log in
   to publish" (`6263:12360`). The units U06–U38 are listed in
   [figma-audit/units.md](figma-audit/units.md). Read for these notes with `get_design_context`:
   U11 `6348:40209` (the Rules step, empty) and `6348:40237` (document menu), U12 `6350:41316`

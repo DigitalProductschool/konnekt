@@ -1,7 +1,7 @@
 // The Node smoke test of the drawing (research R14): PDFKit's Node build, the committed TTFs
 // inlined by Vite, `compress: false` so that the raw bytes can be read, and `recordingDocument()`
 // for what each page draws. The assertions hold per page and per kind, never for a fixed page count
-import type { Language } from '@connection-portal/rules/language';
+import type { Language } from '@konnekt/rules/language';
 import PDFKit from 'pdfkit';
 import { beforeAll, describe, expect, it } from 'vitest';
 

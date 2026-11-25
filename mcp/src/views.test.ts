@@ -1,4 +1,4 @@
-import type { DocumentField, DocumentType } from '@connection-portal/api-types/document-types';
+import type { DocumentField, DocumentType } from '@konnekt/api-types/document-types';
 import type {
   ActivityEntry,
   ActivityKind,
@@ -9,8 +9,8 @@ import type {
   GroupItem,
   RequestedDocumentView,
   RuleItem,
-} from '@connection-portal/api-types/form-connections';
-import { MDL, OPTION_SETS, PID, rule, target } from '@connection-portal/rules/testData';
+} from '@konnekt/api-types/form-connections';
+import { MDL, OPTION_SETS, PID, rule, target } from '@konnekt/rules/testData';
 import { describe, expect, it } from 'vitest';
 
 import { connectionLink, itemLink, variantLink } from './links';

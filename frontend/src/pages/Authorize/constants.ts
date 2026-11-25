@@ -1,4 +1,4 @@
-import { defineTexts } from '@connection-portal/rules/language';
+import { defineTexts } from '@konnekt/rules/language';
 
 import type { ConsentState } from './types';
 
@@ -12,6 +12,21 @@ export const CONSENT_COPY = defineTexts(
     title: (clientName: string) => `Allow access for ${clientName}?`,
     intro: (clientName: string) =>
       `${clientName} wants to act on your behalf in Konnekt. Choose what it may do.`,
+    // Who gives the name and where the answer goes (spec 012, research R6, finding 6), under the
+    // intro. A part before a host or scheme ends without its space; the part after brings its own
+    /** A dynamically registered client */
+    nameRegistered: 'The agent registered itself with Konnekt and chose this name itself.',
+    /** A client with a metadata document: `namePublished`, the host in bold, `namePublishedEnd` */
+    namePublished: 'The agent chose this name itself and publishes it on',
+    namePublishedEnd: '.',
+    /** An `https://` redirect URI: `goesToWeb`, the host in bold, `goesToWebEnd` */
+    goesToWeb: 'After you answer, your browser goes to',
+    goesToWebEnd: '.',
+    /** A loopback redirect URI (`http://127.0.0.1:…`, `http://localhost:…`) */
+    goesToLoopback: 'After you answer, your browser goes back to an app on this computer.',
+    /** An app's own scheme: `goesToApp`, the scheme with its colon in bold, `goesToAppEnd` */
+    goesToApp: 'After you answer, your browser opens the app on this computer that handles',
+    goesToAppEnd: ' links.',
     levelLegend: 'Access level',
     stepUp: (clientName: string) => `${clientName} is asking for more access than it has.`,
     allow: 'Allow',
@@ -41,6 +56,18 @@ export const CONSENT_COPY = defineTexts(
     title: (clientName: string) => `Zugriff für ${clientName} erlauben?`,
     intro: (clientName: string) =>
       `${clientName} möchte in Konnekt in Ihrem Namen handeln. Wählen Sie aus, was der Agent tun darf.`,
+    nameRegistered:
+      'Der Agent hat sich selbst bei Konnekt registriert und diesen Namen selbst gewählt.',
+    namePublished: 'Der Agent hat diesen Namen selbst gewählt und veröffentlicht ihn auf',
+    namePublishedEnd: '.',
+    goesToWeb: 'Nach Ihrer Antwort wechselt Ihr Browser zu',
+    goesToWebEnd: '.',
+    goesToLoopback:
+      'Nach Ihrer Antwort wechselt Ihr Browser zurück zu einer App auf diesem Computer.',
+    goesToApp: 'Nach Ihrer Antwort öffnet Ihr Browser die App auf diesem Computer, die',
+    // The scheme as the first part of the compound, „cursor:‑Links“, joined by a non-breaking
+    // hyphen (U+2011) so that a narrow card doesn't end a line on „cursor:-“
+    goesToAppEnd: '‑Links verarbeitet.',
     levelLegend: 'Zugriffsstufe',
     stepUp: (clientName: string) => `${clientName} bittet um mehr Zugriff als bisher.`,
     allow: 'Erlauben',
@@ -87,9 +114,12 @@ export const INITIAL_CONSENT_STATE: ConsentState = { status: 'loading' };
 export const CONSENT_CARD_CLASSES =
   'rounded-kern-large bg-kern-layout-background-default mx-auto flex w-full max-w-600 flex-col gap-24 border border-(--kern-color-decorative-border-default) p-24 sm:p-40';
 
-/** body/small (14/24), the footer line's and the step-up strip's text */
+/** body/small (14/24), the footer line's, the client facts' and the step-up strip's text */
 export const SMALL_TEXT =
   'text-kern-static-small leading-(--kern-typography-line-height-medium-static)';
+
+/** The host or scheme in the client facts' muted line: semibold in the text colour */
+export const FACT_EMPHASIS_CLASSES = 'text-kern-layout-text-default font-semibold';
 
 /**
  * The row of an error alert's way back (design-notes §3 "Error state of a page"), in the alert's

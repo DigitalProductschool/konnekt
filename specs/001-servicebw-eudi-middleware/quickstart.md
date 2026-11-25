@@ -11,7 +11,7 @@ Here, `curl` plays the part of serviceBW.
 | What | Details |
 |---|---|
 | Tools | Docker with Compose v2.24 or later (for `env_file` with `required: false`), `uv`, Node 22, `curl`, `jq`, `base64` |
-| EUDIPLO access | The team's hosted EUDIPLO, tenant `dps`, and from it: its base URL; an API client with **`presentation:request` + `presentation:manage`** and no presentation allow-list; the id of a **trust list** that contains the test issuers; and an active access key chain. See [contracts/eudiplo-usage.md](contracts/eudiplo-usage.md#prerequisites-in-the-tenant-set-up-by-the-operators-not-by-the-middleware) |
+| EUDIPLO access | The team's hosted EUDIPLO, tenant `<tenant>`, and from it: its base URL; an API client with **`presentation:request` + `presentation:manage`** and no presentation allow-list; the id of a **trust list** that contains the test issuers; and an active access key chain. See [contracts/eudiplo-usage.md](contracts/eudiplo-usage.md#prerequisites-in-the-tenant-set-up-by-the-operators-not-by-the-middleware) |
 | Test wallet | A phone with **Paradym** holding a test PID (SD-JWT VC, `vct` `urn:eudi:pid:1` or `urn:eudi:pid:de:1`) and a test mobile driving licence (mdoc, `org.iso.18013.5.1.mDL`). Both must come from issuers on that trust list: `backend/scripts/issue_test_credentials` issues both from the tenant itself, with a made-up person's data (README, "Test credentials for a test wallet"). Try the EU reference wallet only after Paradym works (`docs/EUDIPLO.md` §13) |
 | Extra test credentials (V3) | If the test issuer allows it: one credential that has **expired**, one that has been **revoked**, and one from an issuer **not** on the trust list |
 | Network | Outbound HTTPS from the middleware to EUDIPLO. The phone reaches EUDIPLO directly; it never contacts the middleware |
@@ -49,11 +49,11 @@ a developer machine. The nginx allow-list (R13) applies only to the production i
 
 ```bash
 # Backend: lint, types, tests. Tests need a database whose name ends in "_test".
-docker compose exec postgres createdb -U postgres template_db_test
+docker compose exec postgres createdb -U postgres konnekt_db_test
 cd backend
 uv run ruff check . && uv run ruff format --check .
 uv run mypy app/ scripts/ tests/
-DATABASE_URL=postgresql+psycopg://postgres:postgres@localhost:5435/template_db_test uv run pytest
+DATABASE_URL=postgresql+psycopg://postgres:postgres@localhost:5435/konnekt_db_test uv run pytest
 
 # Frontend: the constitution's gates
 cd ../frontend
@@ -80,7 +80,7 @@ Start with no form connection. On a local stack whose database already has some,
 deletion would (US4 adds deleting to the UI):
 
 ```bash
-docker compose exec postgres psql -U postgres -d template_db \
+docker compose exec postgres psql -U postgres -d konnekt_db \
   -c "UPDATE form_connections SET deleted_at = now() WHERE deleted_at IS NULL;"
 ```
 
@@ -207,7 +207,7 @@ Removed on 2026-10-19: webhook mode is out of scope (see the spec's Clarificatio
    - **Expected**: the EUDIPLO session is gone, and a pull returns `completed` with
      `documents: null`.
 3. Inspect the middleware's database, for example
-   `docker compose exec postgres psql -U postgres template_db -c '\dt'`, and the
+   `docker compose exec postgres psql -U postgres konnekt_db -c '\dt'`, and the
    `document_requests` table.
    - **Expected**: no claim values anywhere.
 4. Search the backend and nginx logs for the test person's family name and for `$REF`.
@@ -304,4 +304,4 @@ Run these once per environment that uses the production image (Coolify, includin
 4. **Logs**: after a pull, the nginx access log shows `/requests/<reference>` instead of the real
    reference.
 5. **Tenant**: until production gets its own EUDIPLO tenant (research R19), every environment shares
-   tenant `dps`. Don't use real citizens' wallets before that is resolved.
+   tenant `<tenant>`. Don't use real citizens' wallets before that is resolved.

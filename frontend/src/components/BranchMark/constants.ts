@@ -1,5 +1,5 @@
-import type { Mark } from '@connection-portal/api-types/form-connections';
-import { defineTexts } from '@connection-portal/rules/language';
+import type { Mark } from '@konnekt/api-types/form-connections';
+import { defineTexts } from '@konnekt/rules/language';
 
 // Figma "Rules/Variant status" on the screens (U57 I6522:32701;6118:3685,
 // U58 I6522:33021;6118:3685, U47 I6185:8570;6118:3685): the mark's text, so that it never rests

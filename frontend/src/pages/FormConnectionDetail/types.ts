@@ -1,4 +1,4 @@
-import type { ErrorNotice } from '@connection-portal/api-types/api';
+import type { ErrorNotice } from '@konnekt/api-types/api';
 import type {
   ActivityEntry,
   ActivityPage,
@@ -10,8 +10,8 @@ import type {
   FormConnectionOrDraft,
   RequestedDocumentView,
   RuleTreeItem,
-} from '@connection-portal/api-types/form-connections';
-import type { RuleContext, RuleDocument } from '@connection-portal/rules/types';
+} from '@konnekt/api-types/form-connections';
+import type { RuleContext, RuleDocument } from '@konnekt/rules/types';
 import type { ReactNode, Ref } from 'react';
 
 import type { ActiveFrom } from '../../components/ActiveFromChoice/types';

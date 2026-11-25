@@ -1,13 +1,13 @@
-import type { OptionSet } from '@connection-portal/api-types/option-sets';
-import type { Language } from '@connection-portal/rules/language';
+import type { OptionSet } from '@konnekt/api-types/option-sets';
+import type { Language } from '@konnekt/rules/language';
 import type {
   GenerationRun,
   Persona,
   PersonaField,
   ResultRow,
-} from '@connection-portal/rules/personas/types';
-import { ageOn, dataRowsOf } from '@connection-portal/rules/personas/values';
-import { mainBranch } from '@connection-portal/rules/testData';
+} from '@konnekt/rules/personas/types';
+import { ageOn, dataRowsOf } from '@konnekt/rules/personas/values';
+import { mainBranch } from '@konnekt/rules/testData';
 import { describe, expect, it } from 'vitest';
 
 import type { RulesBranch } from '../RulesStep/types';

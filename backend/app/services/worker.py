@@ -30,7 +30,14 @@ from ..models import (
     OauthClient,
     OauthCode,
 )
-from . import deletions, document_requests, form_connections, start_dates
+from . import (
+    deletions,
+    document_requests,
+    form_connections,
+    oauth,
+    sign_in_throttle,
+    start_dates,
+)
 from .document_requests import (
     OPEN_REQUEST,
     PENDING,
@@ -417,6 +424,17 @@ def delete_expired_login_sessions() -> None:
         db.commit()
 
 
+def delete_expired_sign_in_throttles() -> None:
+    """Delete the sign-in attempts that are forgotten (spec 012, R6, finding 4).
+
+    `sign_in_throttle.delete_expired()`, so that usernames that attackers invent
+    don't fill the table. A row whose username is signing in meanwhile is locked;
+    the delete waits for it and checks `expires_at` again.
+    """
+    with SessionLocal() as db:
+        sign_in_throttle.delete_expired(db)
+
+
 def delete_old_request_records() -> None:
     """Delete the records of requests that ended long enough ago (R7, step 9).
 
@@ -555,15 +573,13 @@ def delete_unused_oauth_clients() -> None:
     A `dcr` client created more than an hour ago that no authorization uses goes;
     one with an authorization code waits for `delete_expired_oauth_codes`, since
     the code refers to it. Clients of metadata documents stay, as their cache.
-    Locked and checked again as `_delete_authorizations` does.
+    "Unused" is `oauth.UNUSED_CLIENT`, which registrations beyond the cap use too
+    (spec 012, research R6, finding 5). Locked and checked again as
+    `_delete_authorizations` does.
     """
     unused = (
-        OauthClient.kind == 'dcr',
+        *oauth.UNUSED_CLIENT,
         OauthClient.created_at < datetime.now(tz=timezone.utc) - UNUSED_CLIENT_KEPT,
-        ~select(AgentAuthorization.id)
-        .where(AgentAuthorization.client_id == OauthClient.id)
-        .exists(),
-        ~select(OauthCode.id).where(OauthCode.client_id == OauthClient.id).exists(),
     )
     with SessionLocal() as db:
         candidates = db.scalars(
@@ -623,10 +639,11 @@ def finish_deletions() -> None:
 
 
 # The steps of one cycle: 1. the scheduled starts (spec 010, research R2), ahead
-# of the sync's wait for EUDIPLO; 2 to 9. those of research R7, in its order (its
-# step 4 was removed with webhook mode); 10 to 15. those of agents' access and the
-# approval requests (spec 007); 16. the deletions made final once their restore
-# time has passed (spec 010, research R5)
+# of the sync's wait for EUDIPLO; 2 to 10. those of research R7, in its order (its
+# step 4 was removed with webhook mode), with the forgotten sign-in attempts after
+# the expired sign-ins (spec 012, research R6); 11 to 16. those of agents' access
+# and the approval requests (spec 007); 17. the deletions made final once their
+# restore time has passed (spec 010, research R5)
 STEPS: tuple[Step, ...] = (
     activate_scheduled_connections,
     sync_sessions,
@@ -636,6 +653,7 @@ STEPS: tuple[Step, ...] = (
     resync_configs,
     delete_unused_configs,
     delete_expired_login_sessions,
+    delete_expired_sign_in_throttles,
     delete_old_request_records,
     delete_expired_oauth_codes,
     delete_expired_agent_tokens,

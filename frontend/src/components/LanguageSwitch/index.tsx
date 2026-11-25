@@ -1,4 +1,4 @@
-import { languageNames } from '@connection-portal/rules/language';
+import { languageNames } from '@konnekt/rules/language';
 
 import { useCopy, useLanguage } from '../../hooks/useLanguage';
 import {

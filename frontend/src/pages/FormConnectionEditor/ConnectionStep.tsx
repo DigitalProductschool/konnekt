@@ -1,5 +1,5 @@
-import { formatDate } from '@connection-portal/rules/dates';
-import type { Language } from '@connection-portal/rules/language';
+import { formatDate } from '@konnekt/rules/dates';
+import type { Language } from '@konnekt/rules/language';
 import type { FormEvent } from 'react';
 
 import addLinkIcon from '../../assets/icons/add-link-action.svg';

@@ -22,7 +22,7 @@
 // Class dates get a value whether or not the class is held (W4). Every value is of its field's
 // kind (`PersonaValue`). Pure: every random choice comes from the `Random` passed in. The module
 // reaches `checks/text.ts`, so it runs in the worker only (tasks.md, "Bundle")
-import type { Option, OptionSet } from '@connection-portal/api-types/option-sets';
+import type { Option, OptionSet } from '@konnekt/api-types/option-sets';
 
 import {
   dayNumber,

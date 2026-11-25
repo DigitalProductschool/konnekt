@@ -10,11 +10,11 @@
 |---|---|
 | Endpoint | `{MCP_URL}` (`https://<domain>/mcp`), Streamable HTTP: 2026-07-28 stateless (`POST`); 2025-era clients in a session (`Mcp-Session-Id`, in memory, bound to the bearer that opened it; `GET` and `DELETE` for a known session; another bearer or an unknown session → `404`). `GET` without a session answers `405` (research R2) |
 | Protocol | 2026-07-28 and 2025-11-25 (with 2025-06-18, 2025-03-26), as SDK 2.4.0 negotiates them |
-| Server info | `name: 'connection-portal'`, the deployment's version |
+| Server info | `name: 'konnekt'`, the deployment's version |
 | Capabilities | `tools`, `resources`, `extensions: { 'io.modelcontextprotocol/skills': { directoryRead: true } }` (declared by the SDK's Skills extension) |
 | Instructions | `mcp/plugin/instructions.md`, at most about 400 words (FR-036) |
 | Authorization | Bearer token (an access token or a personal access token). Without a valid one: `401` with `WWW-Authenticate: Bearer resource_metadata="{MCP origin}/.well-known/oauth-protected-resource/mcp"` (RFC 9728's path form for the resource `{origin}/mcp`) and no body |
-| Protected resource metadata | `GET {MCP origin}/.well-known/oauth-protected-resource` and `…/oauth-protected-resource/mcp`: `{ resource: MCP_URL, authorization_servers: [OAUTH_ISSUER], scopes_supported: ['read','drafts','manage'], bearer_methods_supported: ['header'], resource_name: 'Connection Portal' }` |
+| Protected resource metadata | `GET {MCP origin}/.well-known/oauth-protected-resource` and `…/oauth-protected-resource/mcp`: `{ resource: MCP_URL, authorization_servers: [OAUTH_ISSUER], scopes_supported: ['read','drafts','manage'], bearer_methods_supported: ['header'], resource_name: 'Konnekt' }` |
 | Health | `GET {MCP origin}/health` → `{ status: 'ok' }`, for the container's health check |
 
 Every tool call first resolves the bearer with `GET /api/agent/me` (research R5). A tool whose
@@ -41,15 +41,15 @@ ToolError { code, message, needs_access_level?: 'drafts' | 'manage', candidates?
 | `code` | When | Message pattern |
 |---|---|---|
 | `insufficient_access` | The level doesn't allow the tool (FR-003) | "Your access is read only. Changing drafts needs the access level 'Read and edit drafts'. Ask for it with request_access, or the team member raises it on their user page." |
-| `published_read_only` | A change to a published connection's content (FR-018) | "The content of a published connection is changed in the Connection Portal. Agents can only change drafts." |
+| `published_read_only` | A change to a published connection's content (FR-018) | "The content of a published connection is changed in Konnekt. Agents can only change drafts." |
 | `not_found` | No such connection, variant, rule or group, or a draft deleted since (FR-031) | "This variant no longer exists." / "This draft has been deleted." |
 | `ambiguous_name` | A name that matches several (FR-019); `candidates` lists them | "Two variants are called 'Ambulance'. Name one by its link: …" |
-| `foreign_link` | A link to another address (FR-030) | "This link doesn't belong to this Connection Portal." |
+| `foreign_link` | A link to another address (FR-030) | "This link doesn't belong to Konnekt." |
 | `validation` | The editor or the server refused the change (FR-016); the message is theirs, naming the item and the variant | "Rule 02 in Ambulance has no error message." / "The description can have at most 500 characters." |
 | `conflict` | The draft changed three times while the tool tried (FR-015) | "The draft keeps changing while this change is applied. Try again." |
 | `not_allowed` | An action that doesn't apply (FR-022, edge cases) | "This connection is already deactivated." / "This connection is a draft: it has nothing live yet." |
 | `rate_limited` | The draft limit (FR-020) | "This agent can create drafts again at 15:40." |
-| `backend_error` | The backend answered `5xx` or didn't answer; `error_id` when there is one | "The Connection Portal could not complete this. Error ID: …" |
+| `backend_error` | The backend answered `5xx` or didn't answer; `error_id` when there is one | "Konnekt could not complete this. Error ID: …" |
 
 `request_access` is the one tool that answers at the HTTP level (below).
 
@@ -99,7 +99,7 @@ date?, years?, amount?, unit? }`; `operator` is one of the field's kind's operat
 
 | Tool | Level | Input | Output |
 |---|---|---|---|
-| `request_approval` | drafts (`publish`, `delete_draft`), manage (`deactivate`, `reactivate`, `delete`) | `connection`, `action` | Nothing changes. The tool checks the action's level before any call (a "Read only" caller asking to deactivate gets the message naming 'Read, edit drafts and manage live connections', FR-003), then the preconditions (`not_allowed` or `validation` with publishing's messages). `{ request: { id, action, connection: ConnectionRef, link, expires_at, status: 'waiting' }, what_happens: string }`. When the client declared the `elicitation.url` capability, the first round returns `inputRequired` with `inputRequired.elicitUrl({ url: link, message: "Approve publishing 'Parking permit' in the Connection Portal." })` and the request's id as `requestState`; the client (2026-07-28) or the SDK's shim (2025-era session, a real `elicitation/create` with `mode: 'url'`) shows the URL, and the re-entered call reads the request by that id and answers the result above, whatever the elicitation's outcome (research R2) |
+| `request_approval` | drafts (`publish`, `delete_draft`), manage (`deactivate`, `reactivate`, `delete`) | `connection`, `action` | Nothing changes. The tool checks the action's level before any call (a "Read only" caller asking to deactivate gets the message naming 'Read, edit drafts and manage live connections', FR-003), then the preconditions (`not_allowed` or `validation` with publishing's messages). `{ request: { id, action, connection: ConnectionRef, link, expires_at, status: 'waiting' }, what_happens: string }`. When the client declared the `elicitation.url` capability, the first round returns `inputRequired` with `inputRequired.elicitUrl({ url: link, message: "Approve publishing 'Parking permit' in Konnekt." })` and the request's id as `requestState`; the client (2026-07-28) or the SDK's shim (2025-era session, a real `elicitation/create` with `mode: 'url'`) shows the URL, and the re-entered call reads the request by that id and answers the result above, whatever the elicitation's outcome (research R2) |
 | `check_approval` | drafts | `request_id` | `{ request: { id, action, connection, link, expires_at, status, outcome: 'waiting' \| 'done' \| 'declined' \| 'expired' \| 'replaced' \| 'cancelled' \| 'failed', reason?: string, error_id? }, urls: ConnectionUrls \| null }`; `urls` once the connection is published or reactivated |
 
 ### Checks and tests (FR-032 to FR-035)

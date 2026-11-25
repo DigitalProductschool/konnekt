@@ -23,7 +23,7 @@ All paths under `frontend/src/` unless they start elsewhere.
 | File | Change | Notes |
 |---|---|---|
 | `assets/illustrations/chain-band-active@2x.webp`, `chain-band-scheduled@2x.webp`, `chain-band-draft@2x.webp`, `chain-band-broken@2x.webp`, `chain-error-broken@2x.webp`, `chain-welcome-card@2x.webp`, `folder-empty-documents@2x.webp`, `chain-login-white@2x.webp` | added | the assessment's recipe, byte for byte its sizes (table below) |
-| `assets/illustrations/logo-white.svg` | added | from `/home/debian/new-visuals-assets/`, unchanged (202 × 60) |
+| `assets/illustrations/logo-white.svg` | added | from `<downloaded-assets>/`, unchanged (202 × 60) |
 | `assets/illustrations/login-art@2x.png`, `wallet-star@2x.png`, `published-art@2x.png`, `published-art-grey@2x.png` | removed | as the record requires; nothing imports them |
 | `assets/illustrations.test.ts` | added test | the 1.5 MB limit, and the folder's exact contents |
 | `pages/FormConnectionEditor/DocumentsStep/EmptyPanel.tsx` | modified | B4: the folder at 162 × 161 in a clip box of its own |

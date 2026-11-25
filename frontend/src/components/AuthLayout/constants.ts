@@ -1,4 +1,4 @@
-import { defineTexts } from '@connection-portal/rules/language';
+import { defineTexts } from '@konnekt/rules/language';
 
 /** The signed-out screens' headline and tagline (G§2 "wallet, EUDI Wallet") */
 export const AUTH_INTRO_COPY = defineTexts(

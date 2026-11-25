@@ -2,7 +2,7 @@ import type {
   AccessLevelInfo,
   AgentAccessItem,
   AgentAccessList,
-} from '@connection-portal/api-types/agent-access';
+} from '@konnekt/api-types/agent-access';
 import { describe, expect, it } from 'vitest';
 
 import { ACCOUNT_COPY, INITIAL_ACCOUNT_STATE, INITIAL_TOKEN_FORM } from './constants';

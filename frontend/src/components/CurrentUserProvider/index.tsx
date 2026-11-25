@@ -1,4 +1,4 @@
-import type { LoginRequest } from '@connection-portal/api-types/auth';
+import type { LoginRequest } from '@konnekt/api-types/auth';
 import { useCallback, useEffect, useMemo, useReducer } from 'react';
 
 import { getMe, login, logout } from '../../api/auth';

@@ -1,6 +1,6 @@
-import type { DocumentField } from '@connection-portal/api-types/document-types';
-import type { GroupItem, Mark } from '@connection-portal/api-types/form-connections';
-import { mainBranch, MDL, PID, rule } from '@connection-portal/rules/testData';
+import type { DocumentField } from '@konnekt/api-types/document-types';
+import type { GroupItem, Mark } from '@konnekt/api-types/form-connections';
+import { mainBranch, MDL, PID, rule } from '@konnekt/rules/testData';
 import { describe, expect, it } from 'vitest';
 
 import { draftRuleDocumentsOf, summaryNumbersOf } from './connectionSummary';

@@ -3,6 +3,8 @@ FROM python:3.13-slim
 
 ENV PYTHONDONTWRITEBYTECODE=1
 ENV PYTHONUNBUFFERED=1
+# The image is the production build: development settings only by an explicit APP_ENV
+ENV APP_ENV=production
 
 WORKDIR /app
 
@@ -20,6 +22,13 @@ RUN uv sync --frozen --no-dev
 COPY backend/app ./app
 COPY backend/alembic ./alembic
 COPY backend/alembic.ini ./alembic.ini
+
+# The licence and the notices (FR-007), where nothing serves them
+COPY LICENSE NOTICE.md /usr/share/doc/konnekt/
+
+# `uv run` syncs nothing at start: the environment is the one `uv sync` built above,
+# without the dev group
+ENV UV_NO_SYNC=1
 
 EXPOSE 3000
 

@@ -1,5 +1,5 @@
-import type { EditLocationState } from '@connection-portal/api-types/routing';
-import { defineTexts } from '@connection-portal/rules/language';
+import type { EditLocationState } from '@konnekt/api-types/routing';
+import { defineTexts } from '@konnekt/rules/language';
 
 // The restore question of a stored draft's edit route (spec 005 S5, W6, "Copy"), on U17's dialog
 // (7173:52681; spec 008 W4), in both languages (spec 009, R1); the draft's name is content

@@ -1,4 +1,4 @@
-import { formatDate } from '@connection-portal/rules/dates';
+import { formatDate } from '@konnekt/rules/dates';
 import { useState } from 'react';
 import { createPortal } from 'react-dom';
 

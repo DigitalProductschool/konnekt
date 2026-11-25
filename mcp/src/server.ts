@@ -75,7 +75,7 @@ export function loadSkillCatalog(): Promise<SkillCatalog> {
 /** One server instance: the tools of `registry`, the instructions and the skills. */
 export function createMcpServer(registry: ToolRegistry, catalog: SkillCatalog): McpServer {
   const server = new McpServer(
-    { name: 'connection-portal', version: packageJson.version },
+    { name: 'konnekt', version: packageJson.version },
     { capabilities: { tools: {}, resources: {} }, instructions }
   );
   registry.attach(server);

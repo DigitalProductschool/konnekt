@@ -2,10 +2,10 @@ import type {
   FormConnectionDraft,
   RuleItem,
   RuleTreeItem,
-} from '@connection-portal/api-types/form-connections';
-import type { Language } from '@connection-portal/rules/language';
-import type { RulesProblemCode } from '@connection-portal/rules/types';
-import { publishProblems } from '@connection-portal/rules/validation';
+} from '@konnekt/api-types/form-connections';
+import type { Language } from '@konnekt/rules/language';
+import type { RulesProblemCode } from '@konnekt/rules/types';
+import { publishProblems } from '@konnekt/rules/validation';
 import { describe, expect, it } from 'vitest';
 
 import { DOCUMENTS_COPY } from '../../pages/FormConnectionEditor/DocumentsStep/constants';

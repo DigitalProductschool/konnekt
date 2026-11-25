@@ -2,14 +2,14 @@
  * The connection's summary as numbers and names, shared by the details page's Summary and the
  * PDF (spec 011, FR-008), so that the two never disagree. Pure: no browser API, no logging.
  */
-import type { DocumentType } from '@connection-portal/api-types/document-types';
+import type { DocumentType } from '@konnekt/api-types/document-types';
 import type {
   BranchInput,
   RequestedDocumentView,
   RuleTreeItem,
-} from '@connection-portal/api-types/form-connections';
-import { ruleDocumentsOf } from '@connection-portal/rules/conditions';
-import type { RuleDocument } from '@connection-portal/rules/types';
+} from '@konnekt/api-types/form-connections';
+import { ruleDocumentsOf } from '@konnekt/rules/conditions';
+import type { RuleDocument } from '@konnekt/rules/types';
 
 /** The Summary's four counts (data-model §2, `counts`) */
 export interface SummaryNumbers {

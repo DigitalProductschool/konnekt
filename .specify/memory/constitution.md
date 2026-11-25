@@ -1,5 +1,31 @@
 <!--
 Sync Impact Report
+Version change: 1.2.1 → 1.2.2
+Rationale: PATCH. The repository is published as Konnekt under the EUPL-1.2 (spec 012): the
+title and the sentences that called it "this template" now name this repository, the Node
+packages are named with their `@konnekt/` names, and Principle III names the REUSE check that
+the CI runs. No principle is removed or redefined; code that complied still complies.
+
+Modified principles:
+- III. Automated Quality Gates (title unchanged): the REUSE check (`reuse lint` at a pinned
+  version, from `REUSE.toml`) as run by the CI; the rationale speaks of forks of this
+  repository rather than of a template.
+
+Modified sections:
+- The title: "Konnekt Constitution".
+- Technology and Structure Constraints: "this repository" for "this template"; the packages'
+  names.
+
+Added sections: none
+Removed sections: none
+
+Templates requiring updates: none.
+
+Follow-up TODOs: none. CLAUDE.md names the REUSE check in its commands, "Before you finish" and
+the CI paragraph (spec 012, T029, in the same change).
+-->
+<!--
+Previous report (1.2.0 → 1.2.1):
 Version change: 1.2.0 → 1.2.1
 Rationale: PATCH. A clarification of "inline styles are forbidden" in Technology and
 Structure Constraints: a value measured at run time may be handed to CSS as a custom
@@ -66,7 +92,7 @@ Follow-up TODOs:
   docs/ARCHITECTURE.md still name the old paths; the same change updates them (T010).
 -->
 
-# DPS React + FastAPI Template Constitution
+# Konnekt Constitution
 
 ## Core Principles
 
@@ -145,13 +171,19 @@ plus each package's `tsconfig.json` and Vitest configuration.
   not a gate: backend changes SHOULD add or update them and run `uv run pytest`, but
   passing it is not a condition for merging.
 - Neither suite has a numeric coverage target.
+- Every file MUST carry a licence and a copyright holder under the REUSE Specification,
+  stated in `REUSE.toml` in the root, and `LICENSES/` MUST hold exactly the licence texts it
+  names. The CI checks this with `reuse lint` (the FSFE's `reuse` at a pinned version, run
+  through `uvx`) on every push and pull request; a change that adds, moves or copies in a
+  file MUST pass it.
 
-Rationale: this is a template that many teams fork. Gates that run automatically stay
-true across forks; gates that depend on someone remembering do not. Logic that runs only
-in the browser or in the MCP server has no other automated check before a person tries
-it, so the Node packages' tests are a gate. Keeping them to pure functions in Node keeps
-`npm test` fast and needs no browser. The backend's tests need a dedicated database,
-which not every environment that runs the gates has, so they stay a practice.
+Rationale: this is an open-source repository that others fork. Gates that run
+automatically stay true across forks; gates that depend on someone remembering do not.
+Logic that runs only in the browser or in the MCP server has no other automated check
+before a person tries it, so the Node packages' tests are a gate. Keeping them to pure
+functions in Node keeps `npm test` fast and needs no browser. The backend's tests need a
+dedicated database, which not every environment that runs the gates has, so they stay a
+practice.
 
 ### IV. Declared, Reproducible Dependencies and Config
 
@@ -193,7 +225,7 @@ already applied splits the schema between developers with no error to point at i
 
 ## Technology and Structure Constraints
 
-The stack is fixed for this template: React 19 + Vite 8 + TypeScript + Tailwind CSS 4
+The stack is fixed for this repository: React 19 + Vite 8 + TypeScript + Tailwind CSS 4
 for the SPA; FastAPI on Python 3.13+ with SQLAlchemy 2, Alembic, psycopg 3, and
 Pydantic 2 for the backend; PostgreSQL 18; Node 22+ for the MCP server, built with Vite's
 SSR build and run in its own container; Vitest for every Node package's tests. Swapping
@@ -201,11 +233,12 @@ any element of the stack requires an amendment, not a pull request.
 
 The repository is an npm workspace. The root `package.json` holds only the `workspaces`,
 the scripts that run over them and the pre-commit `prepare`, and declares no dependency
-of its own. The Node packages are `api-types/` (the TypeScript mirrors of
-`backend/app/schemas.py`), `rules/` (the pure rules logic), `frontend/` (the SPA) and
-`mcp/` (the MCP server). `api-types` imports nothing, `rules` imports `api-types`, and
-`frontend` and `mcp` import both and never each other; the root ESLint configuration
-enforces these boundaries. The packages are consumed as source through their `exports`;
+of its own. The Node packages are `api-types/` (`@konnekt/api-types`, the TypeScript
+mirrors of `backend/app/schemas.py`), `rules/` (`@konnekt/rules`, the pure rules logic),
+`frontend/` (`@konnekt/frontend`, the SPA) and `mcp/` (`@konnekt/mcp`, the MCP
+server). `api-types` imports nothing, `rules` imports `api-types`, and `frontend` and
+`mcp` import both and never each other; the root ESLint configuration enforces these
+boundaries. The packages are consumed as source through their `exports`;
 nothing is emitted. There is one lockfile at the root, one root ESLint and Prettier
 configuration with a block per package, and a `tsconfig.base.json` that each package
 extends.
@@ -286,4 +319,4 @@ complexity, and only for principles not marked NON-NEGOTIABLE.
 contributors alike; it MUST remain consistent with this constitution, and this
 constitution is the authority when they diverge.
 
-**Version**: 1.2.1 | **Ratified**: 2026-09-02 | **Last Amended**: 2026-11-09
+**Version**: 1.2.2 | **Ratified**: 2026-09-02 | **Last Amended**: 2026-11-24

@@ -1,4 +1,4 @@
-# Bug Fix: "Connection Portal" name and a left-aligned header brand on every page
+# Bug Fix: "Konnekt" name and a left-aligned header brand on every page
 
 - **Slug**: product-name-header
 - **Fixed**: 2026-10-13
@@ -7,7 +7,7 @@
 
 ## Summary
 
-The frontend now calls the middleware "Connection Portal": in the header's brand, in every tab
+The frontend now calls the middleware "Konnekt": in the header's brand, in every tab
 title and in the static `<title>`. `TopBar` no longer has a column mode, so the wizard, the
 first-connection screen and the details page use the same full-width header as the overview and
 sign-in screens: 32 px padding from `sm` up, with the logo and name at the far left, as in the
@@ -17,8 +17,8 @@ fixed Figma (`33:3`).
 
 | File | Change | Notes |
 |------|--------|-------|
-| `frontend/src/constants.ts` | modified | `APP_NAME = 'Connection Portal'`; the comment now calls it the middleware's temporary name, as in the Figma of 2026-10-13 |
-| `frontend/index.html` | modified | `<title>Connection Portal</title>`, the title shown before React sets the page's |
+| `frontend/src/constants.ts` | modified | `APP_NAME = 'Konnekt'`; the comment now calls it the middleware's temporary name, as in the Figma of 2026-10-13 |
+| `frontend/index.html` | modified | `<title>Konnekt</title>`, the title shown before React sets the page's |
 | `frontend/src/components/TopBar/types.ts` | modified | Removed the `width?: 'full' \| 'column'` prop and its doc comment |
 | `frontend/src/components/TopBar/index.tsx` | modified | Header always `px-16 sm:px-32`; inner row no longer `mx-auto max-w-1120`; `width` removed from the props; doc comment updated |
 | `frontend/src/components/WizardLayout/index.tsx` | modified | Removed `width="column"` from its `TopBar`; the `CENTRED_GUTTERS` comment now explains the gutter by the footer's column only |
@@ -29,7 +29,7 @@ fixed Figma (`33:3`).
 -// As in the Figma design, which doesn't name the product yet
 -export const APP_NAME = 'Product name';
 +// The middleware's temporary name, as in the Figma design (2026-10-13)
-+export const APP_NAME = 'Connection Portal';
++export const APP_NAME = 'Konnekt';
 ```
 
 ```diff
@@ -71,7 +71,7 @@ fixed Figma (`33:3`).
 - Manual checks: no browser measurements yet. Neither the dev server nor the backend was running.
   The pixel checks in the assessment ("Tests to add or update": mark x = 32, name x = 56, user
   menu ending at 1408, title at x = 220 on the wizard and details screens, and `document.title`
-  ending in "– Connection Portal") are left to `/speckit-bug-test`.
+  ending in "– Konnekt") are left to `/speckit-bug-test`.
 
 ## Deviations from Assessment
 
@@ -93,14 +93,14 @@ fixed Figma (`33:3`).
 The user then approved updating the docs. In `specs/001-servicebw-eudi-middleware/`:
 
 - `design-notes.md`:
-  - §1: a new decision names the product "Connection Portal" and supersedes the "Product name"
+  - §1: a new decision names the product "Konnekt" and supersedes the "Product name"
     decision of 2026-10-09.
   - §3: the wizard header is now a full-width decision, with the logo at x = 32, the separator at
     203, the title at 220 and the user menu at 1344. `width="column"` is gone. The scrollbar-gutter
     note now refers to the footer bar instead of the header.
   - §7: the details header is noted as full width since 2026-10-13 (`2131:4628`).
   - The 2026-10-09 decision list now points to the new name.
-- `tasks.md`: the manual check selects "Connection Portal" instead of "Product name".
+- `tasks.md`: the manual check selects "Konnekt" instead of "Product name".
 
 Historical records, such as the T-task wording that records the 2026-10-09 decision, are left as
 they are.

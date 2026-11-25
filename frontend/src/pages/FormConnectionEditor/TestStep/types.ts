@@ -1,4 +1,4 @@
-import type { BranchCheck } from '@connection-portal/rules/checks/types';
+import type { BranchCheck } from '@konnekt/rules/checks/types';
 import type {
   GenerationRun,
   Persona,
@@ -9,9 +9,9 @@ import type {
   ResultRow,
   ResultView,
   TestResults,
-} from '@connection-portal/rules/personas/types';
-import type { DataRow } from '@connection-portal/rules/personas/values';
-import type { RuleContext } from '@connection-portal/rules/types';
+} from '@konnekt/rules/personas/types';
+import type { DataRow } from '@konnekt/rules/personas/values';
+import type { RuleContext } from '@konnekt/rules/types';
 import type { KeyboardEvent, ReactNode } from 'react';
 
 import type { ValueChoice } from '../../../components/ValuesPicker/types';

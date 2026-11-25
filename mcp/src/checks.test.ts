@@ -2,11 +2,11 @@
 // the main thread and equal `checkBranch()`'s; a worker that answers, fails, never starts or never
 // answers ends the call in time, its unfinished branches not checked completely
 import { Worker } from 'node:worker_threads';
-import type { RuleTreeItem } from '@connection-portal/api-types/form-connections';
-import { buildCheckedBranch } from '@connection-portal/rules/checks/checkedTree';
-import { checkBranch } from '@connection-portal/rules/checks/findings';
-import type { BranchCheck, CheckedBranch } from '@connection-portal/rules/checks/types';
-import { CONTEXT, mainBranch, rule, target, US1_RULES } from '@connection-portal/rules/testData';
+import type { RuleTreeItem } from '@konnekt/api-types/form-connections';
+import { buildCheckedBranch } from '@konnekt/rules/checks/checkedTree';
+import { checkBranch } from '@konnekt/rules/checks/findings';
+import type { BranchCheck, CheckedBranch } from '@konnekt/rules/checks/types';
+import { CONTEXT, mainBranch, rule, target, US1_RULES } from '@konnekt/rules/testData';
 import { describe, expect, it } from 'vitest';
 
 import { notChecked, runChecks } from './checks';

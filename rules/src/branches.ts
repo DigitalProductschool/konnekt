@@ -11,7 +11,7 @@ import type {
   NumberingBase,
   RuleItem,
   RuleTreeItem,
-} from '@connection-portal/api-types/form-connections';
+} from '@konnekt/api-types/form-connections';
 
 import {
   addRule,

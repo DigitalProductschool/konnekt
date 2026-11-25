@@ -1,4 +1,4 @@
-import { requestedRuleDocuments, ruleDocumentsOf } from '@connection-portal/rules/conditions';
+import { requestedRuleDocuments, ruleDocumentsOf } from '@konnekt/rules/conditions';
 import { useMemo, useRef, useState } from 'react';
 
 import { useDocumentTypes } from '../../hooks/useDocumentTypes';

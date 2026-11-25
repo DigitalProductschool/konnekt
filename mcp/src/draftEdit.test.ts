@@ -1,4 +1,4 @@
-import type { DocumentType } from '@connection-portal/api-types/document-types';
+import type { DocumentType } from '@konnekt/api-types/document-types';
 import type {
   BranchInput,
   DraftUpdate,
@@ -8,10 +8,10 @@ import type {
   FormConnectionOrDraft,
   RequestedDocumentView,
   RuleTreeItem,
-} from '@connection-portal/api-types/form-connections';
-import type { OptionSet } from '@connection-portal/api-types/option-sets';
-import { addVariant } from '@connection-portal/rules/edits';
-import { OPTION_SETS, PID, rule, target } from '@connection-portal/rules/testData';
+} from '@konnekt/api-types/form-connections';
+import type { OptionSet } from '@konnekt/api-types/option-sets';
+import { addVariant } from '@konnekt/rules/edits';
+import { OPTION_SETS, PID, rule, target } from '@konnekt/rules/testData';
 import { describe, expect, it, vi } from 'vitest';
 
 import type { Caller } from './auth';

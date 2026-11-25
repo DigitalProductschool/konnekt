@@ -1,4 +1,4 @@
-import { changedKeys, dataRowsOf } from '@connection-portal/rules/personas/values';
+import { changedKeys, dataRowsOf } from '@konnekt/rules/personas/values';
 
 import DocumentValues from './DocumentValues';
 import type { PersonaDataProps } from './types';

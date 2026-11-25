@@ -3,13 +3,13 @@ import type {
   GroupItem,
   RuleItem,
   RuleTreeItem,
-} from '@connection-portal/api-types/form-connections';
-import { deletionEffects, isInherited } from '@connection-portal/rules/branches';
-import { kindTextOf } from '@connection-portal/rules/checks/findingMessages';
-import type { FindingsBanner } from '@connection-portal/rules/checks/types';
-import { MAX_BRANCHES, RULES_MESSAGES } from '@connection-portal/rules/constants';
-import * as edits from '@connection-portal/rules/edits';
-import type { Language } from '@connection-portal/rules/language';
+} from '@konnekt/api-types/form-connections';
+import { deletionEffects, isInherited } from '@konnekt/rules/branches';
+import { kindTextOf } from '@konnekt/rules/checks/findingMessages';
+import type { FindingsBanner } from '@konnekt/rules/checks/types';
+import { MAX_BRANCHES, RULES_MESSAGES } from '@konnekt/rules/constants';
+import * as edits from '@konnekt/rules/edits';
+import type { Language } from '@konnekt/rules/language';
 import {
   deleteItem,
   findItem,
@@ -18,9 +18,9 @@ import {
   newRule,
   nounTextOf,
   numberOfId,
-} from '@connection-portal/rules/tree';
-import type { EditResult, EditState, RuleDocument } from '@connection-portal/rules/types';
-import { variantNameProblem } from '@connection-portal/rules/validation';
+} from '@konnekt/rules/tree';
+import type { EditResult, EditState, RuleDocument } from '@konnekt/rules/types';
+import { variantNameProblem } from '@konnekt/rules/validation';
 import { generatePath } from 'react-router';
 
 import { GROUP_HEADER_ID_SUFFIX } from '../../../components/GroupFrame/constants';
@@ -858,7 +858,7 @@ export function variantFormProblem(
 }
 
 /**
- * The step's content as the editor's actions take it (`@connection-portal/rules/edits`): every
+ * The step's content as the editor's actions take it (`@konnekt/rules/edits`): every
  * branch with its key as its id, and the counters.
  */
 export function editStateOf(state: RulesState): EditState {
@@ -1078,7 +1078,7 @@ function copyFromDialog(state: RulesState, targets: string[], language: Language
 
 /**
  * The rules step's state after an action. What changes the rules is the editor's action of
- * `@connection-portal/rules/edits`, which the agents' tools share (spec 007, FR-014); this keeps
+ * `@konnekt/rules/edits`, which the agents' tools share (spec 007, FR-014); this keeps
  * what the step shows: the open tab, the selection, the dialogs, the toasts, the Undo, the focus,
  * the inline rename and the rule editor, whose new rule's number it reserves.
  */

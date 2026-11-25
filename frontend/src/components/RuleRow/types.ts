@@ -1,5 +1,5 @@
-import type { Mark, RuleItem } from '@connection-portal/api-types/form-connections';
-import type { PredicateParts, RuleContext, StatementParts } from '@connection-portal/rules/types';
+import type { Mark, RuleItem } from '@konnekt/api-types/form-connections';
+import type { PredicateParts, RuleContext, StatementParts } from '@konnekt/rules/types';
 import type { ReactNode } from 'react';
 
 import type { ShownFinding } from '../FindingNote/types';

@@ -1,4 +1,4 @@
-import type { FindingTone } from '@connection-portal/rules/checks/types';
+import type { FindingTone } from '@konnekt/rules/checks/types';
 import type { KeyboardEvent, ReactNode } from 'react';
 
 /**

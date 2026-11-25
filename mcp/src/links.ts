@@ -1,7 +1,7 @@
 // Konnekt's links (research R11; data-model §7): built from `PORTAL_URL`, and parsed
 // wherever a tool takes a reference (FR-019, FR-030). Pure apart from reading the settings: the
 // functions take the portal's URL as an optional last argument, which tests pass
-import { GROUP_ID_PATTERN, RULE_ID_PATTERN } from '@connection-portal/rules/constants';
+import { GROUP_ID_PATTERN, RULE_ID_PATTERN } from '@konnekt/rules/constants';
 
 import { config } from './config';
 

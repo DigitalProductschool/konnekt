@@ -1,9 +1,6 @@
-import type { ApprovalPreview, ApprovalRequest } from '@connection-portal/api-types/approvals';
-import type { DocumentField, DocumentType } from '@connection-portal/api-types/document-types';
-import type {
-  FormConnection,
-  FormConnectionDraft,
-} from '@connection-portal/api-types/form-connections';
+import type { ApprovalPreview, ApprovalRequest } from '@konnekt/api-types/approvals';
+import type { DocumentField, DocumentType } from '@konnekt/api-types/document-types';
+import type { FormConnection, FormConnectionDraft } from '@konnekt/api-types/form-connections';
 import { describe, expect, it } from 'vitest';
 
 import { ApiError } from '../../api/client';

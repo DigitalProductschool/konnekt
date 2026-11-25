@@ -10,8 +10,8 @@ no open item; F1 to F43 and W1 to W18 decided), and spec 008's
 
 **Note**: `.git` in this checkout points at another machine's path, so `setup-plan.sh` resolved
 the feature from `.specify/feature.json`. Git works here with
-`GIT_DIR=/home/debian/batch27-faro/worktrees/010-revamp-backend-gaps` and
-`GIT_WORK_TREE=/home/debian/batch27-faro/010-revamp-backend-gaps`, on the branch
+`GIT_DIR=<git-dir>/worktrees/010-revamp-backend-gaps` and
+`GIT_WORK_TREE=<checkout>/010-revamp-backend-gaps`, on the branch
 `010-revamp-backend-gaps`; planning committed nothing. No Figma node was read for the plan: the
 audit's unit inventories hold the frames' texts, and the tasks read the nodes in the per-node loop.
 

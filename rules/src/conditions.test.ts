@@ -1,5 +1,5 @@
-import type { DocumentType } from '@connection-portal/api-types/document-types';
-import type { Condition } from '@connection-portal/api-types/form-connections';
+import type { DocumentType } from '@konnekt/api-types/document-types';
+import type { Condition } from '@konnekt/api-types/form-connections';
 import { describe, expect, it } from 'vitest';
 
 import {

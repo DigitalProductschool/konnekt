@@ -1,7 +1,7 @@
-import type { FormConnectionSummary } from '@connection-portal/api-types/form-connections';
-import type { OverviewLocationState } from '@connection-portal/api-types/routing';
-import type { Language } from '@connection-portal/rules/language';
 import { KernAlert } from '@kern-ux-annex/kern-react-kit';
+import type { FormConnectionSummary } from '@konnekt/api-types/form-connections';
+import type { OverviewLocationState } from '@konnekt/api-types/routing';
+import type { Language } from '@konnekt/rules/language';
 import { useCallback, useEffect, useId, useMemo, useReducer, useRef, useState } from 'react';
 import { generatePath, Link, useLocation, useNavigate } from 'react-router';
 

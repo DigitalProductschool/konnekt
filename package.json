@@ -1,6 +1,7 @@
 {
-  "name": "connection-portal",
+  "name": "konnekt",
   "private": true,
+  "license": "EUPL-1.2",
   "workspaces": [
     "api-types",
     "rules",

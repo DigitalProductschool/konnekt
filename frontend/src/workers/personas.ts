@@ -4,8 +4,8 @@
 // message with the same run id. It holds no state between messages, catches nothing (an error
 // reaches the page's `error` event, and the run fails), logs nothing and sends nothing elsewhere
 // (FR-021)
-import { generatePersonas } from '@connection-portal/rules/personas/generation';
-import type { GeneratedMessage, GenerateMessage } from '@connection-portal/rules/personas/types';
+import { generatePersonas } from '@konnekt/rules/personas/generation';
+import type { GeneratedMessage, GenerateMessage } from '@konnekt/rules/personas/types';
 
 /**
  * The part of the worker's global scope this entry uses. `tsconfig.app.json` has the `DOM`

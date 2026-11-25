@@ -18,7 +18,7 @@
 // Every question is asked through one solver memo (`createSolverMemo()`), so the many overlapping
 // questions of the smallest-set searches share their answers. Nothing here keeps state between
 // calls, logs or reads a clock other than `options.now`: equal checked trees give equal results
-import type { Combinator } from '@connection-portal/api-types/form-connections';
+import type { Combinator } from '@konnekt/api-types/form-connections';
 
 import { dayNumber } from './calendar';
 import { LAST_DAY, SEARCH_QUESTIONS_PER_ITEM } from './constants';

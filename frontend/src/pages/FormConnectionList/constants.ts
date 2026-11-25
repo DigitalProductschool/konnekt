@@ -1,5 +1,5 @@
-import type { EditorStep } from '@connection-portal/api-types/form-connections';
-import { defineTexts, type Language } from '@connection-portal/rules/language';
+import type { EditorStep } from '@konnekt/api-types/form-connections';
+import { defineTexts, type Language } from '@konnekt/rules/language';
 
 import documentInk from '../../assets/icons/document-ink.svg';
 import factCheckInk from '../../assets/icons/fact-check-ink.svg';

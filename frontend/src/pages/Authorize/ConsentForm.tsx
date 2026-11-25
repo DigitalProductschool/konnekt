@@ -9,9 +9,10 @@ import type { ConsentFormProps } from './types';
 
 /**
  * The consent form (spec 007 S1, spec 008 S19): the step-up line as the info strip (design-notes
- * §3 "Info strip"), the access levels on the kit's radios with the requested one preselected,
- * a failure to send in the design's danger alert with the server's message and its error ID
- * (F22), and "Deny" and "Allow" as the kit's dialog actions. While a decision is on its way, and
+ * §3 "Info strip"), the access levels on the kit's radios with the page's preselection checked
+ * ("Read only" for a first connection, else the requested level), a failure to send in the
+ * design's danger alert with the server's message and its error ID (F22), and "Deny" and "Allow"
+ * as the kit's dialog actions. While a decision is on its way, and
  * once the browser is leaving, both buttons are `aria-disabled` and ignore clicks. The levels stay
  * enabled (the reducer keeps the level once the browser is leaving): disabled radios would drop
  * the focus of a decision sent with Enter from a radio, and the page can stay while an app's own

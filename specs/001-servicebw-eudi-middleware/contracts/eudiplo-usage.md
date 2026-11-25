@@ -1,6 +1,6 @@
 # Contract: how the middleware uses EUDIPLO
 
-**Provider**: EUDIPLO v9.x, the team's hosted instance on Coolify, tenant `dps`.
+**Provider**: EUDIPLO v9.x, the team's hosted instance on Coolify, tenant `<tenant>`.
 **Decisions**: research R2, R3, R5 to R9, R15, R19.
 
 This file lists the only EUDIPLO endpoints the middleware calls, and what it relies on in each

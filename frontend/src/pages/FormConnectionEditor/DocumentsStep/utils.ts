@@ -1,6 +1,6 @@
-import type { DocumentType } from '@connection-portal/api-types/document-types';
-import type { RequestedDocument } from '@connection-portal/api-types/form-connections';
-import type { Language } from '@connection-portal/rules/language';
+import type { DocumentType } from '@konnekt/api-types/document-types';
+import type { RequestedDocument } from '@konnekt/api-types/form-connections';
+import type { Language } from '@konnekt/rules/language';
 
 import type { MenuAction } from '../../../components/ActionMenu/types';
 import { matchesSearch } from '../../../components/ValuesPicker/utils';

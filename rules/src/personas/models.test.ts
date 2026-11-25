@@ -1,4 +1,4 @@
-import type { Combinator } from '@connection-portal/api-types/form-connections';
+import type { Combinator } from '@konnekt/api-types/form-connections';
 import { describe, expect, it } from 'vitest';
 
 import { dayNumber, isoDate } from '../checks/calendar';

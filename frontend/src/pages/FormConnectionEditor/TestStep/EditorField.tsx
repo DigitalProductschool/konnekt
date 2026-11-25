@@ -1,4 +1,4 @@
-import { LICENCE_CLASSES_SET } from '@connection-portal/rules/constants';
+import { LICENCE_CLASSES_SET } from '@konnekt/rules/constants';
 
 import { useLanguage } from '../../../hooks/useLanguage';
 import ChoiceField from './ChoiceField';

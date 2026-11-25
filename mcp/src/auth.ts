@@ -7,7 +7,7 @@ import type {
   AccessLevelInfo,
   AgentAccessKind,
   AgentMe,
-} from '@connection-portal/api-types/agent-access';
+} from '@konnekt/api-types/agent-access';
 
 import { BackendClient, Unauthorized } from './backend';
 import { config } from './config';

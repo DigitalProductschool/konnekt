@@ -1,4 +1,4 @@
-import { DESCRIPTION_MAX_LENGTH } from '@connection-portal/rules/constants';
+import { DESCRIPTION_MAX_LENGTH } from '@konnekt/rules/constants';
 import { useEffect, useId, useReducer, useRef } from 'react';
 import { flushSync } from 'react-dom';
 

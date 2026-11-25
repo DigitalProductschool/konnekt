@@ -1,4 +1,4 @@
-import type { Combinator, GroupItem, Mark } from '@connection-portal/api-types/form-connections';
+import type { Combinator, GroupItem, Mark } from '@konnekt/api-types/form-connections';
 import type { ReactNode } from 'react';
 
 import type { ShownFinding } from '../FindingNote/types';

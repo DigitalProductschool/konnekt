@@ -3,13 +3,13 @@
 // English and German as the editor loads it. In each language the rules package's validation finds
 // no problem in it, the rule checks find nothing in either branch, and its two rules read as the
 // spec words them (FR-055).
-import type { DocumentType } from '@connection-portal/api-types/document-types';
+import type { DocumentType } from '@konnekt/api-types/document-types';
 import type {
   BranchInput,
   RequestedDocumentView,
   RuleItem,
-} from '@connection-portal/api-types/form-connections';
-import type { OptionSet } from '@connection-portal/api-types/option-sets';
+} from '@konnekt/api-types/form-connections';
+import type { OptionSet } from '@konnekt/api-types/option-sets';
 import { describe, expect, it } from 'vitest';
 
 import { buildCheckedBranch } from './checks/checkedTree';

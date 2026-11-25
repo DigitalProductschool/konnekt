@@ -1,7 +1,7 @@
 // The website's two languages (research R1, FR-002): the language type, its default, the
 // languages' own names and `defineTexts`, the copy table every module of the frontend and of the
 // rules logic keeps its texts in. `frontend/` and `mcp/` import it as
-// `@connection-portal/rules/language` (the package's `./*` export covers it)
+// `@konnekt/rules/language` (the package's `./*` export covers it)
 
 export type Language = 'en' | 'de';
 

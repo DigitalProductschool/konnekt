@@ -2,8 +2,8 @@ import type {
   AccessLevel,
   AccessLevelInfo,
   AgentAccessItem,
-} from '@connection-portal/api-types/agent-access';
-import type { Language } from '@connection-portal/rules/language';
+} from '@konnekt/api-types/agent-access';
+import type { Language } from '@konnekt/rules/language';
 
 import { ACCESS_LEVELS } from '../../components/AccessLevelChoice/constants';
 import type { ToastKind } from '../../components/Toast/types';

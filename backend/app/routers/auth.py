@@ -5,6 +5,7 @@ from ..db import get_db
 from ..language import Text
 from ..models import LoginSession, UserAccount
 from ..schemas import ApiResponse, LoginRequest, UserView
+from ..services import sign_in_throttle
 from ..services.auth import (
     authenticate,
     clear_session_cookie,
@@ -26,8 +27,13 @@ def login(
 ) -> ApiResponse[UserView]:
     """Sign in and set the session cookie.
 
-    A wrong username and a wrong password get the same answer.
+    A wrong username and a wrong password get the same answer. The attempt counts
+    against its username first, whether or not an account has it: during the wait
+    that too many attempts without a correct one start, it answers 429
+    `rate_limited` with `Retry-After`, without checking the password (spec 012,
+    research R6, finding 4). A correct sign-in forgets the attempts.
     """
+    sign_in_throttle.count_attempt(db, credentials.username)
     user = authenticate(db, credentials.username, credentials.password)
     if user is None:
         raise HTTPException(
@@ -43,6 +49,7 @@ def login(
                 ),
             },
         )
+    sign_in_throttle.forget_attempts(db, credentials.username)
     set_session_cookie(response, create_login_session(db, user))
     return ApiResponse(data=UserView.model_validate(user))
 

@@ -9,8 +9,8 @@ components of Figma "Middleware – V5" (research R2).
 
 **Note**: git in this checkout is not reachable (`.git` points to a worktree on another
 machine), so `setup-plan.sh` resolved the feature from `.specify/feature.json`; nothing here
-commits on the other machine; here git runs with `GIT_DIR=/home/debian/batch27-faro/worktrees/de-lang
-GIT_WORK_TREE=/home/debian/batch27-faro/de-lang` (the mirrored repository), on the branch
+commits on the other machine; here git runs with `GIT_DIR=<git-dir>/worktrees/de-lang
+GIT_WORK_TREE=<checkout>/de-lang` (the mirrored repository), on the branch
 `de-lang`. The user shared the header's URL after planning
 (`…?node-id=6699-44241`, the "Header area" frame, an instance of "Shell/Header · two pills"
 `6688:41392`): it is the same header in every screen and the same as spec 008's, so the switch
@@ -64,7 +64,7 @@ texts; the kit's defaults are German), Tailwind CSS 4, React Router 7, Vite 8, V
 Pydantic 2, SQLAlchemy 2. No i18n library, no date library (R1, R5).
 
 **Storage**: no database or API shape change. One new `localStorage` key,
-`connection-portal:language:v1`, read and written only by `LanguageProvider` (R7).
+`konnekt:language:v1`, read and written only by `LanguageProvider` (R7).
 
 **Testing**:
 - **Vitest** (the gate) in `node`: `tsc` proves both columns of every table; `copy.test.ts`

@@ -1,4 +1,4 @@
-import { defineTexts } from '@connection-portal/rules/language';
+import { defineTexts } from '@konnekt/rules/language';
 
 import calendarPencilIcon from '../../assets/icons/calendar-pencil.svg';
 import doneWhiteIcon from '../../assets/icons/done-white.svg';

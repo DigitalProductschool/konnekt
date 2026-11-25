@@ -32,7 +32,7 @@ chose. Kept by the browser, not by an account.
 
 | Field | Type | Rule |
 |---|---|---|
-| `stored` | `'en' \| 'de' \| null` | `localStorage['connection-portal:language:v1']`; any other value, a missing key, a blocked storage or a cleared storage (`storage` event with `key === null`) count as `null` (spec, Edge Cases; FR-008) |
+| `stored` | `'en' \| 'de' \| null` | `localStorage['konnekt:language:v1']`; any other value, a missing key, a blocked storage or a cleared storage (`storage` event with `key === null`) count as `null` (spec, Edge Cases; FR-008) |
 | `browserPreference` | `string \| null` | `navigator.language` read once at start; `de`, `de-AT`, `de-CH`, `de-LI` and any `de-*` resolve to German, everything else to English (FR-008) |
 | `current` | `Language` | `resolveLanguage(stored, browserPreference)`: `stored` when set, else the browser's rule; held in `LanguageProvider`'s state, read with `useLanguage()`; it is the only language a screen ever renders with (FR-009) |
 

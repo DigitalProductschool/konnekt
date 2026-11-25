@@ -1,4 +1,4 @@
-import type { BranchInput } from '@connection-portal/api-types/form-connections';
+import type { BranchInput } from '@konnekt/api-types/form-connections';
 import { describe, expect, it } from 'vitest';
 
 import { changeItem, newBranch } from '../branches';

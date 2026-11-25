@@ -14,7 +14,7 @@ lands as one change (FR-018): no screen is left in the old design.
     dialog, the details, and the account, consent and approval pages (S1–S22).
   - Motion (§4) honours `prefers-reduced-motion`. The UI stays light only.
 - **Copy outside the frontend** (C1–C7, design-notes §8.2):
-  - C1: "Konnekt" replaces "Connection Portal".
+  - C1: "Konnekt" as the product's name.
   - C2: "citizen(s)" replaces "applicant(s)" in every text.
   - C3: the statements and proposed messages, with dates as dd.mm.yyyy (T103).
   - C4: the finding texts.
@@ -22,9 +22,9 @@ lands as one change (FR-018): no screen is left in the old design.
   - C6: the persona texts.
   - C7: "Enter a name for the connection."
 
-  These texts reach the backend, the rules package (`@connection-portal/rules`) and the MCP server
+  These texts reach the backend, the rules package (`@konnekt/rules`) and the MCP server
   and its guidance (`mcp/plugin/`). Code identifiers keep their names (FR-019, FR-020): the
-  `@connection-portal/*` scope, `test_applicants` and the local-draft key.
+  `@konnekt/*` scope, `test_applicants` and the local-draft key.
 - **Removed**: the old design's tokens, overrides, 17 icons, 2 illustrations and unused components
   (design-notes §7).
 - **Documentation**: `docs/ARCHITECTURE.md`, `docs/KERN-DESIGN-SYSTEM.md`, `docs/FIGMA-WORKFLOW.md`,

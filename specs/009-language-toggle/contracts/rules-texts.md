@@ -14,7 +14,7 @@ export const isLanguage = (value: unknown): value is Language => …;
 export const defineTexts = <T>(en: T, de: T): Record<Language, T> => ({ en, de });
 ```
 
-Imported by `frontend/` and `mcp/` as `@connection-portal/rules/language` (the package's
+Imported by `frontend/` and `mcp/` as `@konnekt/rules/language` (the package's
 `./*` export covers it). No other module of `rules/src/` imports anything new.
 
 ## The language on the context

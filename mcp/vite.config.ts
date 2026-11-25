@@ -15,7 +15,7 @@ export default defineConfig({
     },
   },
   ssr: {
-    noExternal: ['@connection-portal/api-types', '@connection-portal/rules'],
+    noExternal: ['@konnekt/api-types', '@konnekt/rules'],
   },
   // The server's modules and its integration tests run in Node (constitution, Principle III)
   test: {

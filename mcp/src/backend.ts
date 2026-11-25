@@ -1,9 +1,9 @@
 // The management API as the caller: every call carries the caller's bearer, answers the `data`
 // of the `{ data }` envelope, and turns the backend's `{ error, message, error_id?,
 // needs_access_level? }` bodies into typed errors (research R5; contracts/management-api.md)
-import type { AccessLevel } from '@connection-portal/api-types/agent-access';
-import type { DocumentType } from '@connection-portal/api-types/document-types';
-import type { OptionSet } from '@connection-portal/api-types/option-sets';
+import type { AccessLevel } from '@konnekt/api-types/agent-access';
+import type { DocumentType } from '@konnekt/api-types/document-types';
+import type { OptionSet } from '@konnekt/api-types/option-sets';
 
 import { config } from './config';
 

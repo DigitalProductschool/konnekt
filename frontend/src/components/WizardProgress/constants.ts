@@ -1,4 +1,4 @@
-import { defineTexts } from '@connection-portal/rules/language';
+import { defineTexts } from '@konnekt/rules/language';
 
 /**
  * The step line's texts (FR-025; G§2 "wizard steps", "cancel/back/next/save"): the name of the

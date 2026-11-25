@@ -1,10 +1,6 @@
-import type { DocumentField } from '@connection-portal/api-types/document-types';
-import type {
-  Condition,
-  RuleItem,
-  RuleTarget,
-} from '@connection-portal/api-types/form-connections';
-import type { OptionSet } from '@connection-portal/api-types/option-sets';
+import type { DocumentField } from '@konnekt/api-types/document-types';
+import type { Condition, RuleItem, RuleTarget } from '@konnekt/api-types/form-connections';
+import type { OptionSet } from '@konnekt/api-types/option-sets';
 import {
   conditionProblem,
   labelOf,
@@ -12,12 +8,12 @@ import {
   operatorsFor,
   optionsOf,
   suffixOf,
-} from '@connection-portal/rules/conditions';
-import { LICENCE_CLASSES_SET, RELATION_WORDS } from '@connection-portal/rules/constants';
-import { boundaryOf } from '@connection-portal/rules/dates';
-import { type Language, LANGUAGES } from '@connection-portal/rules/language';
-import { proposedMessage } from '@connection-portal/rules/messages';
-import { ruleFieldLabel, STATEMENT_TEXTS } from '@connection-portal/rules/statements';
+} from '@konnekt/rules/conditions';
+import { LICENCE_CLASSES_SET, RELATION_WORDS } from '@konnekt/rules/constants';
+import { boundaryOf } from '@konnekt/rules/dates';
+import { type Language, LANGUAGES } from '@konnekt/rules/language';
+import { proposedMessage } from '@konnekt/rules/messages';
+import { ruleFieldLabel, STATEMENT_TEXTS } from '@konnekt/rules/statements';
 import type {
   ConditionKind,
   DateBoundary,
@@ -25,8 +21,8 @@ import type {
   ResolvedTarget,
   RuleContext,
   RuleDocument,
-} from '@connection-portal/rules/types';
-import { ruleProblem } from '@connection-portal/rules/validation';
+} from '@konnekt/rules/types';
+import { ruleProblem } from '@konnekt/rules/validation';
 
 import drivingLicenceIcon from '../../../../assets/icons/driving-licence-ink.svg';
 import personalIdIcon from '../../../../assets/icons/personal-id-ink.svg';

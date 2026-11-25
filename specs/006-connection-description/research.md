@@ -79,7 +79,7 @@ None of these paths calls EUDIPLO for it, and no URL changes (FR-010).
 ## R5. Local drafts: format 2 under the same key prefix
 
 **Decision**: `LOCAL_DRAFT_FORMAT` goes from 1 to 2, and `LocalDraftContent.servicebwForm`
-becomes `description`. The key prefix `connection-portal:local-draft:v1:` stays.
+becomes `description`. The key prefix `konnekt:local-draft:v1:` stays.
 
 **Rationale**: the store already removes a record of another format when it lists or reads it
 (spec 005, R9). Old records are therefore found under their key, refused by `parseRecord`, and

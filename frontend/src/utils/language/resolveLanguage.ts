@@ -3,7 +3,7 @@
 // own language. No browser API here: `LanguageProvider` reads `localStorage` and
 // `navigator.language` and passes the values in
 
-import { isLanguage, type Language } from '@connection-portal/rules/language';
+import { isLanguage, type Language } from '@konnekt/rules/language';
 
 import { GERMAN_PRIMARY_SUBTAG, LANGUAGE_STORAGE_KEY } from './constants';
 

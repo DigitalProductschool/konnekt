@@ -1,5 +1,5 @@
-import type { ApprovalAction } from '@connection-portal/api-types/approvals';
-import { defineTexts } from '@connection-portal/rules/language';
+import type { ApprovalAction } from '@konnekt/api-types/approvals';
+import { defineTexts } from '@konnekt/rules/language';
 
 import type { ApprovalPageState, FinalStatus, StatusAction } from './types';
 

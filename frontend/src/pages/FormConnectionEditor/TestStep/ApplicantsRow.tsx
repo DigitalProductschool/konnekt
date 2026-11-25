@@ -1,5 +1,5 @@
-import { creatingAllTextOf } from '@connection-portal/rules/personas/messages';
-import type { PersonaSlot } from '@connection-portal/rules/personas/types';
+import { creatingAllTextOf } from '@konnekt/rules/personas/messages';
+import type { PersonaSlot } from '@konnekt/rules/personas/types';
 import type { KeyboardEvent } from 'react';
 
 import { useLanguage } from '../../../hooks/useLanguage';

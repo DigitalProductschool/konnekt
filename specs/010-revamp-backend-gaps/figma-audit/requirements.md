@@ -500,4 +500,4 @@ agent = MCP client, LLM agent, assistant
 team member = user, account, username, name in user menu
 roles = view-only user, permissions, "needs roles" (excluded)
 links = connection URLs, serviceBW links, copy link
-middleware = connection portal, product, management UI, Konnekt
+middleware = product, management UI, Konnekt

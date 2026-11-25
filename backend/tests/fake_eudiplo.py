@@ -66,7 +66,7 @@ class FakeSession:
             'createdAt': _timestamp(self.created_at),
             'updatedAt': _timestamp(self.updated_at),
             'consumed': self.consumed_at is not None,
-            'tenantId': 'dps',
+            'tenantId': 'test-tenant',
         }
         if self.consumed_at is not None:
             body['consumedAt'] = _timestamp(self.consumed_at)
@@ -226,7 +226,8 @@ class FakeEudiplo:
         now = _timestamp(_now())
         self.configs[body['id']] = body
         return httpx2.Response(
-            201, json={**body, 'tenant': 'dps', 'createdAt': now, 'updatedAt': now}
+            201,
+            json={**body, 'tenant': 'test-tenant', 'createdAt': now, 'updatedAt': now},
         )
 
     def _delete_config(self, request: httpx2.Request) -> httpx2.Response:

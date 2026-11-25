@@ -1,11 +1,11 @@
-import type { ErrorNotice } from '@connection-portal/api-types/api';
+import type { ErrorNotice } from '@konnekt/api-types/api';
 import type {
   EditorStep,
   ExampleState,
   FormConnection,
   RequestedDocument,
-} from '@connection-portal/api-types/form-connections';
-import type { FindingTone, RuleChecks } from '@connection-portal/rules/checks/types';
+} from '@konnekt/api-types/form-connections';
+import type { FindingTone, RuleChecks } from '@konnekt/rules/checks/types';
 import type { Ref } from 'react';
 
 import type { ActiveFrom } from '../../components/ActiveFromChoice/types';

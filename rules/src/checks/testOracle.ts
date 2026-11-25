@@ -87,7 +87,7 @@ import type {
   Mark,
   RuleItem,
   RuleTreeItem,
-} from '@connection-portal/api-types/form-connections';
+} from '@konnekt/api-types/form-connections';
 
 import { LICENCE_CLASSES_SET, OPERATORS } from '../constants';
 import {

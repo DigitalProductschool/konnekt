@@ -1,4 +1,4 @@
-import type { OptionSet } from '@connection-portal/api-types/option-sets';
+import type { OptionSet } from '@konnekt/api-types/option-sets';
 import { useEffect, useReducer } from 'react';
 
 import { getOptionSets } from '../api/option-sets';

@@ -140,7 +140,7 @@ The row (frontend), shortened:
 - `npm run format:check` (root) → clean.
 - No backend file changed, so Ruff, mypy and pytest weren't run.
 - **In the browser** (Chrome via Playwright; the compose `postgres` container on 5435 with a
-  throw-away `faro_verify` database, the backend on 3000, Vite on 5173; all removed afterwards).
+  throw-away `konnekt_verify` database, the backend on 3000, Vite on 5173; all removed afterwards).
   The example draft, Test step, 1455 × 900. Screenshots are in `.playwright-mcp/` (git-ignored):
   `v5-1455-hannah-standard.png`, `v5-1455-aylin-standard.png`, `v5-1455-hannah-not-checked.png`,
   `v5-1455-de.png`, `v5-1024-de.png`, `v5-320-de-card.png`, `v5-1455-group-hannah.png`.

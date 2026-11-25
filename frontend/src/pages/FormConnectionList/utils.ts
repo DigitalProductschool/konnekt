@@ -1,12 +1,12 @@
-import type { ErrorNotice } from '@connection-portal/api-types/api';
+import type { ErrorNotice } from '@konnekt/api-types/api';
 import type {
   DeletionItem,
   FormConnectionSummary,
   SelectionChanged,
-} from '@connection-portal/api-types/form-connections';
-import type { OverviewDeletion } from '@connection-portal/api-types/routing';
-import { formatDate } from '@connection-portal/rules/dates';
-import type { Language } from '@connection-portal/rules/language';
+} from '@konnekt/api-types/form-connections';
+import type { OverviewDeletion } from '@konnekt/api-types/routing';
+import { formatDate } from '@konnekt/rules/dates';
+import type { Language } from '@konnekt/rules/language';
 
 import { ApiError, errorNoticeOf } from '../../api/client';
 import type { TooltipPlacement } from '../../components/InfoTooltip/types';

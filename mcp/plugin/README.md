@@ -20,34 +20,37 @@ approvals and the user page.
 
 ## Installing with Claude Code
 
-The plugin adds the MCP server `connection-portal` and the eight skills in one step.
+The plugin adds the MCP server `konnekt` and the eight skills in one step.
 
-1. Set `CONNECTION_PORTAL_MCP_URL` to the deployment's MCP endpoint, `https://<domain>/mcp`, in
+1. Set `KONNEKT_MCP_URL` to the deployment's MCP endpoint, `https://<domain>/mcp`, in
    the environment Claude Code starts from (for example in your shell profile). A preview
    deployment has its own domain: point the variable at it to work with that preview.
 
    ```bash
-   export CONNECTION_PORTAL_MCP_URL=https://<domain>/mcp
+   export KONNEKT_MCP_URL=https://<domain>/mcp
    ```
 
    Without it, `claude mcp list` shows the server with "Missing environment variables:
-   CONNECTION_PORTAL_MCP_URL" and Claude Code doesn't connect to it.
+   KONNEKT_MCP_URL" and Claude Code doesn't connect to it.
 
-2. Add the marketplace (the repository, as `owner/repo`, a git URL or a local checkout) and
-   install the plugin from it. The marketplace is called `connection-portal`, after
-   `.claude-plugin/marketplace.json`:
+2. Add the marketplace, the repository
+   [`DigitalProductschool/konnekt`](https://github.com/DigitalProductschool/konnekt), and
+   install the plugin from it. The marketplace and the plugin are both called `konnekt`, after
+   `.claude-plugin/marketplace.json`, which lists the plugin in `mcp/plugin/`:
 
    ```bash
-   claude plugin marketplace add <repository>
-   claude plugin install connection-portal@connection-portal
+   claude plugin marketplace add DigitalProductschool/konnekt
+   claude plugin install konnekt@konnekt
    ```
+
+   To try a fork or a local checkout, add its `owner/repo`, git URL or path instead.
 
 3. Start Claude Code. The first call to the server opens the browser on Konnekt's
    consent page, where you sign in and choose the agent's access level.
 
 To get newer skills, refresh the marketplace and update the plugin
-(`claude plugin marketplace update connection-portal`, then
-`claude plugin update connection-portal@connection-portal`). Claude Code keeps an installed plugin
+(`claude plugin marketplace update konnekt`, then
+`claude plugin update konnekt@konnekt`). Claude Code keeps an installed plugin
 at the `version` of `plugin.json`, so raise that version when the skills change. Agents that
 connect to the server read the deployed skills either way.
 

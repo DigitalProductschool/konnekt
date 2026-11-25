@@ -1,4 +1,4 @@
-import { failureHintOf } from '@connection-portal/rules/personas/messages';
+import { failureHintOf } from '@konnekt/rules/personas/messages';
 import { useId } from 'react';
 
 import { useLanguage } from '../../../hooks/useLanguage';

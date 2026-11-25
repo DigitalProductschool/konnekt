@@ -1,10 +1,6 @@
-import type {
-  Condition,
-  RuleItem,
-  RuleTarget,
-} from '@connection-portal/api-types/form-connections';
-import type { OptionSet } from '@connection-portal/api-types/option-sets';
-import type { OperatorDefinition } from '@connection-portal/rules/types';
+import type { Condition, RuleItem, RuleTarget } from '@konnekt/api-types/form-connections';
+import type { OptionSet } from '@konnekt/api-types/option-sets';
+import type { OperatorDefinition } from '@konnekt/rules/types';
 import type { Dispatch, KeyboardEvent, ReactNode } from 'react';
 
 import type { MenuPlacement } from '../../../../utils/popupPlacement';

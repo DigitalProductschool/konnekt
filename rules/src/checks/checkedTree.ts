@@ -13,7 +13,7 @@ import type {
   GroupItem,
   RuleItem,
   RuleTreeItem,
-} from '@connection-portal/api-types/form-connections';
+} from '@konnekt/api-types/form-connections';
 
 import { isComplete, optionsOf, resolveTarget } from '../conditions';
 import { effectiveItems } from '../tree';

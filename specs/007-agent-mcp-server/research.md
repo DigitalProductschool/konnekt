@@ -54,8 +54,8 @@ package-lock.json     # one lockfile for every Node package
 eslint.config.mjs     # one flat config, one block per package
 .prettierrc           # shared; frontend/ keeps a .prettierrc of its own for the Tailwind plugin
 tsconfig.base.json    # the compiler options every package extends
-api-types/            # @connection-portal/api-types: the TypeScript mirrors of backend/app/schemas.py
-rules/                # @connection-portal/rules: the pure rules logic (propagation, tree, validation,
+api-types/            # @konnekt/api-types: the TypeScript mirrors of backend/app/schemas.py
+rules/                # @konnekt/rules: the pure rules logic (propagation, tree, validation,
                       #   conditions, statements, dates, messages, checks/, personas/, edits.ts) and its tests
 frontend/             # the SPA, depends on api-types and rules; src/workers/ holds the two browser Worker entries
 mcp/                  # the MCP server, depends on api-types and rules
@@ -64,12 +64,12 @@ backend/              # unchanged
 
 - **Source-linked packages, no build step**: `api-types` and `rules` publish their TypeScript
   source through `exports` (`"./*": "./src/*.ts"`), so a consumer writes
-  `import { propagateMain } from '@connection-portal/rules/branches'` or
-  `import type { BranchInput } from '@connection-portal/api-types/form-connections'`, and its
+  `import { propagateMain } from '@konnekt/rules/branches'` or
+  `import type { BranchInput } from '@konnekt/api-types/form-connections'`, and its
   own bundler (Vite in the SPA and the MCP server) compiles them. Nothing is emitted, no
   `dist/`, no `.d.ts`. The two packages have no runtime dependency.
 - **One install, one lockfile, hoisted tooling**: `npm install` at the root links the packages
-  into `node_modules/@connection-portal/` and dedupes `typescript`, `vite`, `vitest`, `eslint`
+  into `node_modules/@konnekt/` and dedupes `typescript`, `vite`, `vitest`, `eslint`
   and `prettier`, which every package lists at the same version in its own `devDependencies`,
   so that `npm ci -w <package>` in an image installs what that package needs without the root.
   The root `package.json` holds the `workspaces`, the scripts (`lint`, `test`, `build`,
@@ -691,7 +691,7 @@ test step would show for the same values.
 
 **Decision**:
 - The source is `mcp/plugin/`: a Claude Code plugin with `.claude-plugin/plugin.json`,
-  `.mcp.json` (the MCP server at `${CONNECTION_PORTAL_MCP_URL}`, an environment variable the
+  `.mcp.json` (the MCP server at `${KONNEKT_MCP_URL}`, an environment variable the
   README explains, since previews and production differ) and `skills/<topic>/SKILL.md` for the
   topics the spec lists: `connection-workflow`, `variants-and-standard`, `conditions`,
   `documents-and-catalog`, `access-levels`, `publishing-and-live-connections`, `links`,
@@ -702,7 +702,7 @@ test step would show for the same values.
   `skills/get`, each file as a `skill://<topic>/SKILL.md` resource); and `get_guide(topic)`,
   which answers the same text and, without a topic, the list of topics with their descriptions.
 - `.claude-plugin/marketplace.json` at the repository root lists the plugin, so that
-  `claude plugin marketplace add <repo>` and `claude plugin install connection-portal@…` add the
+  `claude plugin marketplace add <repo>` and `claude plugin install konnekt@…` add the
   server and the skills in one step; other agents copy `plugin/skills/`.
 - **The gate** (FR-038, SC-009): `mcp/src/guidance.test.ts` asserts that every registered tool
   name appears in at least one `SKILL.md`, that every skill has frontmatter with a name and a
@@ -796,7 +796,7 @@ other. The OAuth endpoints read no query, so uvicorn's and nginx's access logs s
 - TypeScript resolving a workspace package's `exports` (`"./*": "./src/*.ts"`) to the `.ts`
   sources under `moduleResolution: bundler` (R1): it does, in all four packages, so
   `tsconfig.base.json` has no `paths`. Vite serves and bundles the linked packages' sources,
-  and splits the dynamic `import('@connection-portal/rules/checks/checkedTree')` into a chunk
+  and splits the dynamic `import('@konnekt/rules/checks/checkedTree')` into a chunk
   of its own (`checkedTree-<hash>.js`), as it split the relative one. Settled on 2026-11-06.
 - `npm ci -w frontend --ignore-scripts` installs the frontend's dependencies from the
   workspace's lockfile without the root's, also when the image copies no `mcp/package.json`:
@@ -805,10 +805,10 @@ other. The OAuth endpoints read no query, so uvicorn's and nginx's access logs s
   the development images). Settled on 2026-11-06.
 - How Claude Code, Cursor and Codex react to `403 insufficient_scope` on a tool call (R5): the
   step-up through `request_access` is designed to be harmless either way.
-- `${CONNECTION_PORTAL_MCP_URL}` expansion in a plugin's `.mcp.json` (R16): Claude Code
+- `${KONNEKT_MCP_URL}` expansion in a plugin's `.mcp.json` (R16): Claude Code
   2.1.319, with the plugin loaded through `--plugin-dir`, lists the server at the variable's
   value, and without the variable reports "Missing environment variables:
-  CONNECTION_PORTAL_MCP_URL" and doesn't connect; the plugin keeps the variable, and the README
+  KONNEKT_MCP_URL" and doesn't connect; the plugin keeps the variable, and the README
   says to set it. Settled on 2026-11-06.
 - `RequireSignIn` keeping the search parameters through the sign-in round trip (R11, S1): it
   stores the whole location as `state.from`, and `RequireSignedOut` returns to

@@ -28,7 +28,7 @@ step's empty panel (B4) and the not-found card (B5). The motion from sign-in to 
 > notes first (7760:105881, 7760:105884, 7760:105887) and its image bank (7760:105837). Follow
 > docs/FIGMA-WORKFLOW.md. Look at Figma only through Opus subagents.
 >
-> The pictures are already downloaded to /home/debian/new-visuals-assets/: renders/<name>@2x.png
+> The pictures are already downloaded to <downloaded-assets>/: renders/<name>@2x.png
 > (transparent 2x files with crop, rotation, opacity and colour baked in, rebuilt from the
 > originals; use these, unless exports/ exists), renders/<name>@1x.png (Figma's exact 1x
 > exports, the reference), <name>.png (the original uploads; only chain-login-white is used as
@@ -229,7 +229,7 @@ order A, B4, B2, B3, B5, B1 (smallest first; B1 last because it touches the shar
 
 ### A. The pictures
 
-Source: `/home/debian/new-visuals-assets/renders/<name>@2x.png` for seven pictures and
+Source: `<downloaded-assets>/renders/<name>@2x.png` for seven pictures and
 `chain-login-white.png` for the sign-in chain. No `exports/` directory exists today; if it
 appears before the fix, run the same recipe on the designer's 2x exports instead.
 

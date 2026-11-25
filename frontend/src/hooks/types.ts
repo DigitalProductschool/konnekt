@@ -1,11 +1,11 @@
-import type { ErrorNotice } from '@connection-portal/api-types/api';
-import type { LoginRequest, UserView } from '@connection-portal/api-types/auth';
-import type { DocumentType } from '@connection-portal/api-types/document-types';
-import type { FormConnectionOrDraft } from '@connection-portal/api-types/form-connections';
-import type { OptionSet } from '@connection-portal/api-types/option-sets';
-import type { buildCheckedBranch, KeyedBranch } from '@connection-portal/rules/checks/checkedTree';
-import type { RunBranch } from '@connection-portal/rules/checks/types';
-import type { Language } from '@connection-portal/rules/language';
+import type { ErrorNotice } from '@konnekt/api-types/api';
+import type { LoginRequest, UserView } from '@konnekt/api-types/auth';
+import type { DocumentType } from '@konnekt/api-types/document-types';
+import type { FormConnectionOrDraft } from '@konnekt/api-types/form-connections';
+import type { OptionSet } from '@konnekt/api-types/option-sets';
+import type { buildCheckedBranch, KeyedBranch } from '@konnekt/rules/checks/checkedTree';
+import type { RunBranch } from '@konnekt/rules/checks/types';
+import type { Language } from '@konnekt/rules/language';
 
 import type { PdfDownloadState } from '../utils/connectionPdf/types';
 

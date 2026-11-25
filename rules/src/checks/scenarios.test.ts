@@ -6,7 +6,7 @@
 // Conflicts (US1) come first, then the redundancy scenarios (US2, T036), then the variants' (US3,
 // T040), whose branches branches.ts builds and each of which is checked on its own: `scenario()`
 // for a main branch's items, `scenarioOf()` for any branch, such as one based on the main branch.
-import type { DocumentField } from '@connection-portal/api-types/document-types';
+import type { DocumentField } from '@konnekt/api-types/document-types';
 import type {
   BranchInput,
   Combinator,
@@ -15,7 +15,7 @@ import type {
   RuleItem,
   RuleTarget,
   RuleTreeItem,
-} from '@connection-portal/api-types/form-connections';
+} from '@konnekt/api-types/form-connections';
 import { describe, expect, it } from 'vitest';
 
 import {

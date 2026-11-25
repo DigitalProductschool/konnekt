@@ -7,16 +7,16 @@ import type {
   Condition,
   FormConnectionDraft,
   RequestedDocumentView,
-} from '@connection-portal/api-types/form-connections';
-import { CONDITION_PROBLEM_MESSAGES } from '@connection-portal/rules/constants';
-import type { Language } from '@connection-portal/rules/language';
+} from '@konnekt/api-types/form-connections';
+import { CONDITION_PROBLEM_MESSAGES } from '@konnekt/rules/constants';
+import type { Language } from '@konnekt/rules/language';
 import type {
   ConditionProblem,
   RuleContext,
   RulesProblem,
   RulesProblemCode,
-} from '@connection-portal/rules/types';
-import { publishProblems, textLength } from '@connection-portal/rules/validation';
+} from '@konnekt/rules/types';
+import { publishProblems, textLength } from '@konnekt/rules/validation';
 
 import {
   DESCRIPTION_MAX_LENGTH,

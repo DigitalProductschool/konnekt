@@ -1,4 +1,4 @@
-import { DEFAULT_LANGUAGE } from '@connection-portal/rules/language';
+import { DEFAULT_LANGUAGE } from '@konnekt/rules/language';
 import { describe, expect, it } from 'vitest';
 
 import { CONNECTION_STEP_LABELS, CONNECTION_STEPS } from '../../constants';

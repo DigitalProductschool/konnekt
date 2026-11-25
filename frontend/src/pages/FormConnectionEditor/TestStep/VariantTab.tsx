@@ -1,4 +1,4 @@
-import { noticeText } from '@connection-portal/rules/checks/findingMessages';
+import { noticeText } from '@konnekt/rules/checks/findingMessages';
 
 import BranchName from '../../../components/BranchName';
 import { useLanguage } from '../../../hooks/useLanguage';

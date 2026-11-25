@@ -1,4 +1,4 @@
-import { shownItems } from '@connection-portal/rules/tree';
+import { shownItems } from '@konnekt/rules/tree';
 
 import GroupFrame from '../../components/GroupFrame';
 import RuleRow from '../../components/RuleRow';

@@ -4,23 +4,18 @@
 // note (`noteOf()`) and what would resolve it (`resolutionOf()`); the notice has its text
 // (`noticeText()`) and resolution too; the rules the checks left out are named with why, as the
 // rules step's banner and problem notes say it. Pure: it holds, stores and logs nothing (FR-035)
-import type { BranchInput, RuleItem } from '@connection-portal/api-types/form-connections';
-import { buildCheckedBranch } from '@connection-portal/rules/checks/checkedTree';
-import {
-  namesOf,
-  noteOf,
-  noticeText,
-  resolutionOf,
-} from '@connection-portal/rules/checks/findingMessages';
+import type { BranchInput, RuleItem } from '@konnekt/api-types/form-connections';
+import { buildCheckedBranch } from '@konnekt/rules/checks/checkedTree';
+import { namesOf, noteOf, noticeText, resolutionOf } from '@konnekt/rules/checks/findingMessages';
 import type {
   BranchCheck,
   BranchNotice,
   ItemFinding,
   ItemNames,
-} from '@connection-portal/rules/checks/types';
-import { flattenItems } from '@connection-portal/rules/tree';
-import type { RuleContext } from '@connection-portal/rules/types';
-import { isConditionProblem, ruleProblemOf } from '@connection-portal/rules/validation';
+} from '@konnekt/rules/checks/types';
+import { flattenItems } from '@konnekt/rules/tree';
+import type { RuleContext } from '@konnekt/rules/types';
+import { isConditionProblem, ruleProblemOf } from '@konnekt/rules/validation';
 
 import {
   type ConnectionLike,

@@ -4,9 +4,9 @@ import type {
   AgentAccessItem,
   AgentAccessList,
   TokenCreated,
-} from '@connection-portal/api-types/agent-access';
-import type { ErrorNotice } from '@connection-portal/api-types/api';
-import type { Language } from '@connection-portal/rules/language';
+} from '@konnekt/api-types/agent-access';
+import type { ErrorNotice } from '@konnekt/api-types/api';
+import type { Language } from '@konnekt/rules/language';
 import type { ReactNode } from 'react';
 
 import type { ToastContent } from '../../components/Toast/types';

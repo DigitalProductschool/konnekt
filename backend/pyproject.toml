@@ -1,8 +1,10 @@
 [project]
-name = "backend"
+name = "konnekt-backend"
 version = "0.1.0"
-description = "FastAPI backend with PostgreSQL"
+description = "Konnekt's backend: the middleware between serviceBW forms and the EUDI Wallet"
 requires-python = ">=3.13"
+license = "EUPL-1.2"
+license-files = ["LICENSE"]
 
 dependencies = [
     # Web Framework

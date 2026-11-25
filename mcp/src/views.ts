@@ -2,8 +2,8 @@
 // "Results and errors"; data-model §7, §9): the refs with their links, the structured items with
 // their statements, the connection URLs, the citizen fields, and the helpers of the text blocks.
 // Pure: every function derives its answer from the API's shapes and the rules logic of
-// `@connection-portal/rules`, as the editor derives what it shows
-import type { DocumentType } from '@connection-portal/api-types/document-types';
+// `@konnekt/rules`, as the editor derives what it shows
+import type { DocumentType } from '@konnekt/api-types/document-types';
 import type {
   ActivityEntry,
   ActivityKind,
@@ -21,15 +21,15 @@ import type {
   RequestedDocumentView,
   RuleTarget,
   RuleTreeItem,
-} from '@connection-portal/api-types/form-connections';
-import type { OptionSet } from '@connection-portal/api-types/option-sets';
-import { ruleDocumentsOf } from '@connection-portal/rules/conditions';
-import { droppedDataOf as catalogDroppedDataOf } from '@connection-portal/rules/dropped';
-import { personaFieldsOf } from '@connection-portal/rules/personas/fields';
-import { statementOf } from '@connection-portal/rules/statements';
-import { flattenItems, hasAnyRule } from '@connection-portal/rules/tree';
-import type { RuleContext, RuleDocument } from '@connection-portal/rules/types';
-import { unrequestedRules } from '@connection-portal/rules/validation';
+} from '@konnekt/api-types/form-connections';
+import type { OptionSet } from '@konnekt/api-types/option-sets';
+import { ruleDocumentsOf } from '@konnekt/rules/conditions';
+import { droppedDataOf as catalogDroppedDataOf } from '@konnekt/rules/dropped';
+import { personaFieldsOf } from '@konnekt/rules/personas/fields';
+import { statementOf } from '@konnekt/rules/statements';
+import { flattenItems, hasAnyRule } from '@konnekt/rules/tree';
+import type { RuleContext, RuleDocument } from '@konnekt/rules/types';
+import { unrequestedRules } from '@konnekt/rules/validation';
 
 import { connectionLink, itemLink, variantLink } from './links';
 
@@ -337,7 +337,7 @@ export interface DroppedData {
 
 /**
  * The data requested that the catalog no longer offers, as the editor's documents step notes it
- * (`droppedDataOf()` of `@connection-portal/rules/dropped`).
+ * (`droppedDataOf()` of `@konnekt/rules/dropped`).
  */
 export function droppedDataOf(
   documents: (RequestedDocument | RequestedDocumentView)[],

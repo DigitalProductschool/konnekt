@@ -29,7 +29,7 @@ npm run lint && npm test && npm run build
 
 # backend/
 uv run ruff check --fix . && uv run ruff format . && uv run mypy app/ scripts/ tests/
-DATABASE_URL=postgresql+psycopg://postgres:postgres@localhost:5435/template_db_test uv run pytest
+DATABASE_URL=postgresql+psycopg://postgres:postgres@localhost:5435/konnekt_db_test uv run pytest
 uv run python -m scripts.export_check_fixtures --check   # the parity fixture is current
 ```
 
@@ -89,7 +89,7 @@ Chromium and Firefox at 1440 px and at 320 px / 200 % zoom unless it says otherw
    `fr`: English. Choose once: the choice wins from then on.
 4. Private mode or site data blocked: the switch works for the visit; the next visit follows the
    first-visit rule; no error in the console.
-5. Put `fr` or garbage into `localStorage['connection-portal:language:v1']`: treated as no choice.
+5. Put `fr` or garbage into `localStorage['konnekt:language:v1']`: treated as no choice.
 
 ### V3. The server's copy (US3; FR-005)
 

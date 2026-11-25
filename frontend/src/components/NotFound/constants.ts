@@ -1,4 +1,4 @@
-import { defineTexts } from '@connection-portal/rules/language';
+import { defineTexts } from '@konnekt/rules/language';
 
 /**
  * The texts of "Page not found" (S22), as the card draws them in English (Figma "New visuals"

@@ -20,7 +20,7 @@ Every page: `useDocumentTitle()`, one `h1` (`PageTitle`), failures through
 ## S1. The consent page (`/authorize`; FR-002)
 
 - **Title**: "Allow access for {client_name}?" (`h1`). Below: "{client_name} wants to act on
-  your behalf in the Connection Portal. Choose what it may do."
+  your behalf in Konnekt. Choose what it may do."
 - **Access levels**: a KERN radio group (`AccessLevelChoice`, shared with S2 and S3) with the
   three levels, each a label and a description:
   - "Read only": "Find and read connections, variants and rules, run the rule checks and test
@@ -48,7 +48,7 @@ Every page: `useDocumentTitle()`, one `h1` (`PageTitle`), failures through
 - **Section "Connected agents"**: a list (`AgentAccessList`, each row `AgentAccessRow`) of the
   `oauth` items: client name, access level (the level's name), "Connected {date}", "Last used
   {relative}" or "Never used", and a ⋯ menu (the project's menu pattern) with "Change access
-  level" and "Revoke". Empty state: "No agent is connected yet. Add the Connection Portal's MCP
+  level" and "Revoke". Empty state: "No agent is connected yet. Add Konnekt's MCP
   server to your agent to connect it." with a link to the README section.
 - **Section "Personal access tokens"**: the `token` items: name, access level, "Created {date}",
   "Expires {date}", "Last used …", the same menu, and a button "Create token".

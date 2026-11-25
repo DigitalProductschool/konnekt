@@ -15,8 +15,8 @@ middleware through an **MCP server**, sign them in with the protocol's standard 
 and give each one of three access levels. Agents find and read connections in layers, build
 **drafts** one change at a time with the editor's own rules logic, run the rule checks and test
 fictitious applicants, and ask for **approval** to publish or delete a draft or to deactivate,
-reactivate or delete a published connection, which the team member gives on a page in the
-Connection Portal. Links name connections, variants and rules for people and agents alike, and
+reactivate or delete a published connection, which the team member gives on a page in
+Konnekt. Links name connections, variants and rules for people and agents alike, and
 guidance comes from one source as server instructions, MCP skills and a Claude Code plugin.
 
 **Technical approach** (research R1–R20):
@@ -200,12 +200,12 @@ eslint.config.mjs, .prettierrc, tsconfig.base.json   # shared tooling; frontend/
 .dockerignore                    # + node_modules/ at the root, mcp/dist/
 docker-compose.yml, docker-compose.prod.yml   # + mcp service; dev volumes for api-types/ and rules/
 
-api-types/                       # @connection-portal/api-types (moved from frontend/src/types/)
+api-types/                       # @konnekt/api-types (moved from frontend/src/types/)
 ├── package.json, tsconfig.json  # exports "./*": "./src/*.ts"; lint, typecheck
 └── src/api.ts, auth.ts, document-types.ts, form-connections.ts (+ FormConnectionPage, ConnectionUrls),
     option-sets.ts, routing.ts, agent-access.ts, approvals.ts, oauth.ts
 
-rules/                           # @connection-portal/rules (moved from frontend/src/utils/rules/)
+rules/                           # @konnekt/rules (moved from frontend/src/utils/rules/)
 ├── package.json, tsconfig.json, vitest.config.ts   # lint, test (node), typecheck
 └── src/
     ├── branches.ts, tree.ts, validation.ts, conditions.ts, statements.ts, dates.ts, messages.ts,
@@ -241,7 +241,7 @@ backend/
     test_approval_requests.py, test_form_connection_search.py; + branch id cases in
     test_form_connection_drafts.py; tests/unit/test_oauth_pkce.py
 
-mcp/                             # @connection-portal/mcp: the MCP server (R1)
+mcp/                             # @konnekt/mcp: the MCP server (R1)
 ├── package.json, tsconfig.json  # the SDK, zod, the two packages; lint, test, build, dev
 ├── vite.config.ts               # SSR build: src/main.ts + src/checksWorker.ts → dist/; Vitest test block (node)
 ├── Dockerfile                   # context: repo root; npm ci -w mcp; node dist/main.js
@@ -252,7 +252,7 @@ mcp/                             # @connection-portal/mcp: the MCP server (R1)
 │   ├── auth.ts                  # GET /api/agent/me per request; 401 with resource_metadata; step-up 403
 │   ├── links.ts (+test)         # build and parse links (R11)
 │   ├── resolve.ts (+test)       # connection / variant / item by id, link or name; candidates
-│   ├── draftEdit.ts (+test)     # the read-apply-save loop over @connection-portal/rules/edits (R8)
+│   ├── draftEdit.ts (+test)     # the read-apply-save loop over @konnekt/rules/edits (R8)
 │   ├── tools/                   # read.ts, catalog.ts, drafts.ts, items.ts, approvals.ts, checks.ts, guide.ts, access.ts; registry.ts
 │   ├── views.ts (+test)         # ItemView, statements, ApplicantField lists
 │   ├── findings.ts (+test)      # BranchCheck → agent findings with involves, why, resolution
@@ -263,7 +263,7 @@ mcp/                             # @connection-portal/mcp: the MCP server (R1)
 ├── test/fakeBackend.ts, server.test.ts   # integration over the SDK's client
 └── plugin/                      # .claude-plugin/plugin.json, .mcp.json, README.md, instructions.md, skills/*/SKILL.md
 
-frontend/                        # the SPA; depends on @connection-portal/api-types and /rules
+frontend/                        # the SPA; depends on @konnekt/api-types and /rules
 ├── package.json, Dockerfile, Dockerfile.dev   # npm ci -w frontend; prepare moved to the root
 ├── nginx.conf               # /mcp, /.well-known/oauth-protected-resource → mcp; /.well-known/oauth-authorization-server → backend
 └── src/

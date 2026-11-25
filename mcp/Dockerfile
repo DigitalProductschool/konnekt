@@ -38,6 +38,8 @@ RUN npm ci -w mcp --omit=dev --ignore-scripts && npm cache clean --force
 
 # mcp/plugin/ is not copied: the skills are embedded in the bundle
 COPY --from=builder /app/mcp/dist ./mcp/dist
+# The licence and the notices (FR-007)
+COPY LICENSE NOTICE.md /usr/share/doc/konnekt/
 
 USER node
 

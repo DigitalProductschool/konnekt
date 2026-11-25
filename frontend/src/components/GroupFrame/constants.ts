@@ -1,6 +1,6 @@
-import type { Combinator, Mark } from '@connection-portal/api-types/form-connections';
-import type { ItemFindingKind } from '@connection-portal/rules/checks/types';
-import { defineTexts } from '@connection-portal/rules/language';
+import type { Combinator, Mark } from '@konnekt/api-types/form-connections';
+import type { ItemFindingKind } from '@konnekt/rules/checks/types';
+import { defineTexts } from '@konnekt/rules/language';
 
 export const GROUP_FRAME_COPY = defineTexts<{
   subtitles: Record<Combinator, string>;

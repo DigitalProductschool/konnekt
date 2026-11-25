@@ -5,10 +5,10 @@
 # SERVICEBW_ALLOWED_CIDRS  Comma-separated addresses or ranges (CIDR) that may call
 #                          the connection URLs. Empty or unset closes /api/connect/:
 #                          nginx answers 403 to everyone.
-# TRUSTED_PROXY_CIDRS      Comma-separated ranges of the proxy in front of nginx
-#                          (Coolify's Traefik). Only requests from these may give
-#                          the client's address in X-Forwarded-For. Empty or unset:
-#                          the connecting address counts.
+# TRUSTED_PROXY_CIDRS      Comma-separated ranges of the proxy in front of nginx.
+#                          Only requests from these may give the client's address
+#                          in X-Forwarded-For. Empty or unset: the connecting
+#                          address counts.
 #
 # An entry with anything but hex digits, '.', ':' and '/' stops the container, so a
 # value can't add other nginx directives. nginx itself rejects an invalid address.

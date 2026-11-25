@@ -1,7 +1,7 @@
-import { SUFFIX_TEXTS } from '@connection-portal/rules/conditions';
-import { CONDITION_PROBLEM_MESSAGES } from '@connection-portal/rules/constants';
-import { defineTexts } from '@connection-portal/rules/language';
-import { lowerFirst } from '@connection-portal/rules/messages';
+import { SUFFIX_TEXTS } from '@konnekt/rules/conditions';
+import { CONDITION_PROBLEM_MESSAGES } from '@konnekt/rules/constants';
+import { defineTexts } from '@konnekt/rules/language';
+import { lowerFirst } from '@konnekt/rules/messages';
 
 import type { MenuDirection, PopupPlacement } from '../../../../utils/popupPlacement';
 import type { MenuWidth, RuleEditorState } from './types';

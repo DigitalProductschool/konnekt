@@ -1,4 +1,4 @@
-import { outcomeNameOf } from '@connection-portal/rules/personas/messages';
+import { outcomeNameOf } from '@konnekt/rules/personas/messages';
 
 import { RULE_ROW_COPY } from '../../../components/RuleRow/constants';
 import RuleMessage from '../../../components/RuleRow/RuleMessage';

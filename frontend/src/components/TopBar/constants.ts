@@ -1,6 +1,6 @@
 // "Shell/Header · two pills" and "Shell/Header · in a connection" (Figma U11 6699:44242,
 // U17 7173:52658, U10 6701:39367; build notes U03 #29–#40)
-import { defineTexts } from '@connection-portal/rules/language';
+import { defineTexts } from '@konnekt/rules/language';
 
 /**
  * The second pill's texts (G§2 "connection"): its link home (U17 7173:52658) and its landmark,

@@ -6,7 +6,7 @@ const NEW_PREFIX = 'new-';
 const DRAFT_PREFIX = 'draft-';
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
-/** The key of an account's record: `connection-portal:local-draft:v1:<username>:<flowKey>` */
+/** The key of an account's record: `konnekt:local-draft:v1:<username>:<flowKey>` */
 export function storageKeyOf(username: string, flowKey: string): string {
   return `${LOCAL_DRAFT_PREFIX}${username}:${flowKey}`;
 }

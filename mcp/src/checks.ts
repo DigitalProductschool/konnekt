@@ -5,14 +5,14 @@
 // branch that didn't finish by then comes back as the editor shows it: not checked completely,
 // with no findings. Nothing is stored or logged (FR-035)
 import { Worker } from 'node:worker_threads';
-import { WATCHDOG_MS, WORKER_STOP_MS } from '@connection-portal/rules/checks/constants';
+import { WATCHDOG_MS, WORKER_STOP_MS } from '@konnekt/rules/checks/constants';
 import type {
   BranchCheck,
   CheckedBranch,
   CheckedItem,
   CheckMessage,
   WorkerMessage,
-} from '@connection-portal/rules/checks/types';
+} from '@konnekt/rules/checks/types';
 
 /**
  * The worker's entry, next to this module once built (`dist/checksWorker.js`, the second output of
@@ -91,7 +91,7 @@ async function checkInProcess(
   deadline: number,
   watchdog: number
 ): Promise<BranchCheck[]> {
-  const { checkBranch } = await import('@connection-portal/rules/checks/findings');
+  const { checkBranch } = await import('@konnekt/rules/checks/findings');
   const results: BranchCheck[] = [];
   try {
     for (const checked of branches) {

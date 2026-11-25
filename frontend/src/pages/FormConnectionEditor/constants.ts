@@ -1,4 +1,4 @@
-import { defineTexts } from '@connection-portal/rules/language';
+import { defineTexts } from '@konnekt/rules/language';
 
 import type { EditorState, EditorStep, LeaveFlowState, PublishDialogState } from './types';
 
@@ -139,7 +139,7 @@ export const DRAFT_COPY = defineTexts(
     untitled: 'Untitled connection',
     draftSaved: (name: string) => `Draft ${name} saved.`,
     // The note on data the catalog no longer offers (S8; W10); its labels come from
-    // `droppedDataOf()` in @connection-portal/rules/dropped
+    // `droppedDataOf()` in @konnekt/rules/dropped
     catalogDroppedTitle: 'The wallet no longer offers some data of this draft',
     removeIt: 'Remove it',
     // The conflict dialog after "Save and exit", and the publish dialog's conflicts (S2; W4)

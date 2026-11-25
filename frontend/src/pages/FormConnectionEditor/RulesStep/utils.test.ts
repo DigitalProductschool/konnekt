@@ -1,9 +1,9 @@
-import type { GroupItem, Mark, RuleTreeItem } from '@connection-portal/api-types/form-connections';
-import type { BannerLine, FindingsBanner } from '@connection-portal/rules/checks/types';
-import * as edits from '@connection-portal/rules/edits';
-import { MDL, PID, rule, target } from '@connection-portal/rules/testData';
-import { findItem, flattenItems } from '@connection-portal/rules/tree';
-import type { EditResult, EditState } from '@connection-portal/rules/types';
+import type { GroupItem, Mark, RuleTreeItem } from '@konnekt/api-types/form-connections';
+import type { BannerLine, FindingsBanner } from '@konnekt/rules/checks/types';
+import * as edits from '@konnekt/rules/edits';
+import { MDL, PID, rule, target } from '@konnekt/rules/testData';
+import { findItem, flattenItems } from '@konnekt/rules/tree';
+import type { EditResult, EditState } from '@konnekt/rules/types';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { MENU_ENTRY_ORDER } from './constants';
@@ -978,7 +978,7 @@ describe('findingTargetIdsOf', () => {
 });
 
 // Parity (spec 007, SC-003): the cases above that change the rules, replayed through the editor's
-// actions of `@connection-portal/rules/edits`, which the agents' tools call. The reducer must hold
+// actions of `@konnekt/rules/edits`, which the agents' tools call. The reducer must hold
 // the same branches and counters as the actions alone give
 
 /** The actions applied in turn, each expected to succeed. */

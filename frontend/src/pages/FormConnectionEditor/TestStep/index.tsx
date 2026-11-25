@@ -1,4 +1,4 @@
-import type { PersonaSlot, ResultRow } from '@connection-portal/rules/personas/types';
+import type { PersonaSlot, ResultRow } from '@konnekt/rules/personas/types';
 import { useCallback, useEffect, useRef, useState } from 'react';
 
 import ExampleBanner from '../../../components/ExampleBanner';

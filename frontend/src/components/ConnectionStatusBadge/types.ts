@@ -1,4 +1,4 @@
-import type { ConnectionState } from '@connection-portal/api-types/form-connections';
+import type { ConnectionState } from '@konnekt/api-types/form-connections';
 
 export interface ConnectionStatusBadgeProps {
   /** The API's `state` (spec 010, data-model §1.2) */

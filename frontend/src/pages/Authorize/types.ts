@@ -1,6 +1,6 @@
-import type { AccessLevel } from '@connection-portal/api-types/agent-access';
-import type { ErrorNotice } from '@connection-portal/api-types/api';
-import type { AuthorizeRequest, OauthClientView } from '@connection-portal/api-types/oauth';
+import type { AccessLevel } from '@konnekt/api-types/agent-access';
+import type { ErrorNotice } from '@konnekt/api-types/api';
+import type { AuthorizeRequest, OauthClientView } from '@konnekt/api-types/oauth';
 
 /** The authorization request of the page's query string, as the decision sends it back */
 export type ConsentRequest = Omit<AuthorizeRequest, 'decision' | 'access_level' | 'scope'> & {
@@ -31,7 +31,8 @@ export type ConsentState =
     };
 
 export type ConsentAction =
-  | { type: 'loaded'; client: OauthClientView; level: AccessLevel }
+  /** The client is known; `requested` is the level the request's scope asks for */
+  | { type: 'loaded'; client: OauthClientView; requested: AccessLevel }
   | { type: 'invalid'; message: string }
   | { type: 'failed'; notice: ErrorNotice }
   | { type: 'choose'; level: AccessLevel }
@@ -49,6 +50,39 @@ export interface ConsentFormProps {
   leaving: ConsentDecision | null;
   error: ErrorNotice | null;
   onDecide: (decision: ConsentDecision) => void;
+}
+
+/**
+ * Where the browser takes the answer, read from the request's redirect URI (spec 012, research
+ * R6, finding 6): a website's host, an app on this computer through a loopback address or
+ * through its own scheme (with the colon, `cursor:`), or nothing the page can name (a URI no
+ * decision can succeed with)
+ */
+export type RedirectTarget =
+  | { kind: 'web'; host: string }
+  | { kind: 'loopback' }
+  | { kind: 'app'; scheme: string }
+  | { kind: 'unknown' };
+
+/**
+ * Who gives the client's name: the client itself either way. `registered`: it registered itself
+ * (dynamic registration); `published`: it publishes the name in its metadata document on `host`
+ */
+export type NameSource = { kind: 'registered' } | { kind: 'published'; host: string };
+
+export interface ClientFactsProps {
+  client: OauthClientView;
+  /** The request's redirect URI, which the server requires to be one of the client's */
+  redirectUri: string;
+}
+
+export interface EmphasizedFactProps {
+  /** The sentence up to the emphasized part, without the space before it */
+  before: string;
+  /** A host or a scheme */
+  emphasis: string;
+  /** The rest of the sentence, with its own leading space where the language wants one */
+  after: string;
 }
 
 export interface InvalidRequestAlertProps {

@@ -1,4 +1,4 @@
-import type { FormConnectionDraft } from '@connection-portal/api-types/form-connections';
+import type { FormConnectionDraft } from '@konnekt/api-types/form-connections';
 
 import type { LocalDraftRecord } from '../../utils/localDrafts/types';
 import type { LinkNoticeKind } from '../FormConnectionEditor/RulesStep/types';

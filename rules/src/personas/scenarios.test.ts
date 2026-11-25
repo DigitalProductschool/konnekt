@@ -7,13 +7,13 @@
 // results are what the step shows (`testResultsOf()`, `resultViewOf()`). Generation runs on a fake
 // clock that never reaches the deadline, so every result depends only on the seed, and "across
 // seeds" is a loop over `SEEDS`. Hand-made personas pin the exact rows, outcomes and texts.
-import type { DocumentField } from '@connection-portal/api-types/document-types';
+import type { DocumentField } from '@konnekt/api-types/document-types';
 import type {
   BranchInput,
   Condition,
   RuleItem,
   RuleTarget,
-} from '@connection-portal/api-types/form-connections';
+} from '@konnekt/api-types/form-connections';
 import { describe, expect, it } from 'vitest';
 
 import { addRuleToBranch, changeItem, newBranch, propagateMain, removeItem } from '../branches';

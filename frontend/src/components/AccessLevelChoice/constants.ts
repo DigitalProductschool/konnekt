@@ -1,5 +1,5 @@
-import type { AccessLevelInfo } from '@connection-portal/api-types/agent-access';
-import { defineTexts } from '@connection-portal/rules/language';
+import type { AccessLevelInfo } from '@konnekt/api-types/agent-access';
+import { defineTexts } from '@konnekt/rules/language';
 
 /**
  * The three access levels with the texts of contracts/ui-screens.md S1, for a page that has no

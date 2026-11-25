@@ -1,14 +1,14 @@
-import type { DocumentField, DocumentType } from '@connection-portal/api-types/document-types';
+import type { DocumentField, DocumentType } from '@konnekt/api-types/document-types';
 import type {
   Branch,
   BranchInput,
   FormConnection,
   FormConnectionDraft,
-} from '@connection-portal/api-types/form-connections';
-import type { BranchCheck, BranchNotice, ItemFinding } from '@connection-portal/rules/checks/types';
-import { droppedDataOf } from '@connection-portal/rules/dropped';
-import { mainBranch, US1_RULES } from '@connection-portal/rules/testData';
-import { countRules } from '@connection-portal/rules/tree';
+} from '@konnekt/api-types/form-connections';
+import type { BranchCheck, BranchNotice, ItemFinding } from '@konnekt/rules/checks/types';
+import { droppedDataOf } from '@konnekt/rules/dropped';
+import { mainBranch, US1_RULES } from '@konnekt/rules/testData';
+import { countRules } from '@konnekt/rules/tree';
 import { describe, expect, it } from 'vitest';
 
 import { ApiError, handleResponse } from '../../api/client';

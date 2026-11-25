@@ -378,7 +378,7 @@ and C, and fills the last column. "Built" names the classes, not a measurement.
 **T037, 2026-11-13**, the draft's details: C's header, the downloads of C and D, "Published
 meanwhile" and "Deleted meanwhile" (quickstart §3, §6), in headless Chromium 156 and Firefox 159
 (Playwright MCP), a 1455 × 1000 window.
-- **The stack**: the dev SPA (5173) against the backend on 3000 (`template_db`, the tests' fake
+- **The stack**: the dev SPA (5173) against the backend on 3000 (`konnekt_db`, the tests' fake
   EUDIPLO, the worker off), signed in as a local account. The timings below are the dev server's
   (T033's production timings stand for A and B).
 - **The scripts**, in the chat's scratchpad:
@@ -436,7 +436,7 @@ meanwhile" and "Deleted meanwhile" (quickstart §3, §6), in headless Chromium 1
 
 **T045, 2026-11-15**, the header across languages and widths (quickstart §5 step 5, §6 "Narrow
 screen"; §2, §3), report-only, in headless Chromium 156 and Firefox 159 (Playwright MCP).
-- **The stack**: the dev SPA (5173) against the backend on 3000 (`template_db`, the tests' fake
+- **The stack**: the dev SPA (5173) against the backend on 3000 (`konnekt_db`, the tests' fake
   EUDIPLO, the worker off), signed in as `t037`.
 - **The widths**: 1440 is a 1455 × 1000 window. The narrow width is §7.1's emulation, a 167 × 500
   window standing for 320 px at 200 %. In it the header is 134 wide in Chromium and 149 in
@@ -912,7 +912,7 @@ No defect, so nothing for T046.
 on A and a fresh copy of D (§8.3) in headless Chromium 156 (Playwright MCP), a 1455 × 1000
 window.
 - **The stack**: the dev SPA on 5173 (`VITE_API_URL=http://localhost:3000`) against the backend
-  on 3000 (dev database `template_db`, the tests' fake EUDIPLO, the worker off), its code at HEAD,
+  on 3000 (dev database `konnekt_db`, the tests' fake EUDIPLO, the worker off), its code at HEAD,
   signed in as the local account `t037`.
 - **The script**: `011/T039/version-sweep.js` in the chat's scratchpad, one
   `browser_run_code_unsafe` call. Every download is saved and its bytes read in the script (as
@@ -971,7 +971,7 @@ while busy", "Leaving while busy", "Odd name", "Long name", "Privacy"; FR-034, F
 SC-008) on A and E (§8.3) in headless Chromium 156 and Firefox 159 (Playwright MCP), a 1455 ×
 1000 window.
 - **The stack**: the dev SPA on 5173 (`VITE_API_URL=http://localhost:3000`) against the backend
-  on 3000 (dev database `template_db`, the tests' fake EUDIPLO, the worker off), its code at
+  on 3000 (dev database `konnekt_db`, the tests' fake EUDIPLO, the worker off), its code at
   HEAD, signed in as the local account `t037`. The timings are the dev server's (T033's
   production timings stand, §7.2).
 - **The scripts**, in the chat's scratchpad (`011/T049/`):
@@ -1054,7 +1054,7 @@ No defect. Nothing for T050 from T049.
 SC-005): E (§8.3) in Node in English and German, and downloaded from its details in headless
 Chromium 156 and Firefox 159 (Playwright MCP), a 1455 × 1000 window.
 - **The stack**: the dev SPA on 5173 (`VITE_API_URL=http://localhost:3000`) against the backend
-  on 3000 (dev database `template_db`, the tests' fake EUDIPLO, the worker off), its code at HEAD,
+  on 3000 (dev database `konnekt_db`, the tests' fake EUDIPLO, the worker off), its code at HEAD,
   signed in as the local account `t037`. Every browser timing is from the dev server, so it is an
   upper bound (T033 timed on the production build, §7.2). The Node renders ran while T049 drove
   the browsers (load average 0.6 at the start, 2.1 at the end, 8 CPUs).
@@ -1236,7 +1236,7 @@ table; the "for" column names the tasks that must read it.
 
 | Name in plan.md / tasks.md | Name as built | File | For |
 |---|---|---|---|
-| `Language` | `Language` (`'en' \| 'de'`), with `LANGUAGES`, `DEFAULT_LANGUAGE` (`'en'`) and `isLanguage()`; imported as `@connection-portal/rules/language` | `rules/src/language.ts` | all |
+| `Language` | `Language` (`'en' \| 'de'`), with `LANGUAGES`, `DEFAULT_LANGUAGE` (`'en'`) and `isLanguage()`; imported as `@konnekt/rules/language` | `rules/src/language.ts` | all |
 | `defineTexts` | `defineTexts(en, de)`: `de` is typed by `en` (`NoInfer`), so a German column that lacks or adds a key fails `tsc` | `rules/src/language.ts` | T013, T031 |
 | `useCopy` | `useCopy(table)`: the table's column in the website's language | `frontend/src/hooks/useLanguage.ts` | T031 |
 | `useLanguage` | `useLanguage()` → `{ language, setLanguage }` (`LanguageContextValue`) | `frontend/src/hooks/useLanguage.ts`, `frontend/src/components/LanguageProvider/types.ts` | T030 |
@@ -1518,7 +1518,7 @@ connection at the limits saved anywhere.
 
 **2026-11-12, T028.** Made in one run of `prototype/seed.ts` from `SEED_BODIES`
 (`frontend/src/utils/connectionPdf/testData.ts`) against the backend on port 3000 (dev database
-`template_db`, the tests' fake EUDIPLO, no worker), signed in as a local dev account:
+`konnekt_db`, the tests' fake EUDIPLO, no worker), signed in as a local dev account:
 
 ```bash
 # from the repository root; port 3000 directly, not nginx (E's body is about 1.56 MB)
@@ -1614,7 +1614,7 @@ The build of `frontend/` (`npm run build -w frontend`, the size quickstart §1 c
 
 On the PATH: `docker` (29.9.2, daemon reachable). Not on the PATH: `verapdf`, `java`, `qpdf`,
 `pdftotext`, `pdftoppm`. The PostgreSQL of the tests was started for this run with the repo's
-`docker compose up -d postgres` (port 5435), and `template_db_test` was created in it.
+`docker compose up -d postgres` (port 5435), and `konnekt_db_test` was created in it.
 
 **2026-11-12, T005 fonts.** The five TTFs are copied byte for byte from
 `@expo-google-fonts/fira-sans` 0.4.1 and `@expo-google-fonts/fira-mono` 0.4.1 (the versions in the
@@ -1659,7 +1659,7 @@ S.A.". The largest file is 473160 bytes, under the 500 KB (512000 bytes) of the
   lockfile is unchanged by it).
 
 **2026-11-12, T011 checkpoint of the version in the API (Phase 2).**
-- **`curl`**: the backend ran on the dev database (`template_db`, migrated to head) with the
+- **`curl`**: the backend ran on the dev database (`konnekt_db`, migrated to head) with the
   tests' fake EUDIPLO (`tests/fake_eudiplo.py`), port 3000, no worker. "Start from an example"
   (`POST /api/form-connections/example`) stored a draft with `version_fingerprint`
   `10F5-92A4-B177` (save number 1), the same with `Accept-Language: de`. Published unchanged
@@ -1667,7 +1667,7 @@ S.A.". The largest file is 473160 bytes, under the 500 KB (512000 bytes) of the
   with `10F5-92A4-B177`; `GET` in English and German, deactivating and activating kept it. The field
   sits after `description`; both values match `^[0-9A-F]{4}-[0-9A-F]{4}-[0-9A-F]{4}$`; the
   overview's list (`FormConnectionSummary`) has no such field. The account `t011` and the
-  published example stay in `template_db` (not the tests' database).
+  published example stay in `konnekt_db` (not the tests' database).
 - **The canonical form** (T007): the prototype's sample as stored gives `FA7E-47BB-5368`, its
   draft with C's two gaps `3D3C-F9EA-5FE0`, both cross-checked with the prototype's JS
   `canonical()` and pinned in `backend/tests/unit/test_versions.py` (74 tests, among them a guard
@@ -1804,7 +1804,7 @@ S.A.". The largest file is 473160 bytes, under the 500 KB (512000 bytes) of the
   about +9 kB raw and +3.3 kB gzip against T001's 934.62 kB (278.94 kB): the button, the hook
   and the glyph. The worker (55 kB), PDFKit (530 kB), the fonts (1.69 MB) and the model's three
   chunks (18 kB) are chunks and assets of their own, loaded on the first run only (§7.2).
-- **The stack**: the backend on `template_db` with the tests' fake EUDIPLO (T011's launcher, the
+- **The stack**: the backend on `konnekt_db` with the tests' fake EUDIPLO (T011's launcher, the
   worker off) and the dev SPA with `VITE_API_URL=http://localhost:3000`; T033 timed on the
   production build. No real EUDIPLO was used: publishing A, B, E and F set up nothing outside
   the backend.
@@ -1870,7 +1870,7 @@ S.A.". The largest file is 473160 bytes, under the 500 KB (512000 bytes) of the
   in `frontend/`, T035's and T036's 67 and T037a's 10); the build, the main entry 932.93 kB
   (278.86 kB gzip), unchanged. The worker's chunk grew from about 55 kB to 59.09 kB (the draft's
   drawing).
-- **The stack**: as T034's (`template_db`, the tests' fake EUDIPLO from a scratchpad launcher,
+- **The stack**: as T034's (`konnekt_db`, the tests' fake EUDIPLO from a scratchpad launcher,
   the worker off, the dev SPA), signed in as a local account made for T037. The dev database now
   holds T037's twelve copies of D (§8.3).
 - **The file from the page**: C downloaded from its details in headless Firefox (Playwright MCP)
@@ -1931,7 +1931,7 @@ S.A.". The largest file is 473160 bytes, under the 500 KB (512000 bytes) of the
   / 513 tests in `rules/`, `frontend/`, `mcp/` (as at T038); the build, the main entry 932.93 kB
   (278.86 kB gzip) and the worker's chunk 59.09 kB, both unchanged. The backend is unchanged
   since Phase 2 and its gates were not re-run.
-- **The stack**: as T038's (`template_db`, the tests' fake EUDIPLO, the worker off, the dev SPA
+- **The stack**: as T038's (`konnekt_db`, the tests' fake EUDIPLO, the worker off, the dev SPA
   on 5173), still running from Phase 6's chat; signed in as `t037`.
 - **§7.5**: every version row passes (T039: 59 checks in Chromium 156, no fail and no unsure),
   so SC-004 holds as far as a chat can check: the page, the file's name, its `Subject` and
@@ -1963,7 +1963,7 @@ S.A.". The largest file is 473160 bytes, under the 500 KB (512000 bytes) of the
   against T040, T042's German cases); the build, the main entry 933.06 kB (278.92 kB gzip,
   +0.13 kB: T046's narrow glyph and `aria-label`), the worker's chunk 59.14 kB. Run by the
   coordinator after T046. The backend is unchanged and its gates were not re-run.
-- **The stack**: as T040's (`template_db`, the tests' fake EUDIPLO, the worker off, the dev SPA on
+- **The stack**: as T040's (`konnekt_db`, the tests' fake EUDIPLO, the worker off, the dev SPA on
   5173), still running; signed in as `t037`.
 - **The German copy (T041, D7)**: the user, in the reviewer's place, accepted `PDF_TEXTS`' German
   column and the seven new `CONNECTION_DETAIL_COPY` keys unchanged. No German speaker walked through
@@ -2039,7 +2039,7 @@ S.A.". The largest file is 473160 bytes, under the 500 KB (512000 bytes) of the
   - The first full `npm test` failed on `rules/src/personas/performance.test.ts` ("… within 1.5 s",
     5.3 s) while T053 ran veraPDF in Docker. `rules/` is unchanged by spec 011; re-run on a quiet
     machine, 2675 / 2675 passed (§9.5).
-- **The stack**: as T047's (`template_db`, the tests' fake EUDIPLO, the worker off), still
+- **The stack**: as T047's (`konnekt_db`, the tests' fake EUDIPLO, the worker off), still
   running; the dev SPA on 5173 was restarted by T050 after its production-build timings (pid
   862600, the same command). A, B, C, D, E and F are as §8.3 lists them. T049's renames of A left
   one activity row.

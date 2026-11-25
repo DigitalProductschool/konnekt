@@ -135,7 +135,7 @@ After this phase, evaluating a persona gives exactly what `evaluate_branch()` gi
   - Deterministic output (fixed days, no `date.today()`), single quotes, Ruff and mypy clean. The script never imports `app.config` (CLAUDE.md).
 - [X] T004 Regenerate `frontend/src/utils/rules/checks/fixtures/evaluator-vectors.json` (depends on T003).
   - In `backend/`: `uv run python -m scripts.export_check_fixtures`, then `uv run python -m scripts.export_check_fixtures --check`, which prints nothing and exits 0.
-  - `DATABASE_URL=postgresql+psycopg://postgres:postgres@localhost:5435/template_db_test uv run pytest tests/unit/test_check_fixtures.py` passes, its drift check now covering `branch_evaluations`.
+  - `DATABASE_URL=postgresql+psycopg://postgres:postgres@localhost:5435/konnekt_db_test uv run pytest tests/unit/test_check_fixtures.py` passes, its drift check now covering `branch_evaluations`.
   - The diff adds only the `branch_evaluations` key; `checks/caseFolding.ts` is unchanged. Never edit either file by hand.
 
 ### The evaluator in production (frontend, research R2)

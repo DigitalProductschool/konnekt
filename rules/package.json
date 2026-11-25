@@ -1,6 +1,7 @@
 {
-  "name": "@connection-portal/rules",
+  "name": "@konnekt/rules",
   "private": true,
+  "license": "EUPL-1.2",
   "version": "0.0.0",
   "type": "module",
   "exports": {
@@ -14,7 +15,7 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "@connection-portal/api-types": "*"
+    "@konnekt/api-types": "*"
   },
   "devDependencies": {
     "@types/node": "^26.4.1",

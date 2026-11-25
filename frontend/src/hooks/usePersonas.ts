@@ -8,23 +8,17 @@
 // Bundle (research R9, R16): `results.ts` reaches the evaluator, `fields.ts`,
 // `checks/checkedTree.ts` and the case-folding table, so this module imports only their types, and
 // loads them with the one dynamic `import()` below
-import type { BranchInput } from '@connection-portal/api-types/form-connections';
-import type { KeyedBranch } from '@connection-portal/rules/checks/checkedTree';
-import type { AnnouncedBranch, MetByBranch } from '@connection-portal/rules/personas/announcements';
-import {
-  GENERATION_STOP_MS,
-  GENERATION_WATCHDOG_MS,
-} from '@connection-portal/rules/personas/constants';
-import {
-  initialPersonaState,
-  personaStateReducer,
-} from '@connection-portal/rules/personas/personaState';
+import type { BranchInput } from '@konnekt/api-types/form-connections';
+import type { KeyedBranch } from '@konnekt/rules/checks/checkedTree';
+import type { AnnouncedBranch, MetByBranch } from '@konnekt/rules/personas/announcements';
+import { GENERATION_STOP_MS, GENERATION_WATCHDOG_MS } from '@konnekt/rules/personas/constants';
+import { initialPersonaState, personaStateReducer } from '@konnekt/rules/personas/personaState';
 import type {
   checkedBranchesOf,
   personaFieldsOf,
   resultViewOf,
   testResultsOf,
-} from '@connection-portal/rules/personas/results';
+} from '@konnekt/rules/personas/results';
 import type {
   GeneratedMessage,
   GenerateMessage,
@@ -38,8 +32,8 @@ import type {
   PersonaValue,
   ResultView,
   TestResults,
-} from '@connection-portal/rules/personas/types';
-import type { RuleContext } from '@connection-portal/rules/types';
+} from '@konnekt/rules/personas/types';
+import type { RuleContext } from '@konnekt/rules/types';
 import {
   type Dispatch,
   useCallback,
@@ -281,7 +275,7 @@ function useResultsModule(
       return;
     }
     let ignore = false;
-    import('@connection-portal/rules/personas/results').then(
+    import('@konnekt/rules/personas/results').then(
       ({ testResultsOf, resultViewOf, personaFieldsOf, checkedBranchesOf }) => {
         if (!ignore) {
           setLoad({

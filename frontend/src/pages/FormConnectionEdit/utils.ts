@@ -2,9 +2,9 @@ import type {
   BranchInput,
   FormConnection,
   FormConnectionDraft,
-} from '@connection-portal/api-types/form-connections';
-import type { EditLocationState } from '@connection-portal/api-types/routing';
-import { findItem } from '@connection-portal/rules/tree';
+} from '@konnekt/api-types/form-connections';
+import type { EditLocationState } from '@konnekt/api-types/routing';
+import { findItem } from '@konnekt/rules/tree';
 
 import { sameContent } from '../../utils/localDrafts/content';
 import type { LocalDraftContent, LocalDraftRecord } from '../../utils/localDrafts/types';

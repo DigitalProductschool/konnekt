@@ -51,7 +51,7 @@ draftChangedHint:
 ## Local Verification
 
 - `uv run ruff check . && uv run ruff format --check .` in `backend/` → passed.
-- `DATABASE_URL=…/template_db_test uv run pytest tests/api/test_form_connection_drafts.py` → 127 passed.
+- `DATABASE_URL=…/konnekt_db_test uv run pytest tests/api/test_form_connection_drafts.py` → 127 passed.
 - `npx prettier --check` and `npx eslint` on the two frontend files → passed.
 - `npx vitest run --root frontend src/pages/FormConnectionEditor` → 4 files, 255 tests passed.
 - The full gates (`npm run lint && npm test && npm run build`, mypy and the whole pytest suite)

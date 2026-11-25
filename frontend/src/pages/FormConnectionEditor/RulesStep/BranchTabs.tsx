@@ -1,4 +1,4 @@
-import { namesOf, tabFindingsOf } from '@connection-portal/rules/checks/findingMessages';
+import { namesOf, tabFindingsOf } from '@konnekt/rules/checks/findingMessages';
 import type { KeyboardEvent } from 'react';
 
 import InfoTooltip from '../../../components/InfoTooltip';

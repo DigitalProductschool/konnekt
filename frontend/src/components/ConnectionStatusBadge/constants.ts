@@ -1,5 +1,5 @@
-import type { ConnectionState } from '@connection-portal/api-types/form-connections';
-import { defineTexts } from '@connection-portal/rules/language';
+import type { ConnectionState } from '@konnekt/api-types/form-connections';
+import { defineTexts } from '@konnekt/rules/language';
 
 import type { StatusPillCopy, StatusPillTone } from './types';
 

@@ -110,7 +110,7 @@ database: Alembic could not find the revision recorded in `alembic_version`.
 ## R2. EUDIPLO integration model **(user: hosted instance; shared tenant accepted for now)**
 
 **Decision**:
-- **Instance**: the middleware uses the team's hosted EUDIPLO (Coolify, tenant `dps`). Automated
+- **Instance**: the middleware uses the team's hosted EUDIPLO (Coolify, tenant `<tenant>`). Automated
   tests replace EUDIPLO with a fake (R17).
 - **Calls**: the middleware calls only the EUDIPLO management API (`/api/*`), authenticated with
   the OAuth client-credentials flow.
@@ -178,7 +178,7 @@ means a rename never creates a revision.
    - Mitigations: the client secret lives only in the backend's environment, and the middleware's
      code calls only the seven endpoints in [contracts/eudiplo-usage.md](contracts/eudiplo-usage.md).
 2. **One tenant for every environment (user: accept for now)**. Development machines, PR previews
-   and production share tenant `dps` and one API client until real citizens use the service.
+   and production share tenant `<tenant>` and one API client until real citizens use the service.
    - An API client sees every presentation session of its tenant. Anyone holding the client
      secret, which includes every developer's `.env`, can therefore read and delete the sessions
      of every environment, including the documents shared in production.
@@ -701,7 +701,7 @@ forwards that path **only to clients whose address is on an allow-list**.
 - **CSRF**: every management `POST`, `PUT` and `DELETE` requires `Content-Type: application/json`,
   and anything else is answered with `415`. The frontend sends `{}` when an action has no body.
   - `SameSite` alone isn't enough, because it works per site, not per origin. The PR previews
-    (`*.my-team.dpschool.app`) and other apps under the same domain count as the same site.
+    (`*.my-team.example.org`) and other apps under the same domain count as the same site.
   - A cross-origin page can't send JSON with cookies without a CORS preflight, and that preflight
     passes only for `CORS_ORIGIN` (development) or the app's own origin (production).
 - **HTTPS outside development**: the UI must be served over HTTPS everywhere except development.
@@ -959,7 +959,7 @@ also covered webhook addresses until webhook mode was removed on 2026-10-19.
    - the representation of mdoc binary and date values;
    - that an expired credential fails verification.
 
-   **Checked on 2026-10-09 (T018)** against `https://eudiplo.faro.dpschool.app/api/docs-json`, which
+   **Checked on 2026-10-09 (T018)** against `https://eudiplo.example.org/api/docs-json`, which
    reports `.info.version` 9.0.0. The request bodies of all seven calls match
    [contracts/eudiplo-usage.md](contracts/eudiplo-usage.md), and both example bodies there validate
    against the OpenAPI schemas. Only the OpenAPI was checked, because no API client credentials
@@ -1007,7 +1007,7 @@ also covered webhook addresses until webhook mode was removed on 2026-10-19.
    and one live run on 2026-10-13 (R5). The other T081 points follow.
 
    **T081, 2026-10-19**: quickstart V1–V3 and V5–V7 on `docker compose up` against the hosted
-   EUDIPLO (`9.0.0-mdocfix.1`, tenant `dps`) and Paradym, with the user.
+   EUDIPLO (`9.0.0-mdocfix.1`, tenant `<tenant>`) and Paradym, with the user.
 
    | Scenario | Result |
    |---|---|
@@ -1020,7 +1020,7 @@ also covered webhook addresses until webhook mode was removed on 2026-10-19.
 
    Found on the way:
    - **An unknown trust list id is accepted.** The local `.env` had `EUDIPLO_TRUST_LIST_ID=trust-list-id`
-     while the tenant's list is `trust-list-test`. EUDIPLO saved every configuration without an
+     while the tenant's list is `<trust-list-id>`. EUDIPLO saved every configuration without an
      error, and Paradym then said it held no matching card. Fixing the setting and restarting
      let the worker's re-sync give the form connection a new revision within seconds (R2), and
      the old configuration was deleted 2 s after its last session. The middleware could check
@@ -1031,7 +1031,7 @@ also covered webhook addresses until webhook mode was removed on 2026-10-19.
      9.9 s at most (the fastest 0.9 s); where the time goes wasn't measured. No success
      criterion covers it, but serviceBW's timeout for the trigger URL should allow at least 15 s
      (R20).
-5. **Tenant settings**: lowering the session TTL of tenant `dps` as a backstop to R8 is a decision
+5. **Tenant settings**: lowering the session TTL of tenant `<tenant>` as a backstop to R8 is a decision
    for its operators. EUDIPLO's hourly cleanup job means the TTL alone can't guarantee 30 minutes.
 6. **One tenant for every environment (accepted for now, R2)**. Before real citizens use the
    service, production should get its own tenant or instance, with its own client and trust list.
