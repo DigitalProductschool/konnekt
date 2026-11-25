@@ -1,5 +1,31 @@
 <!--
 Sync Impact Report
+Version change: 1.2.2 → 1.2.3
+Rationale: PATCH. The README became an overview and an index of the documents in `docs/`, so
+the two sentences that named `README.md` as the place for new environment variables and new
+dependencies now name the documents that hold them: `docs/ARCHITECTURE.md` ("Environment
+Variables") and `docs/DEPENDENCIES.md`. What must be documented is unchanged; no principle is
+removed or redefined, and code that complied still complies.
+
+Modified principles: none
+
+Modified sections:
+- Technology and Structure Constraints: new variables are added to the relevant `.env.example`
+  and to `docs/ARCHITECTURE.md`.
+- Development Workflow and Quality Gates, step 4: new environment variables update
+  `docs/ARCHITECTURE.md` and the `.env.example` files; new dependencies are documented in
+  `docs/DEPENDENCIES.md`.
+
+Added sections: none
+Removed sections: none
+
+Templates requiring updates: none.
+
+Follow-up TODOs: none. CLAUDE.md's documentation checklist names the same documents (in the
+same change).
+-->
+<!--
+Previous report (1.2.1 → 1.2.2):
 Version change: 1.2.1 → 1.2.2
 Rationale: PATCH. The repository is published as Konnekt under the EUPL-1.2 (spec 012): the
 title and the sentences that called it "this template" now name this repository, the Node
@@ -196,7 +222,7 @@ Every dependency and every configuration value is declared in one known place.
   rely on a transitive dependency.
 - Every environment variable the backend reads MUST be a declared field on `Settings`
   in `backend/app/config.py`; undeclared variables are ignored (`extra='ignore'`).
-  New variables MUST also be added to the relevant `.env.example`, `README.md`, and
+  New variables MUST also be added to the relevant `.env.example` and to
   `docs/ARCHITECTURE.md`.
 - `.env` and `.env.local` files, API keys, passwords, and tokens MUST NOT be committed.
 - `APP_ENV` MUST be set to something other than `development` in production, because
@@ -284,10 +310,10 @@ Before a change is proposed for merge:
 3. `npm run lint`, `npm test`, and `npm run build` MUST pass for the workspace, from the
    root, for a change to any Node package.
 4. The documentation checklist in `CLAUDE.md` MUST be applied: new environment
-   variables update `README.md`, `docs/ARCHITECTURE.md`, and the `.env.example` files;
+   variables update `docs/ARCHITECTURE.md` and the `.env.example` files;
    new patterns update `CLAUDE.md`; architectural changes update
-   `docs/ARCHITECTURE.md`; new dependencies are documented in `README.md` with the
-   reason they were added.
+   `docs/ARCHITECTURE.md`; new dependencies are documented in `docs/DEPENDENCIES.md`
+   with the reason they were added.
 
 The backend's tests are not a gate, and the Node packages' tests cover pure logic and the
 MCP server against a fake backend only (Principle III). A change that the gates above
@@ -319,4 +345,4 @@ complexity, and only for principles not marked NON-NEGOTIABLE.
 contributors alike; it MUST remain consistent with this constitution, and this
 constitution is the authority when they diverge.
 
-**Version**: 1.2.2 | **Ratified**: 2026-09-02 | **Last Amended**: 2026-11-24
+**Version**: 1.2.3 | **Ratified**: 2026-09-02 | **Last Amended**: 2026-11-25

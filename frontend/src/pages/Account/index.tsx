@@ -16,7 +16,7 @@ import { useLanguage } from '../../hooks/useLanguage';
 import { useSignOutOnUnauthorized } from '../../hooks/useSignOutOnUnauthorized';
 import AccessLevelDialog from './AccessLevelDialog';
 import AgentAccessList from './AgentAccessList';
-import { ACCOUNT_COPY, INITIAL_ACCOUNT_STATE, MCP_README_URL } from './constants';
+import { ACCOUNT_COPY, INITIAL_ACCOUNT_STATE, MCP_GUIDE_URL } from './constants';
 import CreateTokenDialog from './CreateTokenDialog';
 import RevokeDialog from './RevokeDialog';
 import TokenCreatedDialog from './TokenCreatedDialog';
@@ -160,7 +160,7 @@ function AccountView({ onRetry, retried }: AccountViewProps) {
             empty={
               <>
                 {copy.agentsEmpty}{' '}
-                <a href={MCP_README_URL} className="kern-link">
+                <a href={MCP_GUIDE_URL} className="kern-link">
                   {copy.agentsEmptyLink}
                 </a>{' '}
                 {copy.agentsEmptyEnd}

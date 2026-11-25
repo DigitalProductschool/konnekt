@@ -80,7 +80,7 @@ curl -X POST "$EUDIPLO_URL/api/oauth2/token" \
 
 **Our middleware's client:** `presentation:request` + `presentation:manage`, with no `allowedPresentationConfigs` allow-list. The middleware creates a presentation configuration for every form connection revision, and an allow-list would reject each new one. It needs no issuance role, because issuing documents is out of scope (plan research R2). Since 9.0, clients see only sessions of their side (issuance vs presentation), so a client that reads both needs a role from each.
 
-**The test-credential script's client:** `issuance:manage` + `issuance:offer`, used only by the developer script `backend/scripts/issue_test_credentials`, which issues test PIDs and mDLs to a test wallet (README, "Test credentials for a test wallet"). The middleware never gets these credentials.
+**The test-credential script's client:** `issuance:manage` + `issuance:offer`, used only by the developer script `backend/scripts/issue_test_credentials`, which issues test PIDs and mDLs to a test wallet ([TEST-CREDENTIALS.md](TEST-CREDENTIALS.md)). The middleware never gets these credentials.
 
 ## 5. Management API map (all paths are prefixed with `/api`)
 
@@ -275,6 +275,30 @@ The schema is strict, so unknown keys are rejected.
 | Unknown credential config in an offer answers `409`, not `404` | |
 
 ## 11. An installation's deployment (fill in)
+
+### What the tenant needs
+
+The middleware uses an EUDIPLO instance, which the operator runs or uses with a tenant of their
+own, through its management API, and never exposes the management token to the browser. The
+tenant needs, set up by its operators
+([contracts/eudiplo-usage.md](../specs/001-servicebw-eudi-middleware/contracts/eudiplo-usage.md)):
+
+- an **API client** with the roles `presentation:request` and `presentation:manage` and an
+  empty `allowedPresentationConfigs`: the middleware creates a presentation configuration for
+  every form connection revision, and an allow-list would reject each new one. Its id and
+  secret go into `EUDIPLO_CLIENT_ID` and `EUDIPLO_CLIENT_SECRET`;
+- an active **access key chain**, which EUDIPLO uses to sign every request to a wallet;
+- a **trust list** whose entities carry the PID and EAA issuance services and the revocation
+  certificates of the accepted issuers. Its id goes into `EUDIPLO_TRUST_LIST_ID`;
+- session logs (`LOG_SESSION_STORE`) that don't keep claims.
+
+Give production a tenant of its own: the middleware's API client reads every session of its
+tenant, so installations that share a tenant share that access.
+
+The middleware's settings are in [ARCHITECTURE.md](ARCHITECTURE.md#environment-variables), and
+the test documents for a test wallet in [TEST-CREDENTIALS.md](TEST-CREDENTIALS.md).
+
+### This installation's values
 
 | Item | Value |
 |---|---|

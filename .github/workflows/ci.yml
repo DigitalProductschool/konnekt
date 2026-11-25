@@ -1,5 +1,5 @@
 # The checks of "Before you finish" in CLAUDE.md, a scan for secrets and the REUSE check, on
-# every push and pull request (README.md, "Continuous integration"). One job per kind of check and side, so each one
+# every push and pull request (docs/CODE-QUALITY.md, "Continuous integration"). One job per kind of check and side, so each one
 # is its own status check on a pull request; they all run in parallel
 name: CI
 
@@ -187,7 +187,7 @@ jobs:
 
   # gitleaks, the MIT command-line tool, at the version of the hook in .pre-commit-config.yaml:
   # change them together. Not gitleaks-action, whose license needs a key for an organization's
-  # repositories (README.md, "Secrets (gitleaks)")
+  # repositories (docs/CODE-QUALITY.md, "Secrets (gitleaks)")
   secrets:
     name: 'Secrets: gitleaks'
     runs-on: ubuntu-latest

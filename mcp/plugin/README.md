@@ -15,8 +15,8 @@ The topics: `connection-workflow`, `variants-and-standard`, `conditions`, `docum
 The MCP server embeds these files when it is built, so a change here reaches agents that connect
 to the server with the next deployment. Every change to the MCP tools updates the skills in the
 same change: `npm test` in `mcp/` fails when a tool isn't described in any `SKILL.md`. The
-repository's `README.md` ("Agents and the MCP server") gives the overview: the access levels,
-approvals and the user page.
+repository's `docs/MCP-SERVER.md` gives the overview: the access levels, approvals and the user
+page.
 
 ## Installing with Claude Code
 

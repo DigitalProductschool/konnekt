@@ -10,7 +10,14 @@ task touches its subject.
 | `docs/KERN-DESIGN-SYSTEM.md` | You build or style UI: KERN's components, tokens, Tailwind classes and gotchas |
 | `docs/EUDIPLO.md` | You call or change anything that talks to EUDIPLO |
 | `docs/FIGMA-WORKFLOW.md` | A task comes with a Figma URL: follow it step by step |
-| `README.md` | Setup, the full command list, accounts, test credentials, Docker, deployment |
+| `docs/DEVELOPMENT.md` | Setup, running it locally, the full command list, Docker, the generated fixtures |
+| `docs/CODE-QUALITY.md` | The linters and type checks, the git hooks, CI, gitleaks, the editors' format on save |
+| `docs/DEPLOYMENT.md` | You change what production needs: the compose stack's settings, the reverse proxy, backups, updates |
+| `docs/ACCOUNTS.md` | The command-line tool: accounts, clearing the connections |
+| `docs/TEST-CREDENTIALS.md` | You issue test documents to a test wallet, or change the script that does |
+| `docs/MCP-SERVER.md` | What team members read about agents: access levels, approvals, the tools, installing the plugin |
+| `docs/DEPENDENCIES.md` | You add, change or remove a dependency: why each one was added, and the pins |
+| `README.md` | The overview and the index of the documents: it holds no details |
 | `NOTICE.md`, `REUSE.toml` | You add a dependency, font, icon or picture, or copy in a file: what is others' and each file's licence |
 | `specs/<feature>/` | You work on a speckit task: spec, plan, research (R#), data model, contracts, design notes |
 | `.specify/memory/constitution.md` | The binding principles; it wins where this file disagrees |
@@ -266,11 +273,11 @@ uvx --from reuse==6.3.0 reuse lint   # the REUSE check: every file's licence, fr
 Before you finish: Ruff and mypy pass for backend changes (run pytest too), and `npm run lint`,
 `npm test` and `npm run build` from the root for changes in `api-types/`, `rules/`, `frontend/`
 or `mcp/`, and the REUSE check when files are added, moved or copied in. Everything else is in
-`README.md`, "Common Commands".
+`docs/DEVELOPMENT.md`, "Common Commands".
 
 CI (`.github/workflows/ci.yml`) runs the same checks, the REUSE check, and gitleaks over the
 history, on every push and pull request: a new check, or a new Python, uv, Node, gitleaks or reuse
-version, goes into it too (`README.md`, "Continuous integration").
+version, goes into it too (`docs/CODE-QUALITY.md`, "Continuous integration").
 
 ## Adding a feature
 
@@ -286,17 +293,20 @@ version, goes into it too (`README.md`, "Continuous integration").
 - Change `LICENSE` (the EUPL-1.2's English text): `LICENSES/EUPL-1.2.txt` and `backend/LICENSE`
   are byte-identical copies of it.
 - Get past a gitleaks finding with `--no-verify` or `SKIP=gitleaks`: rotate a real secret, allow
-  a false positive (`README.md`, "Secrets (gitleaks)").
+  a false positive (`docs/CODE-QUALITY.md`, "Secrets (gitleaks)").
 - Edit generated files: Alembic migrations after creation, `rules/src/checks/caseFolding.ts`,
   `rules/src/checks/fixtures/evaluator-vectors.json`, `rules/src/fixtures/server-messages.json`,
   `rules/src/fixtures/example-connection.json`.
 
 ## Documentation checklist
 
-- New environment variables → `README.md`, `docs/ARCHITECTURE.md` and the `.env.example` files
+- New environment variables → `docs/ARCHITECTURE.md` ("Environment Variables") and the
+  `.env.example` files; one that `docker-compose.prod.yml` passes → `docs/DEPLOYMENT.md` too
 - New patterns or conventions → `CLAUDE.md`, as a one-line rule that points to the document
   holding the details
 - Architectural changes → `docs/ARCHITECTURE.md`
-- New dependencies → `README.md`, with the reason they were added
+- `README.md` stays the overview and the index: details go into a document in `docs/`, and a
+  new document gets a row in the README's index and in the table at the top of this file
+- New dependencies → `docs/DEPENDENCIES.md`, with the reason they were added
 - A new dependency, font, icon, picture or copied file → `NOTICE.md` and `REUSE.toml`; a package
   bundled into the SPA → the served notices (`npm run notices -w frontend`)

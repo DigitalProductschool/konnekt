@@ -96,7 +96,7 @@ def main(
     if missing:
         print(
             f'Set {", ".join(missing)} in backend/.env or in the environment '
-            '(README.md, "Test credentials for a test wallet").',
+            '(docs/TEST-CREDENTIALS.md).',
             file=sys.stderr,
         )
         return 1

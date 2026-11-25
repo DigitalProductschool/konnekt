@@ -89,18 +89,25 @@ konnekt/
 ├── tsconfig.base.json     # Compiler options every package extends
 ├── .prettierrc            # Prettier formatting rules
 ├── api-types/             # @konnekt/api-types: the TypeScript mirrors of the schemas
+│   └── src/
 ├── rules/                 # @konnekt/rules: the pure rules logic, checks/ and personas/,
-│                          # language.ts (spec 009), fixtures/server-messages.json and
+│   └── src/               # with their tests (vitest.config.ts), language.ts (spec 009),
+│                          # fixtures/server-messages.json and
 │                          # fixtures/example-connection.json (spec 010), both generated
-├── frontend/              # React SPA (Vite), depends on api-types and rules
+├── frontend/              # React SPA (Vite), depends on api-types and rules: Konnekt, the
+│   │                      # DO.IT management UI
+│   ├── src/workers/       # The browser Worker entries: rule checks, test personas, the PDF
 │   └── .prettierrc        # The root's rules plus the Tailwind plugin
 ├── mcp/                   # @konnekt/mcp: the MCP server, depends on api-types and rules
+│   ├── src/               # Server, tools, links, checks; tests beside the modules
+│   ├── test/              # Integration tests against a fake backend
 │   └── plugin/            # Guidance for agents: instructions, skills, the Claude Code plugin
-├── backend/               # FastAPI API (SQLAlchemy + Alembic)
-├── docs/                  # Architecture, EUDIPLO, KERN and Figma workflow docs
+├── backend/               # FastAPI API (SQLAlchemy + Alembic); its tree is under "backend"
+├── docs/                  # This document, and the guides the README's index lists
 ├── specs/                 # Feature specification, plan, contracts and tasks (Spec Kit)
 ├── .claude-plugin/
 │   └── marketplace.json   # The Claude Code marketplace that lists mcp/plugin
+├── .github/workflows/ci.yml # CI: eight parallel jobs (docs/CODE-QUALITY.md)
 ├── .pre-commit-config.yaml # Git hook definitions (both stacks)
 ├── .dockerignore          # Applies to every image build (context is the repo root)
 ├── docker-compose.yml     # Local development
@@ -125,7 +132,7 @@ cover both stacks, running `ruff check --fix` and `ruff format` on Python files 
 the root, `prettier --write` and `eslint --fix` on `api-types/`, `rules/`, `frontend/` and
 `mcp/` files, plus the trailing-whitespace, merge-conflict and large-file checks and
 gitleaks' scan of the staged changes for secrets. CI scans the history with gitleaks too
-(`README.md`, "Secrets (gitleaks)").
+([CODE-QUALITY.md](CODE-QUALITY.md#secrets-gitleaks), "Secrets (gitleaks)").
 
 The hooks are installed by the root `package.json`'s `prepare` script, which runs
 `uv run pre-commit install` in `backend/` — so `npm install` at the root is what wires
@@ -136,8 +143,10 @@ install frontend dependencies; on such a machine the hooks are silently absent a
 be installed manually later.
 
 mypy is intentionally not a hook — it is too slow for a commit, so run
-`uv run mypy app/ scripts/ tests/` yourself before pushing backend changes. See the `Code Quality`
-section of `README.md` for the full command list and editor format-on-save setup.
+`uv run mypy app/ scripts/ tests/` yourself before pushing backend changes. See
+[DEVELOPMENT.md](DEVELOPMENT.md#common-commands) for the full command list and
+[CODE-QUALITY.md](CODE-QUALITY.md) for the checks, continuous integration and the editors'
+format-on-save setup.
 
 ## Application Details
 
@@ -2100,29 +2109,30 @@ evaluation, a finding, a test citizen or a token's secret.
 
 ### Backend
 
-Defined as fields on `Settings` in `backend/app/config.py`. A variable not
-declared there is ignored (`extra='ignore'`).
+Defined as fields on `Settings` in `backend/app/config.py`, which pydantic-settings loads
+from the environment and `backend/.env`. A variable not declared there is ignored
+(`extra='ignore'`): add the field before the variable. `backend/.env.example` lists them all.
 
 | Variable | Description | Default |
 |----------|-------------|---------|
-| `DATABASE_URL` | PostgreSQL connection string, must use `postgresql+psycopg://` | `postgresql+psycopg://postgres:postgres@localhost:5432/konnekt_db` |
+| `DATABASE_URL` | PostgreSQL connection string, must use `postgresql+psycopg://` (psycopg 3). The development compose file's database is on port 5435 from the host and 5432 from inside Docker | `postgresql+psycopg://postgres:postgres@localhost:5432/konnekt_db` |
 | `PORT` | Server port | `3000` |
 | `CORS_ORIGIN` | Allowed frontend origin (single origin) | `http://localhost:5173` |
 | `APP_ENV` | Set to `production` outside development | `development` |
-| `CONNECTION_BASE_URL` | Base URL that serviceBW uses to reach the middleware; the connection URLs are built from it | `http://localhost:3000` in development; required elsewhere, with `https://` unless `ALLOW_PLAIN_HTTP=true` |
-| `EUDIPLO_URL` | EUDIPLO base URL, without `/api` | empty (EUDIPLO calls answer `503`) |
-| `EUDIPLO_CLIENT_ID` / `EUDIPLO_CLIENT_SECRET` | API client with `presentation:request` + `presentation:manage`, no allow-list | empty (`503`) |
+| `CONNECTION_BASE_URL` | Base URL that serviceBW uses to reach the middleware; the connection URLs are built from it | `http://localhost:3000` in development; required elsewhere, with `https://` unless `ALLOW_PLAIN_HTTP=true`: otherwise the backend refuses to start |
+| `EUDIPLO_URL` | EUDIPLO base URL, without `/api` | empty (every EUDIPLO call answers `503 Not configured`) |
+| `EUDIPLO_CLIENT_ID` / `EUDIPLO_CLIENT_SECRET` | The middleware's EUDIPLO API client, with `presentation:request` + `presentation:manage` and no allow-list ([EUDIPLO.md](EUDIPLO.md#what-the-tenant-needs)) | empty (`503`) |
 | `EUDIPLO_TRUST_LIST_ID` | Trust list used for issuer trust in every credential query | empty (saving a form connection answers `503`) |
 | `REQUEST_LIFETIME_SECONDS` | Expiry of a document request | `600` |
 | `DOCUMENT_RETENTION_SECONDS` | Longest time shared documents stay in EUDIPLO | `1800` |
-| `PULL_REPEAT_WINDOW_SECONDS` | How long repeated pulls return the same documents | `60` |
-| `REQUEST_RECORD_RETENTION_SECONDS` | How long a request record is kept after the request ended | `604800` |
+| `PULL_REPEAT_WINDOW_SECONDS` | How long repeated pulls return the same documents after the first delivery | `60` |
+| `REQUEST_RECORD_RETENTION_SECONDS` | How long a request record is kept after the request ended | `604800` (7 days) |
 | `ALLOW_PLAIN_HTTP` | Allows `http://` for `CONNECTION_BASE_URL` outside development (closed networks only) | `false` |
-| `WORKER_ENABLED` | Runs the background worker thread | `true` |
+| `WORKER_ENABLED` | Runs the background worker thread (the tests switch it off) | `true` |
 | `LOGIN_SESSION_HOURS` | How long a DO.IT sign-in lasts | `8` |
-| `SIGN_IN_FAILURES_BEFORE_WAIT` | Failed sign-ins in a row for one username after which every further attempt waits ([Sign-in](#sign-in-doit-team-members)) | `5` |
+| `SIGN_IN_FAILURES_BEFORE_WAIT` | Failed sign-ins in a row for one username, whether or not an account has it, after which every further attempt must wait; an attempt during the wait answers `429` without checking the password ([Sign-in](#sign-in-doit-team-members)) | `5` |
 | `SIGN_IN_FIRST_WAIT_SECONDS` | The first wait, doubled with each further failure; `0` switches the waits off | `30` |
-| `SIGN_IN_MAX_WAIT_SECONDS` | The longest wait, and how long failures are remembered after the last wait ended | `900` |
+| `SIGN_IN_MAX_WAIT_SECONDS` | The longest wait, and how long failures are remembered after the last wait ended (a correct sign-in forgets them at once) | `900` (15 minutes) |
 | `PORTAL_URL` | Public origin of the management interface: links and the OAuth authorization endpoint (`{PORTAL_URL}/authorize`) are built from it | `http://localhost:5173` in development; `CONNECTION_BASE_URL` otherwise |
 | `MCP_URL` | Public URL of the MCP endpoint, the resource indicator every agent token is bound to | `http://localhost:3100/mcp` in development; `{CONNECTION_BASE_URL}/mcp` otherwise |
 | `OAUTH_ISSUER` | Issuer of the OAuth authorization server | `CONNECTION_BASE_URL` |
@@ -2132,7 +2142,7 @@ declared there is ignored (`extra='ignore'`).
 | `APPROVAL_REQUEST_MINUTES` | How long an approval link is valid | `10` |
 | `AGENT_DRAFTS_PER_HOUR` | Drafts one agent connection or token may create per hour | `20` |
 | `OAUTH_MAX_UNUSED_REGISTRATIONS` | Dynamic client registrations that no agent connection or authorization code uses are kept at most this many; a new one removes the oldest beyond it ([Agent access](#agent-access-and-the-mcp-server-spec-007)). At least `1` | `1000` |
-| `DELETION_UNDO_SECONDS` | How long the team member who deleted a connection or draft can take the deletion back ("Undo"); afterwards the worker deletes its configurations, its activity and a draft's row. `0` switches restoring off: every "Undo" answers `409 not_restorable` | `300` |
+| `DELETION_UNDO_SECONDS` | How long the team member who deleted a connection or draft can take the deletion back ("Undo"); afterwards the worker deletes its configurations, its activity and a draft's row. `0` switches restoring off: every "Undo" answers `409 not_restorable` | `300` (5 minutes) |
 
 The three URLs are resolved by `resolve_agent_urls`, after the check of
 `CONNECTION_BASE_URL`; trailing slashes are removed. In production all three live on
@@ -2160,8 +2170,11 @@ stops it in any environment. Trailing slashes are removed.
 | `OAUTH_ISSUER` | The authorization server its metadata names; the backend's `OAUTH_ISSUER` | `http://localhost:3000` |
 
 `PORTAL_URL`, `MCP_URL` and `OAUTH_ISSUER` must match the backend's, since tokens are bound to
-`MCP_URL` and links must open the right Konnekt installation. `mcp/.env.example` lists them; the
-compose files pass them as `environment:`, and `npm run dev -w mcp` reads them from the shell.
+`MCP_URL` and links must open the right Konnekt installation. `mcp/.env.example` lists them with
+their development defaults, so `npm run dev -w mcp` needs none of them; the compose files pass
+them as `environment:`. The server doesn't read a `.env` file by itself: `npm run dev -w mcp`
+reads the variables from the shell that starts it (`set -a; . mcp/.env; set +a` exports a
+file's).
 
 ### Frontend
 
@@ -2169,19 +2182,24 @@ compose files pass them as `environment:`, and `npm run dev -w mcp` reads them f
 |----------|-------------|---------|
 | `VITE_API_URL` | Backend API base URL (local development only; unset in production, where the app calls the relative `/api` path) | `/api` |
 
-`VITE_API_URL` is inlined by Vite at build time. The production image does not
-set it, so the bundle calls its own origin and nginx forwards the request — the
-same image works for any domain.
+`VITE_API_URL` is inlined by Vite at build time. For local development it goes into
+`frontend/.env` (`VITE_API_URL=http://localhost:3000`, as in `frontend/.env.example`). The
+production image does not set it, so the bundle calls its own origin and nginx forwards the
+request — the same image works for any domain.
 
 ### Frontend container (production nginx)
 
-Read at container start, not at build time, so one image serves every environment.
+The variables of the `frontend` service in `docker-compose.prod.yml`, read at container start,
+not at build time, so one image serves every environment. The two lists are set in the `.env`
+file beside the compose file ([DEPLOYMENT.md](DEPLOYMENT.md#1-settings)); the compose file sets
+the two host names. They don't apply to local development, where the backend's port 3000 is
+reachable directly.
 
 | Variable | Description | Default |
 |----------|-------------|---------|
 | `BACKEND_HOST` | Host name of the backend, which nginx forwards `/api/` to; rendered into `nginx.conf` by the image's envsubst templating | `backend` |
-| `SERVICEBW_ALLOWED_CIDRS` | Comma-separated address ranges that may call `/api/connect/` | empty: `/api/connect/` answers `403` to everyone |
-| `TRUSTED_PROXY_CIDRS` | Comma-separated address ranges of the reverse proxy in front of nginx, as nginx sees its connections arrive (the proxy container's address, or the compose network's gateway when the proxy reaches a port published on the host's loopback), whose `X-Forwarded-For` gives the client's address | empty: the connecting address counts |
+| `SERVICEBW_ALLOWED_CIDRS` | Comma-separated address ranges that may call the connection URLs under `/api/connect/`, such as `203.0.113.0/24,2001:db8::/32`. Everyone else gets `403` from nginx. Never put the proxy's or Docker's addresses here: requests that come through the proxy could then pass, whoever sent them | empty: `/api/connect/` answers `403` to everyone |
+| `TRUSTED_PROXY_CIDRS` | Comma-separated address ranges of the reverse proxy in front of nginx, as nginx sees its connections arrive (the proxy container's address, or the compose network's gateway when the proxy reaches a port published on the host's loopback), whose `X-Forwarded-For` gives the client's address, which the allow-list then checks. Put the proxy's addresses here and nothing else: a range that includes a client lets it name any address ([DEPLOYMENT.md](DEPLOYMENT.md#3-trusted_proxy_cidrs) says how to find them) | empty: the connecting address counts |
 | `MCP_HOST` | Host name of the MCP server, which nginx forwards `/mcp` and `/.well-known/oauth-protected-resource` to; rendered like `BACKEND_HOST` | `mcp` |
 
 `frontend/nginx/40-servicebw-access.sh`, which the nginx image runs from
@@ -2217,7 +2235,8 @@ of the `Server` header and its error pages. `/THIRD-PARTY-NOTICES.txt`, the serv
 
 ## Docker Development
 
-The `docker-compose.yml` orchestrates four services:
+The steps and commands are in [DEVELOPMENT.md](DEVELOPMENT.md). The `docker-compose.yml`
+orchestrates four services:
 
 1. **postgres**: PostgreSQL 18 (`postgres:18-alpine`) with health checks, published on host port **5435**
 2. **backend**: FastAPI via uvicorn `--reload`, depends on postgres, exposes port 3000
@@ -2249,8 +2268,8 @@ it acts as the API gateway.
 The compose file publishes no port. The proxy forwards every request for the public
 domain to the `frontend` service's nginx on port 80: either as a container on the
 compose project's network (`http://frontend:80`), or on the host, through an override
-file of the operator's own that publishes `127.0.0.1:8080:80`. The steps are in the
-[Deployment section of `README.md`](../README.md#deployment).
+file of the operator's own that publishes `127.0.0.1:8080:80`. The steps are in
+[DEPLOYMENT.md](DEPLOYMENT.md).
 
 ```
                  https://my-team.example.org
@@ -2319,5 +2338,5 @@ Consequences of this design:
 - Database data lives in the `postgres-data` named volume; a new stack starts with an
   empty database, whose schema is created by the migration run on backend startup
 
-See the [Deployment section of `README.md`](../README.md#deployment) for the setup
-steps, the backups of the database inside the compose stack and updates.
+See [DEPLOYMENT.md](DEPLOYMENT.md) for the setup steps, the backups of the database
+inside the compose stack and updates.
