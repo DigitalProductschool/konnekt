@@ -1917,6 +1917,9 @@ locks keep the steps correct if that changes.
 
 ### serviceBW's connection URLs
 
+What an integrating application reads about these URLs, with sample answers, is in
+[INTEGRATION.md](INTEGRATION.md): a change to what they take or answer goes there too.
+
 `app/routers/connect.py` serves the URLs that serviceBW calls
 (`specs/001-servicebw-eudi-middleware/contracts/integration-api.md`, and for the
 branches and the evaluation `specs/002-connection-rules/contracts/integration-api.md`),

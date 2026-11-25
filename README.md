@@ -4,7 +4,8 @@
 
 # Konnekt
 
-The middleware between serviceBW forms and the EUDI Wallet.
+The middleware between your application and the EUDI Wallet: request verified documents from a
+person's wallet with two HTTP calls.
 
 > **Status: not actively maintained.** Pull requests and issues are closed. To contribute or to
 > take the project over, write to [hello@dpschool.io](mailto:hello@dpschool.io) first.
@@ -14,22 +15,28 @@ The licence's text is in [LICENSE](LICENSE); [NOTICE.md](NOTICE.md) names what c
 and under which terms. Security: [SECURITY.md](SECURITY.md). Contributions:
 [CONTRIBUTING.md](CONTRIBUTING.md).
 
-Konnekt lets the DO.IT team of the City of Stuttgart connect serviceBW forms to the EUDI Wallet.
-For each form, DO.IT creates a form connection that names the documents and fields the form
-needs. serviceBW then uses the form connection's URLs to request those documents from the
-citizen's wallet, through an EUDIPLO instance, and receives only the configured fields. The team
-sets up its form connections in Konnekt's management UI.
+Konnekt lets any application ask a person's EUDI Wallet for documents, such as the personal ID
+(PID) or the driving licence, without implementing the wallet's protocols itself. For each form
+or process that needs documents, your team creates a form connection in Konnekt's management UI:
+it names the documents and the fields to ask for. Your application then uses the form
+connection's two URLs to request those documents from the person's wallet, through an
+[EUDIPLO](https://github.com/EUDIPLO/eudiplo) instance, and receives only the configured fields.
+
+Konnekt was first built for the DO.IT team of the City of Stuttgart, to connect the forms of
+serviceBW, the service portal of the state of Baden-Württemberg, to the EUDI Wallet. It is a
+general solution all the same: any team can run it, and any application that can send two HTTP
+requests can use it. [docs/INTEGRATION.md](docs/INTEGRATION.md) shows how, with sample answers.
 
 A form connection can also have rules that the shared documents must meet, such as "Date of
 birth is at least 21 years old", combined with AND or OR in groups. Its variants (branches) each
 have their own rules, based on the standard ones or not, and their own pull URL; the trigger URL
 stays one for all. A pull answers with the documents and, next to them, the evaluation of the
 called variant's rules: whether they are met, each rule's outcome and the error messages for the
-citizen.
+person. Your application gets the decision with the data and needs no rules of its own.
 
 Team members can also work with an LLM agent on their own machine, such as Claude Code, Cursor or
 Codex, through the middleware's MCP server: the agent finds and reads connections, builds drafts,
-checks their rules and tests them with fictitious citizens, and asks the team member's approval,
+checks their rules and tests them with fictitious people, and asks the team member's approval,
 on a page of Konnekt, to publish a draft or to deactivate, reactivate or delete a live
 connection. See [docs/MCP-SERVER.md](docs/MCP-SERVER.md).
 
@@ -60,6 +67,7 @@ The other ways to run it, and every command, are in [docs/DEVELOPMENT.md](docs/D
 | [docs/DEVELOPMENT.md](docs/DEVELOPMENT.md) | Running Konnekt on your machine, with or without Docker; the commands of the backend, the npm workspace and Docker; the generated fixtures |
 | [docs/CODE-QUALITY.md](docs/CODE-QUALITY.md) | The linters, formatters and type checks, the git hooks, continuous integration, the secret scan (gitleaks), format on save in VS Code and JetBrains |
 | [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) | How it works: the data flow, the [repository's structure](docs/ARCHITECTURE.md#repository-structure), every feature, the patterns, the [environment variables](docs/ARCHITECTURE.md#environment-variables), the Docker setups |
+| [docs/INTEGRATION.md](docs/INTEGRATION.md) | Integrating your application: the two calls, sample answers, the statuses, the rules' evaluation, variants, errors |
 | [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md) | Running the stack in production: the settings, the reverse proxy, the first account, backups, updates |
 | [docs/ACCOUNTS.md](docs/ACCOUNTS.md) | The command-line tool: creating and managing the sign-in accounts, clearing the connections |
 | [docs/MCP-SERVER.md](docs/MCP-SERVER.md) | Working with an LLM agent: the access levels, approvals, the tools, installing the plugin, connecting other MCP clients |
@@ -78,7 +86,7 @@ The other ways to run it, and every command, are in [docs/DEVELOPMENT.md](docs/D
 - **Backend**: FastAPI (Python 3.13+), SQLAlchemy 2, Alembic, psycopg 3
 - **MCP server**: Node, TypeScript, the official MCP TypeScript SDK 2, zod 4, Vite (build)
 - **Database**: PostgreSQL 18
-- **External service**: EUDIPLO 9, which talks to the citizens' wallets ([docs/EUDIPLO.md](docs/EUDIPLO.md)); the version Konnekt was tested with ([docs/COMPATIBILITY.md](docs/COMPATIBILITY.md))
+- **External service**: EUDIPLO 9, which talks to the wallets ([docs/EUDIPLO.md](docs/EUDIPLO.md)); the version Konnekt was tested with ([docs/COMPATIBILITY.md](docs/COMPATIBILITY.md))
 - **Tooling**: ESLint 9, Prettier, Vitest, Ruff, mypy, pytest, pre-commit, gitleaks, uv (Python), Docker
 
 ## Repository

@@ -12,6 +12,7 @@ task touches its subject.
 | `docs/FIGMA-WORKFLOW.md` | A task comes with a Figma URL: follow it step by step |
 | `docs/DEVELOPMENT.md` | Setup, running it locally, the full command list, Docker, the generated fixtures |
 | `docs/CODE-QUALITY.md` | The linters and type checks, the git hooks, CI, gitleaks, the editors' format on save |
+| `docs/INTEGRATION.md` | You change what the connection URLs (`/api/connect/`) take or answer: what an integrating application reads, with sample answers |
 | `docs/DEPLOYMENT.md` | You change what production needs: the compose stack's settings, the reverse proxy, backups, updates |
 | `docs/ACCOUNTS.md` | The command-line tool: accounts, clearing the connections |
 | `docs/TEST-CREDENTIALS.md` | You issue test documents to a test wallet, or change the script that does |
